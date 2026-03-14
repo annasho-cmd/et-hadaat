@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>לוח מורה — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root {
+  --ink:      #1c1208;
+  --brown:    #6b3a1f;
+  --gold:     #d4a843;
+  --gold2:    #f0c060;
+  --parch:    #fdf5e0;
+  --parch2:   #f5e8c0;
+  --red:      #8b2020;
+  --green:    #2a6b2a;
+  --amber:    #b8860b;
+  --blue:     #1a4a7a;
+  --surface:  rgba(44,26,14,0.82);
+  --border:   rgba(212,168,67,0.22);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:#0f0a04;
+  color:var(--parch);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── BACKGROUND TEXTURE ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(107,58,31,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(212,168,67,0.08) 0%, transparent 50%),
+    repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(212,168,67,0.015) 60px,rgba(212,168,67,0.015) 61px),
+    repeating-linear-gradient(90deg,transparent,transparent 80px,rgba(212,168,67,0.01) 80px,rgba(212,168,67,0.01) 81px);
+  pointer-events:none;z-index:0;
+}
+
+/* ── LOGIN SCREEN ── */
+#screen-login{
+  position:fixed;inset:0;z-index:100;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center,#2c1a0e 0%,#0f0a04 70%);
+}
+.login-box{
+  text-align:center;
+  width:100%;max-width:380px;
+  padding:0 24px;
+}
+.login-crest{
+  font-size:3.5rem;margin-bottom:16px;
+  animation:float 3s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.login-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.9rem;font-weight:900;
+  color:var(--gold2);margin-bottom:4px;
+}
+.login-sub{font-size:0.85rem;opacity:0.55;margin-bottom:32px;}
+.login-input{
+  width:100%;padding:14px 18px;
+  font-family:'Heebo',sans-serif;font-size:1rem;
+  background:rgba(253,245,224,0.07);
+  border:1.5px solid var(--border);
+  border-radius:6px;color:var(--parch);
+  text-align:center;direction:ltr;
+  outline:none;transition:border 0.2s;
+  margin-bottom:14px;
+}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{
+  width:100%;padding:14px;
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.1rem;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),var(--amber));
+  border:none;border-radius:6px;
+  color:var(--ink);cursor:pointer;
+  transition:opacity 0.2s,transform 0.15s;
+}
+.login-btn:hover{opacity:0.9;transform:translateY(-1px);}
+.login-err{color:#e57373;font-size:0.85rem;margin-top:10px;min-height:20px;}
+
+/* ── APP SHELL ── */
+#app{display:none;flex-direction:column;min-height:100vh;position:relative;z-index:1;}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:linear-gradient(90deg,#1e0f06 0%,#2c1a0e 100%);
+  border-bottom:1.5px solid var(--border);
+  padding:0 24px;height:58px;
+  display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:50;
+}
+.topbar-logo{font-size:1.4rem;}
+.topbar-name{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.1rem;font-weight:900;color:var(--gold2);
+}
+.topbar-year{
+  font-size:0.78rem;opacity:0.5;
+  border:1px solid var(--border);
+  border-radius:3px;padding:2px 8px;
+}
+.topbar-right{margin-right:auto;display:flex;align-items:center;gap:10px;}
+.live-dot{
+  width:8px;height:8px;background:#4caf50;
+  border-radius:50%;animation:pulse 1.8s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.topbar-live{font-size:0.78rem;opacity:0.6;}
+.btn-logout{
+  background:transparent;border:1px solid var(--border);
+  color:rgba(245,230,200,0.5);padding:5px 12px;
+  border-radius:4px;cursor:pointer;font-size:0.78rem;
+  font-family:'Heebo',sans-serif;transition:all 0.2s;
+}
+.btn-logout:hover{border-color:var(--red);color:#e57373;}
+
+/* ── BREADCRUMB ── */
+.breadcrumb{
+  padding:10px 24px;display:flex;align-items:center;gap:8px;
+  font-size:0.82rem;opacity:0.55;
+  border-bottom:1px solid rgba(212,168,67,0.08);
+}
+.bc-item{cursor:pointer;transition:opacity 0.2s;}
+.bc-item:hover{opacity:1;color:var(--gold);}
+.bc-sep{opacity:0.3;}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:24px;max-width:1300px;margin:0 auto;width:100%;}
+.screen.active{display:block;}
+
+/* ── HOME: SUBJECT CARDS ── */
+.home-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:28px;flex-wrap:wrap;gap:12px;
+}
+.home-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:2rem;font-weight:900;color:var(--gold2);
+}
+.home-subtitle{font-size:0.88rem;opacity:0.5;margin-top:4px;}
+.btn-add{
+  padding:9px 20px;
+  background:rgba(212,168,67,0.12);
+  border:1.5px solid var(--gold);
+  border-radius:5px;color:var(--gold);
+  cursor:pointer;font-family:'Heebo',sans-serif;
+  font-size:0.88rem;font-weight:700;
+  transition:all 0.2s;
+}
+.btn-add:hover{background:rgba(212,168,67,0.22);}
+
+.subjects-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:18px;
+}
+.subject-card{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:10px;padding:22px;
+  cursor:pointer;
+  transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;
+  position:relative;overflow:hidden;
+}
+.subject-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--card-color,var(--gold)),transparent);
+}
+.subject-card:hover{
+  transform:translateY(-3px);
+  border-color:var(--card-color,var(--gold));
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+}
+.subject-icon{font-size:2rem;margin-bottom:12px;}
+.subject-name{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.2rem;font-weight:700;
+  color:var(--parch);margin-bottom:6px;
+}
+.subject-meta{font-size:0.8rem;opacity:0.55;margin-bottom:14px;}
+.subject-classes{display:flex;flex-wrap:wrap;gap:6px;}
+.class-tag{
+  padding:3px 10px;border-radius:20px;font-size:0.75rem;
+  background:rgba(212,168,67,0.1);border:1px solid var(--border);
+  color:var(--gold);
+}
+.class-tag.group{
+  background:rgba(26,74,122,0.2);border-color:rgba(100,160,220,0.3);
+  color:#87ceeb;
+}
+.subject-arrow{
+  position:absolute;left:18px;top:50%;transform:translateY(-50%);
+  font-size:1.2rem;opacity:0.2;transition:opacity 0.2s;
+}
+.subject-card:hover .subject-arrow{opacity:0.7;}
+
+/* ── CLASS VIEW ── */
+.class-header{margin-bottom:24px;}
+.class-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.6rem;font-weight:900;color:var(--gold2);
+  margin-bottom:4px;
+}
+.class-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.class-tab{
+  padding:8px 18px;
+  border:1.5px solid var(--border);
+  border-radius:5px;background:transparent;
+  color:rgba(245,230,200,0.6);cursor:pointer;
+  font-family:'Heebo',sans-serif;font-size:0.88rem;
+  transition:all 0.2s;
+}
+.class-tab:hover{border-color:var(--gold);color:var(--gold2);}
+.class-tab.active{background:var(--gold);color:var(--ink);font-weight:700;border-color:var(--gold);}
+
+/* ── STATS ROW ── */
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:12px;margin-bottom:20px;
+}
+@media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+.stat-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:8px;padding:14px 16px;text-align:center;
+}
+.stat-n{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:2rem;font-weight:900;color:var(--gold2);line-height:1;
+}
+.stat-l{font-size:0.75rem;opacity:0.55;margin-top:4px;}
+
+/* ── MAIN GRID ── */
+.main-grid{
+  display:grid;grid-template-columns:1fr 320px;
+  gap:20px;
+}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr;}}
+
+/* ── PANEL ── */
+.panel{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:8px;overflow:hidden;
+  margin-bottom:18px;
+}
+.panel-hd{
+  background:rgba(107,58,31,0.3);
+  padding:12px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:0.95rem;font-weight:700;color:var(--gold2);
+}
+.panel-bd{padding:16px;}
+
+/* ── STUDENT LIST ── */
+.student-list{display:flex;flex-direction:column;gap:7px;}
+.student-row{
+  background:rgba(253,245,224,0.04);
+  border:1px solid var(--border);
+  border-radius:6px;padding:11px 14px;
+  display:grid;
+  grid-template-columns:30px 1fr auto;
+  align-items:center;gap:10px;
+  cursor:pointer;transition:background 0.15s;
+}
+.student-row:hover{background:rgba(212,168,67,0.07);}
+.student-row.sel{border-color:var(--gold);background:rgba(212,168,67,0.09);}
+.s-avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--brown);
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.85rem;font-weight:700;color:var(--gold2);
+  border:1.5px solid var(--border);
+}
+.s-name{font-weight:700;font-size:0.9rem;}
+.s-char{font-size:0.72rem;opacity:0.5;margin-top:1px;}
+.s-lights{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:110px;}
+.s-dot{
+  width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.55rem;font-weight:700;color:#fff;
+  border:1px solid rgba(255,255,255,0.15);
+}
+.s-dot.done{background:var(--green);}
+.s-dot.curr{background:var(--amber);animation:pulse 1.2s infinite;}
+.s-dot.none{background:#333;}
+
+/* ── WALL (frontal) ── */
+.wall{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:10px;
+}
+.wall-card{
+  background:rgba(44,26,14,0.95);
+  border:1.5px solid var(--border);
+  border-radius:6px;padding:13px;
+  animation:slideUp 0.35s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.wall-name{
+  font-family:'Frank Ruhl Libre',serif;
+  font-weight:700;color:var(--gold2);
+  font-size:0.88rem;margin-bottom:6px;
+}
+.wall-text{font-size:0.82rem;line-height:1.6;opacity:0.85;}
+
+/* ── DETAIL ── */
+.detail-section{margin-bottom:16px;}
+.detail-st-title{
+  font-size:0.75rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;
+  margin-bottom:6px;
+}
+.detail-field-label{font-size:0.72rem;color:var(--gold);margin:6px 0 3px;}
+.detail-answer{
+  background:rgba(253,245,224,0.06);
+  border:1px solid var(--border);
+  border-radius:4px;padding:9px 12px;
+  font-size:0.84rem;line-height:1.65;
+  white-space:pre-wrap;
+}
+.detail-answer.empty{opacity:0.3;font-style:italic;}
+
+/* ── INNER TABS ── */
+.itabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.itab{
+  padding:5px 11px;
+  border:1px solid var(--border);
+  border-radius:3px;background:transparent;
+  color:rgba(245,230,200,0.55);cursor:pointer;
+  font-size:0.78rem;font-family:'Heebo',sans-serif;
+  transition:all 0.15s;
+}
+.itab:hover{color:var(--gold2);border-color:var(--gold);}
+.itab.active{background:var(--gold);color:var(--ink);font-weight:700;border-color:var(--gold);}
+
+.empty-state{
+  text-align:center;padding:36px 20px;
+  opacity:0.3;font-family:'Frank Ruhl Libre',serif;font-size:1rem;
+}
+.btn-sm{
+  background:transparent;border:1px solid var(--border);
+  color:var(--gold);padding:5px 12px;border-radius:4px;
+  cursor:pointer;font-size:0.78rem;font-family:'Heebo',sans-serif;
+  transition:all 0.15s;
+}
+.btn-sm:hover{background:rgba(212,168,67,0.1);}
+
+/* ── ADD SUBJECT MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  z-index:200;display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:#1e1008;border:1.5px solid var(--gold);
+  border-radius:10px;padding:28px;width:100%;max-width:440px;
+  direction:rtl;
+}
+.modal-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.2rem;font-weight:700;color:var(--gold2);
+  margin-bottom:20px;
+}
+.modal-field{margin-bottom:14px;}
+.modal-label{font-size:0.82rem;opacity:0.6;margin-bottom:5px;}
+.modal-input{
+  width:100%;padding:10px 14px;
+  background:rgba(253,245,224,0.06);
+  border:1.5px solid var(--border);
+  border-radius:5px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:0.95rem;
+  outline:none;transition:border 0.2s;
+}
+.modal-input:focus{border-color:var(--gold);}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+.modal-save{
+  padding:9px 22px;background:var(--gold);
+  border:none;border-radius:5px;
+  color:var(--ink);font-weight:700;
+  font-family:'Heebo',sans-serif;cursor:pointer;
+}
+.modal-cancel{
+  padding:9px 18px;background:transparent;
+  border:1px solid var(--border);border-radius:5px;
+  color:var(--parch);font-family:'Heebo',sans-serif;cursor:pointer;
+}
+
+/* UNITS LIST */
+.units-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.unit-row{
+  background:rgba(253,245,224,0.04);
+  border:1px solid var(--border);
+  border-radius:6px;padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;transition:background 0.15s;
+}
+.unit-row:hover{background:rgba(212,168,67,0.07);}
+.unit-name{font-family:'Frank Ruhl Libre',serif;font-weight:700;font-size:1rem;}
+.unit-meta{font-size:0.75rem;opacity:0.5;margin-top:2px;}
+.unit-badge{
+  padding:3px 10px;border-radius:20px;
+  font-size:0.72rem;background:rgba(212,168,67,0.1);
+  border:1px solid var(--border);color:var(--gold);
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-crest">🏛</div>
+    <div class="login-title">עת הדעת</div>
+    <div class="login-sub">לוח מורה · תשפ״ה</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="סיסמה"
+      onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">כניסה ←</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">🏛</div>
+    <div>
+      <div class="topbar-name">עת הדעת</div>
+    </div>
+    <span class="topbar-year">תשפ״ה · 2024–2025</span>
+    <div class="topbar-right">
+      <div class="live-dot"></div>
+      <span class="topbar-live">חי</span>
+      <button class="btn-logout" onclick="doLogout()">יציאה</button>
+    </div>
+  </div>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb" id="breadcrumb">
+    <span class="bc-item" onclick="navHome()">🏠 דף הבית</span>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screen-home">
+    <div class="home-header">
+      <div>
+        <div class="home-title">שלום, אנה 👋</div>
+        <div class="home-subtitle">תשפ״ה · בחרי מקצוע לצפייה</div>
+      </div>
+      <button class="btn-add" onclick="openAddSubject()">＋ מקצוע חדש</button>
+    </div>
+    <div class="subjects-grid" id="subjects-grid"></div>
+
+    <!-- GAMES SECTION -->
+    <div style="margin-top:36px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+        <div style="font-family:'Frank Ruhl Libre',serif; font-size:1rem; font-weight:700; color:var(--gold); opacity:0.7; letter-spacing:0.06em; text-transform:uppercase;">
+          🎮 משחקי היסטוריה
+        </div>
+        <button class="btn-add" onclick="openNewGameModal()">＋ משחק חדש</button>
+      </div>
+      <div class="subjects-grid" id="games-grid">
+        <div class="empty-state" style="grid-column:1/-1; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:32px;">
+          עוד לא נוצרו משחקים — לחצי על "＋ משחק חדש" להתחיל
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASS SCREEN -->
+  <div class="screen" id="screen-class">
+    <div class="class-header">
+      <div class="class-title" id="class-title"></div>
+      <div class="class-tabs" id="class-tabs"></div>
+    </div>
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-n" id="st-total">0</div><div class="stat-l">נכנסו</div></div>
+      <div class="stat-card"><div class="stat-n" id="st-active" style="color:#4caf50">0</div><div class="stat-l">פעילים</div></div>
+      <div class="stat-card"><div class="stat-n" id="st-done" style="color:var(--gold)">0</div><div class="stat-l">סיימו</div></div>
+      <div class="stat-card"><div class="stat-n" id="st-avg" style="color:#87ceeb">0</div><div class="stat-l">ממוצע תחנות</div></div>
+    </div>
+    <div class="main-grid">
+      <div>
+        <!-- FRONTAL PANEL -->
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="panel-title">📢 פרונטלי — תשובות בזמן אמת</div>
+            <button class="btn-sm" onclick="refreshFrontal()">🔄</button>
+          </div>
+          <div class="panel-bd">
+            <div class="itabs" id="frontal-tabs"></div>
+            <div id="frontal-wall" class="wall">
+              <div class="empty-state">⏳ ממתין לתשובות...</div>
+            </div>
+          </div>
+        </div>
+        <!-- DETAIL PANEL -->
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="panel-title" id="detail-title">📋 בחרי תלמיד/ה לצפייה בתשובות</div>
+          </div>
+          <div class="panel-bd" id="detail-body">
+            <div class="empty-state">לחצי על שם תלמיד/ה ברשימה</div>
+          </div>
+        </div>
+      </div>
+      <!-- STUDENT LIST -->
+      <div>
+        <div class="panel" style="position:sticky;top:70px;">
+          <div class="panel-hd">
+            <div class="panel-title">👥 תלמידים</div>
+            <button class="btn-sm" onclick="refreshStudents()">🔄</button>
+          </div>
+          <div class="panel-bd" style="max-height:calc(100vh - 220px);overflow-y:auto;">
+            <div class="student-list" id="student-list">
+              <div class="empty-state">ממתין...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME EDITOR SCREEN -->
+<div class="screen" id="screen-game-editor">
+  <div class="home-header">
+    <div>
+      <div class="home-title" id="ge-title">✏️ עריכת משחק</div>
+      <div class="home-subtitle" id="ge-subtitle">0 שאלות</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-add" style="background:rgba(74,144,217,0.12);border-color:#4a90d9;color:#87ceeb;" onclick="launchGame()">▶ הפעל משחק</button>
+      <button class="btn-add" onclick="openAddQuestionModal()">＋ שאלה חדשה</button>
+    </div>
+  </div>
+
+  <div id="ge-question-list" style="display:flex;flex-direction:column;gap:10px;">
+    <div class="empty-state" style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:32px;">
+      לחצי על "＋ שאלה חדשה" להוסיף את השאלה הראשונה
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: שם משחק חדש -->
+<div class="modal-overlay" id="modal-new-game">
+  <div class="modal">
+    <div class="modal-title">🎮 משחק חדש</div>
+    <div class="modal-field">
+      <div class="modal-label">שם המשחק</div>
+      <input class="modal-input" id="m-game-name" placeholder='למשל: מסעי הצלב — שיעור 4'
+        onkeydown="if(event.key==='Enter')createGame()" />
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeAllModals()">ביטול</button>
+      <button class="modal-save" onclick="createGame()">צור משחק ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: עריכת שאלה -->
+<div class="modal-overlay" id="modal-question" style="align-items:flex-start;padding:20px;overflow-y:auto;">
+  <div class="modal" style="max-width:640px;margin:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" id="mq-title" style="margin:0;">שאלה חדשה</div>
+      <button class="btn-sm" onclick="closeAllModals()">✕</button>
+    </div>
+
+    <!-- סוג שאלה -->
+    <div class="modal-field">
+      <div class="modal-label">סוג שאלה</div>
+      <select class="modal-input" id="mq-type" onchange="mqUpdateType()" style="cursor:pointer;">
+        <option value="mc">רב-ברירה (Multiple Choice)</option>
+        <option value="tf">נכון / לא נכון</option>
+        <option value="open">שאלה פתוחה</option>
+        <option value="order">סדר כרונולוגי</option>
+      </select>
+    </div>
+
+    <!-- טקסט שאלה -->
+    <div class="modal-field">
+      <div class="modal-label">טקסט השאלה</div>
+      <textarea class="modal-input" id="mq-text" rows="3" placeholder="הכניסי את השאלה..." style="resize:vertical;"></textarea>
+    </div>
+
+    <!-- מדיה -->
+    <div class="modal-field">
+      <div class="modal-label">מדיה (אופציונלי)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="mq-media-tabs">
+        <button class="itab active" onclick="mqSetMedia('none',this)">ללא</button>
+        <button class="itab" onclick="mqSetMedia('image_url',this)">🖼 קישור תמונה</button>
+        <button class="itab" onclick="mqSetMedia('image_file',this)">📁 העלאת תמונה</button>
+        <button class="itab" onclick="mqSetMedia('youtube',this)">▶ YouTube</button>
+        <button class="itab" onclick="mqSetMedia('video_file',this)">🎬 העלאת וידאו</button>
+      </div>
+      <div id="mq-media-none"></div>
+      <div id="mq-media-image_url" style="display:none;">
+        <input class="modal-input" id="mq-img-url" type="url" placeholder="https://..." oninput="mqPreviewImg()">
+        <div id="mq-img-preview" style="margin-top:6px;border-radius:8px;overflow:hidden;max-height:150px;background:#111;"></div>
+      </div>
+      <div id="mq-media-image_file" style="display:none;">
+        <input type="file" id="mq-img-file" accept="image/*" onchange="mqPreviewFile()" style="color:var(--parch);">
+        <div id="mq-img-file-preview" style="margin-top:6px;border-radius:8px;overflow:hidden;max-height:150px;background:#111;"></div>
+      </div>
+      <div id="mq-media-youtube" style="display:none;">
+        <input class="modal-input" id="mq-yt-url" type="url" placeholder="https://www.youtube.com/watch?v=...">
+      </div>
+      <div id="mq-media-video_file" style="display:none;">
+        <input type="file" id="mq-vid-file" accept="video/*" style="color:var(--parch);">
+        <div id="mq-vid-status" style="font-size:0.82rem;opacity:0.5;margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- רב-ברירה -->
+    <div id="mq-sec-mc">
+      <div class="modal-field">
+        <div class="modal-label">תשובות — סמני ● את הנכונה</div>
+        <div style="display:flex;flex-direction:column;gap:8px;" id="mq-mc-opts">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="radio" name="mq-correct" value="0" style="accent-color:#4caf50;transform:scale(1.2);">
+            <span style="font-size:0.8rem;opacity:0.5;width:16px;">א</span>
+            <input class="modal-input mq-opt" placeholder="תשובה א" style="margin:0;">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="radio" name="mq-correct" value="1" style="accent-color:#4caf50;transform:scale(1.2);">
+            <span style="font-size:0.8rem;opacity:0.5;width:16px;">ב</span>
+            <input class="modal-input mq-opt" placeholder="תשובה ב" style="margin:0;">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="radio" name="mq-correct" value="2" style="accent-color:#4caf50;transform:scale(1.2);">
+            <span style="font-size:0.8rem;opacity:0.5;width:16px;">ג</span>
+            <input class="modal-input mq-opt" placeholder="תשובה ג" style="margin:0;">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="radio" name="mq-correct" value="3" style="accent-color:#4caf50;transform:scale(1.2);">
+            <span style="font-size:0.8rem;opacity:0.5;width:16px;">ד</span>
+            <input class="modal-input mq-opt" placeholder="תשובה ד" style="margin:0;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- נכון/לא נכון -->
+    <div id="mq-sec-tf" style="display:none;">
+      <div class="modal-field">
+        <div class="modal-label">תשובה נכונה</div>
+        <div style="display:flex;gap:20px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--parch);">
+            <input type="radio" name="mq-tf" value="true" style="accent-color:#4caf50;transform:scale(1.3);"> ✅ נכון
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--parch);">
+            <input type="radio" name="mq-tf" value="false" style="accent-color:#e57373;transform:scale(1.3);"> ❌ לא נכון
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- פתוחה -->
+    <div id="mq-sec-open" style="display:none;">
+      <div class="modal-field">
+        <div class="modal-label">מילות מפתח / תשובה לדוגמה (לעזרתך בלבד)</div>
+        <input class="modal-input" id="mq-sample" placeholder="לא חובה">
+      </div>
+    </div>
+
+    <!-- כרונולוגי -->
+    <div id="mq-sec-order" style="display:none;">
+      <div class="modal-field">
+        <div class="modal-label">פריטים בסדר הנכון (מלמעלה למטה)</div>
+        <div id="mq-order-items" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.8rem;opacity:0.5;width:18px;">1</span><input class="modal-input mq-order-opt" placeholder="אירוע ראשון" style="margin:0;"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.8rem;opacity:0.5;width:18px;">2</span><input class="modal-input mq-order-opt" placeholder="אירוע שני" style="margin:0;"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.8rem;opacity:0.5;width:18px;">3</span><input class="modal-input mq-order-opt" placeholder="אירוע שלישי" style="margin:0;"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.8rem;opacity:0.5;width:18px;">4</span><input class="modal-input mq-order-opt" placeholder="אירוע רביעי" style="margin:0;"></div>
+        </div>
+        <button class="btn-sm" onclick="mqAddOrderRow()">+ הוסף פריט</button>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeAllModals()">ביטול</button>
+      <button class="modal-save" onclick="saveQuestion()">שמור שאלה ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SUBJECT MODAL -->
+<div class="modal-overlay" id="modal-subject">
+  <div class="modal">
+    <div class="modal-title">➕ הוספת מקצוע חדש</div>
+    <div class="modal-field">
+      <div class="modal-label">שם המקצוע</div>
+      <input class="modal-input" id="m-subject-name" placeholder="למשל: היסטוריה" />
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">כיתות / קבוצות (מופרדות בפסיק)</div>
+      <input class="modal-input" id="m-subject-classes" placeholder='למשל: ח1, ח2 (או "קבוצת לימוד" לבינתחומי)' />
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">אייקון (אמוג׳י)</div>
+      <input class="modal-input" id="m-subject-icon" placeholder="📚" style="max-width:100px;" />
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">ביטול</button>
+      <button class="modal-save" onclick="saveSubject()">שמירה ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG — שנה סיסמה לאחר הורדה
+// ══════════════════════════════════════════
+const TEACHER_PASSWORD = "anna2025";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══════════════════════════════════════════
+// DEFAULT SUBJECTS (first load)
+// ══════════════════════════════════════════
+const DEFAULT_SUBJECTS = [
+  {
+    id: 'history', name: 'היסטוריה', icon: '⚔',
+    color: '#d4a843',
+    classes: ['ח׳3','ח׳5'],
+    isGroup: false,
+    units: [
+      { id: 'crusades', name: 'מסעי הצלב', lessons: ['שיעור 3','שיעור 4'], dbKey: 'lesson' }
+    ]
+  },
+  {
+    id: 'tarbut', name: 'תרבות ישראל', icon: '✡',
+    color: '#4a90d9',
+    classes: ['ח׳2','ח׳3','ח׳5'],
+    isGroup: false,
+    units: []
+  },
+  {
+    id: 'bein7', name: 'בינתחומי ז׳', icon: '🔬',
+    color: '#7cb87c',
+    classes: ['קבוצת לימוד'],
+    isGroup: true,
+    units: []
+  },
+  {
+    id: 'bein8', name: 'בינתחומי ח׳', icon: '🧩',
+    color: '#b87cb8',
+    classes: ['קבוצת לימוד'],
+    isGroup: true,
+    units: []
+  }
+];
+
+// Lesson configs for Firebase
+const LESSON_CONFIGS = {
+  lesson3: {
+    name: 'שיעור 3 — קשיי מסעי הצלב',
+    stations: ['s1','s2','s3','s4','s5'],
+    stationLabels: ['תחנה 1','תחנה 2','תחנה 3','תחנה 4','תחנה 5'],
+    frontalStation: 's1',
+    frontalField: 'categories',
+    frontalLabel: 'מיון הגורמים',
+    answers: {
+      s1:[{field:'categories',label:'מיון הגורמים'}],
+      s2:[{field:'character',label:'דמות שנבחרה'}],
+      s3:[{field:'difficulties',label:'קשיים שחזויים'}],
+      s4:[{field:'verification',label:'אימות התחזיות'}],
+      s5:[{field:'journal',label:'יומן המסע'}]
+    }
+  },
+  lesson4: {
+    name: 'שיעור 4 — כיבוש ירושלים',
+    stations: ['s1','s2','s3a','s3b','journal4'],
+    stationLabels: ['תחנה 1','תחנה 2','תחנה 3א','תחנה 3ב','תחנה 4'],
+    frontalStation: 's1',
+    frontalField: 'ideas',
+    frontalLabel: 'רעיונות פריצת החומה',
+    answers: {
+      s1:[{field:'ideas',label:'רעיונות פריצת החומה'},{field:'bonus',label:'שאלת הבונוס'}],
+      s2:[{field:'solution',label:'פתרון הספינות'},{field:'compare',label:'השוואה עצמית'}],
+      s3a:[{field:'q1',label:'תיאור 15.7.1099'},{field:'q2',label:'הסתירה הדתית'}],
+      s3b:[{field:'videoQ',label:'חידוש מהסרטון'},{field:'compare',label:'השוואה היסטורית'}],
+      journal4:[{field:'p1',label:'הכניסה לירושלים'},{field:'p2',label:'מה ראיתי ברחובות'},{field:'p3',label:'הערבוב הרגשי'},{field:'p4',label:'האם שווה היה?'}]
+    }
+  }
+};
+
+const charNames = {
+  knight:'⚔ גיום — אביר', noble:'👑 רנו — אציל',
+  peasant:'🌾 פייר — איכר', priest:'✝ פרר — כומר', merchant:'⚖ מרקו — סוחר'
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let subjects = [...DEFAULT_SUBJECTS];
+let currentSubject = null;
+let currentClass = null;
+let currentLesson = 'lesson4';
+let currentFrontalTab = 's1';
+let selectedStudent = null;
+let studentsData = {};
+let dbListener = null;
+
+// ══════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════
+function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === TEACHER_PASSWORD) {
+    document.getElementById('screen-login').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    renderHome();
+    loadGames();
+  } else {
+    document.getElementById('login-err').textContent = 'סיסמה שגויה. נסי שוב.';
+    document.getElementById('pw-input').value = '';
+  }
+}
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('pw-input').value = '';
+}
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function navHome() {
+  if (dbListener) { db.ref(dbListener).off(); dbListener = null; }
+  currentSubject = null; currentClass = null;
+  updateBreadcrumb([]);
+  showScreen('screen-home');
+}
+
+function updateBreadcrumb(items) {
+  const bc = document.getElementById('breadcrumb');
+  let html = '<span class="bc-item" onclick="navHome()">🏠 דף הבית</span>';
+  items.forEach((item,i) => {
+    html += '<span class="bc-sep">›</span>';
+    if (i < items.length - 1)
+      html += `<span class="bc-item" onclick="${item.fn}">${item.label}</span>`;
+    else
+      html += `<span class="bc-item" style="opacity:0.9;color:var(--gold2)">${item.label}</span>`;
+  });
+  bc.innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════
+function renderHome() {
+  const grid = document.getElementById('subjects-grid');
+  grid.innerHTML = '';
+  subjects.forEach(sub => {
+    const card = document.createElement('div');
+    card.className = 'subject-card';
+    card.style.setProperty('--card-color', sub.color);
+    const tags = sub.classes.map(c =>
+      `<span class="class-tag ${sub.isGroup?'group':''}">${c}</span>`
+    ).join('');
+    card.innerHTML = `
+      <div class="subject-icon">${sub.icon}</div>
+      <div class="subject-name">${sub.name}</div>
+      <div class="subject-meta">${sub.units.length} יחידות · ${sub.classes.length} ${sub.isGroup?'קבוצות':'כיתות'}</div>
+      <div class="subject-classes">${tags}</div>
+      <div class="subject-arrow">‹</div>`;
+    card.onclick = () => openSubject(sub);
+    grid.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════
+// SUBJECT → CLASS VIEW
+// ══════════════════════════════════════════
+function openSubject(sub) {
+  currentSubject = sub;
+  updateBreadcrumb([{label: sub.name}]);
+
+  // Build class tabs
+  const tabs = document.getElementById('class-tabs');
+  tabs.innerHTML = sub.classes.map((cls,i) =>
+    `<button class="class-tab ${i===0?'active':''}" onclick="switchClass('${cls}',this)">${cls}</button>`
+  ).join('');
+
+  document.getElementById('class-title').textContent = sub.icon + ' ' + sub.name;
+
+  // Build lesson tabs for frontal
+  const lCfg = LESSON_CONFIGS[currentLesson];
+  const ftabs = document.getElementById('frontal-tabs');
+  ftabs.innerHTML = lCfg.stations.map((s,i) =>
+    `<button class="itab ${s===currentFrontalTab?'active':''}" onclick="switchFrontal('${s}',this)">${lCfg.stationLabels[i]}</button>`
+  ).join('');
+
+  switchClass(sub.classes[0], tabs.firstChild);
+  showScreen('screen-class');
+}
+
+function switchClass(cls, btn) {
+  currentClass = cls;
+  selectedStudent = null;
+  document.querySelectorAll('.class-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  updateBreadcrumb([
+    {label: currentSubject.name, fn: `openSubject(subjects.find(s=>s.id==='${currentSubject.id}'))`},
+    {label: cls}
+  ]);
+  loadStudents();
+}
+
+// ══════════════════════════════════════════
+// FIREBASE — STUDENTS
+// ══════════════════════════════════════════
+function loadStudents() {
+  if (dbListener) db.ref(dbListener).off();
+  const key = currentLesson + '/students';
+  dbListener = key;
+  db.ref(key).on('value', snap => {
+    studentsData = snap.val() || {};
+    renderStudents();
+    updateStats();
+    refreshFrontal();
+    if (selectedStudent) showDetail(selectedStudent);
+  });
+}
+
+function refreshStudents() { renderStudents(); updateStats(); }
+
+function renderStudents() {
+  const list = document.getElementById('student-list');
+  const cfg = LESSON_CONFIGS[currentLesson];
+  const names = Object.keys(studentsData).sort();
+  if (!names.length) {
+    list.innerHTML = '<div class="empty-state">ממתין לכניסת תלמידים...</div>';
+    return;
+  }
+  list.innerHTML = '';
+  names.forEach(name => {
+    const s = studentsData[name] || {};
+    const info = s.info || {};
+    const stations = s.stations || {};
+    const char = charNames[info.character] || '❓';
+    const row = document.createElement('div');
+    row.className = 'student-row' + (selectedStudent === name ? ' sel' : '');
+    row.onclick = () => showDetail(name);
+    const dots = cfg.stations.map(st => {
+      const done = stations[st] && stations[st].completed;
+      const curr = info.currentStation === st;
+      const cls = done ? 'done' : curr ? 'curr' : 'none';
+      const n = st.replace(/[^0-9]/g,'') || '?';
+      return `<div class="s-dot ${cls}" title="${st}">${n}</div>`;
+    }).join('');
+    row.innerHTML = `
+      <div class="s-avatar">${name[0]}</div>
+      <div>
+        <div class="s-name">${name}</div>
+        <div class="s-char">${char}</div>
+      </div>
+      <div class="s-lights">${dots}</div>`;
+    list.appendChild(row);
+  });
+}
+
+function updateStats() {
+  const cfg = LESSON_CONFIGS[currentLesson];
+  const names = Object.keys(studentsData);
+  const now = Date.now();
+  let active=0, done=0, total=0, totalSt=0;
+  names.forEach(name => {
+    const s = studentsData[name]||{};
+    const info = s.info||{};
+    const stations = s.stations||{};
+    total++;
+    if (info.entered && now - new Date(info.entered).getTime() < 12*60*1000) active++;
+    const cnt = Object.keys(stations).filter(k=>stations[k].completed).length;
+    totalSt += cnt;
+    if (cnt >= cfg.stations.length) done++;
+  });
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-active').textContent = active;
+  document.getElementById('st-done').textContent = done;
+  document.getElementById('st-avg').textContent = total ? (totalSt/total).toFixed(1) : 0;
+}
+
+// ══════════════════════════════════════════
+// FRONTAL WALL
+// ══════════════════════════════════════════
+function switchFrontal(key, btn) {
+  currentFrontalTab = key;
+  document.querySelectorAll('.itab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  refreshFrontal();
+}
+
+function refreshFrontal() {
+  const cfg = LESSON_CONFIGS[currentLesson];
+  const fields = (cfg.answers[currentFrontalTab]||[]);
+  const field = fields[0];
+  const wall = document.getElementById('frontal-wall');
+  const entries = [];
+  Object.keys(studentsData).forEach(name => {
+    const st = (studentsData[name].stations||{})[currentFrontalTab];
+    if (st && st.completed && field && st[field.field]) {
+      entries.push({name, text: st[field.field], char: (studentsData[name].info||{}).character});
+    }
+  });
+  if (!entries.length) {
+    wall.innerHTML = '<div class="empty-state">⏳ ממתין לתשובות...</div>';
+    return;
+  }
+  wall.innerHTML = '';
+  entries.forEach(e => {
+    const c = document.createElement('div');
+    c.className = 'wall-card';
+    const cl = charNames[e.char]?.split(' ')[0]||'';
+    c.innerHTML = `<div class="wall-name">${cl} ${e.name}</div>
+      <div class="wall-text">${e.text.slice(0,180)}${e.text.length>180?'...':''}</div>`;
+    wall.appendChild(c);
+  });
+}
+
+// ══════════════════════════════════════════
+// STUDENT DETAIL
+// ══════════════════════════════════════════
+function showDetail(name) {
+  selectedStudent = name;
+  renderStudents();
+  const s = studentsData[name]||{};
+  const stations = s.stations||{};
+  const cfg = LESSON_CONFIGS[currentLesson];
+  const info = s.info||{};
+  const char = charNames[info.character]||'לא נבחר';
+  document.getElementById('detail-title').textContent = `📋 ${name} · ${char}`;
+  let html = '';
+  cfg.stations.forEach((stKey,i) => {
+    const st = stations[stKey]||{};
+    const done = st.completed;
+    const color = done ? '#4caf50' : '#666';
+    const time = st.completedAt ? ' · ' + new Date(st.completedAt).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : '';
+    html += `<div class="detail-section">
+      <div class="detail-st-title" style="color:${color}">
+        ${done?'✓':'○'} ${cfg.stationLabels[i]}${time}
+      </div>`;
+    if (!done) {
+      html += '<div class="detail-answer empty">טרם הושלמה</div>';
+    } else {
+      (cfg.answers[stKey]||[]).forEach(f => {
+        const val = st[f.field]||'';
+        html += `<div class="detail-field-label">${f.label}</div>
+          <div class="detail-answer ${!val?'empty':''}">${val||'(לא מולא)'}</div>`;
+      });
+    }
+    html += '</div>';
+  });
+  document.getElementById('detail-body').innerHTML = html||'<div class="empty-state">אין נתונים</div>';
+}
+
+// ══════════════════════════════════════════
+// ADD SUBJECT MODAL
+// ══════════════════════════════════════════
+function openAddSubject() {
+  document.getElementById('modal-subject').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-subject').classList.remove('open');
+  closeAllModals();
+}
+function saveSubject() {
+  const name = document.getElementById('m-subject-name').value.trim();
+  const classesRaw = document.getElementById('m-subject-classes').value.trim();
+  const icon = document.getElementById('m-subject-icon').value.trim() || '📚';
+  if (!name) return;
+  const classes = classesRaw ? classesRaw.split(',').map(c=>c.trim()).filter(Boolean) : ['קבוצת לימוד'];
+  const isGroup = classes.some(c => c.includes('קבוצ'));
+  const colors = ['#d4a843','#4a90d9','#7cb87c','#b87cb8','#e07050','#50a0e0'];
+  subjects.push({
+    id: 'subj_' + Date.now(),
+    name, icon, color: colors[subjects.length % colors.length],
+    classes, isGroup, units: []
+  });
+  closeModal();
+  renderHome();
+  document.getElementById('m-subject-name').value = '';
+  document.getElementById('m-subject-classes').value = '';
+  document.getElementById('m-subject-icon').value = '';
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// GAMES MANAGEMENT
+// ══════════════════════════════════════════
+let games = {}; // { gameId: { name, questions:[], createdAt } }
+let currentGameId = null;
+let editingQIdx = -1;
+let mqMediaTab = 'none';
+
+// Load games from Firebase on login
+function loadGames() {
+  db.ref('games').on('value', snap => {
+    games = snap.val() || {};
+    renderGamesGrid();
+  });
+}
+
+function renderGamesGrid() {
+  const grid = document.getElementById('games-grid');
+  const gameList = Object.entries(games);
+  if (!gameList.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:32px;">
+      עוד לא נוצרו משחקים — לחצי על "＋ משחק חדש" להתחיל
+    </div>`;
+    return;
+  }
+  grid.innerHTML = gameList.map(([id, g]) => {
+    const qCount = (g.questions || []).length;
+    const date = g.createdAt ? new Date(g.createdAt).toLocaleDateString('he-IL') : '';
+    return `<div class="subject-card" style="--card-color:#4a90d9;">
+      <div class="subject-icon">🎮</div>
+      <div class="subject-name">${g.name}</div>
+      <div class="subject-meta">${qCount} שאלות · ${date}</div>
+      <div class="subject-classes" style="margin-bottom:12px;">
+        <span class="class-tag group">רב-ברירה</span>
+        <span class="class-tag group">מדיה</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-sm" onclick="event.stopPropagation();openGameEditor('${id}')">✏️ ערוך</button>
+        <button class="btn-sm" style="color:#87ceeb;border-color:rgba(100,160,220,0.4);" onclick="event.stopPropagation();launchGame('${id}')">▶ הפעל</button>
+        <button class="btn-sm" style="color:#e57373;border-color:rgba(200,80,80,0.3);" onclick="event.stopPropagation();deleteGame('${id}')">🗑</button>
+      </div>
+      <div class="subject-arrow">‹</div>
+    </div>`;
+  }).join('');
+}
+
+function openNewGameModal() {
+  document.getElementById('m-game-name').value = '';
+  document.getElementById('modal-new-game').classList.add('open');
+  setTimeout(() => document.getElementById('m-game-name').focus(), 100);
+}
+
+function createGame() {
+  const name = document.getElementById('m-game-name').value.trim();
+  if (!name) { document.getElementById('m-game-name').style.borderColor = '#e57373'; return; }
+  const id = 'game_' + Date.now();
+  const game = { name, questions: [], createdAt: Date.now() };
+  db.ref('games/' + id).set(game).then(() => {
+    closeAllModals();
+    currentGameId = id;
+    games[id] = game;
+    openGameEditor(id);
+  });
+}
+
+function openGameEditor(id) {
+  currentGameId = id;
+  const g = games[id];
+  updateBreadcrumb([{ label: '🎮 ' + g.name }]);
+  document.getElementById('ge-title').textContent = '✏️ ' + g.name;
+  renderQuestionList();
+  showScreen('screen-game-editor');
+}
+
+function deleteGame(id) {
+  if (!confirm('למחוק את המשחק "' + games[id]?.name + '"?')) return;
+  db.ref('games/' + id).remove();
+}
+
+function launchGame(id) {
+  const gid = id || currentGameId;
+  window.open('game_teacher.html?game=' + gid, '_blank');
+}
+
+// ── Question List ──
+function renderQuestionList() {
+  const g = games[currentGameId];
+  if (!g) return;
+  const qs = g.questions || [];
+  document.getElementById('ge-subtitle').textContent = qs.length + ' שאלות';
+
+  const el = document.getElementById('ge-question-list');
+  if (!qs.length) {
+    el.innerHTML = `<div class="empty-state" style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:32px;">
+      לחצי על "＋ שאלה חדשה" להוסיף את השאלה הראשונה
+    </div>`;
+    return;
+  }
+
+  const typeName = { mc:'רב-ברירה', tf:'נכון/לא נכון', open:'פתוחה', order:'כרונולוגי' };
+  el.innerHTML = qs.map((q, i) => {
+    const hasMedia = q.media && q.media.type !== 'none' && q.media.src;
+    return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(212,168,67,0.5)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="min-width:30px;height:30px;background:var(--brown);color:var(--gold2);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.82rem;font-weight:800;">${i+1}</div>
+      <span style="background:rgba(74,144,217,0.15);color:#87ceeb;border:1px solid rgba(100,160,220,0.3);padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700;white-space:nowrap;">${typeName[q.type]||'?'}</span>
+      <div style="flex:1;font-size:0.9rem;line-height:1.4;color:var(--parch);">${q.text}</div>
+      ${hasMedia ? '<span style="opacity:0.5;font-size:1rem;">📎</span>' : ''}
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn-sm" onclick="editQuestion(${i})">✏️</button>
+        <button class="btn-sm" style="color:#e57373;" onclick="deleteQuestion(${i})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Question Modal ──
+function openAddQuestionModal(idx) {
+  editingQIdx = (idx !== undefined) ? idx : -1;
+  document.getElementById('mq-title').textContent = editingQIdx >= 0 ? 'עריכת שאלה' : 'שאלה חדשה';
+
+  if (editingQIdx >= 0) {
+    const q = (games[currentGameId].questions || [])[editingQIdx];
+    document.getElementById('mq-type').value = q.type;
+    document.getElementById('mq-text').value = q.text;
+    mqUpdateType();
+
+    if (q.type === 'mc') {
+      document.querySelectorAll('.mq-opt').forEach((el, i) => el.value = q.options?.[i] || '');
+      document.querySelectorAll('input[name="mq-correct"]').forEach(r => r.checked = r.value == q.correct);
+    } else if (q.type === 'tf') {
+      document.querySelectorAll('input[name="mq-tf"]').forEach(r => r.checked = r.value === String(q.correct));
+    } else if (q.type === 'open') {
+      document.getElementById('mq-sample').value = q.sampleAnswer || '';
+    } else if (q.type === 'order') {
+      const rows = document.querySelectorAll('.mq-order-opt');
+      rows.forEach((el, i) => el.value = q.items?.[i] || '');
+    }
+
+    if (q.media && q.media.type !== 'none') {
+      mqSetMedia(q.media.type, null, q.media.src);
+    } else {
+      mqSetMedia('none');
+    }
+  } else {
+    // reset
+    document.getElementById('mq-type').value = 'mc';
+    document.getElementById('mq-text').value = '';
+    document.querySelectorAll('.mq-opt').forEach(e => e.value = '');
+    document.querySelectorAll('input[name="mq-correct"]').forEach(r => r.checked = false);
+    document.querySelectorAll('input[name="mq-tf"]').forEach(r => r.checked = false);
+    document.getElementById('mq-sample').value = '';
+    document.querySelectorAll('.mq-order-opt').forEach(e => e.value = '');
+    mqSetMedia('none');
+    mqUpdateType();
+  }
+
+  document.getElementById('modal-question').classList.add('open');
+}
+
+function editQuestion(idx) { openAddQuestionModal(idx); }
+
+function deleteQuestion(idx) {
+  if (!confirm('למחוק שאלה זו?')) return;
+  const qs = games[currentGameId].questions || [];
+  qs.splice(idx, 1);
+  games[currentGameId].questions = qs;
+  db.ref('games/' + currentGameId + '/questions').set(qs);
+  renderQuestionList();
+}
+
+function mqUpdateType() {
+  const t = document.getElementById('mq-type').value;
+  document.getElementById('mq-sec-mc').style.display    = t === 'mc'    ? '' : 'none';
+  document.getElementById('mq-sec-tf').style.display    = t === 'tf'    ? '' : 'none';
+  document.getElementById('mq-sec-open').style.display  = t === 'open'  ? '' : 'none';
+  document.getElementById('mq-sec-order').style.display = t === 'order' ? '' : 'none';
+}
+
+function mqSetMedia(tab, btn, prefill) {
+  mqMediaTab = tab;
+  document.querySelectorAll('#mq-media-tabs .itab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    const tabs = ['none','image_url','image_file','youtube','video_file'];
+    document.querySelectorAll('#mq-media-tabs .itab').forEach((b,i) => {
+      if (tabs[i] === tab) b.classList.add('active');
+    });
+  }
+  ['none','image_url','image_file','youtube','video_file'].forEach(t => {
+    const el = document.getElementById('mq-media-' + t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+  });
+  if (prefill) {
+    if (tab === 'image_url') { document.getElementById('mq-img-url').value = prefill; mqPreviewImg(); }
+    if (tab === 'youtube') document.getElementById('mq-yt-url').value = prefill;
+  } else {
+    if (document.getElementById('mq-img-url')) document.getElementById('mq-img-url').value = '';
+    if (document.getElementById('mq-img-preview')) document.getElementById('mq-img-preview').innerHTML = '';
+    if (document.getElementById('mq-yt-url')) document.getElementById('mq-yt-url').value = '';
+  }
+}
+
+function mqPreviewImg() {
+  const url = document.getElementById('mq-img-url').value.trim();
+  document.getElementById('mq-img-preview').innerHTML = url
+    ? `<img src="${url}" alt="preview" style="width:100%;max-height:150px;object-fit:contain;display:block;">`
+    : '';
+}
+
+function mqPreviewFile() {
+  const file = document.getElementById('mq-img-file').files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => { document.getElementById('mq-img-file-preview').innerHTML = `<img src="${e.target.result}" alt="preview" style="width:100%;max-height:150px;object-fit:contain;display:block;">`; };
+  r.readAsDataURL(file);
+}
+
+function mqAddOrderRow() {
+  const c = document.getElementById('mq-order-items');
+  const n = c.querySelectorAll('.mq-order-opt').length + 1;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+  row.innerHTML = `<span style="font-size:0.8rem;opacity:0.5;width:18px;">${n}</span><input class="modal-input mq-order-opt" placeholder="אירוע ${n}" style="margin:0;">`;
+  c.appendChild(row);
+}
+
+async function saveQuestion() {
+  const text = document.getElementById('mq-text').value.trim();
+  const type = document.getElementById('mq-type').value;
+  if (!text) {
+    document.getElementById('mq-text').style.borderColor = '#e57373';
+    document.getElementById('mq-text').focus();
+    return;
+  }
+  document.getElementById('mq-text').style.borderColor = '';
+
+  const q = { type, text };
+
+  // Media
+  q.media = { type: 'none', src: '' };
+  if (mqMediaTab === 'image_url') {
+    q.media = { type: 'image_url', src: document.getElementById('mq-img-url').value.trim() };
+  } else if (mqMediaTab === 'image_file') {
+    const file = document.getElementById('mq-img-file').files[0];
+    if (file) {
+      // Store as base64 (no Firebase Storage needed)
+      const b64 = await fileToBase64(file);
+      q.media = { type: 'image_url', src: b64 };
+    }
+  } else if (mqMediaTab === 'youtube') {
+    const raw = document.getElementById('mq-yt-url').value.trim();
+    q.media = { type: 'youtube', src: extractYTId(raw) };
+  } else if (mqMediaTab === 'video_file') {
+    const file = document.getElementById('mq-vid-file').files[0];
+    if (file) {
+      document.getElementById('mq-vid-status').textContent = 'מעבד...';
+      const b64 = await fileToBase64(file);
+      q.media = { type: 'video_url', src: b64 };
+    }
+  }
+
+  // Type specifics
+  if (type === 'mc') {
+    q.options = Array.from(document.querySelectorAll('.mq-opt')).map(e => e.value.trim());
+    const checked = document.querySelector('input[name="mq-correct"]:checked');
+    q.correct = checked ? parseInt(checked.value) : 0;
+  } else if (type === 'tf') {
+    const checked = document.querySelector('input[name="mq-tf"]:checked');
+    q.correct = checked ? (checked.value === 'true') : true;
+  } else if (type === 'open') {
+    q.sampleAnswer = document.getElementById('mq-sample').value.trim();
+  } else if (type === 'order') {
+    q.items = Array.from(document.querySelectorAll('.mq-order-opt')).map(e => e.value.trim()).filter(Boolean);
+  }
+
+  const qs = games[currentGameId].questions || [];
+  if (editingQIdx >= 0) qs[editingQIdx] = q;
+  else qs.push(q);
+  games[currentGameId].questions = qs;
+
+  await db.ref('games/' + currentGameId + '/questions').set(qs);
+  closeAllModals();
+  renderQuestionList();
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function extractYTId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
+  return m ? m[1] : url;
+}
+
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+}
+
+document.getElementById('pw-input').focus();
+setInterval(() => { if(currentClass) { updateStats(); refreshFrontal(); }}, 30000);
+
+</script>
+</body>
+</html>

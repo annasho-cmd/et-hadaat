@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>משחק היסטוריה</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0f172a;
+      --blue: #3b82f6;
+      --blue-dark: #1d4ed8;
+      --teal: #0ea5e9;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --purple: #8b5cf6;
+      --bg: #f0f9ff;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #cbd5e1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
+    body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); direction: rtl;
+           min-height: 100dvh; overscroll-behavior: none; }
+
+    /* ── SCREENS ── */
+    .screen { display: none; min-height: 100dvh; padding: 1.25rem; flex-direction: column; align-items: center; justify-content: center; }
+    .screen.active { display: flex; }
+
+    /* ── CARD ── */
+    .card { background: var(--card); border-radius: 20px; padding: 2rem; width: 100%; max-width: 480px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+
+    /* ── TYPOGRAPHY ── */
+    .screen-title { font-size: 1.5rem; font-weight: 900; text-align: center; margin-bottom: 0.25rem; }
+    .screen-sub { font-size: 0.9rem; color: var(--muted); text-align: center; margin-bottom: 1.5rem; }
+
+    /* ── INPUTS ── */
+    input[type="text"] { width: 100%; padding: 0.9rem 1rem; border: 2px solid var(--border);
+      border-radius: 12px; font-size: 1rem; font-family: 'Heebo', sans-serif; text-align: center;
+      margin-bottom: 0.75rem; transition: border-color 0.15s; }
+    input[type="text"]:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(59,130,246,0.12); }
+
+    /* ── BUTTONS ── */
+    .btn { width: 100%; padding: 1rem; border: none; border-radius: 14px; font-size: 1.05rem;
+           font-weight: 700; font-family: 'Heebo', sans-serif; cursor: pointer; transition: all 0.18s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-blue { background: var(--blue); color: white; }
+    .btn-blue:hover { background: var(--blue-dark); }
+    .btn-green { background: var(--green); color: white; }
+    .btn-ghost { background: transparent; border: 2px solid var(--border); color: var(--text); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── WAITING ── */
+    .waiting-anim { font-size: 4rem; display: block; text-align: center; margin-bottom: 1rem;
+                    animation: float 2.5s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+    /* ── QUESTION HEADER ── */
+    .q-header { background: var(--navy); color: white; margin: -2rem -2rem 1.5rem;
+                border-radius: 20px 20px 0 0; padding: 1rem 1.5rem; }
+    .q-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; opacity: 0.75; margin-bottom: 0.5rem; }
+    .q-progress-track { height: 5px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; }
+    .q-progress-fill { height: 100%; background: var(--amber); border-radius: 3px; transition: width 0.4s ease; }
+
+    /* ── QUESTION TEXT ── */
+    .q-text { font-size: 1.15rem; font-weight: 700; line-height: 1.55; margin-bottom: 1.5rem; }
+
+    /* ── MEDIA ── */
+    .media-wrap { border-radius: 14px; overflow: hidden; margin-bottom: 1.25rem; background: var(--bg); }
+    .media-wrap img { width: 100%; max-height: 260px; object-fit: contain; display: block; }
+    .media-wrap iframe { width: 100%; height: 200px; border: none; display: block; }
+    .media-wrap video { width: 100%; max-height: 260px; display: block; border-radius: 14px; }
+
+    /* ── MC OPTIONS ── */
+    .opts { display: flex; flex-direction: column; gap: 0.75rem; }
+    .opt { background: var(--bg); border: 2.5px solid var(--border); border-radius: 14px;
+           padding: 1rem 1.25rem; text-align: right; font-size: 1rem; font-weight: 600;
+           cursor: pointer; transition: all 0.18s; color: var(--text); font-family: 'Heebo', sans-serif;
+           width: 100%; }
+    .opt:active { transform: scale(0.98); }
+    .opt:hover { border-color: var(--blue); background: #eff6ff; }
+    .opt.selected { border-color: var(--blue); background: #dbeafe; color: var(--blue-dark); }
+    .opt.correct  { border-color: var(--green); background: #dcfce7; color: #166534; }
+    .opt.wrong    { border-color: var(--red); background: #fee2e2; color: #991b1b; opacity: 0.75; }
+
+    /* ── TRUE/FALSE ── */
+    .tf-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .tf-btn { padding: 2.25rem 1rem; font-size: 1.1rem; border: 3px solid var(--border);
+              background: var(--bg); border-radius: 18px; cursor: pointer; font-family: 'Heebo', sans-serif;
+              font-weight: 800; transition: all 0.18s; }
+    .tf-btn:active { transform: scale(0.97); }
+    .tf-true:hover,.tf-true.selected { border-color: var(--green); background: #dcfce7; color: #166534; }
+    .tf-false:hover,.tf-false.selected { border-color: var(--red); background: #fee2e2; color: #991b1b; }
+
+    /* ── OPEN TEXT ── */
+    textarea { width: 100%; padding: 1rem; border: 2px solid var(--border); border-radius: 14px;
+               font-size: 1rem; font-family: 'Heebo', sans-serif; resize: vertical; min-height: 130px;
+               margin-bottom: 1rem; transition: border-color 0.15s; }
+    textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(59,130,246,0.12); }
+
+    /* ── ORDERING ── */
+    .order-hint { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .order-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+    .order-item { background: white; border: 2.5px solid var(--border); border-radius: 14px;
+                  padding: 0.9rem 1rem; display: flex; align-items: center; gap: 0.75rem;
+                  cursor: grab; user-select: none; touch-action: none; transition: box-shadow 0.15s; }
+    .order-item.dragging { opacity: 0.45; border-color: var(--blue); box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
+    .order-item.drag-over { border-color: var(--blue); background: #eff6ff; }
+    .order-num { min-width: 28px; height: 28px; background: var(--navy); color: white; border-radius: 8px;
+                 display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; }
+    .drag-handle { color: var(--muted); font-size: 1.1rem; }
+
+    /* ── SUBMITTED OVERLAY ── */
+    .submitted { text-align: center; padding: 1.5rem 0; }
+    .submitted .big-icon { font-size: 4.5rem; margin-bottom: 0.75rem; }
+
+    /* ── REVIEW ── */
+    .review-icon { font-size: 4rem; text-align: center; margin-bottom: 0.75rem; }
+    .review-result { font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem; text-align: center; }
+    .correct-text { color: var(--green); }
+    .wrong-text { color: var(--red); }
+    .correct-ans-box { background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 0.85rem 1rem; margin-top: 0.75rem; font-size: 0.9rem; }
+    .order-review-item { padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .order-review-item:last-child { border-bottom: none; }
+
+    /* ── END SCREEN ── */
+    .end-anim { font-size: 5rem; text-align: center; margin-bottom: 1rem; animation: bounce 1s infinite alternate; }
+    @keyframes bounce { from{transform:scale(1)} to{transform:scale(1.12)} }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+             background: var(--navy); color: white; padding: 0.7rem 1.5rem; border-radius: 12px;
+             font-weight: 600; font-size: 0.9rem; z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+
+    .error-txt { color: var(--red); font-size: 0.88rem; text-align: center; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ JOIN SCREEN ══════════════════ -->
+<div id="joinScreen" class="screen active">
+  <div class="card">
+    <div style="text-align:center; font-size:3rem; margin-bottom:0.5rem;">🏛️</div>
+    <div class="screen-title">משחק היסטוריה</div>
+    <div class="screen-sub">הכנס/י את שמך כדי להצטרף</div>
+
+    <div id="codeRow" style="display:none;">
+      <input type="text" id="gameCodeInput" placeholder="קוד משחק" style="letter-spacing:0.2em; font-size:1.2rem; font-weight:800; text-transform:uppercase;">
+    </div>
+    <input type="text" id="nameInput" placeholder="שם פרטי" autocomplete="given-name">
+    <button class="btn btn-blue" onclick="joinGame()">הצטרף/י למשחק →</button>
+    <div id="joinError" class="error-txt"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ LOBBY SCREEN ══════════════════ -->
+<div id="lobbyScreen" class="screen">
+  <div class="card" style="text-align:center;">
+    <span class="waiting-anim">⏳</span>
+    <div class="screen-title">שלום, <span id="lobbyName"></span>!</div>
+    <div class="screen-sub">ממתין/ת למורה לפתוח את השאלה...</div>
+    <div id="lobbyQHint" style="font-size:0.85rem; color:var(--muted); margin-top:0.5rem;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ QUESTION SCREEN ══════════════════ -->
+<div id="questionScreen" class="screen">
+  <div class="card">
+    <div class="q-header">
+      <div class="q-meta">
+        <span id="qNum">שאלה 1</span>
+        <span id="qTypeLbl"></span>
+      </div>
+      <div class="q-progress-track">
+        <div class="q-progress-fill" id="qProgressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div id="mediaArea"></div>
+    <div id="qText" class="q-text"></div>
+    <div id="answerArea"></div>
+
+    <div id="submittedOverlay" class="submitted" style="display:none;">
+      <div class="big-icon">✅</div>
+      <div style="font-size:1.2rem; font-weight:800;">תשובה נשלחה!</div>
+      <div style="color:var(--muted); font-size:0.9rem; margin-top:0.4rem;">ממתין/ת לתוצאות...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ REVIEW SCREEN ══════════════════ -->
+<div id="reviewScreen" class="screen">
+  <div class="card">
+    <div class="review-icon" id="reviewIcon">📊</div>
+    <div class="review-result" id="reviewResultText"></div>
+    <div id="reviewBody"></div>
+    <div style="color:var(--muted); font-size:0.82rem; text-align:center; margin-top:1.25rem;">ממתין/ת לשאלה הבאה...</div>
+  </div>
+</div>
+
+<!-- ══════════════════ END SCREEN ══════════════════ -->
+<div id="endScreen" class="screen">
+  <div class="card" style="text-align:center;">
+    <div class="end-anim">🏆</div>
+    <div class="screen-title">סיימנו!</div>
+    <div class="screen-sub">תודה שהשתתפת במשחק 🎉</div>
+    <div id="myScoreSummary" style="margin-top:1rem; font-size:1rem; color:var(--muted);"></div>
+  </div>
+</div>
+
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// ── State ──
+let db = null;
+let gameCode = null;
+const studentId = sessionStorage.getItem('studentId') || ('s_' + Math.random().toString(36).substr(2,8));
+sessionStorage.setItem('studentId', studentId);
+
+let myName = '';
+let questions = [];
+let currentQ = 0;
+let answered = false;
+let myAnswer = null;
+let correctCount = 0;
+let totalAnswered = 0;
+
+// ── URL params ──
+const params = new URLSearchParams(window.location.search);
+const urlCode = params.get('code');
+if (urlCode) {
+  gameCode = urlCode;
+} else {
+  document.getElementById('codeRow').style.display = '';
+}
+
+window.joinGame = joinGame;
+
+// ── Join ──
+async function joinGame() {
+  const nameEl = document.getElementById('nameInput');
+  const name = nameEl.value.trim();
+  if (!name) { showError('יש להזין שם'); return; }
+
+  if (!urlCode) {
+    const codeInput = document.getElementById('gameCodeInput').value.trim().toUpperCase();
+    if (!codeInput) { showError('יש להזין קוד משחק'); return; }
+    gameCode = codeInput;
+  }
+
+  const savedCfg = localStorage.getItem('fbConfig');
+  if (!savedCfg) { showError('לא נמצאו הגדרות Firebase. פנה/י למורה.'); return; }
+
+  let cfg;
+  try { cfg = JSON.parse(savedCfg); } catch { showError('הגדרות Firebase פגומות'); return; }
+
+  try {
+    const app = initializeApp(cfg, 'student_' + Date.now());
+    db = getDatabase(app);
+
+    const snap = await get(ref(db, `games/${gameCode}/state`));
+    if (!snap.val()) { showError('קוד משחק לא נמצא'); return; }
+
+    myName = name;
+    await update(ref(db, `games/${gameCode}/students/${studentId}`), { name });
+    document.getElementById('lobbyName').textContent = name;
+    showScreen('lobbyScreen');
+    startListening();
+  } catch(e) {
+    showError('שגיאה: ' + e.message);
+  }
+}
+
+// ── Listeners ──
+function startListening() {
+  onValue(ref(db, `games/${gameCode}`), snap => {
+    const data = snap.val();
+    if (!data) return;
+
+    questions = data.questions || [];
+    currentQ = data.currentQuestion || 0;
+
+    const qKey = 'q' + currentQ;
+    const myAns = data.answers?.[qKey]?.[studentId];
+    answered = myAns !== undefined && myAns !== null;
+    myAnswer = answered ? myAns : null;
+
+    dispatch(data.state);
+  });
+}
+
+function dispatch(state) {
+  if (state === 'ended') { showEnd(); return; }
+  if (state === 'lobby') { showLobby(); return; }
+  if (state === 'question') { showQuestion(); return; }
+  if (state === 'review') { showReview(); return; }
+}
+
+// ── LOBBY ──
+function showLobby() {
+  showScreen('lobbyScreen');
+  const q = questions[currentQ];
+  const el = document.getElementById('lobbyQHint');
+  el.textContent = q ? `שאלה ${currentQ + 1} מתוך ${questions.length} עומדת לפתוח` : '';
+}
+
+// ── QUESTION ──
+function showQuestion() {
+  const q = questions[currentQ];
+  if (!q) return;
+
+  const types = { multiple_choice:'רב-ברירה', true_false:'נכון / לא נכון', open_text:'שאלה פתוחה', ordering:'כרונולוגי' };
+  document.getElementById('qNum').textContent = `שאלה ${currentQ + 1} / ${questions.length}`;
+  document.getElementById('qTypeLbl').textContent = types[q.type] || '';
+  document.getElementById('qProgressFill').style.width = ((currentQ + 1) / questions.length * 100) + '%';
+  document.getElementById('qText').textContent = q.text;
+
+  // Media
+  const mediaEl = document.getElementById('mediaArea');
+  mediaEl.innerHTML = '';
+  if (q.media?.type !== 'none' && q.media?.src) {
+    const { type, src } = q.media;
+    if (type === 'image_url') {
+      mediaEl.innerHTML = `<div class="media-wrap"><img src="${esc(src)}" alt="תמונה לשאלה"></div>`;
+    } else if (type === 'youtube') {
+      mediaEl.innerHTML = `<div class="media-wrap"><iframe src="https://www.youtube.com/embed/${esc(src)}?rel=0" allowfullscreen></iframe></div>`;
+    } else if (type === 'video_url') {
+      mediaEl.innerHTML = `<div class="media-wrap"><video controls src="${esc(src)}"></video></div>`;
+    }
+  }
+
+  const ansEl = document.getElementById('answerArea');
+  const subEl = document.getElementById('submittedOverlay');
+
+  if (answered) {
+    ansEl.style.display = 'none';
+    subEl.style.display = 'block';
+    showScreen('questionScreen');
+    return;
+  }
+
+  subEl.style.display = 'none';
+  ansEl.style.display = 'block';
+  ansEl.innerHTML = '';
+
+  if (q.type === 'multiple_choice') {
+    ansEl.innerHTML = `<div class="opts">${q.options.map((opt, i) =>
+      `<button class="opt" onclick="submitAns(${i})">${opt}</button>`).join('')}</div>`;
+    window.submitAns = i => submitAnswer(i);
+
+  } else if (q.type === 'true_false') {
+    ansEl.innerHTML = `<div class="tf-wrap">
+      <button class="tf-btn tf-true" onclick="submitAns('true')">✅<br>נכון</button>
+      <button class="tf-btn tf-false" onclick="submitAns('false')">❌<br>לא נכון</button>
+    </div>`;
+    window.submitAns = val => submitAnswer(val);
+
+  } else if (q.type === 'open_text') {
+    ansEl.innerHTML = `<textarea id="openAns" placeholder="כתוב/כתבי את תשובתך כאן..."></textarea>
+      <button class="btn btn-blue" onclick="submitOpenAns()">שלח תשובה →</button>`;
+    window.submitOpenAns = () => {
+      const val = document.getElementById('openAns')?.value.trim();
+      if (val) submitAnswer(val);
+      else document.getElementById('openAns').style.borderColor = 'var(--red)';
+    };
+
+  } else if (q.type === 'ordering') {
+    const shuffled = [...q.items].sort(() => Math.random() - 0.5);
+    buildOrdering(ansEl, shuffled);
+  }
+
+  showScreen('questionScreen');
+}
+
+function buildOrdering(container, items) {
+  container.innerHTML = `
+    <p class="order-hint">🖐 גרור/י את האירועים לסדר הכרונולוגי הנכון (מוקדם → מאוחר)</p>
+    <div class="order-list" id="orderList">
+      ${items.map((item, i) => `
+        <div class="order-item" draggable="true" data-item="${esc(item)}">
+          <div class="order-num">${i + 1}</div>
+          <span class="drag-handle">⠿</span>
+          <span>${item}</span>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-green" onclick="submitOrderAns()">שלח סדר →</button>`;
+
+  window.submitOrderAns = () => {
+    const order = Array.from(document.querySelectorAll('#orderList .order-item')).map(el => el.dataset.item);
+    submitAnswer(order);
+  };
+
+  setupDragDrop('orderList');
+}
+
+function setupDragDrop(listId) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  let dragSrc = null;
+
+  list.addEventListener('dragstart', e => {
+    dragSrc = e.target.closest('.order-item');
+    if (!dragSrc) return;
+    dragSrc.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  list.addEventListener('dragend', () => {
+    document.querySelectorAll('.order-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
+    renumberItems(list);
+  });
+
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.order-item');
+    if (target && target !== dragSrc) {
+      document.querySelectorAll('.order-item').forEach(el => el.classList.remove('drag-over'));
+      target.classList.add('drag-over');
+    }
+  });
+
+  list.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.order-item');
+    if (target && target !== dragSrc) {
+      const allItems = [...list.querySelectorAll('.order-item')];
+      const srcIdx = allItems.indexOf(dragSrc);
+      const tgtIdx = allItems.indexOf(target);
+      if (srcIdx < tgtIdx) target.after(dragSrc);
+      else target.before(dragSrc);
+      renumberItems(list);
+    }
+  });
+
+  // Touch support
+  let touchDragSrc = null;
+  let touchClone = null;
+  let touchStartY = 0;
+
+  list.addEventListener('touchstart', e => {
+    touchDragSrc = e.target.closest('.order-item');
+    if (!touchDragSrc) return;
+    touchStartY = e.touches[0].clientY;
+    touchDragSrc.classList.add('dragging');
+  }, { passive: true });
+
+  list.addEventListener('touchmove', e => {
+    if (!touchDragSrc) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.order-item');
+    document.querySelectorAll('.order-item').forEach(el => el.classList.remove('drag-over'));
+    if (target && target !== touchDragSrc) target.classList.add('drag-over');
+  }, { passive: false });
+
+  list.addEventListener('touchend', e => {
+    if (!touchDragSrc) return;
+    const touch = e.changedTouches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.order-item');
+    if (target && target !== touchDragSrc) {
+      const allItems = [...list.querySelectorAll('.order-item')];
+      const srcIdx = allItems.indexOf(touchDragSrc);
+      const tgtIdx = allItems.indexOf(target);
+      if (srcIdx < tgtIdx) target.after(touchDragSrc);
+      else target.before(touchDragSrc);
+    }
+    document.querySelectorAll('.order-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
+    renumberItems(list);
+    touchDragSrc = null;
+  });
+}
+
+function renumberItems(list) {
+  list.querySelectorAll('.order-num').forEach((el, i) => el.textContent = i + 1);
+}
+
+async function submitAnswer(val) {
+  if (answered) return;
+  answered = true;
+  myAnswer = val;
+  totalAnswered++;
+
+  const qKey = 'q' + currentQ;
+  try {
+    await update(ref(db, `games/${gameCode}/answers/${qKey}`), { [studentId]: val });
+  } catch(e) { console.error(e); }
+
+  document.getElementById('answerArea').style.display = 'none';
+  document.getElementById('submittedOverlay').style.display = 'block';
+}
+
+// ── REVIEW ──
+function showReview() {
+  const q = questions[currentQ];
+  if (!q) { showScreen('reviewScreen'); return; }
+
+  let icon = '📊', resultText = '', bodyHtml = '';
+
+  if (q.type === 'multiple_choice') {
+    const isCorrect = myAnswer == q.correct;
+    if (isCorrect) correctCount++;
+    icon = isCorrect ? '🎉' : '😕';
+    resultText = `<span class="${isCorrect ? 'correct-text' : 'wrong-text'}">${isCorrect ? '✅ תשובה נכונה!' : '❌ לא נכון'}</span>`;
+    bodyHtml = `<div class="correct-ans-box">התשובה הנכונה: <strong>${q.options[q.correct]}</strong></div>`;
+
+  } else if (q.type === 'true_false') {
+    const correctStr = q.correct ? 'true' : 'false';
+    const isCorrect = String(myAnswer) === correctStr;
+    if (isCorrect) correctCount++;
+    icon = isCorrect ? '🎉' : '😕';
+    resultText = `<span class="${isCorrect ? 'correct-text' : 'wrong-text'}">${isCorrect ? '✅ תשובה נכונה!' : '❌ לא נכון'}</span>`;
+    bodyHtml = `<div class="correct-ans-box">התשובה הנכונה: <strong>${q.correct ? '✅ נכון' : '❌ לא נכון'}</strong></div>`;
+
+  } else if (q.type === 'open_text') {
+    icon = '💬';
+    resultText = 'תשובתך';
+    bodyHtml = `<div style="background:#f8fafc; border:2px solid var(--border); border-radius:12px; padding:1rem; margin-top:0.5rem; text-align:right; font-size:0.95rem; line-height:1.5;">
+      ${myAnswer ? esc(String(myAnswer)) : '<em style="color:var(--muted)">לא ענית</em>'}
+    </div>`;
+
+  } else if (q.type === 'ordering') {
+    const myArr = Array.isArray(myAnswer) ? myAnswer : [];
+    const isCorrect = JSON.stringify(myArr) === JSON.stringify(q.items);
+    if (isCorrect) correctCount++;
+    icon = isCorrect ? '🎉' : '😕';
+    resultText = `<span class="${isCorrect ? 'correct-text' : 'wrong-text'}">${isCorrect ? '✅ סדר נכון!' : '❌ לא הסדר הנכון'}</span>`;
+    bodyHtml = `<div class="correct-ans-box">
+      <div style="font-weight:700; margin-bottom:0.5rem; font-size:0.85rem;">הסדר הנכון:</div>
+      ${q.items.map((item, i) => `<div class="order-review-item">${i+1}. ${item}</div>`).join('')}
+    </div>`;
+  }
+
+  document.getElementById('reviewIcon').textContent = icon;
+  document.getElementById('reviewResultText').innerHTML = resultText;
+  document.getElementById('reviewBody').innerHTML = bodyHtml;
+  showScreen('reviewScreen');
+}
+
+// ── END ──
+function showEnd() {
+  const pct = totalAnswered > 0 ? Math.round(correctCount / totalAnswered * 100) : 0;
+  const hasScored = ['multiple_choice','true_false','ordering'].some(t => questions.some(q => q.type === t));
+  document.getElementById('myScoreSummary').innerHTML = hasScored
+    ? `ענית נכון על <strong>${correctCount}</strong> מתוך <strong>${totalAnswered}</strong> שאלות`
+    : '';
+  showScreen('endScreen');
+}
+
+// ── Utils ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showError(msg) {
+  document.getElementById('joinError').textContent = msg;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
