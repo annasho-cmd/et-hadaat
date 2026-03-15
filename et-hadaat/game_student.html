@@ -234,10 +234,20 @@ let totalAnswered = 0;
 // ── URL params ──
 const params = new URLSearchParams(window.location.search);
 const urlCode = params.get('code');
+const urlName = params.get('name') || params.get('student');
 if (urlCode) {
   gameCode = urlCode;
 } else {
   document.getElementById('codeRow').style.display = '';
+}
+// Auto-fill name if passed in URL
+if (urlName) {
+  const nameEl = document.getElementById('nameInput');
+  if (nameEl) nameEl.value = decodeURIComponent(urlName);
+  // Auto-join if both code and name provided
+  if (urlCode) {
+    window.addEventListener('load', () => setTimeout(joinGame, 600));
+  }
 }
 
 window.joinGame = joinGame;

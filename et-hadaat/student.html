@@ -367,23 +367,39 @@ function doLogin() {
   const fullName = first + ' ' + last;
 
   // Check if group has a student list
-  const studentList = groupData.students ? Object.keys(groupData.students) : [];
-  const normalizedList = studentList.map(s => s.replace(/_/g,' ').trim().toLowerCase());
-  const normalizedName = fullName.toLowerCase();
+  // Students can be array or object — handle both
+  let studentList = [];
+  if (groupData.students) {
+    if (Array.isArray(groupData.students)) {
+      studentList = groupData.students.filter(s => s);
+    } else {
+      studentList = Object.keys(groupData.students).map(s => s.replace(/_/g,' '));
+    }
+  }
+  const normalize = s => s.replace(/_/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+  const normalizedList = studentList.map(s => normalize(s));
+  const normalizedName = normalize(fullName);
 
   if (studentList.length > 0) {
-    // List exists — check if student is on it
     if (!normalizedList.includes(normalizedName)) {
       showErr('שמך לא נמצא ברשימת הקבוצה. פנה/י למורה.');
       return;
     }
   }
 
+  // Check teacher mode
+  if (fullName === 'מורה' || fullName === 'מורה מורה') {
+    studentName = 'מורה';
+    localStorage.setItem('et_hadaat_name_' + classCode, fullName);
+    enterApp(true);
+    return;
+  }
+
   // All good — log in
   studentName = fullName;
   localStorage.setItem('et_hadaat_name_' + classCode, fullName);
 
-  enterApp();
+  enterApp(false);
 }
 
 function showErr(msg) {
@@ -405,11 +421,18 @@ function doLogout() {
 }
 
 // ── ENTER APP ──
-function enterApp() {
+function enterApp(isTeacher) {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-app').classList.add('active');
-  document.getElementById('student-badge').textContent = '👤 ' + studentName;
-  document.getElementById('welcome-title').textContent = 'שלום, ' + studentName.split(' ')[0] + '!';
+
+  if (isTeacher) {
+    document.getElementById('student-badge').textContent = '👩‍🏫 מצב מורה';
+    document.getElementById('welcome-title').textContent = 'מצב תצוגה — מורה';
+    document.getElementById('welcome-sub') && (document.getElementById('welcome-sub').textContent = 'רואה את כל השיעורים. נתונים לא נשמרים.');
+  } else {
+    document.getElementById('student-badge').textContent = '👤 ' + studentName;
+    document.getElementById('welcome-title').textContent = 'שלום, ' + studentName.split(' ')[0] + '!';
+  }
 
   showView('view-loading');
   loadSubjects();
@@ -546,11 +569,22 @@ function openUnit(unit) {
 
 // ── ENTER LESSON ──
 function enterLesson(url) {
-  // Pass student name via sessionStorage
-  sessionStorage.setItem('et_hadaat_student', studentName);
-  // Build full URL
-  const base = window.location.href.replace('student.html', '').replace(/\?.*/, '');
-  const fullUrl = url.startsWith('http') ? url : base + url;
+  // In teacher mode — use special name that won't save
+  const nameToPass = studentName === 'מורה' ? 'מורה' : studentName;
+  sessionStorage.setItem('et_hadaat_student', nameToPass);
+  // Build full URL — lessons are in et-hadaat/et-hadaat/
+  let fullUrl;
+  if (url.startsWith('http')) {
+    fullUrl = url;
+  } else {
+    const base = window.location.href.split('/').slice(0,3).join('/');
+    fullUrl = base + '/et-hadaat/et-hadaat/' + url;
+  }
+  // Pass student name in URL
+  const sep = fullUrl.includes('?') ? '&' : '?';
+  // For game_student.html use 'name' param, for lessons use 'student'
+  const nameParam = fullUrl.includes('game_student') ? 'name' : 'student';
+  fullUrl += sep + nameParam + '=' + encodeURIComponent(studentName);
   window.location.href = fullUrl;
 }
 
