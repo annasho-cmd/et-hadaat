@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>מסעי הצלב — שיעור סיכום</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--brown:#6b3a1f;
+  --gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--parch2:#f5e8c0;
+  --green:#2a6b2a;--red:#8b2020;
+  --surface:rgba(44,26,14,0.85);
+  --border:rgba(212,168,67,0.22);
+  --parchment-dark:rgba(212,168,67,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:#2c1a0e;
+  color:var(--parch);
+  min-height:100vh;
+  direction:rtl;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.25) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.1) 0%,transparent 50%),
+    repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(212,168,67,.02) 40px,rgba(212,168,67,.02) 41px);
+}
+
+/* ── PAGES ── */
+.page{display:none;position:relative;z-index:1;min-height:100vh;flex-direction:column;}
+.page.active{display:flex;}
+
+/* ── NAME PAGE ── */
+#page-name{align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#3a1f0a 0%,#1a0a02 70%);}
+.name-box{text-align:center;max-width:420px;width:100%;padding:0 24px;}
+.name-crest{font-size:3rem;margin-bottom:16px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.name-title{font-family:'Frank Ruhl Libre',serif;font-size:1.8rem;font-weight:900;color:var(--gold2);margin-bottom:6px;}
+.name-sub{font-size:.85rem;opacity:.55;margin-bottom:28px;}
+.name-input{
+  width:100%;padding:14px 18px;
+  font-family:'Heebo',sans-serif;font-size:1rem;
+  background:rgba(253,245,224,.07);
+  border:1.5px solid var(--border);border-radius:8px;
+  color:var(--parch);text-align:center;outline:none;
+  transition:border .2s;margin-bottom:12px;
+}
+.name-input:focus{border-color:var(--gold);}
+.btn-start{
+  width:100%;padding:14px;
+  font-family:'Heebo',sans-serif;font-size:1rem;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:var(--ink);border:none;border-radius:8px;
+  cursor:pointer;transition:opacity .2s;
+}
+.btn-start:hover{opacity:.9;}
+.name-err{color:#e07070;font-size:.82rem;margin-top:8px;min-height:18px;}
+
+/* ── LESSON HEADER ── */
+.lesson-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 20px;
+  background:rgba(20,10,2,.9);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;
+}
+.lesson-header-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;color:var(--gold2);font-weight:700;}
+.lesson-header-sub{font-size:.75rem;opacity:.55;}
+.progress-dots{display:flex;gap:6px;align-items:center;}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(212,168,67,.2);border:1px solid var(--border);}
+.dot.active{background:var(--gold);}
+.dot.done{background:var(--green);}
+
+/* ── LESSON CONTENT ── */
+.lesson-content{flex:1;padding:20px;max-width:900px;margin:0 auto;width:100%;}
+.station-badge{
+  display:inline-block;
+  background:rgba(212,168,67,.15);
+  border:1px solid var(--border);
+  border-radius:20px;padding:4px 14px;
+  font-size:.78rem;color:var(--gold);
+  margin-bottom:12px;
+}
+.page-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.5rem;font-weight:700;
+  color:var(--gold2);margin-bottom:8px;
+}
+.page-desc{font-size:.88rem;opacity:.7;margin-bottom:18px;line-height:1.7;}
+.task-box{
+  background:rgba(253,245,224,.05);
+  border:1.5px solid var(--border);
+  border-radius:10px;padding:20px;
+  margin-bottom:18px;
+}
+.task-title{
+  font-size:.95rem;font-weight:700;
+  color:var(--gold);margin-bottom:12px;
+}
+.task-label{font-size:.85rem;opacity:.8;margin-bottom:8px;line-height:1.6;}
+
+/* ── CHRONOLOGICAL DRAG ── */
+.chron-cards{
+  display:flex;flex-wrap:wrap;gap:10px;
+  margin-bottom:20px;
+  min-height:60px;
+  padding:12px;
+  background:rgba(0,0,0,.2);
+  border:2px dashed rgba(212,168,67,.3);
+  border-radius:8px;
+}
+.chron-card{
+  background:linear-gradient(135deg,#3a1f0a,#2c1a0e);
+  border:1.5px solid var(--gold);
+  border-radius:6px;padding:10px 14px;
+  cursor:grab;font-size:.82rem;
+  line-height:1.5;max-width:280px;
+  transition:transform .15s,box-shadow .15s;
+  user-select:none;
+}
+.chron-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(212,168,67,.3);}
+.chron-card.dragging{opacity:.5;cursor:grabbing;}
+.chron-card.placed{
+  background:linear-gradient(135deg,#1a3a1a,#0f2a0f);
+  border-color:var(--green);
+  cursor:default;
+}
+
+/* ── TIMELINE SLOTS ── */
+.timeline{display:flex;flex-direction:column;gap:8px;}
+.timeline-slot{
+  display:flex;align-items:stretch;gap:0;
+  min-height:70px;
+}
+.slot-num{
+  width:40px;flex-shrink:0;
+  background:rgba(212,168,67,.15);
+  border:1px solid var(--border);
+  border-radius:6px 0 0 6px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;color:var(--gold);font-size:.9rem;
+}
+.slot-drop{
+  flex:1;
+  border:2px dashed rgba(212,168,67,.3);
+  border-right:none;border-left:none;
+  padding:10px 14px;
+  min-height:70px;
+  display:flex;align-items:center;
+  transition:background .2s,border-color .2s;
+  font-size:.82rem;line-height:1.5;
+  background:rgba(0,0,0,.15);
+}
+.slot-drop.drag-over{
+  background:rgba(212,168,67,.1);
+  border-color:var(--gold);
+}
+.slot-drop.correct{background:rgba(42,107,42,.2);border-color:var(--green);}
+.slot-drop.wrong{background:rgba(139,32,32,.2);border-color:var(--red);}
+.slot-indicator{
+  width:40px;flex-shrink:0;
+  border:1px solid var(--border);
+  border-radius:0 6px 6px 0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;
+}
+
+/* ── RESULT BANNER ── */
+.result-banner{
+  display:none;margin-top:16px;padding:16px 20px;
+  border-radius:8px;text-align:center;font-size:.9rem;
+}
+.result-banner.show{display:block;}
+.result-banner.success{background:rgba(42,107,42,.3);border:1px solid var(--green);color:#7edd7e;}
+.result-banner.partial{background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.5);color:#e07070;}
+
+/* ── SCORE ── */
+.score-display{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:2.5rem;font-weight:900;
+  color:var(--gold2);text-align:center;
+  margin:16px 0;
+}
+.score-label{font-size:.85rem;opacity:.6;text-align:center;}
+
+/* ── OPEN QUESTION ── */
+.text-input{
+  width:100%;padding:12px 14px;
+  background:rgba(253,245,224,.07);
+  border:1.5px solid var(--border);
+  border-radius:6px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.88rem;
+  resize:vertical;outline:none;line-height:1.7;
+}
+.text-input:focus{border-color:var(--gold);}
+
+/* ── BUTTONS ── */
+.btn-check{
+  display:block;width:100%;margin-top:16px;
+  padding:13px;font-family:'Heebo',sans-serif;
+  font-size:.95rem;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:var(--ink);border:none;border-radius:8px;
+  cursor:pointer;transition:opacity .2s;
+}
+.btn-check:hover{opacity:.9;}
+.btn-check:disabled{opacity:.4;cursor:not-allowed;}
+.btn-nav{
+  padding:10px 20px;font-family:'Heebo',sans-serif;
+  font-size:.88rem;font-weight:700;
+  border-radius:6px;cursor:pointer;
+  transition:all .2s;border:1.5px solid var(--border);
+}
+.btn-next{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+.btn-back{background:transparent;color:var(--parch);}
+.btn-next:disabled{opacity:.35;cursor:not-allowed;}
+.lesson-nav{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 20px;
+  background:rgba(20,10,2,.8);
+  border-top:1px solid var(--border);
+  position:sticky;bottom:0;z-index:10;
+}
+.nav-label{font-size:.78rem;opacity:.5;}
+
+/* ── COVER PAGE ── */
+#page-cover{
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center,#3a1f0a 0%,#1a0a02 70%);
+}
+.cover-inner{text-align:center;max-width:600px;padding:40px 24px;}
+.cover-icon{font-size:4rem;margin-bottom:20px;animation:float 3s ease-in-out infinite;}
+.cover-title{font-family:'Frank Ruhl Libre',serif;font-size:2rem;font-weight:900;color:var(--gold2);margin-bottom:10px;}
+.cover-unit{font-size:.85rem;opacity:.5;margin-bottom:8px;}
+.cover-desc{font-size:.9rem;opacity:.7;line-height:1.8;margin-bottom:30px;}
+.cover-btn{
+  padding:14px 36px;font-family:'Heebo',sans-serif;
+  font-size:1rem;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:var(--ink);border:none;border-radius:8px;
+  cursor:pointer;transition:opacity .2s;
+}
+
+/* ── WAITING ── */
+.waiting-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(212,168,67,.1);border:1px solid var(--border);
+  border-radius:20px;padding:6px 16px;
+  font-size:.8rem;color:var(--gold);margin-top:12px;
+}
+</style>
+</head>
+<body>
+
+<!-- NAME PAGE -->
+<div class="page" id="page-name" style="display:none;">
+  <div class="name-box">
+    <div class="name-crest">✝⚔✡</div>
+    <div class="name-title">מסעי הצלב</div>
+    <div class="name-sub">שיעור סיכום · יחידת לימוד</div>
+    <input class="name-input" id="student-name-input" placeholder="הכניסו את שמכם המלא" />
+    <button class="btn-start" onclick="enterLesson()">כניסה לשיעור ✦</button>
+    <div class="name-err" id="name-error"></div>
+  </div>
+</div>
+
+<!-- COVER PAGE -->
+<div class="page active" id="page-cover" style="display:flex;">
+  <div class="cover-inner">
+    <div class="cover-icon">⚔</div>
+    <div class="cover-unit">יחידת לימוד · כיתה ח׳</div>
+    <div class="cover-title">מסעי הצלב — שיעור סיכום</div>
+    <div class="cover-desc">
+      בשיעור זה תסכמו את מה שלמדתם על מסעי הצלב.<br>
+      תחנה ראשונה: סידור אירועים בסדר כרונולוגי.<br>
+      תחנה שנייה: שאלת סיכום.
+    </div>
+    <button class="cover-btn" onclick="goToPage('page-s1')">התחל במשימה ✦</button>
+  </div>
+</div>
+
+<!-- STATION 1 — CHRONOLOGICAL ORDER -->
+<div class="page" id="page-s1">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">מסעי הצלב — שיעור סיכום</div>
+      <div class="lesson-header-sub">סידור כרונולוגי</div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 1 מתוך 2</div>
+    <div class="page-title">סדר את האירועים</div>
+    <div class="page-desc">לפניכם 8 אירועים מתקופת מסעי הצלב. גררו כל אירוע למיקום הנכון בציר הזמן — מהראשון לאחרון.</div>
+
+    <div class="task-box">
+      <div class="task-title">🃏 אירועים לסידור — גררו לציר הזמן:</div>
+      <div class="chron-cards" id="cards-pool"></div>
+
+      <div class="task-title" style="margin-top:20px;">📅 ציר הזמן — גררו כל אירוע למיקום הנכון:</div>
+      <div class="timeline" id="timeline"></div>
+
+      <button class="btn-check" id="btn-check-s1" onclick="checkChronological()">בדוק תשובות ✓</button>
+      <div class="result-banner" id="s1-result"></div>
+      <div class="score-display" id="s1-score" style="display:none;"></div>
+      <div class="score-label" id="s1-score-label" style="display:none;"></div>
+    </div>
+  </div>
+  <div class="lesson-nav">
+    <div></div>
+    <span class="nav-label">תחנה 1 / 2</span>
+    <button class="btn-nav btn-next" id="btn-to-s2" onclick="goToPage('page-s2')" disabled>תחנה 2 ←</button>
+  </div>
+</div>
+
+<!-- STATION 2 — OPEN QUESTION -->
+<div class="page" id="page-s2">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">מסעי הצלב — שיעור סיכום</div>
+      <div class="lesson-header-sub">שאלת סיכום</div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 2 מתוך 2</div>
+    <div class="page-title">שאלת סיכום</div>
+
+    <div class="task-box">
+      <div class="task-title">✍ שאלת חשיבה מסכמת</div>
+      <div class="task-label" style="margin-bottom:14px;">
+        כיצד השפיעו מסעי הצלב על הקהילות היהודיות באירופה?<br>
+        <span style="opacity:.6;font-size:.8rem;">התייחסו לפחות לשני היבטים: גזרות תתנ"ו, קהילות שו"ם, בחירות היהודים.</span>
+      </div>
+      <textarea class="text-input" id="s2-summary" rows="7"
+        placeholder="מסעי הצלב השפיעו על הקהילות היהודיות ב..."></textarea>
+
+      <button class="btn-check" onclick="submitSummary()">שלח לבדיקת המורה ✦</button>
+      <div class="result-banner" id="s2-result"></div>
+    </div>
+  </div>
+  <div class="lesson-nav">
+    <button class="btn-nav btn-back" onclick="goToPage('page-s1')">→ חזרה</button>
+    <span class="nav-label">תחנה 2 / 2</span>
+    <div></div>
+  </div>
+</div>
+
+<script>
+const LESSON = 'lesson_summary_crusades';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let studentName = '';
+
+// ── EVENTS in correct order ──
+const EVENTS_ORDERED = [
+  "שבטים תורכיים-סלג'וקים, שהיו מוסלמים באמונתם, כבשו את ירושלים והקשו על צליינים לפקוד את המקומות הקדושים להם בעיר.",
+  "הקיסר הביזנטי, אלכסיוס קומגנוס, פונה אל האפיפיור, אורבן השני, ומבקש ממנו לקרוא למאמינים הנוצרים להתגייס לעזרתם כנגד האויב המוסלמי.",
+  "בועידת הכנסייה בקלרמון נואם האפיפיור ויוצא בקריאה אל הנוצרים לצאת למסע צבאי במטרה להציל את ירושלים וביזנטיון.",
+  "המוני מאמינים נוצרים נעתרו לבקשת האפיפיור. הם תפרו צלבים על בגדיהם כדי לציין, שהם נלחמים למען ישוע והנצרות.",
+  "במהלך המסע נתקלו הצלבנים בקשיים רבים. המסע לירושלים ערך זמן רב. ככל שהתרחקו מאירופה הכביד עליהם המחסור במזון ומים נקיים לשתייה.",
+  "בדרכם למלחמה בכופרים עברו דרך ערים, שבהן היו קהילות יהודיות משגשגות. הצלבנים הכריחו את היהודים להתנצר או למות על קידוש השם.",
+  "לאחר שלוש שנים, הגיעו הצלבנים לירושלים. תחילה, הטילו מצור על העיר ולאחר חמישה שבועות כבשו הצלבנים את ירושלים, בזזו את העיר וערכו טבח גדול ביושביה.",
+  "כיבוש ירושלים הביא לסיום שלטונם של המוסלמים וכעת הקימו הצלבנים את הממלכה הצלבנית הראשונה והפכו את ירושלים לבירתה."
+];
+
+// Shuffled version
+let EVENTS_SHUFFLED = [...EVENTS_ORDERED].sort(() => Math.random() - 0.5);
+
+// State
+let slotContents = new Array(8).fill(null); // what's in each slot
+let draggedCard = null;
+let draggedFrom = null; // 'pool' or slot index
+
+// ── INIT ──
+function initChronological() {
+  const pool = document.getElementById('cards-pool');
+  const timeline = document.getElementById('timeline');
+  pool.innerHTML = '';
+  timeline.innerHTML = '';
+
+  // Create cards in pool
+  EVENTS_SHUFFLED.forEach((text, i) => {
+    const card = createCard(text, i);
+    pool.appendChild(card);
+  });
+
+  // Create timeline slots
+  for (let i = 0; i < 8; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'timeline-slot';
+    slot.innerHTML = `
+      <div class="slot-num">${i + 1}</div>
+      <div class="slot-drop" id="slot-${i}"
+        ondragover="dragOver(event)"
+        ondrop="dropOnSlot(event, ${i})"
+        ondragleave="dragLeave(event)">
+        <span style="opacity:.35;font-size:.78rem;">גררו אירוע לכאן</span>
+      </div>
+      <div class="slot-indicator" id="ind-${i}"></div>`;
+    timeline.appendChild(slot);
+  }
+
+  // Touch support for pool
+  setupTouchForPool();
+}
+
+function createCard(text, idx) {
+  const card = document.createElement('div');
+  card.className = 'chron-card';
+  card.setAttribute('draggable', 'true');
+  card.setAttribute('data-idx', idx);
+  card.textContent = text;
+  card.addEventListener('dragstart', e => {
+    draggedCard = card;
+    draggedFrom = 'pool';
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  card.addEventListener('dragend', () => card.classList.remove('dragging'));
+  return card;
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dropOnSlot(e, slotIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedCard) return;
+
+  // If slot already has a card — return it to pool
+  if (slotContents[slotIdx] !== null) {
+    const oldCard = document.querySelector(`[data-slot="${slotIdx}"]`);
+    if (oldCard) {
+      oldCard.removeAttribute('data-slot');
+      oldCard.setAttribute('draggable', 'true');
+      oldCard.classList.remove('placed');
+      document.getElementById('cards-pool').appendChild(oldCard);
+    }
+  }
+
+  // If card came from another slot — clear that slot
+  if (draggedFrom !== 'pool' && typeof draggedFrom === 'number') {
+    slotContents[draggedFrom] = null;
+    const oldSlot = document.getElementById('slot-' + draggedFrom);
+    oldSlot.innerHTML = '<span style="opacity:.35;font-size:.78rem;">גררו אירוע לכאן</span>';
+    document.getElementById('ind-' + draggedFrom).textContent = '';
+  }
+
+  // Place card in slot
+  slotContents[slotIdx] = parseInt(draggedCard.getAttribute('data-idx'));
+  draggedCard.setAttribute('data-slot', slotIdx);
+  draggedCard.classList.add('placed');
+  draggedCard.setAttribute('draggable', 'true');
+
+  // Update slot display
+  const slot = document.getElementById('slot-' + slotIdx);
+  slot.innerHTML = '';
+  slot.appendChild(draggedCard);
+
+  // Allow dragging from slot back
+  draggedCard.addEventListener('dragstart', e => {
+    draggedFrom = slotIdx;
+    draggedCard = draggedCard;
+  });
+
+  draggedCard = null;
+  draggedFrom = null;
+}
+
+// Pool drag-over
+document.addEventListener('DOMContentLoaded', () => {
+  const pool = document.getElementById('cards-pool');
+  if (pool) {
+    pool.addEventListener('dragover', e => e.preventDefault());
+    pool.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!draggedCard) return;
+      if (typeof draggedFrom === 'number') {
+        slotContents[draggedFrom] = null;
+        const oldSlot = document.getElementById('slot-' + draggedFrom);
+        oldSlot.innerHTML = '<span style="opacity:.35;font-size:.78rem;">גררו אירוע לכאן</span>';
+        document.getElementById('ind-' + draggedFrom).textContent = '';
+        draggedCard.removeAttribute('data-slot');
+        draggedCard.classList.remove('placed');
+        pool.appendChild(draggedCard);
+      }
+      draggedCard = null;
+      draggedFrom = null;
+    });
+  }
+});
+
+function setupTouchForPool() {
+  // Basic touch support
+  document.querySelectorAll('.chron-card').forEach(card => {
+    card.addEventListener('touchstart', touchStartCard, {passive:false});
+    card.addEventListener('touchmove', touchMoveCard, {passive:false});
+    card.addEventListener('touchend', touchEndCard, {passive:false});
+  });
+}
+
+let touchCard = null;
+let touchClone = null;
+let touchOrigin = null;
+
+function touchStartCard(e) {
+  touchCard = e.currentTarget;
+  touchOrigin = touchCard.parentElement;
+  const rect = touchCard.getBoundingClientRect();
+  touchClone = touchCard.cloneNode(true);
+  touchClone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:.8;z-index:999;pointer-events:none;`;
+  document.body.appendChild(touchClone);
+  touchCard.style.opacity = '.3';
+}
+
+function touchMoveCard(e) {
+  e.preventDefault();
+  if (!touchClone) return;
+  const t = e.touches[0];
+  touchClone.style.top = (t.clientY - 30) + 'px';
+  touchClone.style.left = (t.clientX - 100) + 'px';
+}
+
+function touchEndCard(e) {
+  if (!touchClone) return;
+  const t = e.changedTouches[0];
+  touchClone.remove();
+  touchCard.style.opacity = '1';
+
+  // Find drop target
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const slot = el ? el.closest('.slot-drop') : null;
+  if (slot) {
+    const slotIdx = parseInt(slot.id.replace('slot-', ''));
+    draggedCard = touchCard;
+    draggedFrom = touchCard.hasAttribute('data-slot') ?
+      parseInt(touchCard.getAttribute('data-slot')) : 'pool';
+    dropOnSlot({preventDefault:()=>{}, currentTarget: slot}, slotIdx);
+  }
+
+  touchCard = null;
+  touchClone = null;
+}
+
+// ── CHECK ──
+function checkChronological() {
+  // Check all slots filled
+  const filled = slotContents.filter(x => x !== null).length;
+  if (filled < 8) {
+    const r = document.getElementById('s1-result');
+    r.className = 'result-banner partial show';
+    r.textContent = `מלאו את כל 8 המשבצות לפני הבדיקה (מולאו ${filled}/8)`;
+    return;
+  }
+
+  let correct = 0;
+  slotContents.forEach((cardIdx, slotIdx) => {
+    const correctText = EVENTS_ORDERED[slotIdx];
+    const placedText = EVENTS_SHUFFLED[cardIdx];
+    const isCorrect = placedText === correctText;
+    if (isCorrect) correct++;
+
+    const slot = document.getElementById('slot-' + slotIdx);
+    const ind = document.getElementById('ind-' + slotIdx);
+    slot.classList.remove('correct', 'wrong');
+    slot.classList.add(isCorrect ? 'correct' : 'wrong');
+    ind.textContent = isCorrect ? '✅' : '❌';
+  });
+
+  const score = Math.round((correct / 8) * 100);
+  const r = document.getElementById('s1-result');
+  r.className = `result-banner ${score >= 60 ? 'success' : 'partial'} show`;
+  r.textContent = `${correct} מתוך 8 נכונים`;
+
+  const scoreEl = document.getElementById('s1-score');
+  scoreEl.style.display = 'block';
+  scoreEl.textContent = score + '%';
+  document.getElementById('s1-score-label').style.display = 'block';
+  document.getElementById('s1-score-label').textContent =
+    score === 100 ? '🏆 מושלם!' : score >= 75 ? '⭐ כל הכבוד!' : score >= 50 ? '👍 לא רע!' : '💪 נסו שוב';
+
+  // Save
+  try {
+    db.ref(LESSON + '/students/' + studentName + '/stations/s1').set({
+      completed: true,
+      score,
+      correct,
+      completedAt: new Date().toISOString(),
+      answers: JSON.stringify(slotContents.map((ci, si) => ({
+        slot: si + 1,
+        placed: EVENTS_SHUFFLED[ci],
+        correct: EVENTS_ORDERED[si],
+        isCorrect: EVENTS_SHUFFLED[ci] === EVENTS_ORDERED[si]
+      })))
+    });
+  } catch(e) {}
+
+  document.getElementById('btn-to-s2').disabled = false;
+}
+
+// ── SUBMIT SUMMARY ──
+function submitSummary() {
+  const text = document.getElementById('s2-summary').value.trim();
+  const r = document.getElementById('s2-result');
+  if (!text) {
+    r.className = 'result-banner partial show';
+    r.textContent = 'אנא כתבו את תשובתכם לפני השליחה.';
+    return;
+  }
+  try {
+    db.ref(LESSON + '/students/' + studentName + '/stations/s2').set({
+      completed: true,
+      summary: text,
+      completedAt: new Date().toISOString(),
+      graded: false
+    });
+    db.ref(LESSON + '/students/' + studentName + '/info').update({
+      completedAll: true,
+      completedAt: new Date().toISOString()
+    });
+  } catch(e) {}
+  r.className = 'result-banner success show';
+  r.innerHTML = `
+    <div style="font-size:1.05rem;margin-bottom:8px;">✦ שיעור הסיכום הושלם!</div>
+    <div style="font-size:.85rem;opacity:.8;">תשובתך נשלחה למורה לבדיקה.<br>
+    הציון יופיע בקרוב בלוח האישי שלך.</div>`;
+}
+
+// ── NAVIGATION ──
+function goToPage(id) {
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  const page = document.getElementById(id);
+  page.style.display = 'flex';
+  page.classList.add('active');
+  window.scrollTo(0, 0);
+  checkTeacherMode();
+}
+
+function checkTeacherMode() {
+  if (studentName === 'מורה') {
+    const btn = document.getElementById('btn-to-s2');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── ENTER LESSON ──
+function enterLesson() {
+  const val = window._autoStudent || document.getElementById('student-name-input') && document.getElementById('student-name-input').value.trim();
+  if (!val) return;
+  studentName = val;
+  try {
+    db.ref(LESSON + '/students/' + studentName + '/info').set({
+      entered: new Date().toISOString(),
+      currentStation: 'cover'
+    });
+  } catch(e) {}
+  setTimeout(initChronological, 300);
+}
+
+// ── AUTO LOGIN ──
+(function() {
+  const p = new URLSearchParams(window.location.search);
+  const n = p.get('student');
+  if (n) window._autoStudent = decodeURIComponent(n);
+})();
+
+window.addEventListener('load', function() {
+  if (window._autoStudent) {
+    studentName = window._autoStudent;
+    try {
+      db.ref(LESSON + '/students/' + studentName + '/info').set({
+        entered: new Date().toISOString(),
+        currentStation: 'cover'
+      });
+    } catch(e) {}
+    setTimeout(initChronological, 500);
+  }
+});
+</script>
+</body>
+</html>
