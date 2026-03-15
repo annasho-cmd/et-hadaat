@@ -56,8 +56,9 @@ body::before{
 .screen.active{display:block;}
 
 /* ── HOME ── */
-.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:600px;margin:40px auto;}
-@media(max-width:500px){.home-grid{grid-template-columns:1fr;}}
+.home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:860px;margin:40px auto;}
+@media(max-width:700px){.home-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.home-grid{grid-template-columns:1fr;}}
 .home-card{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:36px 24px;text-align:center;cursor:pointer;transition:transform .2s,border-color .2s;}
 .home-card:hover{transform:translateY(-4px);border-color:var(--gold);}
 .home-card-icon{font-size:3rem;margin-bottom:12px;}
@@ -257,6 +258,11 @@ select.modal-input option{background:#2c1a0e;}
           <div class="home-card-title">קבוצות לימוד</div>
           <div class="home-card-sub">כיתות וקודי גישה</div>
         </div>
+        <div class="home-card" onclick="openGamesScreen()">
+          <div class="home-card-icon">🎮</div>
+          <div class="home-card-title">משחקים</div>
+          <div class="home-card-sub">בניה והפעלה</div>
+        </div>
       </div>
     </div>
 
@@ -358,6 +364,17 @@ select.modal-input option{background:#2c1a0e;}
       </div>
     </div>
 
+    <!-- ══ GAMES ══ -->
+    <div class="screen" id="screen-games">
+      <div class="screen-hd">
+        <div class="screen-title">🎮 משחקים</div>
+        <button class="btn-primary" onclick="openGameTeacher()">➕ משחק חדש</button>
+      </div>
+      <div class="hint">לחצי על "➕ משחק חדש" לפתיחת עורך המשחקים, או בחרי משחק קיים לעריכה והפעלה.</div>
+      <div id="games-list"></div>
+      <div class="empty-state" id="games-empty" style="display:none;">אין משחקים עדיין. לחצי על "➕ משחק חדש".</div>
+    </div>
+
   </div><!-- /main-content -->
 </div><!-- /app -->
 
@@ -398,6 +415,11 @@ select.modal-input option{background:#2c1a0e;}
       <input class="modal-input" id="m-lesson-url" placeholder="https://..." style="direction:ltr;" /></div>
     <div class="modal-field"><div class="modal-label">מפתח Firebase (לצפייה בתלמידים)</div>
       <input class="modal-input" id="m-lesson-dbkey" placeholder="למשל: lesson3" style="direction:ltr;" /></div>
+    <div class="modal-field">
+      <div class="modal-label">🎮 משחק מקושר (אופציונלי)</div>
+      <input class="modal-input" id="m-lesson-game" placeholder="קוד משחק מ-game_teacher.html" style="direction:ltr;" />
+      <div style="font-size:.75rem;opacity:.5;margin-top:4px;">השאירי ריק אם אין משחק לשיעור זה</div>
+    </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
       <button class="modal-save" onclick="saveLesson()">שמירה ✓</button>
@@ -696,6 +718,7 @@ function renderUnitLessons() {
       <div class="lesson-info">
         <div class="lesson-name">${l.name}</div>
         <div class="lesson-url">${l.url}</div>
+        ${l.gameCode ? `<div style="font-size:.72rem;color:var(--gold);margin-top:3px;">🎮 משחק: ${l.gameCode}</div>` : ''}
       </div>
       <button class="btn-del" onclick="deleteLesson('${l.id}')">✕</button>`;
     cont.appendChild(row);
@@ -1039,16 +1062,19 @@ function saveUnit() {
 }
 
 function openAddLesson() {
-  ['m-lesson-name','m-lesson-url','m-lesson-dbkey'].forEach(id => document.getElementById(id).value='');
+  ['m-lesson-name','m-lesson-url','m-lesson-dbkey','m-lesson-game'].forEach(id => document.getElementById(id).value='');
   document.getElementById('modal-lesson').classList.add('open');
 }
 function saveLesson() {
-  const name = document.getElementById('m-lesson-name').value.trim();
-  const url  = document.getElementById('m-lesson-url').value.trim();
-  const dbKey= document.getElementById('m-lesson-dbkey').value.trim();
+  const name  = document.getElementById('m-lesson-name').value.trim();
+  const url   = document.getElementById('m-lesson-url').value.trim();
+  const dbKey = document.getElementById('m-lesson-dbkey').value.trim();
+  const game  = document.getElementById('m-lesson-game').value.trim();
   if (!name||!url) return;
   currentUnit.lessons = currentUnit.lessons||[];
-  currentUnit.lessons.push({id:'les_'+Date.now(), name, url, dbKey});
+  const lesson = {id:'les_'+Date.now(), name, url, dbKey};
+  if (game) lesson.gameCode = game;
+  currentUnit.lessons.push(lesson);
   saveTeacherData();
   closeModals();
   renderUnitLessons();
@@ -1099,6 +1125,54 @@ function saveAssignment() {
 // ══════════════════════════════════════
 document.getElementById('pw-input').focus();
 setInterval(() => { if(dbListener) { updateStats(); refreshFrontal(); }}, 30000);
+
+function getGameTeacherUrl() {
+  return window.location.href.replace('teacher_dashboard.html', 'game_teacher.html');
+}
+
+function openGameTeacher(gameCode) {
+  let url = getGameTeacherUrl();
+  if (gameCode) url += '?game=' + gameCode;
+  window.open(url, '_blank');
+}
+
+function loadGames() {
+  const list = document.getElementById('games-list');
+  const empty = document.getElementById('games-empty');
+  db.ref('games').once('value', snap => {
+    const data = snap.val() || {};
+    const games = Object.entries(data);
+    if (!games.length) {
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    list.innerHTML = '';
+    games.forEach(([code, game]) => {
+      if (!game || !game.name) return;
+      const row = document.createElement('div');
+      row.className = 'lesson-row';
+      const qCount = game.questions ? Object.keys(game.questions).length : 0;
+      row.innerHTML = `
+        <div class="lesson-num">🎮</div>
+        <div class="lesson-info">
+          <div class="lesson-name">${game.name}</div>
+          <div class="lesson-url" style="direction:ltr;">קוד: ${code} · ${qCount} שאלות</div>
+        </div>
+        <button class="btn-sm" onclick="openGameTeacher('${code}')">✏️ ערוך והפעל</button>`;
+      list.appendChild(row);
+    });
+  }).catch(() => {
+    list.innerHTML = '<div class="empty-state">שגיאה בטעינת המשחקים.</div>';
+  });
+}
+
+function openGamesScreen() {
+  updateBreadcrumb([{label:'משחקים'}]);
+  showScreen('screen-games');
+  loadGames();
+}
 </script>
 </body>
 </html>
