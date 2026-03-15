@@ -417,8 +417,10 @@ select.modal-input option{background:#2c1a0e;}
       <input class="modal-input" id="m-lesson-dbkey" placeholder="למשל: lesson3" style="direction:ltr;" /></div>
     <div class="modal-field">
       <div class="modal-label">🎮 משחק מקושר (אופציונלי)</div>
-      <input class="modal-input" id="m-lesson-game" placeholder="קוד משחק מ-game_teacher.html" style="direction:ltr;" />
-      <div style="font-size:.75rem;opacity:.5;margin-top:4px;">השאירי ריק אם אין משחק לשיעור זה</div>
+      <select class="modal-input" id="m-lesson-game">
+        <option value="">ללא משחק</option>
+      </select>
+      <div style="font-size:.75rem;opacity:.5;margin-top:4px;">המשחקים נטענים מ-Firebase</div>
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
@@ -1062,14 +1064,28 @@ function saveUnit() {
 }
 
 function openAddLesson() {
-  ['m-lesson-name','m-lesson-url','m-lesson-dbkey','m-lesson-game'].forEach(id => document.getElementById(id).value='');
+  ['m-lesson-name','m-lesson-url','m-lesson-dbkey'].forEach(id => document.getElementById(id).value='');
+  // Load games into select
+  const sel = document.getElementById('m-lesson-game');
+  sel.innerHTML = '<option value="">ללא משחק</option>';
+  db.ref('games').once('value', snap => {
+    const data = snap.val() || {};
+    Object.entries(data).forEach(([code, game]) => {
+      if (game && game.name) {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = game.name + ' (' + code + ')';
+        sel.appendChild(opt);
+      }
+    });
+  }).catch(() => {});
   document.getElementById('modal-lesson').classList.add('open');
 }
 function saveLesson() {
   const name  = document.getElementById('m-lesson-name').value.trim();
   const url   = document.getElementById('m-lesson-url').value.trim();
   const dbKey = document.getElementById('m-lesson-dbkey').value.trim();
-  const game  = document.getElementById('m-lesson-game').value.trim();
+  const game  = document.getElementById('m-lesson-game').value;
   if (!name||!url) return;
   currentUnit.lessons = currentUnit.lessons||[];
   const lesson = {id:'les_'+Date.now(), name, url, dbKey};
