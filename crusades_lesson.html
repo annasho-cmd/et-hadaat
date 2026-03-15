@@ -63,29 +63,12 @@ window.addEventListener('load', function() {
   const studentParam = params.get('student');
   if (studentParam) {
     const name = decodeURIComponent(studentParam);
-    // Fill input if exists
     const input = document.getElementById('student-name-input');
-    if (input) {
-      input.value = name;
-      localStorage.setItem('studentName', name);
-    }
-    // Navigate to name page and auto-submit
-    setTimeout(() => {
-      // Go to name entry page if on cover
-      const namePage = document.getElementById('page-name');
-      if (namePage) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        namePage.classList.add('active');
-      }
-      // Fill again after navigation
-      const inp = document.getElementById('student-name-input');
-      if (inp) inp.value = name;
-      // Find and click enter button
-      setTimeout(() => {
-        const btns = document.querySelectorAll('[onclick*="enterLesson"]');
-        btns.forEach(btn => {
-          if (btn.offsetParent !== null) btn.click();
-        });
+    if (input) input.value = name;
+    localStorage.setItem('studentName', name);
+    setTimeout(() => { enterLesson3(); }, 500);
+  }
+});
       }, 200);
     }, 300);
   }
