@@ -736,6 +736,7 @@ function renderUnitLessons() {
         <div class="lesson-url">${l.url}</div>
         ${l.gameCode ? `<div style="font-size:.72rem;color:var(--gold);margin-top:3px;">🎮 משחק: ${l.gameCode}</div>` : ''}
       </div>
+      <button class="btn-sm" onclick="previewLesson('${l.url}')" style="margin-left:6px;">👁 תצוגה</button>
       <button class="btn-del" onclick="deleteLesson('${l.id}')">✕</button>`;
     cont.appendChild(row);
   });
@@ -1203,6 +1204,14 @@ function loadGames() {
   }).catch(() => {
     list.innerHTML = '<div class="empty-state">שגיאה בטעינת המשחקים.</div>';
   });
+}
+
+function previewLesson(url) {
+  const base = window.location.href.replace('teacher_dashboard.html','');
+  const fullUrl = url.startsWith('http') ? url : base + url;
+  // Open with teacher name so all stations unlocked
+  const previewUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + 'student=מורה';
+  window.open(previewUrl, '_blank');
 }
 
 function resetStudent(name) {
