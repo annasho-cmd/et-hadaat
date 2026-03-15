@@ -255,6 +255,44 @@ body::before{
   border-radius:20px;padding:6px 16px;
   font-size:.8rem;color:var(--gold);margin-top:12px;
 }
+
+/* ── EXAM LAYOUT ── */
+.exam-layout{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+  align-items:start;
+}
+@media(max-width:650px){.exam-layout{grid-template-columns:1fr;}}
+.exam-image-col{position:sticky;top:80px;}
+.exam-img{
+  width:100%;border-radius:6px;
+  border:2px solid var(--border);
+  cursor:pointer;transition:transform .2s;
+}
+.exam-img.zoomed{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(1.8);
+  z-index:100;border:3px solid var(--gold);
+  max-width:90vw;max-height:90vh;object-fit:contain;
+}
+.exam-questions-col{display:flex;flex-direction:column;gap:16px;}
+.exam-part{
+  background:rgba(0,0,0,.15);
+  border:1px solid var(--border);
+  border-radius:8px;padding:14px;
+}
+.exam-part-title{
+  display:flex;justify-content:space-between;
+  font-weight:700;font-size:.9rem;
+  color:var(--gold);margin-bottom:8px;
+}
+.exam-points{
+  background:rgba(212,168,67,.2);
+  border-radius:10px;padding:2px 10px;
+  font-size:.75rem;color:var(--gold2);
+}
+
 </style>
 </head>
 <body>
@@ -340,13 +378,73 @@ body::before{
     <div class="page-title">שאלת סיכום</div>
 
     <div class="task-box">
-      <div class="task-title">✍ שאלת חשיבה מסכמת</div>
-      <div class="task-label" style="margin-bottom:14px;">
-        כיצד השפיעו מסעי הצלב על הקהילות היהודיות באירופה?<br>
-        <span style="opacity:.6;font-size:.8rem;">התייחסו לפחות לשני היבטים: גזרות תתנ"ו, קהילות שו"ם, בחירות היהודים.</span>
+      <div class="task-title">🖼 שאלת מבחן — ניתוח תמונה היסטורית</div>
+      <div class="task-label" style="margin-bottom:16px;">
+        לפניכם תמונה היסטורית. ענו על שלושת החלקים תוך שימוש בספר הלימוד. ציינו עמודים.
       </div>
-      <textarea class="text-input" id="s2-summary" rows="7"
-        placeholder="מסעי הצלב השפיעו על הקהילות היהודיות ב..."></textarea>
+
+      <!-- IMAGE + QUESTIONS SIDE BY SIDE -->
+      <div class="exam-layout">
+        <!-- IMAGE -->
+        <div class="exam-image-col">
+          <img src="jerusalem_siege.jpg"
+               alt="המצור על ירושלים"
+               class="exam-img"
+               onclick="this.classList.toggle('zoomed')" />
+          <div style="font-size:.72rem;opacity:.5;text-align:center;margin-top:6px;">לחצו להגדלה</div>
+        </div>
+
+        <!-- QUESTIONS -->
+        <div class="exam-questions-col">
+
+          <!-- א -->
+          <div class="exam-part">
+            <div class="exam-part-title">
+              א. תיאור התמונה
+              <span class="exam-points">10 נק'</span>
+            </div>
+            <div class="task-label">
+              תארו את התמונה המופיעה לפניכם. השתמשו במושגים מספר הלימוד.<br>
+              <span style="opacity:.6;font-size:.78rem;">ציינו עמוד: ___</span>
+            </div>
+            <textarea class="text-input" id="s2-a" rows="4"
+              placeholder="בתמונה מופיע... ניתן לראות... כלי המלחמה שמופיעים הם... (עמ' ___)"></textarea>
+          </div>
+
+          <!-- ב -->
+          <div class="exam-part">
+            <div class="exam-part-title">
+              ב. מקור מילולי
+              <span class="exam-points">10 נק'</span>
+            </div>
+            <div class="task-label">
+              מצאו בספר הלימוד מקור מילולי (תעודה) המתאר את האירוע בתמונה.<br>
+              • מה דומה בין התמונה למקור?<br>
+              • אילו פרטים מוסיף המקור לפרטי האירוע?<br>
+              <span style="opacity:.6;font-size:.78rem;">ציינו עמוד: ___</span>
+            </div>
+            <textarea class="text-input" id="s2-b" rows="4"
+              placeholder="מצאתי מקור בעמ'... הדומה לתמונה... המקור מוסיף..."></textarea>
+          </div>
+
+          <!-- ג -->
+          <div class="exam-part">
+            <div class="exam-part-title">
+              ג. מטרות מסע הצלב
+              <span class="exam-points">10 נק'</span>
+            </div>
+            <div class="task-label">
+              בחרו מטרה אחת ממטרות מסע הצלב.<br>
+              • מהי המטרה שבחרתם?<br>
+              • האם הצלבנים השיגו אותה? הסבירו בעזרת האירוע בתמונה.<br>
+              <span style="opacity:.6;font-size:.78rem;">ציינו עמוד: ___</span>
+            </div>
+            <textarea class="text-input" id="s2-c" rows="4"
+              placeholder="המטרה שבחרתי היא... הצלבנים השיגו/לא השיגו אותה כי... (עמ' ___)"></textarea>
+          </div>
+
+        </div>
+      </div>
 
       <button class="btn-check" onclick="submitSummary()">שלח לבדיקת המורה ✦</button>
       <div class="result-banner" id="s2-result"></div>
@@ -632,19 +730,24 @@ function checkChronological() {
 
 // ── SUBMIT SUMMARY ──
 function submitSummary() {
-  const text = document.getElementById('s2-summary').value.trim();
+  const a = document.getElementById('s2-a').value.trim();
+  const b = document.getElementById('s2-b').value.trim();
+  const c2 = document.getElementById('s2-c').value.trim();
   const r = document.getElementById('s2-result');
-  if (!text) {
+  if (!a || !b || !c2) {
     r.className = 'result-banner partial show';
-    r.textContent = 'אנא כתבו את תשובתכם לפני השליחה.';
+    r.textContent = 'אנא ענו על כל שלושת החלקים לפני השליחה.';
     return;
   }
   try {
     db.ref(LESSON + '/students/' + studentName + '/stations/s2').set({
       completed: true,
-      summary: text,
+      partA: a,
+      partB: b,
+      partC: c2,
       completedAt: new Date().toISOString(),
-      graded: false
+      graded: false,
+      scoreA: null, scoreB: null, scoreC: null
     });
     db.ref(LESSON + '/students/' + studentName + '/info').update({
       completedAll: true,
@@ -652,10 +755,8 @@ function submitSummary() {
     });
   } catch(e) {}
   r.className = 'result-banner success show';
-  r.innerHTML = `
-    <div style="font-size:1.05rem;margin-bottom:8px;">✦ שיעור הסיכום הושלם!</div>
-    <div style="font-size:.85rem;opacity:.8;">תשובתך נשלחה למורה לבדיקה.<br>
-    הציון יופיע בקרוב בלוח האישי שלך.</div>`;
+  r.innerHTML = '<div style="font-size:1.05rem;margin-bottom:8px;">✦ שיעור הסיכום הושלם!</div>' +
+    '<div style="font-size:.85rem;opacity:.8;">תשובתך נשלחה למורה לבדיקה.<br>הציון יופיע בקרוב בלוח האישי שלך.</div>';
 }
 
 // ── NAVIGATION ──
