@@ -272,10 +272,17 @@ body::before{
 }
 .exam-img.zoomed{
   position:fixed;top:50%;left:50%;
-  transform:translate(-50%,-50%) scale(1.8);
-  z-index:100;border:3px solid var(--gold);
+  transform:translate(-50%,-50%);
+  z-index:1000;border:3px solid var(--gold);
   max-width:90vw;max-height:90vh;object-fit:contain;
+  border-radius:8px;cursor:zoom-out;
 }
+.img-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.8);z-index:999;
+  cursor:pointer;
+}
+.img-overlay.active{display:block;}
 .exam-questions-col{display:flex;flex-direction:column;gap:16px;}
 .exam-part{
   background:rgba(0,0,0,.15);
@@ -428,7 +435,8 @@ body::before{
           <img src="jerusalem_siege.jpg"
                alt="המצור על ירושלים"
                class="exam-img"
-               onclick="this.classList.toggle('zoomed')" />
+               id="exam-img"
+               onclick="toggleZoom()" />
           <div style="font-size:.72rem;opacity:.5;text-align:center;margin-top:6px;">לחצו להגדלה</div>
         </div>
 
@@ -831,6 +839,14 @@ function enterLesson() {
   setTimeout(initChronological, 300);
 }
 
+// ── IMAGE ZOOM ──
+function toggleZoom() {
+  const img = document.getElementById('exam-img');
+  const overlay = document.getElementById('img-overlay');
+  if (img) img.classList.toggle('zoomed');
+  if (overlay) overlay.classList.toggle('active');
+}
+
 // ── AUTO LOGIN ──
 (function() {
   const p = new URLSearchParams(window.location.search);
@@ -851,5 +867,6 @@ window.addEventListener('load', function() {
   }
 });
 </script>
+<div class="img-overlay" id="img-overlay" onclick="toggleZoom()"></div>
 </body>
 </html>
