@@ -63,6 +63,26 @@ function checkTeacherMode() {
   document.body.appendChild(ind);
 }
 
+
+// ── כניסה אוטומטית מלוח תלמיד ──
+window.addEventListener('load', function() {
+  const params = new URLSearchParams(window.location.search);
+  const studentParam = params.get('student');
+  if (studentParam) {
+    const name = decodeURIComponent(studentParam);
+    // Set name in input
+    const input = document.getElementById('student-name-input');
+    if (input) input.value = name;
+    localStorage.setItem('studentName', name);
+    // Call enterLesson directly — skips page-name and page-cover
+    setTimeout(() => { enterLesson5(); }, 200);
+  }
+});
+      }, 200);
+    }, 300);
+  }
+});
+
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
@@ -666,9 +686,13 @@ const LESSON = 'lesson5';
 let studentName = '';
 
 function enterLesson5() {
-  const val = document.getElementById('student-name-input').value.trim();
+  // Get name from URL param (from student portal) or input field
+  const params = new URLSearchParams(window.location.search);
+  const urlName = params.get('student');
+  const val = urlName ? decodeURIComponent(urlName) : document.getElementById('student-name-input').value.trim();
   if (!val) {
-    document.getElementById('name-error-5').textContent = 'אנא הכניסו את שמכם לפני הכניסה.';
+    const errEl = document.getElementById('name-error-5');
+    if (errEl) errEl.textContent = 'אנא הכניסו את שמכם לפני הכניסה.';
     return;
   }
   studentName = val;
