@@ -760,6 +760,7 @@ function renderUnitGroups() {
     card.className = 'group-assign-card';
     const togglesHtml = lessons.map(l => {
       const isOpen = (states[l.id] || 'locked') === 'open';
+      const gameOpen = (states[l.id + '_game'] || 'locked') === 'open';
       return `<div class="lesson-toggle">
         <span class="lt-name">${l.name}</span>
         <button class="toggle-btn ${isOpen?'open':'locked'}"
@@ -767,6 +768,12 @@ function renderUnitGroups() {
           ${isOpen ? '✅ פתוח' : '🔒 נעול'}
         </button>
         ${isOpen && l.dbKey ? `<button class="btn-watch" onclick="watchStudents('${gid}','${l.id}')">👁</button>` : ''}
+        ${l.gameCode ? `<button class="toggle-btn ${gameOpen?'open':'locked'}" style="margin-right:4px;"
+          onclick="toggleLesson('${gid}','${l.id}_game')">
+          🎮 ${gameOpen ? 'פתוח' : 'נעול'}
+        </button>
+        <button class="btn-watch" style="background:rgba(212,168,67,.2);"
+          onclick="launchGame('${l.gameCode}')">▶ הפעל</button>` : ''}
       </div>`;
     }).join('');
     card.innerHTML = `
