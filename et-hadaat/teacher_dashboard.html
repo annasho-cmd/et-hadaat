@@ -1017,7 +1017,14 @@ function showDetail(name) {
   const cfg = LESSON_CONFIGS[currentLesson];
   if (!cfg) return;
   const info = s.info||{};
-  document.getElementById('detail-title').textContent = `📋 ${name} · ${charNames[info.character]||''}`;
+  document.getElementById('detail-title').innerHTML =
+    `📋 ${name} · ${charNames[info.character]||''}
+    <button onclick="resetStudent('${name}')"
+      style="margin-right:10px;padding:3px 10px;background:rgba(139,32,32,.4);
+      border:1px solid rgba(139,32,32,.6);border-radius:4px;color:#e07070;
+      font-size:.72rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+      🗑 אפס תלמיד
+    </button>`;
   let html = '';
   cfg.stations.forEach((stKey,i) => {
     const st = stations[stKey]||{};
@@ -1196,6 +1203,18 @@ function loadGames() {
   }).catch(() => {
     list.innerHTML = '<div class="empty-state">שגיאה בטעינת המשחקים.</div>';
   });
+}
+
+function resetStudent(name) {
+  if (!confirm('למחוק את כל נתוני ' + name + ' בשיעור זה?\nהפעולה לא ניתנת לביטול!')) return;
+  db.ref(currentLesson + '/students/' + name).remove().then(() => {
+    alert('נתוני ' + name + ' נמחקו בהצלחה ✓');
+    selectedStudent = null;
+    document.getElementById('detail-title').textContent = '📋 בחרי תלמיד/ה';
+    document.getElementById('detail-body').innerHTML = '<div class="empty-state">לחצי על שם תלמיד/ה</div>';
+    renderStudents();
+    updateStats();
+  }).catch(e => alert('שגיאה במחיקה: ' + e.message));
 }
 
 function saveGrade(studentName) {
