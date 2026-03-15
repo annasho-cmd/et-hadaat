@@ -64,20 +64,7 @@ function checkTeacherMode() {
 }
 
 
-// ── כניסה אוטומטית מלוח תלמיד ──
-window.addEventListener('load', function() {
-  const params = new URLSearchParams(window.location.search);
-  const studentParam = params.get('student');
-  if (studentParam) {
-    const name = decodeURIComponent(studentParam);
-    // Set name in input
-    const input = document.getElementById('student-name-input');
-    if (input) input.value = name;
-    localStorage.setItem('studentName', name);
-    // Call enterLesson directly — skips page-name and page-cover
-    setTimeout(() => { enterLesson5(); }, 200);
-  }
-});
+
       }, 200);
     }, 300);
   }
@@ -670,6 +657,15 @@ textarea.text-input{min-height:90px;}
 
 
 <script>
+// ── כניסה אוטומטית מלוח תלמיד ──
+(function() {
+  const _p = new URLSearchParams(window.location.search);
+  const _n = _p.get('student');
+  if (_n) {
+    window._autoStudent = decodeURIComponent(_n);
+  }
+})();
+
 // ── FIREBASE ──
 const firebaseConfig = {
   apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
@@ -686,10 +682,7 @@ const LESSON = 'lesson5';
 let studentName = '';
 
 function enterLesson5() {
-  // Get name from URL param (from student portal) or input field
-  const params = new URLSearchParams(window.location.search);
-  const urlName = params.get('student');
-  const val = urlName ? decodeURIComponent(urlName) : document.getElementById('student-name-input').value.trim();
+  const val = window._autoStudent || document.getElementById('student-name-input').value.trim();
   if (!val) {
     const errEl = document.getElementById('name-error-5');
     if (errEl) errEl.textContent = 'אנא הכניסו את שמכם לפני הכניסה.';
