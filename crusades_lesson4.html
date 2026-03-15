@@ -1,0 +1,2386 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מסעי הצלב — שיעור 4: כיבוש ירושלים</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
+function loadPreviousAnswers() {
+  if (!studentName || !db) return;
+  db.ref(LESSON + '/students/' + studentName + '/stations').once('value').then(snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const fill = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    const unlock = (id) => { const el = document.getElementById(id); if (el) el.disabled = false; };
+
+    if (data.s1) {
+      fill('s1-ideas', data.s1.ideas);
+      fill('s1-bonus', data.s1.bonus);
+      if (data.s1.completed) unlock('btn-to-s2');
+    }
+    if (data.s2) {
+      fill('s2-solution', data.s2.solution);
+      fill('s2-compare', data.s2.compare);
+      if (data.s2.completed) unlock('btn-to-s3');
+    }
+    if (data.s3a) {
+      fill('s3-q1', data.s3a.q1);
+      fill('s3-q2', data.s3a.q2);
+      if (data.s3a.completed) unlock('btn-to-s3b');
+    }
+    if (data.s3b) {
+      fill('s3-video-q', data.s3b.videoQ);
+      fill('s3-compare', data.s3b.compare);
+      if (data.s3b.completed) unlock('btn-to-s4');
+    }
+    if (data.journal4) {
+      fill('j4-p1', data.journal4.p1);
+      fill('j4-p2', data.journal4.p2);
+      fill('j4-p3', data.journal4.p3);
+      fill('j4-p4', data.journal4.p4);
+    }
+
+    const stationMap = {
+      's1': 'page-s1-mission', 's2': 'page-s2',
+      's3a': 'page-s3a', 's3b': 'page-s3b', 'journal4': 'page-s4'
+    };
+    const stations = Object.keys(data);
+    const last = stations[stations.length - 1];
+    if (stationMap[last]) goToPage(stationMap[last]);
+  }).catch(e => {});
+}
+
+
+function checkTeacherMode() {
+  if (studentName !== 'מורה') return;
+  // Teacher mode — unlock all stations
+  const b0 = document.getElementById('btn-to-s1-mission'); if(b0) b0.disabled = false;
+    const b1 = document.getElementById('btn-to-s2'); if(b1) b1.disabled = false;
+    const b2 = document.getElementById('btn-to-s3'); if(b2) b2.disabled = false;
+    const b3 = document.getElementById('btn-to-s3b'); if(b3) b3.disabled = false;
+    const b4 = document.getElementById('btn-to-s4'); if(b4) b4.disabled = false;
+  // Add visible indicator
+  const ind = document.createElement('div');
+  ind.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#2c1a0e;border:1px solid var(--gold);color:var(--gold-light);padding:6px 16px;border-radius:20px;font-size:.78rem;z-index:100;';
+  ind.textContent = '✦ מצב מורה — כל התחנות פתוחות';
+  document.body.appendChild(ind);
+}
+
+
+// ── כניסה אוטומטית מלוח תלמיד ──
+window.addEventListener('load', function() {
+  const params = new URLSearchParams(window.location.search);
+  const studentParam = params.get('student');
+  if (studentParam) {
+    const name = decodeURIComponent(studentParam);
+    const input = document.getElementById('student-name-input');
+    if (input) {
+      input.value = name;
+      localStorage.setItem('studentName', name);
+      // כניסה אוטומטית אחרי רגע קצר
+      setTimeout(() => {
+        const startBtn = document.querySelector('[onclick*="enterLesson"]');
+        if (startBtn) startBtn.click();
+      }, 400);
+    }
+  }
+});
+
+</script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+
+  :root {
+    --parchment: #f5e6c8;
+    --parchment-dark: #e8d4a8;
+    --ink: #2c1a0e;
+    --brown: #6b3a1f;
+    --gold: #b8860b;
+    --gold-light: #d4a843;
+    --red: #8b1a1a;
+    --red-light: #a52020;
+    --shadow: rgba(44,26,14,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: #1a0f05;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+
+  /* ===== PAGES ===== */
+  .page {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    animation: fadeIn 0.6s ease;
+  }
+  .page.active { display: flex; flex-direction: column; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== COVER PAGE ===== */
+  #page-cover {
+    background: var(--ink);
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #page-cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 50% 30%, rgba(180,120,30,0.15) 0%, transparent 60%),
+      repeating-linear-gradient(
+        0deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px
+      );
+  }
+
+  .cover-ornament {
+    position: absolute;
+    font-size: 8rem;
+    opacity: 0.06;
+    pointer-events: none;
+  }
+  .cover-ornament.top-right { top: -20px; right: -10px; }
+  .cover-ornament.bottom-left { bottom: -20px; left: -10px; transform: scaleX(-1); }
+
+  .cover-inner {
+    position: relative;
+    text-align: center;
+    padding: 60px 40px;
+    max-width: 700px;
+    width: 100%;
+  }
+
+  .unit-label {
+    font-family: 'Heebo', sans-serif;
+    font-weight: 300;
+    font-size: 0.9rem;
+    letter-spacing: 0.3em;
+    color: var(--gold-light);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.2s forwards;
+  }
+
+  .cover-cross {
+    font-size: 3.5rem;
+    color: var(--gold);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.4s forwards;
+    text-shadow: 0 0 40px rgba(184,134,11,0.5);
+  }
+
+  .cover-title-unit {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: var(--parchment-dark);
+    margin-bottom: 8px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.5s forwards;
+  }
+
+  .cover-title-main {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 3.2rem;
+    font-weight: 900;
+    color: var(--parchment);
+    line-height: 1.1;
+    margin-bottom: 10px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.6s forwards;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+  }
+
+  .cover-subtitle {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--gold-light);
+    margin-bottom: 40px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.7s forwards;
+  }
+
+  .cover-divider {
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(to left, transparent, var(--gold), transparent);
+    margin: 0 auto 30px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.8s forwards;
+  }
+
+  .cover-meta {
+    font-size: 0.95rem;
+    color: rgba(245,230,200,0.5);
+    margin-bottom: 50px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.9s forwards;
+  }
+
+  .cover-meta span {
+    margin: 0 12px;
+    color: rgba(245,230,200,0.4);
+  }
+
+  .btn-start {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--ink);
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    border: none;
+    padding: 16px 50px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 20px rgba(184,134,11,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 1.1s forwards;
+  }
+  .btn-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(184,134,11,0.5);
+  }
+  .btn-start:active { transform: translateY(0); }
+
+  /* ===== LESSON PAGES ===== */
+  .lesson-page {
+    background: var(--parchment);
+    background-image: 
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    min-height: 100vh;
+    flex-direction: column;
+  }
+
+  /* ===== HEADER BAR ===== */
+  .lesson-header {
+    background: var(--brown);
+    padding: 12px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--gold);
+    flex-shrink: 0;
+  }
+
+  .lesson-header-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--parchment);
+  }
+
+  .lesson-header-subtitle {
+    font-size: 0.8rem;
+    color: var(--gold-light);
+    font-weight: 300;
+  }
+
+  .progress-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(245,230,200,0.25);
+    border: 1.5px solid rgba(245,230,200,0.4);
+    transition: all 0.3s ease;
+  }
+  .dot.active {
+    background: var(--gold-light);
+    border-color: var(--gold-light);
+    box-shadow: 0 0 8px rgba(212,168,67,0.6);
+  }
+  .dot.done {
+    background: rgba(212,168,67,0.5);
+    border-color: var(--gold);
+  }
+
+  /* ===== CONTENT AREA ===== */
+  .lesson-content {
+    flex: 1;
+    padding: 30px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .station-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--brown);
+    color: var(--gold-light);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 5px 14px;
+    border-radius: 2px;
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--ink);
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .page-desc {
+    font-size: 1rem;
+    color: var(--brown);
+    margin-bottom: 28px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* ===== PARCHMENT SCROLL (Pope's call) ===== */
+  .scroll-box {
+    background: #efe0b5;
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    position: relative;
+    box-shadow: 3px 3px 0 rgba(107,58,31,0.2), inset 0 0 40px rgba(107,58,31,0.05);
+  }
+
+  .scroll-box::before {
+    content: '✝';
+    position: absolute;
+    top: -14px;
+    right: 50%;
+    transform: translateX(50%);
+    background: #efe0b5;
+    border: 2px solid var(--gold);
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    color: var(--gold);
+    padding: 2px;
+  }
+
+  .scroll-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .scroll-text {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  .scroll-source {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--brown);
+    text-align: left;
+    font-weight: 300;
+  }
+
+  /* ===== STORY BOX ===== */
+  .story-box {
+    background: linear-gradient(135deg, #d4b896, #c9a87a);
+    border-right: 5px solid var(--red);
+    padding: 22px 26px;
+    margin-bottom: 28px;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 2px 2px 0 rgba(107,58,31,0.15);
+  }
+
+  .story-box-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--red);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .story-box p {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    line-height: 1.85;
+    color: var(--ink);
+  }
+
+  /* ===== TASK INSTRUCTION ===== */
+  .task-instruction {
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 16px 22px;
+    border-radius: 3px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .task-instruction .icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+  .task-instruction p { font-size: 0.95rem; line-height: 1.6; }
+  .task-instruction strong { color: var(--gold-light); }
+
+  /* ===== DRAG AND DROP ===== */
+  .drag-area {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .drag-items-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(107,58,31,0.08);
+    border: 2px dashed rgba(107,58,31,0.25);
+    border-radius: 4px;
+    min-height: 80px;
+  }
+
+  .drag-item {
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 9px 15px;
+    border-radius: 3px;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    transition: all 0.15s ease;
+    border: 2px solid transparent;
+    touch-action: none;
+  }
+  .drag-item:hover {
+    background: var(--brown);
+    transform: translateY(-2px);
+    box-shadow: 3px 4px 0 rgba(0,0,0,0.3);
+  }
+  .drag-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+  }
+  .drag-item.correct {
+    background: #2d5a27;
+    border-color: #4a9e40;
+    cursor: default;
+  }
+  .drag-item.wrong {
+    border-color: var(--red);
+    animation: shake 0.3s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .categories-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .category-box {
+    border: 2px solid;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    min-height: 130px;
+  }
+
+  .category-box[data-cat="כלכלית"] { border-color: #8b6914; background: rgba(139,105,20,0.06); }
+  .category-box[data-cat="חברתית"] { border-color: #1a5c8b; background: rgba(26,92,139,0.06); }
+  .category-box[data-cat="תרבותית"] { border-color: #8b1a1a; background: rgba(139,26,26,0.06); }
+  .category-box[data-cat="מדינית"]  { border-color: #2d5a27; background: rgba(45,90,39,0.06); }
+
+  .category-box.drag-over {
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+
+  .category-header {
+    padding: 10px 14px;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .category-box[data-cat="כלכלית"] .category-header { background: rgba(139,105,20,0.15); color: #5a4008; }
+  .category-box[data-cat="חברתית"] .category-header { background: rgba(26,92,139,0.15); color: #0e3d5c; }
+  .category-box[data-cat="תרבותית"] .category-header { background: rgba(139,26,26,0.15); color: #5c0e0e; }
+  .category-box[data-cat="מדינית"]  .category-header { background: rgba(45,90,39,0.15); color: #1a3d16; }
+
+  .category-body {
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 80px;
+  }
+
+  /* ===== RESULT BANNER ===== */
+  .result-banner {
+    display: none;
+    padding: 16px 22px;
+    border-radius: 4px;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 16px;
+  }
+  .result-banner.success {
+    display: block;
+    background: #2d5a27;
+    color: #b8f0b0;
+    border: 2px solid #4a9e40;
+  }
+  .result-banner.partial {
+    display: block;
+    background: #5a4008;
+    color: #f0d880;
+    border: 2px solid #8b6914;
+  }
+
+  /* ===== NAVIGATION ===== */
+  .lesson-nav {
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 2px solid var(--parchment-dark);
+    background: rgba(245,230,200,0.8);
+    flex-shrink: 0;
+  }
+
+  .btn-nav {
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 11px 28px;
+    border-radius: 3px;
+    border: 2px solid;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-back {
+    background: transparent;
+    color: var(--brown);
+    border-color: var(--brown);
+  }
+  .btn-back:hover {
+    background: var(--brown);
+    color: var(--parchment);
+  }
+
+  .btn-next {
+    background: var(--brown);
+    color: var(--parchment);
+    border-color: var(--brown);
+    box-shadow: 2px 2px 0 rgba(44,26,14,0.3);
+  }
+  .btn-next:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    transform: translateY(-1px);
+  }
+  .btn-next:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .nav-page-label {
+    font-size: 0.8rem;
+    color: var(--brown);
+    opacity: 0.6;
+  }
+
+  /* ===== CHECK BUTTON ===== */
+  .btn-check {
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 11px 28px;
+    border-radius: 3px;
+    border: 2px solid var(--gold);
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+    box-shadow: 2px 2px 0 rgba(44,26,14,0.2);
+  }
+  .btn-check:hover {
+    transform: translateY(-2px);
+    box-shadow: 3px 4px 0 rgba(44,26,14,0.25);
+  }
+
+  /* ===== CHARACTER CARDS ===== */
+  .characters-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 700px) {
+    .characters-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 420px) {
+    .characters-grid { grid-template-columns: 1fr; }
+  }
+
+  .char-card {
+    border: 2px solid var(--parchment-dark);
+    border-radius: 6px;
+    background: #fdf5e0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .char-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(44,26,14,0.15);
+  }
+  .char-card.selected {
+    border-color: var(--gold);
+    background: #fff8e8;
+    box-shadow: 0 0 0 3px rgba(184,134,11,0.25);
+  }
+  .char-card.selected .char-select-btn {
+    background: var(--gold);
+    color: var(--ink);
+  }
+
+  .char-avatar {
+    font-size: 2.8rem;
+    text-align: center;
+    padding: 20px 10px 10px;
+    line-height: 1;
+  }
+  .knight-avatar  { background: linear-gradient(180deg, #c8d8e8, #a0b8cc); }
+  .noble-avatar   { background: linear-gradient(180deg, #e8d4a8, #d4b87a); }
+  .peasant-avatar { background: linear-gradient(180deg, #d4e8c0, #b0cc90); }
+  .priest-avatar  { background: linear-gradient(180deg, #e8e0f0, #c8b8dc); }
+  .merchant-avatar{ background: linear-gradient(180deg, #f0dcc0, #d8b888); }
+
+  .char-info { padding: 12px 14px; flex: 1; }
+
+  .char-name {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .char-role {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .char-details {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.78rem;
+    color: var(--brown);
+    margin-bottom: 10px;
+  }
+  .char-bio {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #4a3020;
+  }
+  .char-select-btn {
+    text-align: center;
+    padding: 10px;
+    background: var(--parchment-dark);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--brown);
+    transition: all 0.2s ease;
+  }
+  .char-card:hover .char-select-btn {
+    background: var(--brown);
+    color: var(--parchment);
+  }
+
+  /* ===== STATION 5 — JOURNAL ===== */
+  .journal-paper {
+    background: #fef9ec;
+    border: 1.5px solid #d4b87a;
+    border-radius: 4px;
+    padding: 28px 32px;
+    box-shadow: 3px 3px 0 rgba(107,58,31,0.12), inset 0 0 60px rgba(180,140,60,0.04);
+    position: relative;
+    margin-bottom: 16px;
+    /* lined paper effect */
+    background-image: repeating-linear-gradient(
+      transparent, transparent 31px, rgba(180,140,60,0.12) 31px, rgba(180,140,60,0.12) 32px
+    );
+    background-position: 0 40px;
+  }
+  .journal-header-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .journal-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 140px;
+  }
+  .journal-label {
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--brown);
+    text-transform: uppercase;
+  }
+  .journal-input {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.95rem;
+    padding: 6px 10px;
+    border: none;
+    border-bottom: 1.5px solid #c8a870;
+    background: transparent;
+    color: var(--ink);
+    direction: rtl;
+    transition: border-color 0.2s;
+  }
+  .journal-input:focus {
+    outline: none;
+    border-bottom-color: var(--brown);
+  }
+  .journal-salutation {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+  .journal-prompt-block {
+    margin-bottom: 18px;
+  }
+  .journal-prompt-line {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.95rem;
+    color: var(--brown);
+    margin-bottom: 6px;
+    line-height: 1.6;
+    font-style: italic;
+  }
+  .journal-textarea {
+    width: 100%;
+    border: none;
+    border-bottom: 1.5px solid #c8a870;
+    background: transparent;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    line-height: 1.85;
+    color: var(--ink);
+    resize: vertical;
+    direction: rtl;
+    padding: 4px 2px;
+    transition: border-color 0.2s;
+  }
+  .journal-textarea:focus {
+    outline: none;
+    border-bottom-color: var(--brown);
+  }
+  .journal-signature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #d4b87a;
+  }
+
+  /* ===== GALLERY ===== */
+  .gallery-section {
+    margin-top: 28px;
+    border-top: 2px solid var(--parchment-dark);
+    padding-top: 20px;
+  }
+  .gallery-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .gallery-note {
+    font-size: 0.82rem;
+    color: var(--brown);
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .gallery-card {
+    background: #fef9ec;
+    border: 1.5px solid #d4b87a;
+    border-radius: 4px;
+    padding: 16px;
+    box-shadow: 2px 2px 0 rgba(107,58,31,0.1);
+    animation: fadeIn 0.4s ease;
+  }
+  .gallery-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #d4b87a;
+  }
+  .gallery-card-avatar { font-size: 1.4rem; }
+  .gallery-card-meta { flex: 1; }
+  .gallery-card-name {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--ink);
+  }
+  .gallery-card-role {
+    font-size: 0.75rem;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .gallery-card-date {
+    font-size: 0.75rem;
+    color: var(--brown);
+    opacity: 0.7;
+  }
+  .gallery-card-excerpt {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: #3a2510;
+    font-style: italic;
+  }
+  .gallery-loading {
+    grid-column: 1/-1;
+    text-align: center;
+    color: var(--brown);
+    font-style: italic;
+    padding: 20px;
+    opacity: 0.6;
+  }
+
+  /* ===== STATION 4 ===== */
+  .s4-section {
+    background: #fdf5e0;
+    border: 1.5px solid var(--parchment-dark);
+    border-radius: 6px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .s4-section-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--parchment-dark);
+  }
+  .s4-section-desc {
+    font-size: 0.92rem;
+    line-height: 1.75;
+    color: #3a2510;
+    margin-bottom: 14px;
+  }
+
+  /* Verify table */
+  .verify-table { width: 100%; border-collapse: collapse; }
+  .verify-header {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 2.5fr;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--brown);
+    color: var(--gold-light);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 4px 4px 0 0;
+  }
+  .verify-row {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 2.5fr;
+    gap: 8px;
+    padding: 10px;
+    border: 1.5px solid var(--parchment-dark);
+    border-top: none;
+    background: #fffdf5;
+    transition: background 0.2s;
+  }
+  .verify-row:last-child { border-radius: 0 0 4px 4px; }
+  .verify-row:nth-child(odd) { background: #fdf7e8; }
+
+  .verify-cell { display: flex; flex-direction: column; justify-content: flex-start; }
+  .verify-cell.prediction {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.88rem;
+    color: var(--brown);
+    line-height: 1.5;
+    padding-top: 4px;
+    font-style: italic;
+  }
+  .verify-select {
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.88rem;
+    padding: 6px 8px;
+    border: 1.5px solid var(--parchment-dark);
+    border-radius: 3px;
+    background: #fffdf5;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .verify-select:focus { outline: none; border-color: var(--gold); }
+  .verify-proof {
+    width: 100%;
+    border: 1.5px solid var(--parchment-dark);
+    border-radius: 3px;
+    padding: 7px 9px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ink);
+    background: #fffdf5;
+    resize: vertical;
+    direction: rtl;
+    transition: border-color 0.2s;
+  }
+  .verify-proof:focus { outline: none; border-color: var(--gold); }
+
+  .scaffold-hint {
+    margin-top: 5px;
+    font-size: 0.78rem;
+    color: var(--red);
+    line-height: 1.5;
+    min-height: 0;
+    transition: all 0.3s ease;
+  }
+
+  @media (max-width: 580px) {
+    .verify-header, .verify-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ===== MAP ===== */
+  .map-wrapper {
+    margin-bottom: 22px;
+    border: 2px solid var(--gold);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 3px 3px 0 rgba(107,58,31,0.2);
+  }
+  .crusade-map {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #b8d4e8;
+  }
+  .map-caption {
+    background: var(--ink);
+    color: rgba(245,230,200,0.65);
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 8px;
+    font-style: italic;
+  }
+
+  /* ===== STATION 3 QUESTIONS ===== */
+  .s3-question-block {
+    margin-bottom: 18px;
+    background: #fdf5e0;
+    border: 1.5px solid var(--parchment-dark);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+  .s3-q-label {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 8px;
+  }
+  .s3-q-text {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .s3-textarea {
+    width: 100%;
+    border: 1.5px solid var(--parchment-dark);
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: #fffdf5;
+    resize: vertical;
+    transition: border-color 0.2s;
+    direction: rtl;
+  }
+  .s3-textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(184,134,11,0.15);
+  }
+  .wagon-area {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .wagon-container {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .wagon-body {
+    background: linear-gradient(180deg, #8b4513, #6b3010);
+    border: 3px solid #4a2008;
+    border-radius: 8px 8px 4px 4px;
+    padding: 14px 16px;
+    min-height: 140px;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.3);
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .wagon-body.drag-over-wagon {
+    border-color: var(--gold);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.1), 0 0 0 3px rgba(212,168,67,0.4);
+  }
+
+  .wagon-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--gold-light);
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .wagon-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 60px;
+  }
+
+  .wagon-empty-msg {
+    color: rgba(245,230,200,0.35);
+    font-size: 0.9rem;
+    font-style: italic;
+    padding: 10px 0;
+    font-family: 'Frank Ruhl Libre', serif;
+  }
+
+  .wagon-counter {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: rgba(245,230,200,0.6);
+    text-align: left;
+    font-weight: 700;
+  }
+
+  .wagon-wheels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    margin-top: -4px;
+  }
+  .wheel {
+    font-size: 1.8rem;
+    color: #3a1a08;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  .wagon-item {
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 3px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.15s ease;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .wagon-item.in-pool {
+    background: var(--ink);
+    color: var(--parchment);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  }
+  .wagon-item.in-pool:hover {
+    background: var(--brown);
+    transform: translateY(-2px);
+  }
+  .wagon-item.in-wagon {
+    background: rgba(245,230,200,0.15);
+    color: var(--parchment);
+    border-color: rgba(245,230,200,0.3);
+    cursor: pointer;
+  }
+  .wagon-item.in-wagon:hover {
+    background: rgba(180,50,50,0.3);
+    border-color: rgba(200,80,80,0.5);
+  }
+  .wagon-item.dragging { opacity: 0.4; }
+
+  .wagon-items-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .wagon-items-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px;
+    background: rgba(107,58,31,0.07);
+    border: 2px dashed rgba(107,58,31,0.2);
+    border-radius: 4px;
+    min-height: 70px;
+    margin-bottom: 16px;
+  }
+
+  /* ===== CHOSEN CHARACTER BANNER ===== */
+  .chosen-char-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--brown);
+    color: var(--parchment);
+    padding: 12px 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-family: 'Heebo', sans-serif;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .categories-grid { grid-template-columns: 1fr; }
+    .lesson-content { padding: 20px; }
+    .lesson-nav { padding: 14px 20px; }
+    .cover-title-main { font-size: 2.2rem; }
+  }
+
+  /* ===== IMAGE CAPTION ===== */
+  .jerusalem-image-wrapper {
+    margin-bottom: 22px;
+    border: 2px solid var(--gold);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 3px 3px 0 rgba(107,58,31,0.2);
+  }
+  .jerusalem-image-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .jerusalem-caption {
+    background: var(--ink);
+    color: rgba(245,230,200,0.65);
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 8px;
+    font-style: italic;
+  }
+
+  /* ===== VOCAB DRAG & DROP ===== */
+  .vocab-terms-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
+    background: rgba(107,58,31,0.07);
+    border: 2px dashed rgba(107,58,31,0.2);
+    border-radius: 4px;
+    margin-bottom: 16px;
+    min-height: 56px;
+  }
+  .vocab-draggable {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--parchment);
+    background: var(--ink);
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.15s ease;
+  }
+  .vocab-draggable:hover { background: var(--brown); transform: translateY(-2px); }
+  .vocab-draggable.dragging { opacity: 0.4; }
+  .vocab-draggable.placed { display: none; }
+
+  .vocab-drop-list { display: flex; flex-direction: column; gap: 10px; }
+  .vocab-drop-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  @media (max-width: 560px) {
+    .vocab-drop-row { grid-template-columns: 1fr; }
+  }
+  .vocab-drop-zone {
+    min-height: 46px;
+    border: 2px dashed var(--parchment-dark);
+    border-radius: 4px;
+    background: #fdf5e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    transition: all 0.2s ease;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  .vocab-drop-zone.drag-over { border-color: var(--gold); background: #fff8e0; }
+  .vocab-drop-zone.correct { border-color: #3a7a3a; background: #e8f5e8; color: #2a5a2a; }
+  .vocab-drop-zone.wrong { border-color: var(--red); background: #fde8e8; }
+  .drop-placeholder { color: rgba(107,58,31,0.35); font-style: italic; font-size:0.8rem; }
+
+  .vocab-drop-desc {
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: #3a2510;
+    background: #fdf5e0;
+    border: 1.5px solid var(--parchment-dark);
+    border-radius: 4px;
+    padding: 10px 14px;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ===== COVER PAGE ===== -->
+<div class="page active" id="page-cover">
+  <div class="cover-ornament top-right">✝</div>
+  <div class="cover-ornament bottom-left">✝</div>
+  <div class="cover-inner">
+    <div class="unit-label">כיתה ח׳ · מסעי הצלב</div>
+    <div class="cover-cross">⚔</div>
+    <div class="cover-title-unit">שיעור 4 מתוך 4</div>
+    <div class="cover-title-main">כיבוש ירושלים</div>
+    <div class="cover-subtitle">יולי 1099</div>
+    <div class="cover-divider"></div>
+    <div class="cover-meta">
+      <span>שלוש שנים בדרך</span>·
+      <span>חומות בלתי חדירות</span>·
+      <span>רגע ההכרעה</span>
+    </div>
+    <button class="btn-start" onclick="goToPage('page-name')">✦ התחל במשימה</button>
+  </div>
+</div>
+
+
+<!-- ===== STUDENT NAME PAGE ===== -->
+<div class="page lesson-page" id="page-name">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">כיבוש ירושלים — שיעור 4</div>
+      <div class="lesson-header-subtitle">כניסה לשיעור</div>
+    </div>
+  </div>
+  <div class="lesson-content" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; text-align:center;">
+    <div class="cover-cross" style="animation:none; opacity:1;">⚔</div>
+    <div class="page-title" style="margin-bottom:8px;">ברוכים הבאים</div>
+    <div class="page-desc" style="margin-bottom:32px;">לפני שמתחילים — מה שמך?</div>
+    <div style="width:100%; max-width:360px;">
+      <input id="student-name-input"
+        style="width:100%; font-family:'Frank Ruhl Libre',serif; font-size:1.3rem; padding:14px 18px; border:2px solid var(--gold); border-radius:4px; background:#fef9ec; color:var(--ink); text-align:center; direction:rtl; margin-bottom:16px;"
+        placeholder="הקלידו את שמכם..."
+        onkeydown="if(event.key==='Enter') enterLesson()" />
+      <button class="btn-start" style="opacity:1; animation:none; width:100%;" onclick="enterLesson()">✦ כניסה לשיעור</button>
+      <div id="name-error" style="color:var(--red); margin-top:10px; font-size:0.9rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATION 1A — CHARACTER SELECTION ===== -->
+<div class="page lesson-page" id="page-s1-chars">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">תחנה 1 — מועצת המלחמה</div>
+      <div class="lesson-header-subtitle">בחרו את הדמות שלכם</div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 1 · הפתיח</div>
+    <div class="page-title">מי אתם ביולי 1099?</div>
+    <div class="page-desc">בחרו דמות — היא תלווה אתכם לאורך כל השיעור.</div>
+
+    <div class="characters-grid">
+      <div class="char-card" data-char="knight" onclick="selectCharS1('knight')">
+        <div class="char-avatar knight-avatar">⚔</div>
+        <div class="char-info">
+          <div class="char-name">גיום דה בואה</div>
+          <div class="char-role">אביר</div>
+          <div class="char-bio">לוחם מנורמנדי. חלם על קרב גדול — ועכשיו הוא כאן.</div>
+        </div>
+        <div class="char-select-btn">בחרו בגיום</div>
+      </div>
+      <div class="char-card" data-char="noble" onclick="selectCharS1('noble')">
+        <div class="char-avatar noble-avatar">👑</div>
+        <div class="char-info">
+          <div class="char-name">רנו דה מונפליה</div>
+          <div class="char-role">אציל</div>
+          <div class="char-bio">מפקד שיירה. אחראי על עשרות אנשים — חייב להחזיר אותם הביתה.</div>
+        </div>
+        <div class="char-select-btn">בחרו ברנו</div>
+      </div>
+      <div class="char-card" data-char="peasant" onclick="selectCharS1('peasant')">
+        <div class="char-avatar peasant-avatar">🌾</div>
+        <div class="char-info">
+          <div class="char-name">פייר לה גרו</div>
+          <div class="char-role">איכר</div>
+          <div class="char-bio">שלוש שנים. שבועות של מצור. המשפחה רעבה — אבל הגיעו.</div>
+        </div>
+        <div class="char-select-btn">בחרו בפייר</div>
+      </div>
+      <div class="char-card" data-char="priest" onclick="selectCharS1('priest')">
+        <div class="char-avatar priest-avatar">✝</div>
+        <div class="char-info">
+          <div class="char-name">פרר דה קלרמון</div>
+          <div class="char-role">כומר</div>
+          <div class="char-bio">ניסה תפילה ותהלוכה — החומות עמדו. עכשיו צריך תוכנית.</div>
+        </div>
+        <div class="char-select-btn">בחרו בפרר</div>
+      </div>
+      <div class="char-card" data-char="merchant" onclick="selectCharS1('merchant')">
+        <div class="char-avatar merchant-avatar">⚖</div>
+        <div class="char-info">
+          <div class="char-name">מרקו דה ליון</div>
+          <div class="char-role">סוחר</div>
+          <div class="char-bio">מחשב משאבים: מה יש, מה חסר, ומה אפשר לבנות.</div>
+        </div>
+        <div class="char-select-btn">בחרו במרקו</div>
+      </div>
+    </div>
+  </div>
+  <div class="lesson-nav">
+    <button class="btn-nav btn-back" onclick="goToPage('page-cover')">→ דף שער</button>
+    <span class="nav-page-label">תחנה 1 / 4</span>
+    <button class="btn-nav btn-next" id="btn-to-s1-mission" onclick="goToPage('page-s1-mission')" disabled>המשך ←</button>
+  </div>
+</div>
+
+<!-- ===== STATION 1B — IMAGE + STORY + MISSION ===== -->
+<div class="page lesson-page" id="page-s1-mission">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">תחנה 1 — מועצת המלחמה</div>
+      <div class="lesson-header-subtitle" id="s1m-subtitle"></div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 1 · יולי 1099</div>
+    <div class="page-title" id="s1m-title"></div>
+
+    <!-- JERUSALEM PHOTO -->
+    <div class="jerusalem-image-wrapper" id="jerusalem-img-wrapper">
+      <img src="data:image/jpeg;base64,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"
+           alt="ירושלים — מבט היסטורי"
+           style="width:100%; height:auto; display:block;
+                  filter: sepia(0.75) contrast(1.15) brightness(0.88) saturate(0.7);
+                  mix-blend-mode: multiply;" />
+      <div class="jerusalem-caption">ירושלים — חומות העיר העתיקה · כפי שנראתה לעיני הצלבנים ב-1099</div>
+    </div>
+
+    <!-- CHARACTER STORY -->
+    <div class="chosen-char-banner">
+      <span id="s1m-avatar" style="font-size:2rem;"></span>
+      <div>
+        <div id="s1m-name" style="font-weight:700;font-size:1rem;"></div>
+        <div id="s1m-role" style="font-size:0.85rem;opacity:0.75;"></div>
+      </div>
+    </div>
+
+    <div class="story-box" style="margin-bottom:20px;">
+      <div class="story-box-title">📜 יולי 1099 — מול חומות ירושלים</div>
+      <p id="s1m-story-text"></p>
+    </div>
+
+    <!-- MISSION -->
+    <div class="scroll-box">
+      <div class="scroll-label">⚔ המשימה — מועצת המלחמה</div>
+      <div class="scroll-text" style="font-style:normal; font-size:0.95rem; line-height:1.85;">
+        מנהיגי המסע ניסו פתרון רוחני — הם צמו והקיפו את החומות בתפילה ובתהלוכה, בתקווה שהן יפלו בנס כמו חומות יריחו המקראית. אבל הנס לא קרה. החומות עדיין עומדות.<br><br>
+        <strong>אתם היועצים הצבאיים של הצלבנים.</strong> עליכם למצוא דרך ריאלית לפרוץ לתוך העיר.<br>
+        זכרו — אין לכם טנקים או חומרי נפץ מודרניים. יש לכם רק כוח אדם, סוסים, אבנים, וכל מה שניתן לבנות מחומרים פשוטים.<br><br>
+        <span style="color:var(--red); font-weight:700;">רשמו לפחות 2 רעיונות יצירתיים: כיצד הייתם מנסים לעבור את החומה או לפרוץ את השער?</span>
+      </div>
+    </div>
+
+    <div class="s3-question-block" style="margin-top:16px;">
+      <div class="s3-q-label">💡 הרעיונות של <span id="s1m-char-inline"></span>:</div>
+      <textarea class="s3-textarea" id="s1-ideas" placeholder="רשמו את הרעיונות שלכם כאן..." rows="6"></textarea>
+    </div>
+
+    <div class="s4-section" style="margin-top:16px;">
+      <div class="s4-section-title">⭐ שאלת בונוס — הבעיה הגאוגרפית</div>
+      <div class="s4-section-desc">
+        ירושלים מוקפת הרים וסלעים, אך כמעט ואין סביבה יערות.<br>
+        <strong>מאיפה לדעתכם תביאו חומרי גלם לבניית כלי המלחמה שלכם?</strong>
+      </div>
+      <textarea class="s3-textarea" id="s1-bonus" placeholder="כתבו את תשובתכם כאן..." rows="3"></textarea>
+    </div>
+
+    <button class="btn-check" onclick="submitS1()" style="margin-top:8px;">הגשתי את הרעיונות ✓</button>
+    <div class="result-banner" id="s1-result"></div>
+  </div>
+
+  <div class="lesson-nav">
+    <button class="btn-nav btn-back" onclick="goToPage('page-s1-chars')">→ חזרה לבחירת דמות</button>
+    <span class="nav-page-label">תחנה 1 / 4</span>
+    <button class="btn-nav btn-next" id="btn-to-s2" onclick="goToPage('page-s2')" disabled>תחנה 2 ←</button>
+  </div>
+</div>
+
+<!-- ===== STATION 2 ===== -->
+<div class="page lesson-page" id="page-s2">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">תחנה 2 — מהשערה להיסטוריה</div>
+      <div class="lesson-header-subtitle">פיצוח המצור</div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 2 · מהשערה להיסטוריה</div>
+    <div class="page-title">פיצוח המצור</div>
+
+    <!-- STORY FRAME — character adapted -->
+    <div class="chosen-char-banner">
+      <span id="s2-avatar" style="font-size:2rem;"></span>
+      <div>
+        <div id="s2-name" style="font-weight:700;font-size:1rem;"></div>
+        <div id="s2-role" style="font-size:0.85rem;opacity:0.75;"></div>
+      </div>
+    </div>
+    <div class="story-box" style="margin-bottom:22px;">
+      <div class="story-box-title">📜 המצב בשטח</div>
+      <p id="s2-story-text"></p>
+    </div>
+
+    <!-- PART 1: INQUIRY -->
+    <div class="s4-section">
+      <div class="s4-section-title">🔍 משימה 1 — הפתרון היצירתי</div>
+      <div class="s4-section-desc">
+        פתחו את ספר הלימוד בעמוד 150. קראו את הפסקה הראשונה תחת הכותרת <strong>"המצור על ירושלים"</strong>.<br><br>
+        זוכרים ששאלנו מאיפה יגיע העץ לבניית כלי המלחמה? <strong>מצאו בטקסט מה היה הפתרון המפתיע של הצלבנים.</strong>
+      </div>
+      <textarea class="s3-textarea" id="s2-solution" placeholder="כתבו כאן את הפתרון שמצאתם בספר..." rows="3" oninput="checkS2Solution()"></textarea>
+      <div class="scaffold-hint" id="s2-solution-hint"></div>
+    </div>
+
+    <!-- PART 2: DRAG & DROP VOCAB -->
+    <div class="s4-section">
+      <div class="s4-section-title">📖 משימה 2 — מילון המצור</div>
+      <div class="s4-section-desc">
+        הביטו באיורים בעמוד 150 ובתיבת המושגים בתחתית העמוד.<br>
+        <strong>גררו כל כלי מלחמה לתיאור המתאים לו:</strong><br>
+        <span style="color:var(--gold);font-size:0.82rem;">💡 במסך מגע — לחצו לחיצה ארוכה וגררו.</span>
+      </div>
+
+      <!-- Terms to drag -->
+      <div class="vocab-terms-pool" id="vocab-pool">
+        <div class="vocab-draggable" id="vd-siege" draggable="true" data-id="siege"
+             ondragstart="onVocabDragStart(event)"
+             ontouchstart="onVocabTouchStart(event)" ontouchmove="onVocabTouchMove(event)" ontouchend="onVocabTouchEnd(event)">
+          🏰 מגדלי מצור
+        </div>
+        <div class="vocab-draggable" id="vd-ram" draggable="true" data-id="ram"
+             ondragstart="onVocabDragStart(event)"
+             ontouchstart="onVocabTouchStart(event)" ontouchmove="onVocabTouchMove(event)" ontouchend="onVocabTouchEnd(event)">
+          🪵 איל ברזל
+        </div>
+        <div class="vocab-draggable" id="vd-fire" draggable="true" data-id="fire"
+             ondragstart="onVocabDragStart(event)"
+             ontouchstart="onVocabTouchStart(event)" ontouchmove="onVocabTouchMove(event)" ontouchend="onVocabTouchEnd(event)">
+          🔥 אש יוונית
+        </div>
+      </div>
+
+      <!-- Drop targets -->
+      <div class="vocab-drop-list">
+        <div class="vocab-drop-row">
+          <div class="vocab-drop-zone" data-answer="siege"
+               ondragover="event.preventDefault()" ondrop="onVocabDrop(event,this)">
+            <span class="drop-placeholder">גררו לכאן ←</span>
+          </div>
+          <div class="vocab-drop-desc">מבני עץ גבוהים שאיפשרו ללוחמים לעלות על גובה החומה ולהיות מוגנים מאש תוך כדי התקדמות.</div>
+        </div>
+        <div class="vocab-drop-row">
+          <div class="vocab-drop-zone" data-answer="ram"
+               ondragover="event.preventDefault()" ondrop="onVocabDrop(event,this)">
+            <span class="drop-placeholder">גררו לכאן ←</span>
+          </div>
+          <div class="vocab-drop-desc">גזע עץ ענק עם חוד ברזל ששימש לניגוח ופריצת שערי החומה ואבניה.</div>
+        </div>
+        <div class="vocab-drop-row">
+          <div class="vocab-drop-zone" data-answer="fire"
+               ondragover="event.preventDefault()" ondrop="onVocabDrop(event,this)">
+            <span class="drop-placeholder">גררו לכאן ←</span>
+          </div>
+          <div class="vocab-drop-desc">חומר דליק (נפט, שמן וגופרית) שהמוסלמים השליכו על כלי העץ של הצלבנים כדי לשרוף אותם.</div>
+        </div>
+      </div>
+      <div class="result-banner" id="vocab-result" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- PART 3: COMPARISON -->
+    <div class="s4-section">
+      <div class="s4-section-title">💡 משימה 3 — אתגר ההשוואה</div>
+      <div class="s4-section-desc">
+        חזרו להשערות שכתבתם בתחנה הקודמת.<br>
+        <strong>האם אחד הרעיונות שלכם דמה למה שקרה במציאות? מה הפתיע אתכם בפתרון ההיסטורי של פירוק הספינות?</strong>
+      </div>
+      <textarea class="s3-textarea" id="s2-compare" placeholder="כתבו כאן את ההשוואה שלכם..." rows="4"></textarea>
+    </div>
+
+    <button class="btn-check" onclick="submitS2()">סיימתי — לתחנה 3 ✓</button>
+    <div class="result-banner" id="s2-result"></div>
+  </div>
+  <div class="lesson-nav">
+    <button class="btn-nav btn-back" onclick="goToPage('page-s1-mission')">→ חזרה</button>
+    <span class="nav-page-label">תחנה 2 / 4</span>
+    <button class="btn-nav btn-next" id="btn-to-s3" onclick="goToPage('page-s3a')" disabled>תחנה 3 ←</button>
+  </div>
+</div>
+
+<!-- ===== STATION 3A — SOURCE + DISCUSSION ===== -->
+<div class="page lesson-page" id="page-s3a">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">תחנה 3 — כובשים את ירושלים</div>
+      <div class="lesson-header-subtitle">ניתוח מקור ראשוני</div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot done"></div>
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 3 · מקור היסטורי</div>
+    <div class="page-title">כובשים את ירושלים</div>
+
+    <!-- SOURCE -->
+    <div class="task-instruction" style="margin-bottom:14px;">
+      <span class="icon">📖</span>
+      <p>פתחו את ספר הלימוד בעמוד 151 וקראו את המקור: <strong>"כיבוש ירושלים בידי הצלבנים"</strong>.</p>
+    </div>
+
+    <div class="scroll-box" style="margin-bottom:24px;">
+      <div class="scroll-label">📜 מקור ראשוני — עמ׳ 151</div>
+      <div class="scroll-text" style="color:var(--brown); font-size:0.82rem; margin-bottom:10px;">
+        קראו את המקור בספר. להלן שאלות הדיון:
+      </div>
+    </div>
+
+    <!-- QUESTION 1 -->
+    <div class="s4-section">
+      <div class="s4-section-title">❶ תארו במילים שלכם</div>
+      <div class="s4-section-desc">מה קרה בעיר ב-15 ביולי 1099?</div>
+      <textarea class="s3-textarea" id="s3-q1" placeholder="כתבו בסגנון שלכם — מה קרה לתושבי ירושלים ביום הכיבוש?" rows="4"></textarea>
+      <div class="scaffold-hint" id="s3-q1-hint"></div>
+    </div>
+
+    <!-- QUESTION 2 -->
+    <div class="s4-section">
+      <div class="s4-section-title">❷ שאלת חשיבה</div>
+      <div class="s4-section-desc">
+        הצלבנים הגיעו לשחרר את ירושלים בשם הדת.<br>
+        <strong>כיצד התיאור של הטבח והביזה מסתדר עם המטרה הדתית שלהם?</strong>
+      </div>
+      <textarea class="s3-textarea" id="s3-q2" placeholder="חשבו על הסתירה בין המטרה הדתית לבין המעשים בשטח..." rows="5"></textarea>
+      <div class="scaffold-hint" id="s3-q2-hint"></div>
+    </div>
+
+    <button class="btn-check" onclick="submitS3a()">המשך לסרטון ←</button>
+    <div class="result-banner" id="s3a-result"></div>
+  </div>
+  <div class="lesson-nav">
+    <button class="btn-nav btn-back" onclick="goToPage('page-s2')">→ חזרה</button>
+    <span class="nav-page-label">תחנה 3 / 4</span>
+    <button class="btn-nav btn-next" id="btn-to-s3b" onclick="goToPage('page-s3b')" disabled>סרטון ←</button>
+  </div>
+</div>
+
+<!-- ===== STATION 3B — VIDEO + COMPARISON ===== -->
+<div class="page lesson-page" id="page-s3b">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">תחנה 3 — כובשים את ירושלים</div>
+      <div class="lesson-header-subtitle">סרטון והשוואה היסטורית</div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot done"></div>
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 3 · סרטון והשוואה</div>
+    <div class="page-title">כובשים את ירושלים</div>
+
+    <!-- VIDEO -->
+    <div class="s4-section">
+      <div class="s4-section-title">🎬 צפייה בסרטון</div>
+      <div class="s4-section-desc">צפו בסרטון על מצור ירושלים וכיבושה:</div>
+      <div style="margin-bottom:16px;">
+        <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:6px;border:2px solid var(--gold);box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+          <iframe
+            src="https://www.youtube.com/embed/9FfVvXpHBRw?start=190&end=557&rel=0"
+            style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+        <div style="font-size:.78rem;color:var(--brown);text-align:center;margin-top:6px;font-style:italic;">צפו מ-3:10 עד 9:17 · הסרטון יתחיל ויפסיק אוטומטית</div>
+      </div>
+
+      <!-- VIDEO QUESTION -->
+      <div class="s4-section-desc" style="margin-top:4px;">
+        <strong>מה למדתם חדש מהסרטון על המצור?</strong>
+      </div>
+      <textarea class="s3-textarea" id="s3-video-q" placeholder="רשמו פרט אחד לפחות שלא ידעתם לפני הצפייה..." rows="3"></textarea>
+    </div>
+
+    <!-- HISTORICAL COMPARISON -->
+    <div class="s4-section" style="margin-top:6px;">
+      <div class="s4-section-title">⚖ השוואה היסטורית — שאלה 4 בעמ׳ 151</div>
+      <div class="s4-section-desc">
+        בספר בעמוד 151, שאלה 4, תמצאו השוואה בין שני כיבושים של ירושלים:<br><br>
+        <span style="color:var(--brown); font-weight:700;">637 לספירה</span> — כיבוש מוסלמי בידי עומר בן אל-ח׳טאב<br>
+        <span style="color:var(--red); font-weight:700;">1099 לספירה</span> — כיבוש צלבני ב-15 ביולי<br><br>
+        <strong>כיצד התייחסו שני הכובשים לתושבי העיר? מה מסביר את ההבדל לדעתכם?</strong>
+      </div>
+      <textarea class="s3-textarea" id="s3-compare" placeholder="השוו בין שני הכיבושים — יחס לתושבים, מניעים, תוצאות..." rows="5"></textarea>
+    </div>
+
+    <button class="btn-check" onclick="submitS3b()">סיימתי — לתחנה 4 ✓</button>
+    <div class="result-banner" id="s3b-result"></div>
+  </div>
+  <div class="lesson-nav">
+    <button class="btn-nav btn-back" onclick="goToPage('page-s3a')">→ חזרה</button>
+    <span class="nav-page-label">תחנה 3 / 4</span>
+    <button class="btn-nav btn-next" id="btn-to-s4" onclick="goToPage('page-s4')" disabled>תחנה 4 ←</button>
+  </div>
+</div>
+
+<!-- ===== STATION 4 — JOURNAL ===== -->
+<div class="page lesson-page" id="page-s4">
+  <div class="lesson-header">
+    <div>
+      <div class="lesson-header-title">תחנה 4 — יומן המסע</div>
+      <div class="lesson-header-subtitle">הדף האחרון</div>
+    </div>
+    <div class="progress-dots">
+      <div class="dot done"></div>
+      <div class="dot done"></div>
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+    </div>
+  </div>
+  <div class="lesson-content">
+    <div class="station-badge">✦ תחנה 4 · יומן המסע — הסיום</div>
+    <div class="page-title">הדף האחרון</div>
+
+    <!-- CHARACTER BANNER -->
+    <div class="chosen-char-banner">
+      <span id="s4j-avatar" style="font-size:2rem;"></span>
+      <div>
+        <div id="s4j-name" style="font-weight:700;font-size:1rem;"></div>
+        <div id="s4j-role" style="font-size:0.85rem;opacity:0.75;"></div>
+      </div>
+    </div>
+
+    <!-- INSTRUCTION -->
+    <div class="story-box" style="margin-bottom:20px;">
+      <div class="story-box-title">📜 ההנחיה</div>
+      <p id="s4j-instruction"></p>
+    </div>
+
+    <div class="task-instruction" style="margin-bottom:16px;">
+      <span class="icon">✍</span>
+      <p><strong>דגש לכתיבה:</strong> תארו את הערבוב שבין השמחה על הניצחון לבין המראות הקשים של הכיבוש. האם <span id="s4j-name-inline"></span> מרגיש/ה שהמסע הסתיים כפי שציפה?</p>
+    </div>
+
+    <!-- JOURNAL PAPER -->
+    <div class="journal-paper">
+      <div class="journal-header-row">
+        <div class="journal-field-group">
+          <label class="journal-label">תאריך</label>
+          <input class="journal-input" id="j4-date" placeholder="15 ביולי 1099" />
+        </div>
+        <div class="journal-field-group" style="flex:2;">
+          <label class="journal-label">מיקום</label>
+          <input class="journal-input" id="j4-location" placeholder="כנסיית הקבר הקדוש, ירושלים" />
+        </div>
+      </div>
+
+      <div class="journal-salutation">יומני היקר,</div>
+
+      <div class="journal-prompt-block">
+        <div class="journal-prompt-line">אני כותב/ת שורות אלו מתוך כנסיית הקבר הקדוש. הגענו. אחרי שלוש שנים...</div>
+        <textarea class="journal-textarea" id="j4-p1" rows="3" placeholder="תארו את הרגע שבו נכנסתם לירושלים — מה ראיתם, מה הרגשתם..."></textarea>
+      </div>
+
+      <div class="journal-prompt-block">
+        <div class="journal-prompt-line">אבל כשיצאתי מהכנסייה והסתכלתי על הרחובות...</div>
+        <textarea class="journal-textarea" id="j4-p2" rows="3" placeholder="תארו את מה שראיתם בחוץ — הכניסו פרט היסטורי מהמקור שקראתם..."></textarea>
+      </div>
+
+      <div class="journal-prompt-block">
+        <div class="journal-prompt-line" id="j4-prompt3"></div>
+        <textarea class="journal-textarea" id="j4-p3" rows="3" placeholder="תארו את הערבוב הרגשי..."></textarea>
+      </div>
+
+      <div class="journal-prompt-block">
+        <div class="journal-prompt-line">אני חוזר/ת לרגע שלפני הצאת לדרך, ושואל/ת את עצמי...</div>
+        <textarea class="journal-textarea" id="j4-p4" rows="3" placeholder="האם המסע היה שווה? האם זה מה שציפיתם? חזרו למניעים מתחנה 1..."></textarea>
+      </div>
+
+      <div class="journal-signature">
+        <label class="journal-label">חתימה:</label>
+        <input class="journal-input" id="j4-sig" placeholder="שמכם / שם הדמות..." style="max-width:260px;"/>
+      </div>
+    </div>
+
+    <div class="task-instruction" style="margin-top:16px; margin-bottom:6px;">
+      <span class="icon">💡</span>
+      <p>לאחר שתשלחו — היומן יופיע ב<strong>לוח הכיתה הדיגיטלי</strong>. קראו מה חבריכם כתבו!</p>
+    </div>
+
+    <button class="btn-check" onclick="submitJournal4()" id="btn-submit-j4">שלח יומן ←</button>
+    <div class="result-banner" id="s4j-result"></div>
+
+    <!-- CLASS GALLERY -->
+    <div class="gallery-section" id="gallery4-section" style="display:none;">
+      <div class="gallery-title">📋 לוח הכיתה — יומני הסיום</div>
+      <div class="gallery-note">יומנים שנשלחו על ידי תלמידי הכיתה:</div>
+      <div class="gallery-grid" id="gallery4-grid">
+        <div class="gallery-loading">טוען יומנים...</div>
+      </div>
+      <button class="btn-check" onclick="loadGallery4()" style="margin-top:12px; background:var(--ink); border-color:var(--ink); color:var(--parchment);">🔄 רענן יומנים</button>
+    </div>
+  </div>
+
+  <div class="lesson-nav">
+    <button class="btn-nav btn-back" onclick="goToPage('page-s3b')">→ חזרה</button>
+    <span class="nav-page-label">תחנה 4 / 4</span>
+    <div></div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+
+// Init Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const LESSON = 'lesson4';
+let studentName = '';
+
+function enterLesson() {
+  const val = document.getElementById('student-name-input').value.trim();
+  if (!val) {
+    document.getElementById('name-error').textContent = 'אנא הכניסו את שמכם לפני הכניסה.';
+    return;
+  }
+  studentName = val;
+  // Register student
+  db.ref(LESSON + '/students/' + studentName + '/info').set({
+    entered: new Date().toISOString(),
+    currentStation: 'name'
+  });
+  goToPage('page-s1-chars');
+  setTimeout(loadPreviousAnswers, 800);
+}
+
+function saveToFirebase(station, data) {
+  if (!studentName) return;
+  db.ref(LESSON + '/students/' + studentName + '/stations/' + station).update({
+    ...data,
+    completedAt: new Date().toISOString(),
+    completed: true
+  });
+  db.ref(LESSON + '/students/' + studentName + '/info').update({
+    currentStation: station,
+    character: selectedChar || ''
+  });
+}
+
+
+const characters = {
+  knight: {
+    name: 'גיום דה בואה', role: 'אביר', avatar: '⚔',
+    story: `גיום, אביר צעיר מנורמנדי, רץ מהר לאסטבל שבו מחכה הסקוויר הצעיר שלו, אנרי. הוא שולף את חרבו ומניח אותה על השולחן — עיניו בוערות.\n\n"אנרי! צדד את הסוסים. מחר בבוקר אנחנו יוצאים לירושלים. אני מחכה לזה כל חיי — מלחמה עם משמעות. נלחם בשם אלוהים, ונחזור עם שם שישמע בכל הממלכה."`,
+    question: 'אתה אביר מוכשר ללחימה — אבל הדרך ממולדתך לירושלים עוברת דרך אדמות זרות, ים, והרים. אילו קשיים אתה צופה עוד לפני הגעה לשדה הקרב?'
+  },
+  noble: {
+    name: 'רנו דה מונפליה', role: 'אציל', avatar: '👑',
+    story: `רנו קרא לאשתו ולמנהל האחוזה לחדר הגדול. פניו רציניים.\n\n"אלנור, ז'אק — החלטתי. אנחנו מוכרים את שדות הדרום ויוצאים לירושלים. הכנסייה מחכה לכסף שלנו, אבל אלוהים מחכה למסע שלנו. אם ניכבוש שם אחוזה — נשיב לבית המשפחה יותר ממה שהוצאנו."`,
+    question: 'אתה אציל בעל משפחה ואחוזות. עזבת הכל. אילו קשיים אתה צופה — הן בדרך והן בכל מה שהשארת מאחור?'
+  },
+  peasant: {
+    name: 'פייר לה גרו', role: 'איכר', avatar: '🌾',
+    story: `פייר, איכר צעיר מכפר קטן בבורגון, רץ הביתה נסער אחרי ששמע את קריאת האפיפיור. הוא פורץ פנימה ומספר לאשתו, מארי:\n\n"החלטתי! אנחנו יוצאים לירושלים. לא נשאיר אף אחד מאחור — את, הילדים, ואפילו הסבתא מצטרפים. זו הדרך שלנו למצוא חיים טובים יותר ולזכות במחילה על חטאינו."`,
+    question: 'אתה איכר שמעולם לא יצא מהכפר. אין לך סוס, אין לך נשק, ויש לך משפחה שלמה איתך. אילו קשיים אתה צופה בדרך?'
+  },
+  priest: {
+    name: 'פרר דה קלרמון', role: 'כומר', avatar: '✝',
+    story: `פרר עדיין רועד. הוא ישב כל הלילה בכנסייה, ידיו שלובות.\n\n"ברנר," הוא לחש לחברו הכומר, "הייתי שם. שמעתי אותו. האפיפיור לא דיבר אלינו — הוא דיבר דרכנו. אלוהים קורא לי אישית. אני יוצא. לא אוכל לעמוד ולשמש בכנסייה בזמן שקבר ישוע בידי אחרים."`,
+    question: 'אתה כומר — מוגן על ידי ברכת הכנסייה, אבל חלש פיזית ולא מוכשר לקרב. אילו קשיים אתה צופה לאורך המסע?'
+  },
+  merchant: {
+    name: 'מרקו דה ליון', role: 'סוחר', avatar: '⚖',
+    story: `מרקו גלגל מפה גדולה על שולחן המשרד ולצדו עמד שותפו, קלוד.\n\n"קלוד, תקשיב. כולם הולכים לירושלים — האבירים, האיכרים, הכמרים. מי לדעתך ימכור להם אוכל בדרך? אני הולך — לא רק מאמונה, אלא גם מחשיבון. ואם במקרה אמצא שם גם שלווה, גם טוב."`,
+    question: 'אתה סוחר מנוסה שמכיר דרכים — אבל מסע צלב הוא לא שיירת מסחר. אילו קשיים לא מוכרים אתה צופה?'
+  }
+};
+
+const s1Stories = {
+  knight:  `גיום, אביר מנורמנדי, עומד בשורה הראשונה מול חומות ירושלים. שלוש שנים של דרך, קרבות ואבדות — ועכשיו זה הרגע שחיכה לו כל חייו. הוא מביט בחומות הגבוהות ומהדק את ידית חרבו.
+
+"אנרי," הוא אומר לסקוויר הצעיר שלו, "כל מה שעברנו — הגענו לכאן בשביל זה. אבל חומות אלו לא ייפלו מתפילה בלבד."`,
+  noble:   `רנו, אציל מפרובנס, עומד עם מפקדיו ובוחן את ביצורי ירושלים. אחראי על מאות אנשים — חייליו, משפחתו, ואנשי השיירה — הוא יודע שכישלון כאן פירושו אסון.
+
+"אלנור ושאר הנשים שואלות מתי זה ייגמר," הוא חושב. "אנשינו מותשים. צריך תוכנית — ומהר."`,
+  peasant: `פייר ומארי עומדים יחד מול חומות ירושלים, ילדיהם נצמדים אליהם. שלוש שנים של דרך — הרים, נהרות, מחלות, ורעב — והנה הם כאן. החומות נראות בלתי אפשריות.
+
+"פייר," לוחשת מארי, "יש לנו מזון לשבוע נוסף. לא יותר." פייר מהדק את שיניו. הם עברו כל כך הרבה — לא ייתכן שזה ייגמר כך.`,
+  priest:  `פרר, הכומר, עומד מאחורי קבוצת הצלבנים ומביט בחומות. הוא הוביל את התהלוכה, הוא התפלל בקול רם — וגם הוא יודע שהפעם צריך יותר מתפילה.
+
+"ה׳ עמנו," הוא לוחש, "אבל אולי הוא מצפה שנשתמש גם בשכל שנתן לנו."`,
+  merchant:`מרקו, הסוחר מליון, ממפה בעיניו הנוקבות את החומות. הוא כבר מחשב: גובה החומה, עובי האבנים, מספר השומרים, המשאבים הזמינים.
+
+"זה עניין לוגיסטי," הוא אומר בשקט לעצמו. "כל בעיה יש לה פתרון — צריך רק לחשוב נכון."`
+};
+
+const s1Subtitles = {
+  knight: 'גיום — מול החומות',
+  noble: 'רנו — מפקד בלחץ',
+  peasant: 'פייר ומארי — הרגע הגדול',
+  priest: 'פרר — מעבר לתפילה',
+  merchant: 'מרקו — חישוב של הישרדות'
+};
+
+const s1Feedback = {
+  knight:  `⚔ רעיונות אמיצים, גיום! עכשיו תראו מה הצלבנים האמיתיים חשבו — ולאיזה פתרון הגיעו.`,
+  noble:   `👑 חשיבה אסטרטגית, רנו! עכשיו תראו מה הצלבנים האמיתיים חשבו — ולאיזה פתרון הגיעו.`,
+  peasant: `🌾 יצירתיות מרשימה, פייר! עכשיו תראו מה הצלבנים האמיתיים חשבו — ולאיזה פתרון הגיעו.`,
+  priest:  `✝ חשיבה מחוץ לקופסה, פרר! עכשיו תראו מה הצלבנים האמיתיים חשבו — ולאיזה פתרון הגיעו.`,
+  merchant:`⚖ ניתוח מחושב, מרקו! עכשיו תראו מה הצלבנים האמיתיים חשבו — ולאיזה פתרון הגיעו.`
+};
+
+let selectedChar = null;
+
+function selectCharS1(charKey) {
+  selectedChar = charKey;
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector('[data-char="' + charKey + '"]').classList.add('selected');
+  document.getElementById('btn-to-s1-mission').disabled = false;
+  // Pre-load mission page data
+  const ch = characters[charKey];
+  document.getElementById('s1m-avatar').textContent = ch.avatar;
+  document.getElementById('s1m-name').textContent = ch.name;
+  document.getElementById('s1m-role').textContent = ch.role;
+  document.getElementById('s1m-char-inline').textContent = ch.name;
+  document.getElementById('s1m-title').textContent = 'מועצת המלחמה — ' + ch.name;
+  document.getElementById('s1m-subtitle').textContent = s1Subtitles[charKey];
+  document.getElementById('s1m-story-text').innerHTML = s1Stories[charKey].replace(/\n/g, '<br>');
+  // Reset
+  document.getElementById('s1-ideas').value = '';
+  document.getElementById('s1-bonus').value = '';
+  document.getElementById('s1-result').className = 'result-banner';
+  document.getElementById('btn-to-s2').disabled = true;
+}
+
+function submitS1() {
+  const ideas = document.getElementById('s1-ideas').value.trim();
+  const b = document.getElementById('s1-result');
+  if (!ideas) {
+    b.className = 'result-banner partial';
+    b.textContent = 'אנא רשמו לפחות רעיון אחד לפני שממשיכים.';
+    return;
+  }
+  b.className = 'result-banner success';
+  b.innerHTML = '<div style="font-size:1.05rem;margin-bottom:6px;">' + s1Feedback[selectedChar] + '</div>' +
+    '<div style="font-weight:400;font-size:0.85rem;opacity:0.85;">לחצו על "תחנה 2" ←</div>';
+  saveToFirebase('s1', { ideas: document.getElementById('s1-ideas').value, bonus: document.getElementById('s1-bonus').value, character: selectedChar });
+  document.getElementById('btn-to-s2').disabled = false;
+  setTimeout(() => b.scrollIntoView({behavior:'smooth',block:'center'}), 100);
+}
+
+
+// ===== STATION 2 =====
+const s2Stories = {
+  knight:  `גיום מביט בחרב שלו ומבין שחרב לא תפרוץ חומה כזו. הוא פוקד על אנרי לבנות סולמות — אבל אין עצים. "הסולמות שהכנו קצרים מדי," הוא אומר בתסכול. "וגם אם נגיע לראש החומה — מה אחר כך?"<br><br>לפתע, רץ אליו שליח מהמפקדה: "ספינות הגיעו ליפו! יש עץ, חבלים, כל מה שצריך — אבל צריך להביא אותם לכאן." גיום מחייך לראשונה מזה שבועות.`,
+  noble:   `רנו עומד מול מפקדיו ומציג את הבעיה על מפה שרטוטה. "אין עצים לכלי מצור. המוסלמים ראו אותנו מגיעים." אחד ממפקדיו מציע: "ספינות ביפו. נפרק אותן." רנו שוקל רגע. "זה יקח ימים, האוכל אוזל." "אין ברירה אחרת," עונה המפקד.`,
+  peasant: `פייר מביט סביבו בתסכול. חבריו למסע מנסים לבנות סולמות, אך אין מספיק עצים בסביבת ירושלים. המוסלמים השמידו את היערות כדי למנוע בניית כלי מצור. לפתע, מגיעה בשורה מהנמל ביפו: ספינות אספקה הגיעו, אך הן לא יכולות להישאר בים. הפתרון של מנהיגי המסע הולך לשנות את פני המערכה.`,
+  priest:  `פרר מתפלל ומתבונן. "יש לנו ידיים, יש לנו אמונה — אבל אין עץ." הוא שומע את הויכוח בין המפקדים. "הספינות ביפו!" קורא אחד. "לפרק ספינות?" הוא תוהה בקול. "האם זה חוכמה או שגעון?" ואז הוא מבין — לפעמים הדרך לנס עוברת דרך עבודה קשה.`,
+  merchant:`מרקו ידע את זה מיד כשראה את הסביבה הצחיחה. "אין עצים — אין כלי מצור. הנוסחה פשוטה." עכשיו הוא שומע על הספינות ביפו. הוא מחשב במהירות: "מרחק יפו—ירושלים: כשני ימי הליכה. משקל קורות ספינה: כבד מאוד. נדרשים פועלים רבים. אבל — זה הפתרון היחיד."`
+};
+
+const s2Feedback = {
+  knight:  '⚔ מצוין, גיום! גיליתם את אחד הפתרונות היצירתיים ביותר בהיסטוריה הצבאית.',
+  noble:   '👑 ניתוח מעמיק, רנו! גיליתם כיצד מפקד טוב מוצא פתרון גם כשאין משאבים.',
+  peasant: '🌾 מצוין, פייר! גיליתם את אחד הפתרונות היצירתיים ביותר בהיסטוריה הצבאית.',
+  priest:  '✝ תובנה עמוקה, פרר! גם הנס הצבאי הגדול דרש עבודה אנושית קשה.',
+  merchant:'⚖ חישוב מדויק, מרקו! הלוגיסטיקה של פירוק הספינות הייתה אכן מבריקה.'
+};
+
+function loadS2() {
+  if (!selectedChar) return;
+  const ch = characters[selectedChar];
+  document.getElementById('s2-avatar').textContent = ch.avatar;
+  document.getElementById('s2-name').textContent = ch.name;
+  document.getElementById('s2-role').textContent = ch.role;
+  document.getElementById('s2-story-text').innerHTML = s2Stories[selectedChar] || s2Stories.peasant;
+  // reset
+  document.getElementById('s2-solution').value = '';
+  document.getElementById('s2-compare').value = '';
+  document.getElementById('s2-result').className = 'result-banner';
+  document.getElementById('vocab-result').className = 'result-banner';
+  document.getElementById('btn-to-s3').disabled = true;
+  resetVocabDrag();
+}
+
+// --- VOCAB DRAG & DROP ---
+let vocabDragId = null;
+let vocabTouchClone = null;
+const vocabAnswers = { siege: false, ram: false, fire: false };
+
+function resetVocabDrag() {
+  vocabAnswers.siege = false; vocabAnswers.ram = false; vocabAnswers.fire = false;
+  ['siege','ram','fire'].forEach(id => {
+    const el = document.getElementById('vd-' + id);
+    if (el) { el.classList.remove('placed','dragging'); el.style.display = ''; }
+  });
+  document.querySelectorAll('.vocab-drop-zone').forEach(z => {
+    z.className = 'vocab-drop-zone';
+    z.innerHTML = '<span class="drop-placeholder">גררו לכאן ←</span>';
+  });
+  document.getElementById('vocab-result').className = 'result-banner';
+  document.getElementById('vocab-result').textContent = '';
+}
+
+function onVocabDragStart(e) {
+  vocabDragId = e.currentTarget.dataset.id;
+  setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
+}
+
+function onVocabDrop(e, zone) {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  if (!vocabDragId) return;
+  placeVocabItem(vocabDragId, zone);
+  document.getElementById('vd-' + vocabDragId).classList.remove('dragging');
+  vocabDragId = null;
+}
+
+function placeVocabItem(id, zone) {
+  const correct = zone.dataset.answer === id;
+  // Remove from any previous zone
+  document.querySelectorAll('.vocab-drop-zone').forEach(z => {
+    if (z.dataset.answer !== zone.dataset.answer) {
+      if (z.querySelector('.vocab-draggable') &&
+          z.querySelector('.vocab-draggable').dataset.id === id) {
+        z.className = 'vocab-drop-zone';
+        z.innerHTML = '<span class="drop-placeholder">גררו לכאן ←</span>';
+      }
+    }
+  });
+  // Show in zone
+  const label = { siege:'🏰 מגדלי מצור', ram:'🪵 איל ברזל', fire:'🔥 אש יוונית' }[id];
+  zone.innerHTML = '<span style="font-family:serif;font-weight:700;">' + label + '</span>';
+  zone.className = 'vocab-drop-zone ' + (correct ? 'correct' : 'wrong');
+  vocabAnswers[zone.dataset.answer] = correct ? id : false;
+  document.getElementById('vd-' + id).classList.add('placed');
+  checkVocabComplete();
+}
+
+function checkVocabComplete() {
+  const allPlaced = document.querySelectorAll('.vocab-drop-zone.correct').length === 3;
+  const anyWrong = document.querySelectorAll('.vocab-drop-zone.wrong').length > 0;
+  const b = document.getElementById('vocab-result');
+  if (anyWrong) {
+    b.className = 'result-banner partial';
+    b.innerHTML = '💡 לא כולם במקום הנכון — הביטו שוב בספר בעמוד 150 ונסו שוב. <button onclick="resetVocabDrag()" style="margin-right:10px;padding:4px 10px;cursor:pointer;border:1px solid var(--brown);border-radius:3px;background:#fdf5e0;">נסו שוב</button>';
+  } else if (allPlaced) {
+    b.className = 'result-banner success';
+    b.textContent = '✓ מצוין! התאמתם נכון את כל כלי המצור לתפקידם!';
+  }
+}
+
+// Touch support
+function onVocabTouchStart(e) {
+  const el = e.currentTarget;
+  vocabDragId = el.dataset.id;
+  vocabTouchClone = el.cloneNode(true);
+  vocabTouchClone.style.cssText = 'position:fixed;opacity:0.85;pointer-events:none;z-index:9999;width:' + el.offsetWidth + 'px;';
+  document.body.appendChild(vocabTouchClone);
+}
+function onVocabTouchMove(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  if (vocabTouchClone) {
+    vocabTouchClone.style.left = (t.clientX - 60) + 'px';
+    vocabTouchClone.style.top  = (t.clientY - 20) + 'px';
+  }
+  document.querySelectorAll('.vocab-drop-zone').forEach(z => {
+    const r = z.getBoundingClientRect();
+    z.classList.toggle('drag-over',
+      t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom);
+  });
+}
+function onVocabTouchEnd(e) {
+  if (vocabTouchClone) { vocabTouchClone.remove(); vocabTouchClone = null; }
+  const t = e.changedTouches[0];
+  document.querySelectorAll('.vocab-drop-zone').forEach(z => {
+    z.classList.remove('drag-over');
+    const r = z.getBoundingClientRect();
+    if (t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom) {
+      placeVocabItem(vocabDragId, z);
+    }
+  });
+  vocabDragId = null;
+}
+
+function checkS2Solution() {
+  const val = document.getElementById('s2-solution').value.trim();
+  const hint = document.getElementById('s2-solution-hint');
+  if (val.length > 5 && val.length < 20) {
+    hint.textContent = '💡 מעניין! חפשו בפסקה הראשונה — מה עשו הצלבנים עם הספינות שהגיעו לנמל יפו?';
+    hint.style.color = 'var(--red)';
+  } else {
+    hint.textContent = '';
+  }
+}
+
+function submitS2() {
+  const sol = document.getElementById('s2-solution').value.trim();
+  const b = document.getElementById('s2-result');
+  if (!sol) {
+    b.className = 'result-banner partial';
+    b.textContent = 'אנא מלאו לפחות את משימה 1 לפני שממשיכים.';
+    return;
+  }
+  b.className = 'result-banner success';
+  b.innerHTML = '<div style="font-size:1.05rem;margin-bottom:6px;">' + s2Feedback[selectedChar] + '</div>' +
+    '<div style="font-weight:400;font-size:0.85rem;opacity:0.85;">עכשיו — לעדויות מהשטח ←</div>';
+  saveToFirebase('s2', { solution: document.getElementById('s2-solution').value, compare: document.getElementById('s2-compare').value });
+  document.getElementById('btn-to-s3').disabled = false;
+  setTimeout(() => b.scrollIntoView({behavior:'smooth',block:'center'}), 100);
+}
+
+// ===== STATION 3 =====
+function submitS3a() {
+  const q1 = document.getElementById('s3-q1').value.trim();
+  const q2 = document.getElementById('s3-q2').value.trim();
+  const b = document.getElementById('s3a-result');
+  const hint1 = document.getElementById('s3-q1-hint');
+  const hint2 = document.getElementById('s3-q2-hint');
+  let ok = true;
+  if (!q1) {
+    hint1.textContent = '💡 נסו לתאר: מה עשו הצלבנים לתושבים? מה קרה לרכוש? מה אווירת העיר?';
+    hint1.style.color = 'var(--red)';
+    ok = false;
+  } else { hint1.textContent = ''; }
+  if (!q2) {
+    hint2.textContent = '💡 חשבו: האם אפשר לטבוח בשם הדת? האם המנהיגים הדתיים הצדיקו זאת?';
+    hint2.style.color = 'var(--red)';
+    ok = false;
+  } else { hint2.textContent = ''; }
+  if (!ok) {
+    b.className = 'result-banner partial';
+    b.textContent = 'ענו על שתי השאלות כדי להמשיך.';
+    return;
+  }
+  b.className = 'result-banner success';
+  b.innerHTML = '<div style="font-size:1.05rem;margin-bottom:6px;">✓ ניתוח מעמיק! עכשיו — נראה מה הסרטון מוסיף.</div>';
+  saveToFirebase('s3a', { q1: document.getElementById('s3-q1').value, q2: document.getElementById('s3-q2').value });
+  document.getElementById('btn-to-s3b').disabled = false;
+  setTimeout(() => b.scrollIntoView({behavior:'smooth',block:'center'}), 100);
+}
+
+function submitS3b() {
+  const vq = document.getElementById('s3-video-q').value.trim();
+  const cmp = document.getElementById('s3-compare').value.trim();
+  const b = document.getElementById('s3b-result');
+  if (!cmp) {
+    b.className = 'result-banner partial';
+    b.textContent = 'ענו על שאלת ההשוואה ההיסטורית כדי להמשיך.';
+    return;
+  }
+  b.className = 'result-banner success';
+  b.innerHTML = '<div style="font-size:1.05rem;margin-bottom:6px;">✓ השוואה היסטורית מצוינת! מוכנים לתחנה האחרונה.</div>';
+  saveToFirebase('s3b', { videoQ: document.getElementById('s3-video-q').value, compare: document.getElementById('s3-compare').value });
+  document.getElementById('btn-to-s4').disabled = false;
+  setTimeout(() => b.scrollIntoView({behavior:'smooth',block:'center'}), 100);
+}
+
+// ===== STATION 4 JOURNAL =====
+const s4Instructions = {
+  knight:  `גיום, האביר שחלם על קרב גדול — הקרב הסתיים. ירושלים בידי הצלבנים. כתוב את הדף האחרון של היומן שלך. אתה נמצא עכשיו בתוך כנסיית הקבר הקדוש — המקום שלשמו יצאת לדרך. אבל בחוץ, הרחובות מלאים בדם ובחורבן.`,
+  noble:   `רנו, האציל שהוביל מאות אנשים לאורך שלוש שנים — הגעתם. כתוב את הדף האחרון של היומן שלך. אתה עומד בכנסיית הקבר הקדוש, חושב על אנשיך שנפלו בדרך ועל אלו שניצלו. בחוץ — ירושלים כבושה, אבל במחיר כבד.`,
+  peasant: `פייר ומארי הגיעו. שלוש שנים, חמישה ילדים, אלפי קילומטרים — והנה הם בירושלים. כתוב את הדף האחרון של היומן שלך. אתה בכנסיית הקבר הקדוש עם מארי לצדך. אבל בחוץ, הרחובות שאתה עובר בהם מלאים בדם ובחורבן.`,
+  priest:  `פרר, הכומר שהאמין בנס — הנס קרה. ירושלים בידי הצלבנים. כתוב את הדף האחרון של היומן שלך. אתה מתפלל בכנסיית הקבר הקדוש, אבל הלב שלך כבד. בחוץ — מה שראית אינו תואם את החזון שהיה לך ביום היציאה מצרפת.`,
+  merchant:`מרקו, הסוחר שחישב כל צעד — המסע הסתיים. כתוב את הדף האחרון של היומן שלך. אתה עומד בכנסיית הקבר הקדוש ומנסה לחשב את המאזן: מה הרווחת, מה הפסדת. אבל הפעם, הנוסחה לא עובדת כמו שציפית.`
+};
+
+const s4Prompt3 = {
+  knight:  `אני אביר שיצא לכבד את אלוהיו בחרב — אבל כשאני מסתכל על מה שעשינו...`,
+  noble:   `אני מנהיג שהוביל אנשים למות למען דבר — ועכשיו אני שואל את עצמי...`,
+  peasant: `אני מביט בילדי ומנסה להסביר להם מה קרה היום ביולי 1099...`,
+  priest:  `אלוהים, אני שואל אותך — האם זה מה שרצית כשהאפיפיור קרא לצאת לדרך?`,
+  merchant:`כסוחר, אני רגיל לחשב רווח והפסד — אבל היום אני לא בטוח מי ניצח כאן...`
+};
+
+const s4Feedback = {
+  knight:  `⚔ עדות היסטורית מרגשת, גיום. שמרתם על הסתירה בין האמונה למעשים.`,
+  noble:   `👑 יומן מעמיק, רנו. הצלחתם להביע את כובד האחריות של מנהיג.`,
+  peasant: `🌾 יומן נוגע ללב, פייר. הצלחתם לתאר את הניצחון והמחיר שלו יחד.`,
+  priest:  `✝ עדות רוחנית חזקה, פרר. השאלות שהעלתם הן בדיוק מה שהיסטוריונים שואלים.`,
+  merchant:`⚖ ניתוח כנה ומורכב, מרקו. המאזן שכתבתם יישאר בזיכרון ההיסטורי.`
+};
+
+function loadS4Journal() {
+  if (!selectedChar) return;
+  const ch = characters[selectedChar];
+  document.getElementById('s4j-avatar').textContent = ch.avatar;
+  document.getElementById('s4j-name').textContent = ch.name;
+  document.getElementById('s4j-name-inline').textContent = ch.name;
+  document.getElementById('s4j-role').textContent = ch.role;
+  document.getElementById('s4j-instruction').textContent = s4Instructions[selectedChar];
+  document.getElementById('j4-prompt3').textContent = s4Prompt3[selectedChar];
+  // reset
+  ['j4-date','j4-location','j4-sig'].forEach(id => document.getElementById(id).value = '');
+  ['j4-p1','j4-p2','j4-p3','j4-p4'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('s4j-result').className = 'result-banner';
+  document.getElementById('btn-submit-j4').disabled = false;
+  document.getElementById('gallery4-section').style.display = 'none';
+  loadGallery4();
+}
+
+async function submitJournal4() {
+  const p1 = document.getElementById('j4-p1').value.trim();
+  const p2 = document.getElementById('j4-p2').value.trim();
+  const p3 = document.getElementById('j4-p3').value.trim();
+  const p4 = document.getElementById('j4-p4').value.trim();
+  const sig = document.getElementById('j4-sig').value.trim();
+  const date = document.getElementById('j4-date').value.trim();
+  const loc = document.getElementById('j4-location').value.trim();
+  const b = document.getElementById('s4j-result');
+
+  if (!p1 || !p2 || !p3) {
+    b.className = 'result-banner partial';
+    b.textContent = 'אנא מלאו לפחות את שלושת המשפטים הראשונים לפני שליחה.';
+    return;
+  }
+
+  const ch = characters[selectedChar];
+  const entry = {
+    name: sig || ch.name, role: ch.role, avatar: ch.avatar,
+    date: date || '15 ביולי 1099',
+    location: loc || 'כנסיית הקבר הקדוש, ירושלים',
+    p1, p2, p3, p4, timestamp: Date.now(), lesson: 4
+  };
+
+  try {
+    const key = 'journal4:' + Date.now() + ':' + Math.random().toString(36).slice(2,7);
+    await window.storage.set(key, JSON.stringify(entry), true);
+  } catch(e) { console.log('Storage unavailable:', e); }
+
+  b.className = 'result-banner success';
+  b.innerHTML = `<div style="font-size:1.1rem;margin-bottom:8px;">✓ הדף האחרון של היומן נשמר בזיכרון ההיסטורי.</div>
+    <div style="font-weight:400;font-size:0.95rem;line-height:1.7;">
+      סיימתם את מסע הצלב — מצרפת ועד ירושלים. ארבעה שיעורים, שלוש שנים בזמן ההיסטורי, דמות אחת שליוותה אתכם לאורך כל הדרך.<br><br>
+      <span style="color:var(--gold-light); font-weight:700;">קראו מה חבריכם כתבו! 👇</span>
+    </div>`;
+
+  document.getElementById('gallery4-section').style.display = 'block';
+  document.getElementById('btn-submit-j4').disabled = true;
+  showGallery4Entry(entry);
+  setTimeout(loadGallery4, 700);
+  setTimeout(() => document.getElementById('gallery4-section').scrollIntoView({behavior:'smooth',block:'start'}), 400);
+}
+
+function showGallery4Entry(entry) {
+  const grid = document.getElementById('gallery4-grid');
+  grid.innerHTML = '';
+  grid.appendChild(makeGallery4Card(entry));
+}
+
+function makeGallery4Card(entry) {
+  const card = document.createElement('div');
+  card.className = 'gallery-card';
+  const excerpt = entry.p1.length > 120 ? entry.p1.slice(0,120) + '...' : entry.p1;
+  card.innerHTML = `
+    <div class="gallery-card-header">
+      <div class="gallery-card-avatar">${entry.avatar || '📜'}</div>
+      <div class="gallery-card-meta">
+        <div class="gallery-card-name">${entry.name}</div>
+        <div class="gallery-card-role">${entry.role}</div>
+      </div>
+      <div class="gallery-card-date">${entry.date}</div>
+    </div>
+    <div class="gallery-card-excerpt">"...${excerpt}"</div>`;
+  return card;
+}
+
+async function loadGallery4() {
+  const grid = document.getElementById('gallery4-grid');
+  grid.innerHTML = '<div class="gallery-loading">טוען יומנים...</div>';
+  try {
+    const result = await window.storage.list('journal4:', true);
+    if (!result || !result.keys || result.keys.length === 0) {
+      grid.innerHTML = '<div class="gallery-loading">עדיין לא הוגשו יומנים — היו הראשונים!</div>';
+      return;
+    }
+    const entries = [];
+    for (const key of result.keys) {
+      try {
+        const r = await window.storage.get(key, true);
+        if (r && r.value) entries.push(JSON.parse(r.value));
+      } catch(e) {}
+    }
+    entries.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+    grid.innerHTML = '';
+    if (entries.length === 0) {
+      grid.innerHTML = '<div class="gallery-loading">עדיין לא הוגשו יומנים — היו הראשונים!</div>';
+      return;
+    }
+    entries.forEach(e => grid.appendChild(makeGallery4Card(e)));
+  } catch(e) {
+    grid.innerHTML = '<div class="gallery-loading">לוח הכיתה אינו זמין כרגע.</div>';
+  }
+}
+
+function goToPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  if (typeof checkTeacherMode === 'function') checkTeacherMode();
+  if (id === 'page-s2') loadS2();
+  if (id === 'page-s4') loadS4Journal();
+}
+</script>
+</body>
+</html>

@@ -561,10 +561,12 @@ function enterLesson(url) {
   if (url.startsWith('http')) {
     fullUrl = url;
   } else {
-    // student.html is at root, lessons are in et-hadaat/et-hadaat/
     const base = window.location.href.split('/').slice(0,3).join('/');
     fullUrl = base + '/et-hadaat/et-hadaat/' + url;
   }
+  // Pass student name in URL
+  const sep = fullUrl.includes('?') ? '&' : '?';
+  fullUrl += sep + 'student=' + encodeURIComponent(studentName);
   window.location.href = fullUrl;
 }
 
