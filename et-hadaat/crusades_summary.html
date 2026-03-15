@@ -293,6 +293,33 @@ body::before{
   font-size:.75rem;color:var(--gold2);
 }
 
+
+/* ── CHRON LAYOUT ── */
+.chron-layout{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  align-items:start;
+}
+@media(max-width:650px){.chron-layout{grid-template-columns:1fr;}}
+.chron-col-title{
+  font-size:.82rem;color:var(--gold);
+  font-weight:700;margin-bottom:8px;
+}
+.chron-pool-col .chron-cards{
+  display:flex;flex-direction:column;
+  gap:8px;min-height:200px;
+  padding:10px;
+  background:rgba(0,0,0,.2);
+  border:2px dashed rgba(212,168,67,.3);
+  border-radius:8px;
+}
+.chron-timeline-col .timeline{
+  display:flex;flex-direction:column;
+  gap:6px;
+}
+.chron-card{max-width:100% !important;}
+
 </style>
 </head>
 <body>
@@ -342,11 +369,22 @@ body::before{
     <div class="page-desc">לפניכם 8 אירועים מתקופת מסעי הצלב. גררו כל אירוע למיקום הנכון בציר הזמן — מהראשון לאחרון.</div>
 
     <div class="task-box">
-      <div class="task-title">🃏 אירועים לסידור — גררו לציר הזמן:</div>
-      <div class="chron-cards" id="cards-pool"></div>
+      <div class="task-title">📅 סדרו את האירועים בציר הזמן</div>
+      <div class="task-label" style="margin-bottom:12px;">גררו כל אירוע מהעמודה השמאלית למיקום הנכון בציר הזמן.</div>
 
-      <div class="task-title" style="margin-top:20px;">📅 ציר הזמן — גררו כל אירוע למיקום הנכון:</div>
-      <div class="timeline" id="timeline"></div>
+      <div class="chron-layout">
+        <!-- LEFT: CARDS POOL -->
+        <div class="chron-pool-col">
+          <div class="chron-col-title">🃏 אירועים לסידור:</div>
+          <div class="chron-cards" id="cards-pool"></div>
+        </div>
+
+        <!-- RIGHT: TIMELINE -->
+        <div class="chron-timeline-col">
+          <div class="chron-col-title">📅 ציר הזמן:</div>
+          <div class="timeline" id="timeline"></div>
+        </div>
+      </div>
 
       <button class="btn-check" id="btn-check-s1" onclick="checkChronological()">בדוק תשובות ✓</button>
       <div class="result-banner" id="s1-result"></div>
