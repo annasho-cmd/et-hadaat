@@ -556,9 +556,15 @@ function openUnit(unit) {
 function enterLesson(url) {
   // Pass student name via sessionStorage
   sessionStorage.setItem('et_hadaat_student', studentName);
-  // Build full URL
-  const base = window.location.href.replace('student.html', '').replace(/\?.*/, '');
-  const fullUrl = url.startsWith('http') ? url : base + url;
+  // Build full URL — lessons are in et-hadaat/et-hadaat/
+  let fullUrl;
+  if (url.startsWith('http')) {
+    fullUrl = url;
+  } else {
+    // student.html is at root, lessons are in et-hadaat/et-hadaat/
+    const base = window.location.href.split('/').slice(0,3).join('/');
+    fullUrl = base + '/et-hadaat/et-hadaat/' + url;
+  }
   window.location.href = fullUrl;
 }
 
