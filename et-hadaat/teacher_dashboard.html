@@ -1206,6 +1206,12 @@ function loadGames() {
   });
 }
 
+function launchGame(gameCode) {
+  const base = window.location.href.replace('teacher_dashboard.html','');
+  const url = base + 'game_teacher.html?game=' + gameCode;
+  window.open(url, '_blank');
+}
+
 function previewLesson(url) {
   const base = window.location.href.replace('teacher_dashboard.html','');
   const fullUrl = url.startsWith('http') ? url : base + url;
