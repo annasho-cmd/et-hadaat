@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>לוח מורה — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root {
+  --ink:#1c1208; --brown:#6b3a1f;
+  --gold:#d4a843; --gold2:#f0c060;
+  --parch:#fdf5e0; --parch2:#f5e8c0;
+  --red:#8b2020; --green:#2a6b2a;
+  --surface:rgba(44,26,14,0.85);
+  --border:rgba(212,168,67,0.22);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.18) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.08) 0%,transparent 50%),
+    repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(212,168,67,.015) 60px,rgba(212,168,67,.015) 61px);
+}
+
+/* ── LOGIN ── */
+#screen-login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#2c1a0e 0%,#0f0a04 70%);}
+.login-box{text-align:center;width:100%;max-width:380px;padding:0 24px;}
+.login-crest{font-size:3.5rem;margin-bottom:16px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.login-title{font-family:'Frank Ruhl Libre',serif;font-size:1.9rem;font-weight:900;color:var(--gold2);margin-bottom:4px;}
+.login-sub{font-size:.85rem;opacity:.55;margin-bottom:32px;}
+.login-input{width:100%;padding:14px 18px;font-family:'Heebo',sans-serif;font-size:1rem;background:rgba(253,245,224,.07);border:1.5px solid var(--border);border-radius:6px;color:var(--parch);text-align:center;direction:ltr;outline:none;transition:border .2s;}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{width:100%;margin-top:14px;padding:14px;font-family:'Heebo',sans-serif;font-size:1rem;font-weight:700;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:6px;cursor:pointer;transition:opacity .2s;}
+.login-btn:hover{opacity:.9;}
+.login-err{margin-top:10px;color:#e07070;font-size:.85rem;min-height:18px;}
+
+/* ── APP SHELL ── */
+#app{display:none;flex-direction:column;min-height:100vh;position:relative;z-index:1;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(20,12,4,.9);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);font-weight:700;}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:.8rem;flex:1;margin:0 16px;flex-wrap:wrap;}
+.bc-item{color:var(--gold);cursor:pointer;opacity:.75;transition:opacity .2s;}
+.bc-item:hover{opacity:1;}
+.bc-sep{opacity:.4;}
+.btn-logout{padding:6px 12px;background:none;border:1px solid var(--border);color:var(--parch);border-radius:5px;cursor:pointer;font-size:.8rem;font-family:'Heebo',sans-serif;}
+
+.main-content{flex:1;padding:24px 20px;max-width:1100px;margin:0 auto;width:100%;}
+
+/* ── SCREEN ── */
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ── HOME ── */
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:600px;margin:40px auto;}
+@media(max-width:500px){.home-grid{grid-template-columns:1fr;}}
+.home-card{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:36px 24px;text-align:center;cursor:pointer;transition:transform .2s,border-color .2s;}
+.home-card:hover{transform:translateY(-4px);border-color:var(--gold);}
+.home-card-icon{font-size:3rem;margin-bottom:12px;}
+.home-card-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);margin-bottom:6px;}
+.home-card-sub{font-size:.82rem;opacity:.6;}
+
+/* ── SCREEN HEADER ── */
+.screen-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+.screen-title{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;font-weight:700;color:var(--gold2);}
+.btn-primary{padding:8px 16px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;}
+.btn-sm{padding:6px 12px;background:rgba(212,168,67,.15);border:1px solid var(--border);color:var(--gold);border-radius:5px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;}
+.btn-sm:hover{background:rgba(212,168,67,.3);}
+
+/* ── SUBJECTS GRID ── */
+.subjects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+.subject-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:22px;cursor:pointer;transition:transform .2s,border-color .2s;position:relative;overflow:hidden;}
+.subject-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-color,var(--gold));}
+.subject-card:hover{transform:translateY(-2px);border-color:var(--gold);}
+.subject-icon{font-size:2rem;margin-bottom:8px;}
+.subject-name{font-size:1.1rem;font-weight:700;color:var(--parch);margin-bottom:4px;}
+.subject-meta{font-size:.8rem;opacity:.6;}
+.subject-arrow{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.4rem;opacity:.35;}
+
+/* ── UNITS GRID ── */
+.units-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+.unit-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px;cursor:pointer;transition:transform .2s,border-color .2s;position:relative;}
+.unit-card:hover{transform:translateY(-2px);border-color:var(--gold);}
+.unit-icon{font-size:1.8rem;margin-bottom:8px;}
+.unit-name{font-size:1rem;font-weight:700;color:var(--parch);margin-bottom:4px;}
+.unit-meta{font-size:.78rem;opacity:.6;}
+.unit-arrow{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.3rem;opacity:.35;}
+
+/* ── UNIT DETAIL ── */
+.unit-layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:700px){.unit-layout{grid-template-columns:1fr;}}
+.panel{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
+.panel-hd{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
+.panel-title{font-size:.9rem;font-weight:700;color:var(--gold);}
+.panel-bd{padding:14px 16px;}
+
+/* ── LESSON ROW ── */
+.lesson-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(212,168,67,.1);}
+.lesson-row:last-child{border-bottom:none;}
+.lesson-num{width:26px;height:26px;border-radius:50%;background:rgba(212,168,67,.2);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;}
+.lesson-info{flex:1;}
+.lesson-name{font-size:.88rem;color:var(--parch);}
+.lesson-url{font-size:.72rem;color:var(--gold);opacity:.65;direction:ltr;word-break:break-all;}
+.btn-del{background:none;border:1px solid rgba(139,32,32,.5);color:#e07070;border-radius:4px;padding:3px 8px;font-size:.72rem;cursor:pointer;flex-shrink:0;}
+.btn-del:hover{background:rgba(139,32,32,.3);}
+
+/* ── GROUP ASSIGNMENT ── */
+.group-assign-card{background:rgba(212,168,67,.05);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
+.group-assign-card:last-child{margin-bottom:0;}
+.gac-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.gac-name{font-weight:700;font-size:.9rem;flex:1;}
+.gac-code{font-size:.72rem;background:rgba(212,168,67,.2);color:var(--gold);padding:2px 8px;border-radius:10px;}
+.lesson-toggles{display:flex;flex-direction:column;gap:6px;}
+.lesson-toggle{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(0,0,0,.2);border-radius:5px;}
+.lt-name{flex:1;font-size:.82rem;}
+.toggle-btn{padding:4px 12px;border-radius:4px;border:none;cursor:pointer;font-size:.78rem;font-family:'Heebo',sans-serif;font-weight:700;transition:all .2s;}
+.toggle-btn.open{background:var(--green);color:#fff;}
+.toggle-btn.locked{background:rgba(100,100,100,.3);color:#999;}
+.btn-watch{padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:rgba(212,168,67,.1);color:var(--gold);font-size:.72rem;cursor:pointer;font-family:'Heebo',sans-serif;}
+
+/* ── GROUPS SCREEN ── */
+.groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.group-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:22px;text-align:center;}
+.gc-icon{font-size:2rem;margin-bottom:8px;}
+.gc-name{font-size:1rem;font-weight:700;margin-bottom:10px;}
+.gc-code{font-size:2.2rem;font-weight:900;letter-spacing:5px;color:var(--gold);font-family:monospace;margin-bottom:12px;}
+.gc-link{display:flex;gap:6px;margin-bottom:10px;}
+.gc-link-input{flex:1;padding:6px 8px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:4px;color:var(--parch);font-size:.7rem;direction:ltr;cursor:pointer;outline:none;}
+.btn-copy{padding:6px 10px;background:rgba(212,168,67,.2);border:1px solid var(--border);border-radius:4px;color:var(--gold);cursor:pointer;font-size:.78rem;font-family:'Heebo',sans-serif;white-space:nowrap;}
+
+/* ── CLASS VIEW ── */
+.class-header{padding:0 0 16px 0;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.class-title{font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:10px;}
+.class-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+.class-tab{padding:6px 14px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:20px;color:var(--parch);cursor:pointer;font-size:.82rem;font-family:'Heebo',sans-serif;transition:background .2s;}
+.class-tab.active{background:var(--gold);color:var(--ink);font-weight:700;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;}
+.stat-n{font-size:1.6rem;font-weight:900;color:var(--gold);}
+.stat-l{font-size:.72rem;opacity:.6;margin-top:2px;}
+.main-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+@media(max-width:768px){.main-grid{grid-template-columns:1fr;}}
+.itabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.itab{padding:5px 12px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:4px;color:var(--parch);cursor:pointer;font-size:.78rem;font-family:'Heebo',sans-serif;}
+.itab.active{background:var(--gold);color:var(--ink);font-weight:700;}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.wall-card{background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:6px;padding:10px;}
+.wall-name{font-size:.75rem;color:var(--gold);margin-bottom:4px;font-weight:700;}
+.wall-text{font-size:.8rem;line-height:1.5;}
+.student-list{display:flex;flex-direction:column;gap:4px;}
+.student-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;cursor:pointer;transition:background .15s;}
+.student-row:hover,.student-row.sel{background:rgba(212,168,67,.1);}
+.s-avatar{width:32px;height:32px;border-radius:50%;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;}
+.s-name{font-size:.85rem;font-weight:700;}
+.s-char{font-size:.72rem;opacity:.6;}
+.s-lights{display:flex;gap:3px;margin-right:auto;}
+.s-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;}
+.s-dot.done{background:var(--green);color:#fff;}
+.s-dot.curr{background:var(--gold);color:var(--ink);}
+.s-dot.none{background:rgba(255,255,255,.1);color:#666;}
+.detail-section{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(212,168,67,.1);}
+.detail-st-title{font-size:.85rem;font-weight:700;margin-bottom:6px;}
+.detail-field-label{font-size:.72rem;color:var(--gold);opacity:.8;margin-bottom:3px;}
+.detail-answer{font-size:.82rem;line-height:1.6;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:4px;margin-bottom:6px;white-space:pre-wrap;}
+.detail-answer.empty{opacity:.4;font-style:italic;}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#2c1a0e;border:2px solid var(--gold);border-radius:12px;padding:28px;width:100%;max-width:440px;margin:16px;}
+.modal-title{font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:20px;}
+.modal-field{margin-bottom:14px;}
+.modal-label{font-size:.8rem;color:var(--gold);opacity:.8;margin-bottom:6px;}
+.modal-input{width:100%;padding:10px 12px;background:rgba(253,245,224,.07);border:1.5px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;outline:none;}
+.modal-input:focus{border-color:var(--gold);}
+select.modal-input{appearance:auto;}
+select.modal-input option{background:#2c1a0e;}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+.modal-cancel{padding:8px 18px;background:none;border:1px solid var(--border);color:var(--parch);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;}
+.modal-save{padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;}
+
+/* ── MISC ── */
+.empty-state{text-align:center;padding:30px;opacity:.45;font-size:.88rem;}
+.hint{font-size:.78rem;opacity:.5;margin-bottom:14px;}
+
+/* ── STUDENT LIST IN GROUP CARD ── */
+.gc-students-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 10px;background:rgba(212,168,67,.1);
+  border-radius:6px;cursor:pointer;margin:10px 0 0;
+  font-size:.82rem;color:var(--gold);
+  transition:background .2s;
+}
+.gc-students-header:hover{background:rgba(212,168,67,.2);}
+.gc-toggle{font-size:.7rem;}
+.gc-students-body{margin-top:6px;}
+.gc-students-input{
+  width:100%;padding:8px 10px;
+  background:rgba(253,245,224,.07);
+  border:1px solid var(--border);border-radius:6px;
+  color:var(--parch);font-family:'Heebo',sans-serif;
+  font-size:.82rem;resize:vertical;outline:none;
+  direction:rtl;
+}
+.gc-students-input:focus{border-color:var(--gold);}
+.btn-save-students{
+  width:100%;margin-top:6px;padding:8px;
+  background:rgba(42,107,42,.4);border:1px solid rgba(42,107,42,.6);
+  color:#fff;border-radius:6px;cursor:pointer;
+  font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:700;
+  transition:background .2s;
+}
+.btn-save-students:hover{background:rgba(42,107,42,.7);}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-crest">⚔</div>
+    <div class="login-title">עת הדעת</div>
+    <div class="login-sub">לוח מורה</div>
+    <input class="login-input" id="pw-input" type="password" placeholder="סיסמה"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">כניסה ✦</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">⚔ עת הדעת</div>
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <button class="btn-logout" onclick="doLogout()">יציאה</button>
+  </div>
+
+  <div class="main-content">
+
+    <!-- ══ HOME ══ -->
+    <div class="screen active" id="screen-home">
+      <div class="home-grid">
+        <div class="home-card" onclick="showScreen('screen-subjects');updateBreadcrumb([{label:'מקצועות'}]);">
+          <div class="home-card-icon">📚</div>
+          <div class="home-card-title">מקצועות</div>
+          <div class="home-card-sub">יחידות לימוד ושיעורים</div>
+        </div>
+        <div class="home-card" onclick="openGroupsScreen()">
+          <div class="home-card-icon">👥</div>
+          <div class="home-card-title">קבוצות לימוד</div>
+          <div class="home-card-sub">כיתות וקודי גישה</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SUBJECTS ══ -->
+    <div class="screen" id="screen-subjects">
+      <div class="screen-hd">
+        <div class="screen-title">📚 מקצועות</div>
+        <button class="btn-primary" onclick="openAddSubject()">➕ מקצוע חדש</button>
+      </div>
+      <div class="subjects-grid" id="subjects-grid"></div>
+    </div>
+
+    <!-- ══ UNITS ══ -->
+    <div class="screen" id="screen-units">
+      <div class="screen-hd">
+        <div class="screen-title" id="units-screen-title"></div>
+        <button class="btn-primary" onclick="openAddUnit()">➕ יחידת לימוד חדשה</button>
+      </div>
+      <div class="units-grid" id="units-grid"></div>
+      <div class="empty-state" id="units-empty" style="display:none;">אין יחידות לימוד עדיין.</div>
+    </div>
+
+    <!-- ══ UNIT DETAIL ══ -->
+    <div class="screen" id="screen-unit">
+      <div class="screen-hd">
+        <div class="screen-title" id="unit-screen-title"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" onclick="openAddLesson()">➕ שיעור</button>
+          <button class="btn-sm" onclick="openAssignGroup()">🔗 שייך קבוצה</button>
+        </div>
+      </div>
+      <div class="unit-layout">
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="panel-title">📚 שיעורים ביחידה</div>
+          </div>
+          <div class="panel-bd" id="unit-lessons"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="panel-title">👥 קבוצות משויכות</div>
+          </div>
+          <div class="panel-bd" id="unit-groups"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ GROUPS ══ -->
+    <div class="screen" id="screen-groups">
+      <div class="screen-hd">
+        <div class="screen-title">👥 קבוצות לימוד</div>
+        <button class="btn-primary" onclick="openAddGroup()">➕ קבוצה חדשה</button>
+      </div>
+      <div class="hint">כל קבוצה מקבלת קוד ייחודי. שלחי את הקישור לתלמידים בקלאסרום.</div>
+      <div class="groups-grid" id="groups-grid"></div>
+      <div class="empty-state" id="groups-empty" style="display:none;">אין קבוצות עדיין.</div>
+    </div>
+
+    <!-- ══ CLASS VIEW ══ -->
+    <div class="screen" id="screen-class">
+      <div class="class-header">
+        <div class="class-title" id="class-title"></div>
+        <div class="class-tabs" id="class-tabs"></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-n" id="st-total">0</div><div class="stat-l">נכנסו</div></div>
+        <div class="stat-card"><div class="stat-n" id="st-active" style="color:#4caf50">0</div><div class="stat-l">פעילים</div></div>
+        <div class="stat-card"><div class="stat-n" id="st-done" style="color:var(--gold)">0</div><div class="stat-l">סיימו</div></div>
+        <div class="stat-card"><div class="stat-n" id="st-avg" style="color:#87ceeb">0</div><div class="stat-l">ממוצע תחנות</div></div>
+      </div>
+      <div class="main-grid">
+        <div>
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-hd">
+              <div class="panel-title">📢 פרונטלי — תשובות בזמן אמת</div>
+              <button class="btn-sm" onclick="refreshFrontal()">🔄</button>
+            </div>
+            <div class="panel-bd">
+              <div class="itabs" id="frontal-tabs"></div>
+              <div id="frontal-wall" class="wall"><div class="empty-state">⏳ ממתין לתשובות...</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-hd"><div class="panel-title" id="detail-title">📋 בחרי תלמיד/ה</div></div>
+            <div class="panel-bd" id="detail-body"><div class="empty-state">לחצי על שם תלמיד/ה</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel" style="position:sticky;top:70px;">
+            <div class="panel-hd">
+              <div class="panel-title">👥 תלמידים</div>
+              <button class="btn-sm" onclick="renderStudents()">🔄</button>
+            </div>
+            <div class="panel-bd" style="max-height:calc(100vh - 220px);overflow-y:auto;">
+              <div class="student-list" id="student-list"><div class="empty-state">ממתין...</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+<!-- ══ MODALS ══ -->
+
+<div class="modal-overlay" id="modal-subject">
+  <div class="modal">
+    <div class="modal-title">➕ מקצוע חדש</div>
+    <div class="modal-field"><div class="modal-label">שם המקצוע</div>
+      <input class="modal-input" id="m-subj-name" placeholder="למשל: היסטוריה" /></div>
+    <div class="modal-field"><div class="modal-label">אייקון (אמוג׳י)</div>
+      <input class="modal-input" id="m-subj-icon" placeholder="⚔" style="max-width:100px;" /></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
+      <button class="modal-save" onclick="saveSubject()">שמירה ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-unit">
+  <div class="modal">
+    <div class="modal-title">➕ יחידת לימוד חדשה</div>
+    <div class="modal-field"><div class="modal-label">שם היחידה</div>
+      <input class="modal-input" id="m-unit-name" placeholder="למשל: מסעי הצלב" /></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
+      <button class="modal-save" onclick="saveUnit()">שמירה ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-lesson">
+  <div class="modal">
+    <div class="modal-title">➕ שיעור ליחידה</div>
+    <div class="modal-field"><div class="modal-label">שם השיעור</div>
+      <input class="modal-input" id="m-lesson-name" placeholder="למשל: שיעור 3 — קשיי מסעי הצלב" /></div>
+    <div class="modal-field"><div class="modal-label">קישור לשיעור</div>
+      <input class="modal-input" id="m-lesson-url" placeholder="https://..." style="direction:ltr;" /></div>
+    <div class="modal-field"><div class="modal-label">מפתח Firebase (לצפייה בתלמידים)</div>
+      <input class="modal-input" id="m-lesson-dbkey" placeholder="למשל: lesson3" style="direction:ltr;" /></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
+      <button class="modal-save" onclick="saveLesson()">שמירה ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-group">
+  <div class="modal">
+    <div class="modal-title">➕ קבוצת לימוד חדשה</div>
+    <div class="modal-field"><div class="modal-label">שם הקבוצה</div>
+      <input class="modal-input" id="m-group-name" placeholder="למשל: ח5 היסטוריה" /></div>
+    <div class="modal-field"><div class="modal-label">קוד קבוצה (אוטומטי)</div>
+      <input class="modal-input" id="m-group-code" readonly style="direction:ltr;opacity:.6;" /></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
+      <button class="modal-save" onclick="saveGroup()">צור קבוצה ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-assign">
+  <div class="modal">
+    <div class="modal-title">🔗 שיוך קבוצה ליחידה</div>
+    <div class="modal-field"><div class="modal-label">בחרי קבוצה</div>
+      <select class="modal-input" id="m-assign-group"></select></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
+      <button class="modal-save" onclick="saveAssignment()">שייך ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TEACHER_PASSWORD = 'anna2025';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── LESSON CONFIGS (for student view) ──
+const LESSON_CONFIGS = {
+  lesson3: {
+    name: 'שיעור 3 — קשיי מסעי הצלב',
+    stations: ['s1','s2','s3','s4','s5'],
+    stationLabels: ['תחנה 1','תחנה 2','תחנה 3','תחנה 4','תחנה 5'],
+    frontalStation: 's1', frontalField: 'categories',
+    answers: {
+      s1:[{field:'categories',label:'מיון הגורמים'}],
+      s2:[{field:'character',label:'דמות שנבחרה'}],
+      s3:[{field:'difficulties',label:'קשיים שחזויים'}],
+      s4:[{field:'verification',label:'אימות התחזיות'}],
+      s5:[{field:'journal',label:'יומן המסע'}]
+    }
+  },
+  lesson4: {
+    name: 'שיעור 4 — כיבוש ירושלים',
+    stations: ['s1','s2','s3a','s3b','journal4'],
+    stationLabels: ['תחנה 1','תחנה 2','תחנה 3א','תחנה 3ב','תחנה 4'],
+    frontalStation: 's1', frontalField: 'ideas',
+    answers: {
+      s1:[{field:'ideas',label:'רעיונות פריצת החומה'},{field:'bonus',label:'שאלת הבונוס'}],
+      s2:[{field:'solution',label:'פתרון הספינות'},{field:'compare',label:'השוואה עצמית'}],
+      s3a:[{field:'q1',label:'תיאור 15.7.1099'},{field:'q2',label:'הסתירה הדתית'}],
+      s3b:[{field:'videoQ',label:'חידוש מהסרטון'},{field:'compare',label:'השוואה היסטורית'}],
+      journal4:[{field:'p1',label:'כניסה לירושלים'},{field:'p2',label:'מה ראיתי ברחובות'},{field:'p3',label:'הערבוב הרגשי'},{field:'p4',label:'האם שווה היה?'}]
+    }
+  },
+  lesson5: {
+    name: 'שיעור 5 — היהודים בימי מסעות הצלב',
+    stations: ['s1','s2','s3','s4','s4b'],
+    stationLabels: ['תחנה 1','תחנה 2','תחנה 3','תחנה 4','דילמת אלעזר'],
+    frontalStation: 's1', frontalField: 'q1',
+    answers: {
+      s1:[{field:'q1',label:'זיהוי המסע'},{field:'q2',label:'קהילות'},{field:'q3',label:'תחזית'}],
+      s2:[{field:'examples',label:'דוגמאות'},{field:'inquiry',label:'חקירה'}],
+      s3:[{field:'hypothesis',label:'השערה'},{field:'verify',label:'אימות'}],
+      s4:[{field:'dragExplain',label:'הסבר מיון'},{field:'inquiry',label:'דילמה'}],
+      s4b:[{field:'finalReflection',label:'מסר לדורות'}]
+    }
+  }
+};
+
+const charNames = {
+  knight:'⚔ גיום — אביר', noble:'👑 רנו — אציל',
+  peasant:'🌾 פייר — איכר', priest:'✝ פרר — כומר', merchant:'⚖ מרקו — סוחר'
+};
+
+// ── DEFAULT SUBJECTS ──
+const DEFAULT_SUBJECTS = [
+  { id:'history', name:'היסטוריה', icon:'⚔', color:'#d4a843',
+    units:[{ id:'crusades', name:'מסעי הצלב',
+      lessons:[
+        {id:'l3', name:'שיעור 3 — קשיי מסעי הצלב', url:'crusades_lesson.html', dbKey:'lesson3'},
+        {id:'l4', name:'שיעור 4 — כיבוש ירושלים', url:'crusades_lesson4.html', dbKey:'lesson4'},
+        {id:'l5', name:'שיעור 5 — היהודים בימי מסעות הצלב', url:'crusades_lesson5.html', dbKey:'lesson5'}
+      ], groups:{} }]
+  },
+  { id:'tarbut', name:'תרבות ישראל', icon:'✡', color:'#4a90d9', units:[] },
+  { id:'bein7',  name:'בינתחומי ז׳', icon:'🔬', color:'#7cb87c', units:[] },
+  { id:'bein8',  name:'בינתחומי ח׳', icon:'🧩', color:'#b87cb8', units:[] }
+];
+
+// ── STATE ──
+let subjects = [];
+let groups = [];
+let currentSubject = null;
+let currentUnit = null;
+let currentLesson = 'lesson3';
+let currentFrontalTab = 's1';
+let selectedStudent = null;
+let studentsData = {};
+let dbListener = null;
+
+// ══════════════════════════════════════
+// FIREBASE PERSISTENCE
+// ══════════════════════════════════════
+function saveTeacherData() {
+  try {
+    db.ref('teacher/groups').set(
+      groups.reduce((a,g) => { a[g.id]=g; return a; }, {})
+    );
+    db.ref('teacher/subjects').set(
+      subjects.reduce((a,s) => { a[s.id]=s; return a; }, {})
+    );
+  } catch(e) { console.warn('Firebase save error', e); }
+}
+
+function loadTeacherData(cb) {
+  db.ref('teacher').once('value', snap => {
+    const data = snap.val() || {};
+    groups = data.groups ? Object.values(data.groups) : [];
+    if (data.subjects) {
+      subjects = Object.values(data.subjects).map(s => ({
+        ...s,
+        units: s.units ? Object.values(s.units).map(u => ({
+          ...u,
+          lessons: u.lessons ? Object.values(u.lessons) : [],
+          groups: u.groups || {}
+        })) : []
+      }));
+    } else {
+      subjects = DEFAULT_SUBJECTS.map(s => JSON.parse(JSON.stringify(s)));
+    }
+    if (cb) cb();
+  }).catch(() => {
+    subjects = DEFAULT_SUBJECTS.map(s => JSON.parse(JSON.stringify(s)));
+    if (cb) cb();
+  });
+}
+
+// ══════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════
+function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === TEACHER_PASSWORD) {
+    document.getElementById('screen-login').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    loadTeacherData(() => {
+      renderSubjects();
+      showScreen('screen-home');
+      updateBreadcrumb([]);
+    });
+  } else {
+    document.getElementById('login-err').textContent = 'סיסמה שגויה. נסי שוב.';
+    document.getElementById('pw-input').value = '';
+  }
+}
+
+function doLogout() {
+  if (dbListener) { db.ref(dbListener).off(); dbListener=null; }
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('pw-input').value = '';
+}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateBreadcrumb(items) {
+  const bc = document.getElementById('breadcrumb');
+  let html = '<span class="bc-item" onclick="goHome()">🏠 דף הבית</span>';
+  items.forEach((item,i) => {
+    html += '<span class="bc-sep">›</span>';
+    if (i < items.length-1)
+      html += `<span class="bc-item" onclick="${item.fn}">${item.label}</span>`;
+    else
+      html += `<span class="bc-item" style="color:var(--gold2);opacity:1;">${item.label}</span>`;
+  });
+  bc.innerHTML = html;
+}
+
+function goHome() {
+  if (dbListener) { db.ref(dbListener).off(); dbListener=null; }
+  currentSubject=null; currentUnit=null;
+  updateBreadcrumb([]);
+  showScreen('screen-home');
+}
+
+// ══════════════════════════════════════
+// HOME → SUBJECTS
+// ══════════════════════════════════════
+function renderSubjects() {
+  const grid = document.getElementById('subjects-grid');
+  grid.innerHTML = '';
+  subjects.forEach(sub => {
+    const card = document.createElement('div');
+    card.className = 'subject-card';
+    card.style.setProperty('--card-color', sub.color||'var(--gold)');
+    card.innerHTML = `
+      <div class="subject-icon">${sub.icon||'📚'}</div>
+      <div class="subject-name">${sub.name}</div>
+      <div class="subject-meta">${(sub.units||[]).length} יחידות לימוד</div>
+      <div class="subject-arrow">‹</div>`;
+    card.onclick = () => openSubject(sub);
+    grid.appendChild(card);
+  });
+}
+
+function openSubject(sub) {
+  currentSubject = sub;
+  updateBreadcrumb([
+    {label:'מקצועות', fn:"showScreen('screen-subjects');updateBreadcrumb([{label:'מקצועות'}]);"},
+    {label: sub.name}
+  ]);
+  document.getElementById('units-screen-title').textContent = sub.icon + ' ' + sub.name + ' — יחידות לימוד';
+  renderUnits();
+  showScreen('screen-units');
+}
+
+// ══════════════════════════════════════
+// UNITS
+// ══════════════════════════════════════
+function renderUnits() {
+  const grid = document.getElementById('units-grid');
+  const empty = document.getElementById('units-empty');
+  const units = currentSubject.units || [];
+  if (!units.length) { grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = '';
+  units.forEach(unit => {
+    const card = document.createElement('div');
+    card.className = 'unit-card';
+    const gCount = Object.keys(unit.groups||{}).length;
+    const lCount = (unit.lessons||[]).length;
+    card.innerHTML = `
+      <div class="unit-icon">📖</div>
+      <div class="unit-name">${unit.name}</div>
+      <div class="unit-meta">${lCount} שיעורים · ${gCount} קבוצות משויכות</div>
+      <div class="unit-arrow">‹</div>`;
+    card.onclick = () => openUnit(unit);
+    grid.appendChild(card);
+  });
+}
+
+function openUnit(unit) {
+  currentUnit = unit;
+  updateBreadcrumb([
+    {label:'מקצועות', fn:"showScreen('screen-subjects');updateBreadcrumb([{label:'מקצועות'}]);"},
+    {label:currentSubject.name, fn:`openSubject(subjects.find(s=>s.id==='${currentSubject.id}'))`},
+    {label: unit.name}
+  ]);
+  document.getElementById('unit-screen-title').textContent = '📖 ' + unit.name;
+  renderUnitLessons();
+  renderUnitGroups();
+  showScreen('screen-unit');
+}
+
+function renderUnitLessons() {
+  const cont = document.getElementById('unit-lessons');
+  const lessons = currentUnit.lessons || [];
+  if (!lessons.length) {
+    cont.innerHTML = '<div class="empty-state">אין שיעורים. לחצי על "➕ שיעור".</div>';
+    return;
+  }
+  cont.innerHTML = '';
+  lessons.forEach((l,i) => {
+    const row = document.createElement('div');
+    row.className = 'lesson-row';
+    row.innerHTML = `
+      <div class="lesson-num">${i+1}</div>
+      <div class="lesson-info">
+        <div class="lesson-name">${l.name}</div>
+        <div class="lesson-url">${l.url}</div>
+      </div>
+      <button class="btn-del" onclick="deleteLesson('${l.id}')">✕</button>`;
+    cont.appendChild(row);
+  });
+}
+
+function renderUnitGroups() {
+  const cont = document.getElementById('unit-groups');
+  const assigned = currentUnit.groups || {};
+  const ids = Object.keys(assigned);
+  if (!ids.length) {
+    cont.innerHTML = '<div class="empty-state">אין קבוצות משויכות.<br>לחצי על "🔗 שייך קבוצה".</div>';
+    return;
+  }
+  cont.innerHTML = '';
+  ids.forEach(gid => {
+    const group = groups.find(g => g.id === gid);
+    if (!group) return;
+    const states = assigned[gid] || {};
+    const lessons = currentUnit.lessons || [];
+    const card = document.createElement('div');
+    card.className = 'group-assign-card';
+    const togglesHtml = lessons.map(l => {
+      const isOpen = (states[l.id] || 'locked') === 'open';
+      return `<div class="lesson-toggle">
+        <span class="lt-name">${l.name}</span>
+        <button class="toggle-btn ${isOpen?'open':'locked'}"
+          onclick="toggleLesson('${gid}','${l.id}')">
+          ${isOpen ? '✅ פתוח' : '🔒 נעול'}
+        </button>
+        ${isOpen && l.dbKey ? `<button class="btn-watch" onclick="watchStudents('${gid}','${l.id}')">👁</button>` : ''}
+      </div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="gac-header">
+        <div class="gac-name">${group.name}</div>
+        <div class="gac-code">קוד: ${group.code}</div>
+        <button class="btn-del" onclick="removeAssignment('${gid}')">✕</button>
+      </div>
+      <div class="lesson-toggles">${togglesHtml || '<div class="empty-state">הוסיפי שיעורים תחילה</div>'}</div>`;
+    cont.appendChild(card);
+  });
+}
+
+function toggleLesson(groupId, lessonId) {
+  if (!currentUnit.groups[groupId]) currentUnit.groups[groupId] = {};
+  const cur = currentUnit.groups[groupId][lessonId] || 'locked';
+  currentUnit.groups[groupId][lessonId] = cur === 'open' ? 'locked' : 'open';
+  const lesson = (currentUnit.lessons||[]).find(l => l.id === lessonId);
+  const group = groups.find(g => g.id === groupId);
+  if (lesson && lesson.dbKey && group) {
+    db.ref(`teacher/openLessons/${group.code}/${lesson.dbKey}`)
+      .set(currentUnit.groups[groupId][lessonId] === 'open');
+  }
+  saveTeacherData();
+  renderUnitGroups();
+}
+
+function removeAssignment(groupId) {
+  if (!confirm('להסיר שיוך קבוצה זו?')) return;
+  delete currentUnit.groups[groupId];
+  saveTeacherData();
+  renderUnitGroups();
+}
+
+function watchStudents(groupId, lessonId) {
+  const lesson = (currentUnit.lessons||[]).find(l => l.id === lessonId);
+  const group = groups.find(g => g.id === groupId);
+  if (!lesson || !lesson.dbKey) return alert('מפתח Firebase חסר');
+  currentLesson = lesson.dbKey;
+  const cfg = LESSON_CONFIGS[lesson.dbKey];
+  document.getElementById('class-title').textContent =
+    (group ? group.name : groupId) + ' · ' + lesson.name;
+  document.getElementById('class-tabs').innerHTML = '';
+  if (cfg) {
+    document.getElementById('frontal-tabs').innerHTML = cfg.stations.map((s,i) =>
+      `<button class="itab ${s===cfg.frontalStation?'active':''}" onclick="switchFrontal('${s}',this)">${cfg.stationLabels[i]}</button>`
+    ).join('');
+    currentFrontalTab = cfg.frontalStation;
+  }
+  updateBreadcrumb([
+    {label:'מקצועות', fn:"showScreen('screen-subjects');"},
+    {label:currentSubject.name, fn:`openSubject(subjects.find(s=>s.id==='${currentSubject.id}'))`},
+    {label:currentUnit.name, fn:'openUnit(currentUnit)'},
+    {label:(group?group.name:groupId) + ' · ' + lesson.name}
+  ]);
+  loadStudents();
+  showScreen('screen-class');
+}
+
+// ══════════════════════════════════════
+// GROUPS SCREEN
+// ══════════════════════════════════════
+function openGroupsScreen() {
+  updateBreadcrumb([{label:'קבוצות לימוד'}]);
+  renderGroupsScreen();
+  showScreen('screen-groups');
+}
+
+function renderGroupsScreen() {
+  const grid = document.getElementById('groups-grid');
+  const empty = document.getElementById('groups-empty');
+  if (!groups.length) { grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = '';
+  groups.forEach(g => {
+    const baseUrl = window.location.href.replace('teacher_dashboard.html','student.html');
+    const link = `${baseUrl}?class=${g.code}`;
+    const students = g.students || [];
+    const studentCount = students.length;
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.innerHTML = `
+      <div class="gc-icon">👥</div>
+      <div class="gc-name">${g.name}</div>
+      <div class="gc-code">${g.code}</div>
+      <div class="gc-link">
+        <input class="gc-link-input" value="${link}" readonly onclick="this.select()" />
+        <button class="btn-copy" onclick="copyText('${link}')">העתק</button>
+      </div>
+      <div class="gc-students-header" onclick="toggleStudentList('${g.id}')">
+        <span>👤 תלמידים (${studentCount})</span>
+        <span class="gc-toggle" id="toggle-${g.id}">▼</span>
+      </div>
+      <div class="gc-students-body" id="students-${g.id}" style="display:none;">
+        <textarea class="gc-students-input" id="input-${g.id}"
+          placeholder="הכניסי שם פרטי ושם משפחה — כל תלמיד/ת בשורה חדשה&#10;למשל:&#10;דני כהן&#10;מיה לוי"
+          rows="6">${students.join('\n')}</textarea>
+        <button class="btn-save-students" onclick="saveStudents('${g.id}')">💾 שמור רשימה</button>
+      </div>
+      <button class="btn-del" style="margin-top:8px;" onclick="deleteGroup('${g.id}')">🗑 מחק</button>`;
+    grid.appendChild(card);
+  });
+}
+
+function toggleStudentList(groupId) {
+  const body = document.getElementById('students-' + groupId);
+  const toggle = document.getElementById('toggle-' + groupId);
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  toggle.textContent = isOpen ? '▼' : '▲';
+}
+
+function saveStudents(groupId) {
+  const input = document.getElementById('input-' + groupId).value;
+  const students = input.split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  const group = groups.find(g => g.id === groupId);
+  if (!group) return;
+  group.students = students;
+  // Save to Firebase too for student portal
+  db.ref('teacher/groups/' + groupId + '/students').set(
+    students.reduce((acc, name) => { acc[name.replace(/[.#$/\[\]]/g,'_')] = true; return acc; }, {})
+  );
+  saveTeacherData();
+  renderGroupsScreen();
+  // Re-open the list
+  setTimeout(() => {
+    const body = document.getElementById('students-' + groupId);
+    const toggle = document.getElementById('toggle-' + groupId);
+    if (body) { body.style.display = 'block'; toggle.textContent = '▲'; }
+  }, 50);
+  alert('רשימת התלמידים נשמרה ✓ (' + students.length + ' תלמידים)');
+}
+
+function copyText(txt) {
+  navigator.clipboard.writeText(txt).then(() => alert('הקישור הועתק ✓'));
+}
+
+function deleteGroup(id) {
+  if (!confirm('למחוק קבוצה זו?')) return;
+  groups = groups.filter(g => g.id !== id);
+  saveTeacherData();
+  renderGroupsScreen();
+}
+
+// ══════════════════════════════════════
+// FIREBASE — STUDENTS
+// ══════════════════════════════════════
+function loadStudents() {
+  if (dbListener) { db.ref(dbListener).off(); dbListener=null; }
+  const key = currentLesson + '/students';
+  dbListener = key;
+  db.ref(key).on('value', snap => {
+    studentsData = snap.val() || {};
+    renderStudents();
+    updateStats();
+    refreshFrontal();
+    if (selectedStudent) showDetail(selectedStudent);
+  });
+}
+
+function renderStudents() {
+  const list = document.getElementById('student-list');
+  const cfg = LESSON_CONFIGS[currentLesson];
+  if (!cfg) return;
+  const names = Object.keys(studentsData).sort();
+  if (!names.length) { list.innerHTML='<div class="empty-state">ממתין לתלמידים...</div>'; return; }
+  list.innerHTML = '';
+  names.forEach(name => {
+    const s = studentsData[name]||{};
+    const info = s.info||{};
+    const stations = s.stations||{};
+    const row = document.createElement('div');
+    row.className = 'student-row' + (selectedStudent===name?' sel':'');
+    row.onclick = () => showDetail(name);
+    const dots = cfg.stations.map(st => {
+      const done = stations[st]&&stations[st].completed;
+      const curr = info.currentStation===st;
+      const cls = done?'done':curr?'curr':'none';
+      return `<div class="s-dot ${cls}">${st.replace(/[^0-9]/g,'')||'?'}</div>`;
+    }).join('');
+    row.innerHTML = `
+      <div class="s-avatar">${name[0]}</div>
+      <div><div class="s-name">${name}</div><div class="s-char">${charNames[info.character]||''}</div></div>
+      <div class="s-lights">${dots}</div>`;
+    list.appendChild(row);
+  });
+}
+
+function updateStats() {
+  const cfg = LESSON_CONFIGS[currentLesson];
+  if (!cfg) return;
+  const names = Object.keys(studentsData);
+  const now = Date.now();
+  let active=0,done=0,total=0,totalSt=0;
+  names.forEach(name => {
+    const s=studentsData[name]||{};
+    const info=s.info||{};
+    const stations=s.stations||{};
+    total++;
+    if (info.entered && now-new Date(info.entered).getTime()<12*60*1000) active++;
+    const cnt=Object.keys(stations).filter(k=>stations[k].completed).length;
+    totalSt+=cnt;
+    if (cnt>=cfg.stations.length) done++;
+  });
+  document.getElementById('st-total').textContent=total;
+  document.getElementById('st-active').textContent=active;
+  document.getElementById('st-done').textContent=done;
+  document.getElementById('st-avg').textContent=total?(totalSt/total).toFixed(1):0;
+}
+
+function switchFrontal(key, btn) {
+  currentFrontalTab = key;
+  document.querySelectorAll('.itab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  refreshFrontal();
+}
+
+function refreshFrontal() {
+  const cfg = LESSON_CONFIGS[currentLesson];
+  if (!cfg) return;
+  const fields = cfg.answers[currentFrontalTab]||[];
+  const field = fields[0];
+  const wall = document.getElementById('frontal-wall');
+  const entries = [];
+  Object.keys(studentsData).forEach(name => {
+    const st = (studentsData[name].stations||{})[currentFrontalTab];
+    if (st&&st.completed&&field&&st[field.field])
+      entries.push({name, text:st[field.field], char:(studentsData[name].info||{}).character});
+  });
+  if (!entries.length) { wall.innerHTML='<div class="empty-state">⏳ ממתין לתשובות...</div>'; return; }
+  wall.innerHTML = '';
+  entries.forEach(e => {
+    const card = document.createElement('div');
+    card.className = 'wall-card';
+    const cl = (charNames[e.char]||'').split(' ')[0]||'';
+    card.innerHTML = `<div class="wall-name">${cl} ${e.name}</div>
+      <div class="wall-text">${e.text.slice(0,180)}${e.text.length>180?'...':''}</div>`;
+    wall.appendChild(card);
+  });
+}
+
+function showDetail(name) {
+  selectedStudent = name;
+  renderStudents();
+  const s = studentsData[name]||{};
+  const stations = s.stations||{};
+  const cfg = LESSON_CONFIGS[currentLesson];
+  if (!cfg) return;
+  const info = s.info||{};
+  document.getElementById('detail-title').textContent = `📋 ${name} · ${charNames[info.character]||''}`;
+  let html = '';
+  cfg.stations.forEach((stKey,i) => {
+    const st = stations[stKey]||{};
+    const done = st.completed;
+    const time = st.completedAt?' · '+new Date(st.completedAt).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}):'';
+    html += `<div class="detail-section">
+      <div class="detail-st-title" style="color:${done?'#4caf50':'#666'}">
+        ${done?'✓':'○'} ${cfg.stationLabels[i]}${time}</div>`;
+    if (!done) {
+      html += '<div class="detail-answer empty">טרם הושלמה</div>';
+    } else {
+      (cfg.answers[stKey]||[]).forEach(f => {
+        const val = st[f.field]||'';
+        html += `<div class="detail-field-label">${f.label}</div>
+          <div class="detail-answer ${!val?'empty':''}">${val||'(לא מולא)'}</div>`;
+      });
+    }
+    html += '</div>';
+  });
+  document.getElementById('detail-body').innerHTML = html||'<div class="empty-state">אין נתונים</div>';
+}
+
+// ══════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════
+function closeModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+}
+
+function openAddSubject() {
+  document.getElementById('m-subj-name').value='';
+  document.getElementById('m-subj-icon').value='';
+  document.getElementById('modal-subject').classList.add('open');
+}
+function saveSubject() {
+  const name = document.getElementById('m-subj-name').value.trim();
+  if (!name) return;
+  const icon = document.getElementById('m-subj-icon').value.trim()||'📚';
+  const colors = ['#d4a843','#4a90d9','#7cb87c','#b87cb8','#e07050','#50a0e0'];
+  subjects.push({id:'subj_'+Date.now(), name, icon, color:colors[subjects.length%colors.length], units:[]});
+  saveTeacherData();
+  closeModals();
+  renderSubjects();
+}
+
+function openAddUnit() {
+  document.getElementById('m-unit-name').value='';
+  document.getElementById('modal-unit').classList.add('open');
+}
+function saveUnit() {
+  const name = document.getElementById('m-unit-name').value.trim();
+  if (!name) return;
+  currentSubject.units = currentSubject.units||[];
+  currentSubject.units.push({id:'unit_'+Date.now(), name, lessons:[], groups:{}});
+  saveTeacherData();
+  closeModals();
+  renderUnits();
+}
+
+function openAddLesson() {
+  ['m-lesson-name','m-lesson-url','m-lesson-dbkey'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('modal-lesson').classList.add('open');
+}
+function saveLesson() {
+  const name = document.getElementById('m-lesson-name').value.trim();
+  const url  = document.getElementById('m-lesson-url').value.trim();
+  const dbKey= document.getElementById('m-lesson-dbkey').value.trim();
+  if (!name||!url) return;
+  currentUnit.lessons = currentUnit.lessons||[];
+  currentUnit.lessons.push({id:'les_'+Date.now(), name, url, dbKey});
+  saveTeacherData();
+  closeModals();
+  renderUnitLessons();
+}
+function deleteLesson(id) {
+  if (!confirm('למחוק שיעור זה?')) return;
+  currentUnit.lessons = currentUnit.lessons.filter(l => l.id!==id);
+  saveTeacherData();
+  renderUnitLessons();
+}
+
+function openAddGroup() {
+  document.getElementById('m-group-name').value='';
+  document.getElementById('m-group-code').value=genCode();
+  document.getElementById('modal-group').classList.add('open');
+}
+function genCode() { return Math.random().toString(36).substr(2,6).toUpperCase(); }
+function saveGroup() {
+  const name = document.getElementById('m-group-name').value.trim();
+  const code = document.getElementById('m-group-code').value.trim();
+  if (!name) return;
+  groups.push({id:'grp_'+Date.now(), name, code});
+  saveTeacherData();
+  closeModals();
+  renderGroupsScreen();
+}
+
+function openAssignGroup() {
+  const assigned = Object.keys(currentUnit.groups||{});
+  const available = groups.filter(g => !assigned.includes(g.id));
+  if (!available.length) { alert('כל הקבוצות הקיימות כבר משויכות. צרי קבוצה חדשה תחת "קבוצות לימוד".'); return; }
+  const sel = document.getElementById('m-assign-group');
+  sel.innerHTML = available.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+  document.getElementById('modal-assign').classList.add('open');
+}
+function saveAssignment() {
+  const gid = document.getElementById('m-assign-group').value;
+  if (!gid) return;
+  if (!currentUnit.groups) currentUnit.groups={};
+  currentUnit.groups[gid] = {};
+  saveTeacherData();
+  closeModals();
+  renderUnitGroups();
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+document.getElementById('pw-input').focus();
+setInterval(() => { if(dbListener) { updateStats(); refreshFrontal(); }}, 30000);
+</script>
+</body>
+</html>
