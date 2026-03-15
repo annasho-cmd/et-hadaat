@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>עת הדעת — לוח תלמיד</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--brown:#6b3a1f;
+  --gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--parch2:#f5e8c0;
+  --green:#2a6b2a;--red:#8b2020;
+  --surface:rgba(44,26,14,0.85);
+  --border:rgba(212,168,67,0.22);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:#0f0a04;color:var(--parch);
+  min-height:100vh;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.18) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.08) 0%,transparent 50%);
+}
+
+/* ── SCREENS ── */
+.screen{display:none;position:relative;z-index:1;}
+.screen.active{display:flex;flex-direction:column;min-height:100vh;}
+
+/* ── LOGIN SCREEN ── */
+#screen-login{
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center,#2c1a0e 0%,#0f0a04 70%);
+}
+.login-box{
+  text-align:center;width:100%;
+  max-width:400px;padding:32px 24px;
+}
+.login-crest{font-size:4rem;margin-bottom:16px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.login-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:2rem;font-weight:900;
+  color:var(--gold2);margin-bottom:6px;
+}
+.login-sub{font-size:.85rem;opacity:.55;margin-bottom:32px;}
+.login-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.login-input{
+  width:100%;padding:14px 16px;
+  font-family:'Heebo',sans-serif;font-size:1rem;
+  background:rgba(253,245,224,.07);
+  border:1.5px solid var(--border);border-radius:8px;
+  color:var(--parch);text-align:right;outline:none;
+  transition:border .2s;
+}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{
+  width:100%;margin-top:6px;padding:14px;
+  font-family:'Heebo',sans-serif;font-size:1rem;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:var(--ink);border:none;border-radius:8px;
+  cursor:pointer;transition:opacity .2s;
+}
+.login-btn:hover{opacity:.9;}
+.login-err{
+  margin-top:12px;min-height:20px;
+  color:#e07070;font-size:.85rem;
+  padding:8px;border-radius:6px;
+}
+.login-err.show{background:rgba(139,32,32,.2);}
+.code-display{
+  font-size:.78rem;opacity:.5;margin-top:16px;
+  direction:ltr;
+}
+
+/* ── APP SHELL ── */
+#screen-app{background:#0f0a04;}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;
+  background:rgba(20,12,4,.95);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;
+}
+.topbar-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1rem;color:var(--gold2);font-weight:700;
+}
+.student-name-badge{
+  font-size:.82rem;color:var(--parch);opacity:.8;
+}
+.btn-logout{
+  padding:5px 12px;background:none;
+  border:1px solid var(--border);color:var(--parch);
+  border-radius:5px;cursor:pointer;font-size:.78rem;
+  font-family:'Heebo',sans-serif;
+}
+.breadcrumb{
+  display:flex;align-items:center;gap:6px;
+  padding:10px 20px;font-size:.8rem;
+  border-bottom:1px solid rgba(212,168,67,.1);
+  flex-wrap:wrap;
+}
+.bc-item{color:var(--gold);cursor:pointer;opacity:.75;}
+.bc-item:hover{opacity:1;}
+.bc-sep{opacity:.4;}
+
+.main-content{flex:1;padding:24px 20px;max-width:800px;margin:0 auto;width:100%;}
+
+/* ── VIEWS ── */
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── WELCOME ── */
+.welcome-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.6rem;font-weight:700;
+  color:var(--gold2);margin-bottom:6px;
+}
+.welcome-sub{font-size:.88rem;opacity:.6;margin-bottom:28px;}
+
+/* ── SUBJECTS GRID ── */
+.subjects-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:14px;
+}
+.subject-card{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:12px;padding:22px 18px;
+  cursor:pointer;text-align:center;
+  transition:transform .2s,border-color .2s;
+  position:relative;overflow:hidden;
+}
+.subject-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:3px;background:var(--card-color,var(--gold));
+}
+.subject-card:hover{transform:translateY(-3px);border-color:var(--gold);}
+.sc-icon{font-size:2.2rem;margin-bottom:10px;}
+.sc-name{font-size:1rem;font-weight:700;color:var(--parch);}
+.sc-meta{font-size:.75rem;opacity:.55;margin-top:4px;}
+
+/* ── UNITS GRID ── */
+.units-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:14px;
+}
+.unit-card{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:12px;padding:20px;
+  cursor:pointer;
+  transition:transform .2s,border-color .2s;
+}
+.unit-card:hover{transform:translateY(-2px);border-color:var(--gold);}
+.uc-icon{font-size:1.8rem;margin-bottom:8px;}
+.uc-name{font-size:.95rem;font-weight:700;color:var(--parch);margin-bottom:6px;}
+.uc-progress{
+  height:4px;background:rgba(212,168,67,.15);
+  border-radius:2px;overflow:hidden;margin-bottom:4px;
+}
+.uc-progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .4s;}
+.uc-meta{font-size:.72rem;opacity:.55;}
+
+/* ── LESSONS LIST ── */
+.lessons-list{display:flex;flex-direction:column;gap:10px;}
+.lesson-card{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:10px;padding:16px 18px;
+  display:flex;align-items:center;gap:14px;
+  transition:border-color .2s;
+}
+.lesson-card.open{cursor:pointer;}
+.lesson-card.open:hover{border-color:var(--gold);}
+.lesson-card.locked{opacity:.5;}
+.lc-num{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(212,168,67,.15);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.9rem;flex-shrink:0;
+}
+.lc-num.done{background:var(--green);color:#fff;}
+.lc-info{flex:1;}
+.lc-name{font-size:.92rem;font-weight:700;color:var(--parch);}
+.lc-status{font-size:.75rem;margin-top:3px;}
+.lc-status.open{color:#4caf50;}
+.lc-status.locked{color:#888;}
+.lc-status.done{color:var(--gold);}
+.lc-arrow{font-size:1.2rem;opacity:.5;}
+.lesson-card.locked .lc-arrow{display:none;}
+.btn-enter{
+  padding:8px 18px;
+  background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:var(--ink);border:none;border-radius:6px;
+  cursor:pointer;font-family:'Heebo',sans-serif;
+  font-size:.85rem;font-weight:700;
+  white-space:nowrap;flex-shrink:0;
+}
+
+/* ── LOADING ── */
+.loading{
+  text-align:center;padding:60px 20px;
+  opacity:.5;font-size:.9rem;
+}
+.loading-spinner{
+  font-size:2rem;display:block;
+  margin-bottom:12px;
+  animation:spin 1.5s linear infinite;
+}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* ── EMPTY STATE ── */
+.empty-state{
+  text-align:center;padding:40px 20px;
+  opacity:.45;font-size:.88rem;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div class="screen active" id="screen-login">
+  <div class="login-box">
+    <div class="login-crest">📖</div>
+    <div class="login-title">עת הדעת</div>
+    <div class="login-sub" id="login-sub">טוען...</div>
+    <div class="login-row">
+      <input class="login-input" id="first-name" placeholder="שם פרטי" />
+      <input class="login-input" id="last-name" placeholder="שם משפחה" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">כניסה ✦</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="code-display" id="code-display"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="screen" id="screen-app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">📖 עת הדעת</div>
+    <div class="student-name-badge" id="student-badge"></div>
+    <button class="btn-logout" onclick="doLogout()">יציאה</button>
+  </div>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb" id="breadcrumb"></div>
+
+  <div class="main-content">
+
+    <!-- VIEW: SUBJECTS -->
+    <div class="view active" id="view-subjects">
+      <div class="welcome-title" id="welcome-title">שלום!</div>
+      <div class="welcome-sub">בחרי מקצוע להמשיך בלימוד</div>
+      <div class="subjects-grid" id="subjects-grid"></div>
+      <div class="empty-state" id="subjects-empty" style="display:none;">
+        אין מקצועות פעילים כרגע. פנה/י למורה.
+      </div>
+    </div>
+
+    <!-- VIEW: UNITS -->
+    <div class="view" id="view-units">
+      <div class="units-grid" id="units-grid"></div>
+      <div class="empty-state" id="units-empty" style="display:none;">
+        אין יחידות לימוד פעילות כרגע.
+      </div>
+    </div>
+
+    <!-- VIEW: LESSONS -->
+    <div class="view" id="view-lessons">
+      <div class="lessons-list" id="lessons-list"></div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="view" id="view-loading">
+      <div class="loading">
+        <span class="loading-spinner">⏳</span>
+        טוען...
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── STATE ──
+let classCode = '';
+let groupData = null;
+let teacherData = null;
+let studentName = '';
+let currentSubject = null;
+let currentUnit = null;
+
+// ── INIT ──
+window.onload = function() {
+  // Get class code from URL
+  const params = new URLSearchParams(window.location.search);
+  classCode = params.get('class') || '';
+
+  if (!classCode) {
+    document.getElementById('login-sub').textContent = 'שגיאה: קוד קבוצה חסר. פנה/י למורה.';
+    document.getElementById('login-btn') && (document.getElementById('login-btn').disabled = true);
+    return;
+  }
+
+  document.getElementById('code-display').textContent = 'קוד קבוצה: ' + classCode;
+  loadGroupData();
+};
+
+function loadGroupData() {
+  document.getElementById('login-sub').textContent = 'טוען...';
+
+  // Load teacher data to find group
+  db.ref('teacher').once('value', snap => {
+    const data = snap.val() || {};
+    teacherData = data;
+
+    // Find group by code
+    const allGroups = data.groups ? Object.values(data.groups) : [];
+    groupData = allGroups.find(g => g.code === classCode);
+
+    if (!groupData) {
+      document.getElementById('login-sub').textContent = 'קוד קבוצה לא נמצא. פנה/י למורה.';
+      return;
+    }
+
+    document.getElementById('login-sub').textContent = 'ברוכים הבאים לקבוצת ' + groupData.name;
+    document.getElementById('first-name').focus();
+  }).catch(() => {
+    document.getElementById('login-sub').textContent = 'שגיאת חיבור. נסה/י שוב.';
+  });
+}
+
+// ── LOGIN ──
+function doLogin() {
+  const first = document.getElementById('first-name').value.trim();
+  const last  = document.getElementById('last-name').value.trim();
+  const err   = document.getElementById('login-err');
+
+  if (!first || !last) {
+    showErr('נא למלא שם פרטי ושם משפחה.');
+    return;
+  }
+
+  const fullName = first + ' ' + last;
+
+  // Check if group has a student list
+  const studentList = groupData.students ? Object.keys(groupData.students) : [];
+  // Normalize: replace underscores, extra spaces, lowercase
+  const normalize = s => s.replace(/_/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+  const normalizedList = studentList.map(s => normalize(s));
+  const normalizedName = normalize(fullName);
+
+  if (studentList.length > 0) {
+    // List exists — check if student is on it
+    if (!normalizedList.includes(normalizedName)) {
+      showErr('שמך לא נמצא ברשימת הקבוצה. פנה/י למורה.');
+      return;
+    }
+  }
+
+  // All good — log in
+  studentName = fullName;
+  localStorage.setItem('et_hadaat_name_' + classCode, fullName);
+
+  enterApp();
+}
+
+function showErr(msg) {
+  const err = document.getElementById('login-err');
+  err.textContent = msg;
+  err.classList.add('show');
+}
+
+function doLogout() {
+  studentName = '';
+  currentSubject = null;
+  currentUnit = null;
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('first-name').value = '';
+  document.getElementById('last-name').value = '';
+  document.getElementById('login-err').textContent = '';
+  document.getElementById('login-err').classList.remove('show');
+}
+
+// ── ENTER APP ──
+function enterApp() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('student-badge').textContent = '👤 ' + studentName;
+  document.getElementById('welcome-title').textContent = 'שלום, ' + studentName.split(' ')[0] + '!';
+
+  showView('view-loading');
+  loadSubjects();
+}
+
+// ── LOAD SUBJECTS ──
+function loadSubjects() {
+  if (!teacherData || !teacherData.subjects) {
+    showView('view-subjects');
+    document.getElementById('subjects-empty').style.display = 'block';
+    return;
+  }
+
+  const subjects = Object.values(teacherData.subjects);
+  const mySubjects = [];
+
+  // Find subjects that have units with this group assigned
+  subjects.forEach(subj => {
+    const units = subj.units ? Object.values(subj.units) : [];
+    const hasMyGroup = units.some(u =>
+      u.groups && Object.keys(u.groups).includes(groupData.id)
+    );
+    if (hasMyGroup) mySubjects.push(subj);
+  });
+
+  if (!mySubjects.length) {
+    showView('view-subjects');
+    document.getElementById('subjects-empty').style.display = 'block';
+    return;
+  }
+
+  const grid = document.getElementById('subjects-grid');
+  grid.innerHTML = '';
+  document.getElementById('subjects-empty').style.display = 'none';
+
+  mySubjects.forEach(subj => {
+    const units = subj.units ? Object.values(subj.units) : [];
+    const myUnits = units.filter(u => u.groups && Object.keys(u.groups).includes(groupData.id));
+    const card = document.createElement('div');
+    card.className = 'subject-card';
+    card.style.setProperty('--card-color', subj.color || 'var(--gold)');
+    card.innerHTML = `
+      <div class="sc-icon">${subj.icon || '📚'}</div>
+      <div class="sc-name">${subj.name}</div>
+      <div class="sc-meta">${myUnits.length} יחידות לימוד</div>`;
+    card.onclick = () => openSubject(subj, myUnits);
+    grid.appendChild(card);
+  });
+
+  updateBreadcrumb([]);
+  showView('view-subjects');
+}
+
+// ── OPEN SUBJECT ──
+function openSubject(subj, myUnits) {
+  currentSubject = subj;
+  updateBreadcrumb([{label: subj.name}]);
+
+  const grid = document.getElementById('units-grid');
+  const empty = document.getElementById('units-empty');
+
+  if (!myUnits || !myUnits.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    showView('view-units');
+    return;
+  }
+
+  empty.style.display = 'none';
+  grid.innerHTML = '';
+
+  myUnits.forEach(unit => {
+    const lessons = unit.lessons ? Object.values(unit.lessons) : [];
+    const groupStates = (unit.groups || {})[groupData.id] || {};
+    const openLessons = lessons.filter(l => groupStates[l.id] === 'open').length;
+    const pct = lessons.length ? Math.round((openLessons / lessons.length) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'unit-card';
+    card.innerHTML = `
+      <div class="uc-icon">📖</div>
+      <div class="uc-name">${unit.name}</div>
+      <div class="uc-progress"><div class="uc-progress-fill" style="width:${pct}%"></div></div>
+      <div class="uc-meta">${openLessons} שיעורים פתוחים מתוך ${lessons.length}</div>`;
+    card.onclick = () => openUnit(unit);
+    grid.appendChild(card);
+  });
+
+  showView('view-units');
+}
+
+// ── OPEN UNIT ──
+function openUnit(unit) {
+  currentUnit = unit;
+  updateBreadcrumb([
+    {label: currentSubject.name, fn: () => openSubject(currentSubject,
+      Object.values(currentSubject.units||{}).filter(u => u.groups && Object.keys(u.groups).includes(groupData.id)))},
+    {label: unit.name}
+  ]);
+
+  const lessons = unit.lessons ? Object.values(unit.lessons) : [];
+  const groupStates = (unit.groups || {})[groupData.id] || {};
+  const list = document.getElementById('lessons-list');
+  list.innerHTML = '';
+
+  if (!lessons.length) {
+    list.innerHTML = '<div class="empty-state">אין שיעורים ביחידה זו עדיין.</div>';
+    showView('view-lessons');
+    return;
+  }
+
+  lessons.forEach((lesson, i) => {
+    const state = groupStates[lesson.id] || 'locked';
+    const isOpen = state === 'open';
+
+    const card = document.createElement('div');
+    card.className = 'lesson-card ' + (isOpen ? 'open' : 'locked');
+
+    card.innerHTML = `
+      <div class="lc-num ${isOpen ? '' : ''}">${i + 1}</div>
+      <div class="lc-info">
+        <div class="lc-name">${lesson.name}</div>
+        <div class="lc-status ${state}">
+          ${isOpen ? '✅ פתוח ללמידה' : '🔒 נעול — המתן/י למורה'}
+        </div>
+      </div>
+      ${isOpen ? `<button class="btn-enter" onclick="enterLesson('${lesson.url}')">כנס/י לשיעור ←</button>` : '<span class="lc-arrow">🔒</span>'}`;
+
+    list.appendChild(card);
+  });
+
+  showView('view-lessons');
+}
+
+// ── ENTER LESSON ──
+function enterLesson(url) {
+  // Pass student name via sessionStorage
+  sessionStorage.setItem('et_hadaat_student', studentName);
+  // Build full URL
+  const base = window.location.href.replace('student.html', '').replace(/\?.*/, '');
+  const fullUrl = url.startsWith('http') ? url : base + url;
+  window.location.href = fullUrl;
+}
+
+// ── NAVIGATION ──
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateBreadcrumb(items) {
+  const bc = document.getElementById('breadcrumb');
+  let html = `<span class="bc-item" onclick="loadSubjects()">🏠 המקצועות שלי</span>`;
+  items.forEach((item, i) => {
+    html += '<span class="bc-sep">›</span>';
+    if (i < items.length - 1)
+      html += `<span class="bc-item" onclick="(${item.fn})()">${item.label}</span>`;
+    else
+      html += `<span class="bc-item" style="color:var(--gold2);opacity:1;">${item.label}</span>`;
+  });
+  bc.innerHTML = html;
+}
+
+// ── AUTO LOGIN (returning student) ──
+window.addEventListener('load', () => {
+  // Check if student was already logged in
+  const saved = localStorage.getItem('et_hadaat_name_' + classCode);
+  if (saved && groupData) {
+    const parts = saved.split(' ');
+    document.getElementById('first-name').value = parts[0] || '';
+    document.getElementById('last-name').value = parts.slice(1).join(' ') || '';
+  }
+});
+</script>
+</body>
+</html>
