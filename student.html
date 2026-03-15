@@ -375,9 +375,17 @@ function doLogin() {
 
   if (studentList.length > 0) {
     // List exists — check if student is on it
+    console.log('Student typed:', normalizedName);
+    console.log('List:', normalizedList);
     if (!normalizedList.includes(normalizedName)) {
-      showErr('שמך לא נמצא ברשימת הקבוצה. פנה/י למורה.');
-      return;
+      // Try partial match — first name only
+      const firstNameMatch = normalizedList.some(s => normalize(s.split(' ')[0]) === normalize(first));
+      const fullMatch = normalizedList.some(s => normalize(s) === normalizedName);
+      console.log('Full match:', fullMatch, 'First name match:', firstNameMatch);
+      if (!fullMatch) {
+        showErr('שמך לא נמצא ברשימת הקבוצה. פנה/י למורה. (הקלד/י: ' + normalizedList[0] + ')');
+        return;
+      }
     }
   }
 
