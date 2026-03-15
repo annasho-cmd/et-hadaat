@@ -367,25 +367,23 @@ function doLogin() {
   const fullName = first + ' ' + last;
 
   // Check if group has a student list
-  const studentList = groupData.students ? Object.keys(groupData.students) : [];
-  // Normalize: replace underscores, extra spaces, lowercase
+  // Students can be array or object — handle both
+  let studentList = [];
+  if (groupData.students) {
+    if (Array.isArray(groupData.students)) {
+      studentList = groupData.students.filter(s => s);
+    } else {
+      studentList = Object.keys(groupData.students).map(s => s.replace(/_/g,' '));
+    }
+  }
   const normalize = s => s.replace(/_/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
   const normalizedList = studentList.map(s => normalize(s));
   const normalizedName = normalize(fullName);
 
   if (studentList.length > 0) {
-    // List exists — check if student is on it
-    console.log('Student typed:', normalizedName);
-    console.log('List:', normalizedList);
     if (!normalizedList.includes(normalizedName)) {
-      // Try partial match — first name only
-      const firstNameMatch = normalizedList.some(s => normalize(s.split(' ')[0]) === normalize(first));
-      const fullMatch = normalizedList.some(s => normalize(s) === normalizedName);
-      console.log('Full match:', fullMatch, 'First name match:', firstNameMatch);
-      if (!fullMatch) {
-        showErr('שמך לא נמצא ברשימת הקבוצה. פנה/י למורה. (הקלד/י: ' + normalizedList[0] + ')');
-        return;
-      }
+      showErr('שמך לא נמצא ברשימת הקבוצה. פנה/י למורה.');
+      return;
     }
   }
 
