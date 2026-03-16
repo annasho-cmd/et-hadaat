@@ -792,7 +792,9 @@ function renderUnitGroups() {
 }
 
 function toggleLesson(groupId, lessonId) {
-  // Work through subjects array
+  if (!currentSubject || !currentUnit) return;
+
+  // Find unit in subjects
   const subj = subjects.find(s => s.id === currentSubject.id);
   if (!subj) return;
   const unit = (subj.units||[]).find(u => u.id === currentUnit.id);
@@ -804,12 +806,23 @@ function toggleLesson(groupId, lessonId) {
   const cur = unit.groups[groupId][lessonId] || 'locked';
   const newState = cur === 'open' ? 'locked' : 'open';
 
-  // Update everywhere
+  // Update in memory
   unit.groups[groupId][lessonId] = newState;
   currentUnit = unit;
-  currentSubject = subj;
 
-  // Update Firebase openLessons for student portal
+  // Save directly to Firebase — just this one value
+  if (subj.id && unit.id) {
+    db.ref('teacher/subjects/' + subj.id + '/units').once('value', snap => {
+      const units = snap.val() || {};
+      const unitKey = Object.keys(units).find(k => units[k].id === unit.id);
+      if (unitKey) {
+        db.ref('teacher/subjects/' + subj.id + '/units/' + unitKey + '/groups/' + groupId + '/' + lessonId)
+          .set(newState);
+      }
+    });
+  }
+
+  // Update openLessons for student portal
   const lesson = (unit.lessons||[]).find(l => l.id === lessonId);
   const group = groups.find(g => g.id === groupId);
   if (lesson && lesson.dbKey && group) {
@@ -817,10 +830,7 @@ function toggleLesson(groupId, lessonId) {
       .set(newState === 'open');
   }
 
-  // Save and re-render
-  saveTeacherData();
-  // Small delay to ensure save completes before re-render
-  setTimeout(() => renderUnitGroups(), 100);
+  renderUnitGroups();
 }
 
 function removeAssignment(groupId) {
