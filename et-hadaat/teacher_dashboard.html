@@ -744,6 +744,10 @@ function renderUnitLessons() {
 
 function renderUnitGroups() {
   const cont = document.getElementById('unit-groups');
+  // Always read fresh from subjects array
+  const subj = subjects.find(s => s.id === currentSubject.id);
+  const unit = subj ? (subj.units||[]).find(u => u.id === currentUnit.id) : null;
+  if (unit) currentUnit = unit;
   const assigned = currentUnit.groups || {};
   const ids = Object.keys(assigned);
   if (!ids.length) {
@@ -788,7 +792,7 @@ function renderUnitGroups() {
 }
 
 function toggleLesson(groupId, lessonId) {
-  // Always work through subjects to ensure consistency
+  // Work through subjects array
   const subj = subjects.find(s => s.id === currentSubject.id);
   if (!subj) return;
   const unit = (subj.units||[]).find(u => u.id === currentUnit.id);
@@ -799,10 +803,11 @@ function toggleLesson(groupId, lessonId) {
 
   const cur = unit.groups[groupId][lessonId] || 'locked';
   const newState = cur === 'open' ? 'locked' : 'open';
-  unit.groups[groupId][lessonId] = newState;
 
-  // Keep currentUnit in sync
+  // Update everywhere
+  unit.groups[groupId][lessonId] = newState;
   currentUnit = unit;
+  currentSubject = subj;
 
   // Update Firebase openLessons for student portal
   const lesson = (unit.lessons||[]).find(l => l.id === lessonId);
@@ -812,8 +817,10 @@ function toggleLesson(groupId, lessonId) {
       .set(newState === 'open');
   }
 
+  // Save and re-render
   saveTeacherData();
-  renderUnitGroups();
+  // Small delay to ensure save completes before re-render
+  setTimeout(() => renderUnitGroups(), 100);
 }
 
 function removeAssignment(groupId) {
