@@ -788,29 +788,30 @@ function renderUnitGroups() {
 }
 
 function toggleLesson(groupId, lessonId) {
-  if (!currentUnit.groups) currentUnit.groups = {};
-  if (!currentUnit.groups[groupId]) currentUnit.groups[groupId] = {};
-  const cur = currentUnit.groups[groupId][lessonId] || 'locked';
-  const newState = cur === 'open' ? 'locked' : 'open';
-  currentUnit.groups[groupId][lessonId] = newState;
-
-  // Also update in subjects data structure
+  // Always work through subjects to ensure consistency
   const subj = subjects.find(s => s.id === currentSubject.id);
-  if (subj) {
-    const unit = (subj.units||[]).find(u => u.id === currentUnit.id);
-    if (unit) {
-      if (!unit.groups) unit.groups = {};
-      if (!unit.groups[groupId]) unit.groups[groupId] = {};
-      unit.groups[groupId][lessonId] = newState;
-    }
-  }
+  if (!subj) return;
+  const unit = (subj.units||[]).find(u => u.id === currentUnit.id);
+  if (!unit) return;
 
-  const lesson = (currentUnit.lessons||[]).find(l => l.id === lessonId);
+  if (!unit.groups) unit.groups = {};
+  if (!unit.groups[groupId]) unit.groups[groupId] = {};
+
+  const cur = unit.groups[groupId][lessonId] || 'locked';
+  const newState = cur === 'open' ? 'locked' : 'open';
+  unit.groups[groupId][lessonId] = newState;
+
+  // Keep currentUnit in sync
+  currentUnit = unit;
+
+  // Update Firebase openLessons for student portal
+  const lesson = (unit.lessons||[]).find(l => l.id === lessonId);
   const group = groups.find(g => g.id === groupId);
   if (lesson && lesson.dbKey && group) {
-    db.ref(`teacher/openLessons/${group.code}/${lesson.dbKey}`)
+    db.ref('teacher/openLessons/' + group.code + '/' + lesson.dbKey)
       .set(newState === 'open');
   }
+
   saveTeacherData();
   renderUnitGroups();
 }
