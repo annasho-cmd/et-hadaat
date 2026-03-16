@@ -243,7 +243,7 @@
 
             <div class="ctrl-btn-group" id="ctrlBtns">
               <button id="btnStart" class="btn-success btn-lg" onclick="startGame()">🚀 התחל משחק</button>
-              <button id="btnBoard" class="btn-primary btn-lg" onclick="openBoard()" style="background:#6b46c1;border-color:#553c9a;">📺 הצג על לוח</button>
+              <button id="btnBoard" class="btn-primary btn-lg" id="btnBoardBtn" style="background:#6b46c1;border-color:#553c9a;">📺 הצג על לוח</button>
               <button id="btnOpen" class="btn-amber btn-lg hidden" onclick="openCurrentQuestion()">📖 פתח שאלה לתלמידים</button>
               <button id="btnReview" class="btn-primary btn-lg hidden" onclick="showReview()">📊 הצג תוצאות לכיתה</button>
               <button id="btnNext" class="btn-ghost btn-lg hidden" onclick="nextQuestion()">⏭ שאלה הבאה</button>
@@ -1008,6 +1008,21 @@ renderCurrentQBox();
     setTimeout(() => { if (typeof initFirebase === 'function') initFirebase(cfg); }, 500);
   }
 })();
+</script>
+<script>
+// Expose board function globally (module functions can't be called from onclick)
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('btnBoardBtn');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      const code = localStorage.getItem('gameCode') || '';
+      if (!code) { alert('יש להפעיל משחק תחילה'); return; }
+      const base = window.location.href.split('?')[0].replace('game_teacher.html', 'game_board.html');
+      const url = base + '?code=' + code;
+      window.open(url, '_blank');
+    });
+  }
+});
 </script>
 </body>
 </html>
