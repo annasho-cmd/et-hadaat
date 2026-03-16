@@ -788,14 +788,28 @@ function renderUnitGroups() {
 }
 
 function toggleLesson(groupId, lessonId) {
+  if (!currentUnit.groups) currentUnit.groups = {};
   if (!currentUnit.groups[groupId]) currentUnit.groups[groupId] = {};
   const cur = currentUnit.groups[groupId][lessonId] || 'locked';
-  currentUnit.groups[groupId][lessonId] = cur === 'open' ? 'locked' : 'open';
+  const newState = cur === 'open' ? 'locked' : 'open';
+  currentUnit.groups[groupId][lessonId] = newState;
+
+  // Also update in subjects data structure
+  const subj = subjects.find(s => s.id === currentSubject.id);
+  if (subj) {
+    const unit = (subj.units||[]).find(u => u.id === currentUnit.id);
+    if (unit) {
+      if (!unit.groups) unit.groups = {};
+      if (!unit.groups[groupId]) unit.groups[groupId] = {};
+      unit.groups[groupId][lessonId] = newState;
+    }
+  }
+
   const lesson = (currentUnit.lessons||[]).find(l => l.id === lessonId);
   const group = groups.find(g => g.id === groupId);
   if (lesson && lesson.dbKey && group) {
     db.ref(`teacher/openLessons/${group.code}/${lesson.dbKey}`)
-      .set(currentUnit.groups[groupId][lessonId] === 'open');
+      .set(newState === 'open');
   }
   saveTeacherData();
   renderUnitGroups();
