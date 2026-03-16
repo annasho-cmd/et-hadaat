@@ -737,58 +737,24 @@ ${videoList}
   "missing": ["נושא שחסר 1", "נושא שחסר 2"]
 }`;
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await response.json();
-    const text = data.content.map(i => i.text || '').join('');
-
-    // Parse JSON
-    let result;
-    try {
-      const clean = text.replace(/```json|```/g, '').trim();
-      result = JSON.parse(clean);
-    } catch(e) {
-      // Show raw response if parsing fails
-      output.innerHTML = `<div class="card"><div class="card-title">📊 ניתוח הסרטונים</div>
-        <div style="white-space:pre-wrap;font-size:.85rem;line-height:1.7;">${text}</div></div>`;
-      return;
-    }
-
-    // Save segments to Firebase
-    const allSegments = [];
-    (result.suggested_order || []).forEach((s, i) => {
-      allSegments.push({
-        step: i + 1,
-        topic: s.topic,
-        videoUrl: (currentProject.videos[s.video_index] || {}).url || '',
-        start: s.start,
-        end: s.end
-      });
-    });
-
-    await db.ref('video_agent/projects/' + currentProject.id + '/segments').set(allSegments);
-    await db.ref('video_agent/projects/' + currentProject.id + '/transitions').set(result.transitions || []);
-    await db.ref('video_agent/projects/' + currentProject.id + '/missing').set(result.missing || []);
-    await db.ref('video_agent/projects/' + currentProject.id + '/analysis').set(result);
-
-    // Update video statuses
-    const videos2 = currentProject.videos.map(v => ({ ...v, status: 'done' }));
-    await db.ref('video_agent/projects/' + currentProject.id + '/videos').set(videos2);
-
-    output.innerHTML = '<div style="color:var(--green);padding:12px;">✓ הניתוח הושלם! עברי ללשונית "עריכה מוצעת"</div>';
-    setTimeout(() => switchTab('tab-edit'), 1500);
-
-  } catch(e) {
-    output.innerHTML = `<div style="color:var(--red);padding:12px;">שגיאה: ${e.message}</div>`;
-  }
+  // Show prompt to copy to Claude
+  output.innerHTML = `
+    <div class="card" style="border-color:rgba(227,179,65,.4);">
+      <div class="card-title">📋 העתיקי את הפרומפט הזה לקלוד</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">
+        בשל מגבלות אבטחה של הדפדפן, יש להדביק את הטקסט הבא בשיחת קלוד ולהחזיר את התוצאה לכאן.
+      </div>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('prompt-text').textContent).then(()=>alert('הועתק!'))">📋 העתקי</button>
+      <div style="clear:both;height:8px;"></div>
+      <div class="srt-output" id="prompt-text" style="max-height:200px;">${prompt}</div>
+      <div style="margin-top:16px;">
+        <label class="form-label">הדביקי כאן את תשובת קלוד (JSON):</label>
+        <textarea class="form-textarea" id="claude-response" rows="8"
+          placeholder='{"videos":[...],"suggested_order":[...],"transitions":[...],"missing":[]}'></textarea>
+        <button class="btn btn-primary" style="margin-top:8px;width:100%;"
+          onclick="processClaudeResponse()">✓ עבדי על התשובה</button>
+      </div>
+    </div>`;
 }
 
 // ── RENDER EDIT TAB ──
@@ -873,6 +839,43 @@ function renderSRTTab(p) {
   </div>`;
 }
 
+async function processClaudeResponse() {
+  const text = document.getElementById('claude-response').value.trim();
+  if (!text) { alert('אנא הדביקי את תשובת קלוד'); return; }
+
+  let result;
+  try {
+    const clean = text.replace(/```json|```/g, '').trim();
+    result = JSON.parse(clean);
+  } catch(e) {
+    alert('שגיאה בפענוח JSON — ודאי שהדבקת את כל התשובה');
+    return;
+  }
+
+  const allSegments = [];
+  (result.suggested_order || []).forEach((s, i) => {
+    allSegments.push({
+      step: i + 1,
+      topic: s.topic,
+      videoUrl: (currentProject.videos[s.video_index] || {}).url || '',
+      start: s.start,
+      end: s.end
+    });
+  });
+
+  await db.ref('video_agent/projects/' + currentProject.id + '/segments').set(allSegments);
+  await db.ref('video_agent/projects/' + currentProject.id + '/transitions').set(result.transitions || []);
+  await db.ref('video_agent/projects/' + currentProject.id + '/missing').set(result.missing || []);
+  await db.ref('video_agent/projects/' + currentProject.id + '/analysis').set(result);
+
+  const videos2 = currentProject.videos.map(v => ({ ...v, status: 'done' }));
+  await db.ref('video_agent/projects/' + currentProject.id + '/videos').set(videos2);
+
+  document.getElementById('analysis-output').innerHTML =
+    '<div style="color:var(--green);padding:12px;">✓ הניתוח הושלם! עברי ללשונית "עריכה מוצעת"</div>';
+  setTimeout(() => switchTab('tab-edit'), 1500);
+}
+
 async function generateSRT() {
   const output = document.getElementById('srt-output-area');
   output.innerHTML = '<div class="loading"><div class="spinner"></div>יוצר תמלול עברי...</div>';
@@ -904,33 +907,31 @@ ${segList}
 
 וכן הלאה.`;
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await response.json();
-    const text = data.content.map(i => i.text || '').join('');
+  output.innerHTML = `
+    <div class="card" style="border-color:rgba(227,179,65,.4);">
+      <div class="card-title">📋 העתיקי את הפרומפט לקלוד</div>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('srt-prompt').textContent).then(()=>alert('הועתק!'))">📋 העתקי</button>
+      <div style="clear:both;height:8px;"></div>
+      <div class="srt-output" id="srt-prompt" style="max-height:200px;">${prompt}</div>
+      <div style="margin-top:16px;">
+        <label class="form-label">הדביקי כאן את תשובת קלוד (תמלול SRT):</label>
+        <textarea class="form-textarea" id="srt-response" rows="8" placeholder="1&#10;00:00:00,000 --> 00:00:05,000&#10;טקסט..."></textarea>
+        <button class="btn btn-success" style="margin-top:8px;width:100%;"
+          onclick="saveSRT()">✓ שמרי תמלול</button>
+      </div>
+    </div>`;
+}
 
-    output.innerHTML = `
-      <button class="copy-btn" onclick="copyText('srt-text')">📋 העתקי</button>
-      <div style="clear:both;height:4px;"></div>
-      <div class="srt-output" id="srt-text">${text}</div>
-      <button class="btn btn-success" style="margin-top:12px;" onclick="downloadSRT('${currentProject.name}')">
-        ⬇️ הורידי קובץ SRT
-      </button>`;
-
-    // Save SRT
-    db.ref('video_agent/projects/' + currentProject.id + '/srt').set(text);
-
-  } catch(e) {
-    output.innerHTML = `<div style="color:var(--red);">שגיאה: ${e.message}</div>`;
-  }
+function saveSRT() {
+  const text = document.getElementById('srt-response').value.trim();
+  if (!text) { alert('אנא הדביקי את תשובת קלוד'); return; }
+  db.ref('video_agent/projects/' + currentProject.id + '/srt').set(text);
+  document.getElementById('srt-output-area').innerHTML = `
+    <button class="copy-btn" onclick="copyText('srt-saved')">📋 העתקי</button>
+    <div style="clear:both;height:4px;"></div>
+    <div class="srt-output" id="srt-saved">${text}</div>
+    <button class="btn btn-success" style="margin-top:12px;"
+      onclick="downloadSRT('${currentProject.name}')">⬇️ הורידי קובץ SRT</button>`;
 }
 
 function downloadSRT(name) {
