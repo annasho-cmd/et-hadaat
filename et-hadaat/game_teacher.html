@@ -437,6 +437,17 @@ import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://ww
 //  State
 // ═══════════════════════════════════════════════════════
 let db = null, fbStorage = null;
+
+// ── AUTO-INIT Firebase with default config ──
+const DEFAULT_FB_CONFIG = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
 let questions = [];
 let editingIdx = -1;
 let mediaTab = 'none';
@@ -446,6 +457,12 @@ let studentsLive = {};
 let answersLive = {};
 
 localStorage.setItem('gameCode', gameCode);
+
+// Auto-init with default config if not configured
+const savedCfg = localStorage.getItem('fbConfig');
+if (!savedCfg) {
+  localStorage.setItem('fbConfig', JSON.stringify(DEFAULT_FB_CONFIG));
+}
 
 function genCode() { return Math.random().toString(36).substr(2,6).toUpperCase(); }
 
@@ -486,6 +503,12 @@ function regenerateCode() {
   if (!confirm('ליצור קוד משחק חדש? הקוד הנוכחי לא יעבוד יותר.')) return;
   gameCode = genCode();
   localStorage.setItem('gameCode', gameCode);
+
+// Auto-init with default config if not configured
+const savedCfg = localStorage.getItem('fbConfig');
+if (!savedCfg) {
+  localStorage.setItem('fbConfig', JSON.stringify(DEFAULT_FB_CONFIG));
+}
   document.getElementById('gameCodeDisplay').textContent = gameCode;
   document.getElementById('settingsGameCode').textContent = gameCode;
   document.getElementById('headerCodeBadge').textContent = gameCode;
@@ -776,7 +799,14 @@ function importQuestions(e) {
 function openBoard() {
   const base = window.location.href.replace('game_teacher.html', 'game_board.html');
   const url = base + '?code=' + gameCode;
-  window.open(url, 'board', 'width=1280,height=720,toolbar=no,menubar=no');
+  // Open in new tab (avoids popup blockers)
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 async function startGame() {
@@ -959,6 +989,25 @@ function showToast(msg) {
 renderQList();
 renderQDots();
 renderCurrentQBox();
+
+// ── AUTO-INIT Firebase on load ──
+(function() {
+  const cfg = JSON.parse(localStorage.getItem('fbConfig') || 'null') || DEFAULT_FB_CONFIG;
+  // Pre-fill the settings form
+  const fields = {
+    cfg_apiKey: cfg.apiKey, cfg_authDomain: cfg.authDomain,
+    cfg_databaseURL: cfg.databaseURL, cfg_projectId: cfg.projectId,
+    cfg_storageBucket: cfg.storageBucket, cfg_appId: cfg.appId
+  };
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el && val) el.value = val;
+  });
+  // Auto-connect
+  if (cfg.apiKey) {
+    setTimeout(() => { if (typeof initFirebase === 'function') initFirebase(cfg); }, 500);
+  }
+})();
 </script>
 </body>
 </html>
