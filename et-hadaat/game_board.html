@@ -77,14 +77,14 @@ function listenToGame() {
     renderState();
   });
 
-  // Answers
+  // Answers — structure: answers/q0/studentId = value
   onValue(ref(db, `games/${gameCode}/answers`), snap => {
     answers = snap.val() || {};
     renderAnswers();
     updateCount();
   });
 
-  // Students
+  // Students — structure: students/studentId = {name, ...}
   onValue(ref(db, `games/${gameCode}/students`), snap => {
     students = snap.val() || {};
     updateCount();
@@ -194,15 +194,18 @@ function renderAnswers() {
   const q = questions[currentQ];
   if (!q) return;
 
-  const answerList = Object.values(answers).filter(a => a.questionIndex === currentQ);
+  // Get answers for current question: answers/q{currentQ}/{studentId} = value
+  const qKey = 'q' + currentQ;
+  const qAnswers = answers[qKey] || {};
+  const answerValues = Object.entries(qAnswers); // [[studentId, value], ...]
   const container = document.getElementById('answers-container');
   container.innerHTML = '';
 
   if (q.type === 'multiple_choice') {
     const opts = q.options || [];
     const counts = {};
-    answerList.forEach(a => { counts[a.answer] = (counts[a.answer]||0) + 1; });
-    const total = answerList.length || 1;
+    answerValues.forEach(([sid, val]) => { counts[val] = (counts[val]||0) + 1; });
+    const total = answerValues.length || 1;
     const labels = ['א','ב','ג','ד'];
     opts.forEach((opt, i) => {
       const count = counts[opt] || 0;
@@ -220,11 +223,11 @@ function renderAnswers() {
 
   } else if (q.type === 'true_false') {
     let trueCount = 0, falseCount = 0;
-    answerList.forEach(a => {
-      if (a.answer === true || a.answer === 'true' || a.answer === 1) trueCount++;
+    answerValues.forEach(([sid, val]) => {
+      if (val === true || val === 'true' || val === 1) trueCount++;
       else falseCount++;
     });
-    const total = answerList.length || 1;
+    const total = answerValues.length || 1;
     container.innerHTML = `
       <div class="tf-bars">
         <div class="tf-bar-item green">
@@ -240,26 +243,28 @@ function renderAnswers() {
       </div>`;
 
   } else if (q.type === 'open_text') {
-    const first12 = answerList.slice(0, 12);
-    if (!first12.length) {
+    if (!answerValues.length) {
       container.innerHTML = '<div class="no-answers">ממתין לתשובות...</div>';
       return;
     }
-    first12.forEach(a => {
+    const first12 = answerValues.slice(0, 12);
+    first12.forEach(([sid, val]) => {
+      const studentData = students[sid] || {};
+      const name = studentData.name || sid;
       const div = document.createElement('div');
       div.className = 'open-card';
-      div.innerHTML = `<span class="open-name">${a.name||'?'}</span><span class="open-text">${a.answer||''}</span>`;
+      div.innerHTML = `<span class="open-name">${name}</span><span class="open-text">${val||''}</span>`;
       container.appendChild(div);
     });
-    if (answerList.length > 12) {
+    if (answerValues.length > 12) {
       const more = document.createElement('div');
       more.className = 'more-answers';
-      more.textContent = `+ עוד ${answerList.length - 12} תשובות`;
+      more.textContent = `+ עוד ${answerValues.length - 12} תשובות`;
       container.appendChild(more);
     }
 
   } else if (q.type === 'ordering') {
-    const done = answerList.filter(a => a.completed).length;
+    const done = answerValues.filter(([sid,val]) => val && val.completed).length;
     container.innerHTML = `<div class="ordering-count">
       <span style="font-size:3rem;font-weight:900;color:#48bb78;">${done}</span>
       <span style="opacity:.6;margin-right:8px;">תלמידים סיימו לסדר</span>
@@ -268,9 +273,11 @@ function renderAnswers() {
 }
 
 function updateCount() {
-  const answerList = Object.values(answers).filter(a => a.questionIndex === currentQ);
+  const qKey = 'q' + currentQ;
+  const qAnswers = answers[qKey] || {};
+  const answered = Object.keys(qAnswers).length;
   const total = Object.keys(students).length;
-  document.getElementById('answered-count').textContent = `${answerList.length} / ${total} ענו`;
+  document.getElementById('answered-count').textContent = answered + ' / ' + total + ' ענו';
 }
 
 function renderState() {
