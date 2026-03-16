@@ -773,13 +773,13 @@ function importQuestions(e) {
 // ═══════════════════════════════════════════════════════
 //  Game Control
 // ═══════════════════════════════════════════════════════
-async function openBoard() {
+function openBoard() {
   const base = window.location.href.replace('game_teacher.html', 'game_board.html');
   const url = base + '?code=' + gameCode;
   window.open(url, 'board', 'width=1280,height=720,toolbar=no,menubar=no');
 }
 
-function startGame() {
+async function startGame() {
   if (!db) { alert('יש להגדיר Firebase תחילה'); return; }
   if (!questions.length) { alert('הוסיפי שאלות לפני תחילת המשחק'); return; }
   await set(ref(db, `games/${gameCode}`), {
