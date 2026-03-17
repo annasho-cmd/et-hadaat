@@ -139,6 +139,21 @@ const firebaseConfig={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 let projects={},currentProject=null,newTopics=[];
+const PROXY_URL='https://anthropic-proxy.anna-sho.workers.dev';
+
+async function callClaude(prompt) {
+  const r = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      messages:[{role:'user',content:prompt}]
+    })
+  });
+  const data = await r.json();
+  return data.content.map(i=>i.text||'').join('');
+}
 
 db.ref('video_agent/projects').on('value',snap=>{
   projects=snap.val()||{};
