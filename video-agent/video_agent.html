@@ -360,6 +360,36 @@ function renderAnalyzeTab(p){
   return html;
 }
 
+function padTime(t){
+  const parts=t.split(':');
+  if(parts.length===2)return parts[0].padStart(2,'0')+':'+parts[1].padStart(2,'0');
+  return t;
+}
+
+function normalizeTranscript(text){
+  if(!text)return'';
+  const lines=text.split('\n');
+  const result=[];
+  // YouTube format: timestamp on one line, text on next line(s)
+  // e.g. "0:00\nSome text\n0:05\nMore text"
+  const ytTimeRe=/^(\d{1,2}:\d{2}(?::\d{2})?)$/;
+  let currentTime='';
+  lines.forEach(line=>{
+    line=line.trim();
+    if(!line)return;
+    if(ytTimeRe.test(line)){
+      currentTime=padTime(line.replace(/^(\d+):(\d{2})(:\d{2})?$/,(m,h,m2,s)=>s?line:h.padStart(2,'0')+':'+m2));
+    } else if(currentTime){
+      result.push('['+currentTime+'] '+line);
+      currentTime='';
+    } else {
+      // Already in [MM:SS] format or plain text
+      result.push(line);
+    }
+  });
+  return result.join('\n');
+}
+
 function analyzeTranscripts(){
   const p=currentProject;
   const topics=p.topics||[];
@@ -379,8 +409,10 @@ function analyzeTranscripts(){
   }));
 
   videos.forEach((v,vIdx)=>{
-    const lines=v.transcript.split('\n').filter(Boolean);
-    const timeRe=/\[(\d{2}:\d{2})\]/;
+    // Normalize transcript - handle both YouTube format and [MM:SS] format
+    const normalized = normalizeTranscript(v.transcript);
+    const lines=normalized.split('\n').filter(Boolean);
+    const timeRe=/\[(\d{1,2}:\d{2})\]/;
     const chunks=[];
     let cur={start:'',end:'',text:'',count:0};
 
@@ -388,8 +420,9 @@ function analyzeTranscripts(){
       const tm=line.match(timeRe);
       const text=line.replace(timeRe,'').trim();
       if(tm){
-        if(!cur.start)cur.start=tm[1];
-        cur.end=tm[1];cur.text+=' '+text;cur.count++;
+        const t=padTime(tm[1]);
+        if(!cur.start)cur.start=t;
+        cur.end=t;cur.text+=' '+text;cur.count++;
         if(cur.count>=8||li===lines.length-1){
           chunks.push({...cur});
           cur={start:cur.end,end:cur.end,text:'',count:0};
