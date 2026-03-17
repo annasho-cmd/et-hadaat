@@ -8,402 +8,95 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
-:root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface2: #21262d;
-  --border: rgba(48,54,61,1);
-  --gold: #e3b341;
-  --gold2: #f0c060;
-  --blue: #388bfd;
-  --green: #3fb950;
-  --red: #f85149;
-  --purple: #bc8cff;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --film: #1c2128;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Heebo', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  direction: rtl;
-}
-
-/* ── FILM STRIP BG ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background:
-    repeating-linear-gradient(90deg,
-      transparent 0px, transparent 28px,
-      rgba(255,255,255,.015) 28px, rgba(255,255,255,.015) 30px),
-    radial-gradient(ellipse 70% 50% at 15% 20%, rgba(56,139,253,.08) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 85% 80%, rgba(188,140,255,.06) 0%, transparent 50%);
-}
-
-/* ── HEADER ── */
-.app-header {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(13,17,23,.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  height: 56px;
-}
-.app-logo {
-  display: flex; align-items: center; gap: 10px;
-  font-family: 'Frank Ruhl Libre', serif;
-  font-size: 1.1rem; font-weight: 700;
-  color: var(--gold2);
-}
-.app-logo-icon { font-size: 1.4rem; }
-.header-actions { display: flex; gap: 8px; }
-
-/* ── LAYOUT ── */
-.app-body {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  min-height: calc(100vh - 56px);
-  position: relative; z-index: 1;
-}
-
-/* ── SIDEBAR ── */
-.sidebar {
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  padding: 16px 0;
-  overflow-y: auto;
-}
-.sidebar-section-title {
-  font-size: .7rem; font-weight: 700;
-  color: var(--muted); letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 8px 16px 4px;
-}
-.project-item {
-  padding: 10px 16px;
-  cursor: pointer;
-  border-right: 3px solid transparent;
-  transition: all .15s;
-  display: flex; align-items: center; gap: 8px;
-}
-.project-item:hover { background: var(--surface2); }
-.project-item.active {
-  background: rgba(56,139,253,.1);
-  border-right-color: var(--blue);
-  color: var(--blue);
-}
-.project-item-name { font-size: .85rem; font-weight: 700; }
-.project-item-sub { font-size: .72rem; color: var(--muted); }
-.project-icon { font-size: 1rem; flex-shrink: 0; }
-.btn-new-project {
-  margin: 8px 12px;
-  padding: 8px 14px;
-  background: rgba(56,139,253,.15);
-  border: 1px solid rgba(56,139,253,.3);
-  border-radius: 6px;
-  color: var(--blue);
-  font-family: 'Heebo', sans-serif;
-  font-size: .82rem; font-weight: 700;
-  cursor: pointer; width: calc(100% - 24px);
-  transition: all .2s;
-}
-.btn-new-project:hover { background: rgba(56,139,253,.25); }
-
-/* ── MAIN ── */
-.main-area { padding: 24px; overflow-y: auto; }
-
-/* ── EMPTY STATE ── */
-.empty-state {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  min-height: 60vh; gap: 16px; text-align: center;
-}
-.empty-icon { font-size: 4rem; opacity: .3; }
-.empty-title { font-size: 1.2rem; font-weight: 700; opacity: .5; }
-.empty-sub { font-size: .85rem; color: var(--muted); }
-
-/* ── CARDS ── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-.card-title {
-  font-size: .95rem; font-weight: 700;
-  color: var(--gold); margin-bottom: 14px;
-  display: flex; align-items: center; gap: 8px;
-}
-
-/* ── TABS ── */
-.tabs {
-  display: flex; gap: 2px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
-}
-.tab {
-  padding: 10px 18px;
-  font-family: 'Heebo', sans-serif;
-  font-size: .85rem; font-weight: 700;
-  color: var(--muted);
-  border: none; background: none;
-  cursor: pointer; border-bottom: 2px solid transparent;
-  transition: all .15s; margin-bottom: -1px;
-}
-.tab.active { color: var(--blue); border-bottom-color: var(--blue); }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* ── FORM ── */
-.form-group { margin-bottom: 14px; }
-.form-label {
-  display: block; font-size: .8rem;
-  font-weight: 700; color: var(--muted);
-  margin-bottom: 6px;
-}
-.form-input, .form-textarea, .form-select {
-  width: 100%; padding: 9px 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px; color: var(--text);
-  font-family: 'Heebo', sans-serif; font-size: .88rem;
-  outline: none; transition: border .2s;
-}
-.form-input:focus, .form-textarea:focus {
-  border-color: var(--blue);
-}
-.form-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
-
-/* ── TOPICS LIST ── */
-.topics-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.topic-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px; font-size: .85rem;
-}
-.topic-num {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(56,139,253,.2);
-  color: var(--blue); font-size: .72rem; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.topic-text { flex: 1; }
-.btn-del-topic {
-  background: none; border: none;
-  color: var(--red); cursor: pointer; font-size: .9rem;
-  opacity: .5; transition: opacity .2s;
-}
-.btn-del-topic:hover { opacity: 1; }
-
-/* ── VIDEO URLS ── */
-.url-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px; margin-bottom: 8px;
-}
-.url-icon { font-size: 1.2rem; flex-shrink: 0; }
-.url-text { flex: 1; font-size: .82rem; color: var(--muted); font-family: 'Courier Prime', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.url-status { font-size: .72rem; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
-.url-status.pending { background: rgba(227,179,65,.15); color: var(--gold); }
-.url-status.analyzing { background: rgba(56,139,253,.15); color: var(--blue); }
-.url-status.done { background: rgba(63,185,80,.15); color: var(--green); }
-.url-status.error { background: rgba(248,81,73,.15); color: var(--red); }
-
-/* ── SEGMENTS TABLE ── */
-.segments-table { width: 100%; border-collapse: collapse; }
-.segments-table th {
-  text-align: right; padding: 8px 12px;
-  font-size: .75rem; font-weight: 700;
-  color: var(--muted); border-bottom: 1px solid var(--border);
-}
-.segments-table td {
-  padding: 10px 12px;
-  font-size: .82rem; border-bottom: 1px solid rgba(48,54,61,.5);
-  vertical-align: top;
-}
-.segments-table tr:hover td { background: rgba(255,255,255,.02); }
-.time-badge {
-  font-family: 'Courier Prime', monospace;
-  background: rgba(56,139,253,.1);
-  color: var(--blue); padding: 2px 8px;
-  border-radius: 4px; font-size: .78rem;
-  white-space: nowrap;
-}
-.relevance-bar {
-  display: flex; gap: 2px; margin-top: 4px;
-}
-.rel-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--border);
-}
-.rel-dot.filled { background: var(--gold); }
-
-/* ── TIMELINE ── */
-.timeline-container {
-  background: var(--film);
-  border: 1px solid var(--border);
-  border-radius: 8px; padding: 16px;
-  margin-bottom: 16px;
-}
-.timeline-title {
-  font-size: .82rem; font-weight: 700;
-  color: var(--muted); margin-bottom: 12px;
-}
-.timeline-track {
-  display: flex; gap: 6px; flex-wrap: wrap;
-}
-.timeline-segment {
-  border-radius: 4px; padding: 6px 10px;
-  font-size: .75rem; font-weight: 700;
-  cursor: pointer; transition: transform .15s;
-  border: 1px solid transparent;
-}
-.timeline-segment:hover { transform: translateY(-2px); }
-.seg-color-0 { background: rgba(56,139,253,.2); border-color: rgba(56,139,253,.4); color: #388bfd; }
-.seg-color-1 { background: rgba(63,185,80,.2); border-color: rgba(63,185,80,.4); color: #3fb950; }
-.seg-color-2 { background: rgba(188,140,255,.2); border-color: rgba(188,140,255,.4); color: #bc8cff; }
-.seg-color-3 { background: rgba(227,179,65,.2); border-color: rgba(227,179,65,.4); color: #e3b341; }
-.seg-color-4 { background: rgba(248,81,73,.2); border-color: rgba(248,81,73,.4); color: #f85149; }
-
-/* ── SRT OUTPUT ── */
-.srt-output {
-  font-family: 'Courier Prime', monospace;
-  font-size: .8rem; line-height: 1.8;
-  background: var(--film); border: 1px solid var(--border);
-  border-radius: 6px; padding: 16px;
-  white-space: pre; overflow-x: auto;
-  max-height: 400px; overflow-y: auto;
-  color: #7ee787;
-}
-
-/* ── BUTTONS ── */
-.btn {
-  padding: 8px 16px;
-  font-family: 'Heebo', sans-serif;
-  font-size: .85rem; font-weight: 700;
-  border-radius: 6px; border: none;
-  cursor: pointer; transition: all .2s;
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.btn-primary { background: var(--blue); color: #fff; }
-.btn-primary:hover { background: #58a6ff; }
-.btn-success { background: var(--green); color: #000; }
-.btn-success:hover { opacity: .9; }
-.btn-gold { background: var(--gold); color: #000; }
-.btn-gold:hover { background: var(--gold2); }
-.btn-ghost {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.btn-ghost:hover { background: var(--surface2); }
-.btn:disabled { opacity: .4; cursor: not-allowed; }
-
-/* ── LOADING ── */
-.loading {
-  display: flex; align-items: center; gap: 10px;
-  padding: 16px; color: var(--blue); font-size: .88rem;
-}
-.spinner {
-  width: 18px; height: 18px;
-  border: 2px solid rgba(56,139,253,.2);
-  border-top-color: var(--blue);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── MODAL ── */
-.modal-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.7); z-index: 200;
-  align-items: center; justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px; padding: 24px;
-  width: 90%; max-width: 520px;
-  max-height: 90vh; overflow-y: auto;
-}
-.modal-title {
-  font-size: 1.1rem; font-weight: 700;
-  color: var(--gold2); margin-bottom: 16px;
-}
-.modal-actions {
-  display: flex; gap: 8px; justify-content: flex-end;
-  margin-top: 20px;
-}
-
-/* ── BADGE ── */
-.badge {
-  display: inline-block; padding: 2px 8px;
-  border-radius: 10px; font-size: .72rem; font-weight: 700;
-}
-.badge-blue { background: rgba(56,139,253,.15); color: var(--blue); }
-.badge-green { background: rgba(63,185,80,.15); color: var(--green); }
-.badge-gold { background: rgba(227,179,65,.15); color: var(--gold); }
-
-/* ── TRANSITION CARD ── */
-.transition-card {
-  background: rgba(188,140,255,.08);
-  border: 1px solid rgba(188,140,255,.2);
-  border-radius: 6px; padding: 12px;
-  margin-bottom: 8px; font-size: .85rem;
-}
-.transition-label {
-  font-size: .72rem; color: var(--purple);
-  font-weight: 700; margin-bottom: 4px;
-}
-
-/* ── COPY BTN ── */
-.copy-btn {
-  float: left; padding: 4px 10px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid var(--border);
-  border-radius: 4px; color: var(--muted);
-  font-size: .72rem; cursor: pointer;
-}
-.copy-btn:hover { color: var(--text); }
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:rgba(48,54,61,1);--gold:#e3b341;--gold2:#f0c060;--blue:#388bfd;--green:#3fb950;--red:#f85149;--purple:#bc8cff;--text:#e6edf3;--muted:#8b949e;--film:#1c2128;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(90deg,transparent 0px,transparent 28px,rgba(255,255,255,.015) 28px,rgba(255,255,255,.015) 30px),radial-gradient(ellipse 70% 50% at 15% 20%,rgba(56,139,253,.08) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 85% 80%,rgba(188,140,255,.06) 0%,transparent 50%);}
+.app-header{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;}
+.app-logo{display:flex;align-items:center;gap:10px;font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);}
+.app-body{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 56px);position:relative;z-index:1;}
+.sidebar{background:var(--surface);border-left:1px solid var(--border);padding:16px 0;overflow-y:auto;}
+.sidebar-section-title{font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:8px 16px 4px;}
+.project-item{padding:10px 16px;cursor:pointer;border-right:3px solid transparent;transition:all .15s;display:flex;align-items:center;gap:8px;}
+.project-item:hover{background:var(--surface2);}
+.project-item.active{background:rgba(56,139,253,.1);border-right-color:var(--blue);color:var(--blue);}
+.project-item-name{font-size:.85rem;font-weight:700;}
+.project-item-sub{font-size:.72rem;color:var(--muted);}
+.btn-new-project{margin:8px 12px;padding:8px 14px;background:rgba(56,139,253,.15);border:1px solid rgba(56,139,253,.3);border-radius:6px;color:var(--blue);font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;width:calc(100% - 24px);transition:all .2s;}
+.main-area{padding:24px;overflow-y:auto;}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center;}
+.empty-icon{font-size:4rem;opacity:.3;}
+.empty-title{font-size:1.2rem;font-weight:700;opacity:.5;}
+.empty-sub{font-size:.85rem;color:var(--muted);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;}
+.card-title{font-size:.95rem;font-weight:700;color:var(--gold);margin-bottom:14px;}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.tab{padding:10px 18px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:6px;}
+.form-input,.form-textarea{width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;transition:border .2s;}
+.form-input:focus,.form-textarea:focus{border-color:var(--blue);}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.6;}
+.topics-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.topic-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:.85rem;}
+.topic-num{width:22px;height:22px;border-radius:50%;background:rgba(56,139,253,.2);color:var(--blue);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.topic-text{flex:1;}
+.btn-del-small{background:none;border:none;color:var(--red);cursor:pointer;font-size:.9rem;opacity:.5;}
+.video-card{background:var(--film);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;}
+.video-card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.video-num{width:28px;height:28px;border-radius:50%;background:rgba(56,139,253,.2);color:var(--blue);font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.video-url-text{flex:1;font-size:.78rem;color:var(--muted);font-family:'Courier Prime',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vstatus{font-size:.72rem;padding:2px 8px;border-radius:10px;flex-shrink:0;}
+.vstatus-ok{background:rgba(63,185,80,.15);color:var(--green);}
+.vstatus-pending{background:rgba(227,179,65,.15);color:var(--gold);}
+.transcript-box{margin-top:8px;display:none;}
+.transcript-box.open{display:block;}
+.segments-table{width:100%;border-collapse:collapse;}
+.segments-table th{text-align:right;padding:8px 12px;font-size:.75rem;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);}
+.segments-table td{padding:10px 12px;font-size:.82rem;border-bottom:1px solid rgba(48,54,61,.5);vertical-align:top;}
+.time-badge{font-family:'Courier Prime',monospace;background:rgba(56,139,253,.1);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:.78rem;}
+.timeline-container{background:var(--film);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;}
+.timeline-track{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.tseg{border-radius:4px;padding:6px 10px;font-size:.75rem;font-weight:700;border:1px solid transparent;}
+.sc0{background:rgba(56,139,253,.2);border-color:rgba(56,139,253,.4);color:#388bfd;}
+.sc1{background:rgba(63,185,80,.2);border-color:rgba(63,185,80,.4);color:#3fb950;}
+.sc2{background:rgba(188,140,255,.2);border-color:rgba(188,140,255,.4);color:#bc8cff;}
+.sc3{background:rgba(227,179,65,.2);border-color:rgba(227,179,65,.4);color:#e3b341;}
+.sc4{background:rgba(248,81,73,.2);border-color:rgba(248,81,73,.4);color:#f85149;}
+.transition-card{background:rgba(188,140,255,.08);border:1px solid rgba(188,140,255,.2);border-radius:6px;padding:12px;margin-bottom:8px;}
+.transition-label{font-size:.72rem;color:var(--purple);font-weight:700;margin-bottom:4px;}
+.srt-output{font-family:'Courier Prime',monospace;font-size:.8rem;line-height:1.8;background:var(--film);border:1px solid var(--border);border-radius:6px;padding:16px;white-space:pre;overflow-x:auto;max-height:400px;overflow-y:auto;color:#7ee787;}
+.missing-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:6px;margin-bottom:6px;font-size:.85rem;}
+.btn{padding:8px 16px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;border-radius:6px;border:none;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-success{background:var(--green);color:#000;}
+.btn-gold{background:var(--gold);color:#000;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-sm{padding:4px 10px;font-size:.75rem;}
+.loading{display:flex;align-items:center;gap:10px;padding:16px;color:var(--blue);font-size:.88rem;}
+.spinner{width:18px;height:18px;border:2px solid rgba(56,139,253,.2);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:16px;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
 <div class="app-header">
-  <div class="app-logo">
-    <span class="app-logo-icon">🎬</span>
-    סוכן וידאו חכם
-  </div>
-  <div class="header-actions">
-    <button class="btn btn-ghost" onclick="showNewProjectModal()">➕ פרויקט חדש</button>
-  </div>
+  <div class="app-logo">🎬 סוכן וידאו חכם</div>
+  <button class="btn btn-ghost" onclick="showNewProjectModal()">➕ פרויקט חדש</button>
 </div>
-
 <div class="app-body">
-
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-section-title">פרויקטים</div>
     <button class="btn-new-project" onclick="showNewProjectModal()">➕ פרויקט חדש</button>
-    <div id="projects-list">
-      <div style="padding:16px;font-size:.82rem;color:var(--muted);text-align:center;">טוען...</div>
-    </div>
+    <div id="projects-list"><div style="padding:16px;font-size:.82rem;color:var(--muted);text-align:center;">טוען...</div></div>
   </div>
-
-  <!-- MAIN -->
   <div class="main-area" id="main-area">
     <div class="empty-state">
       <div class="empty-icon">🎬</div>
@@ -412,23 +105,22 @@ body::before {
       <button class="btn btn-primary" onclick="showNewProjectModal()" style="margin-top:8px;">➕ פרויקט חדש</button>
     </div>
   </div>
-
 </div>
 
-<!-- NEW PROJECT MODAL -->
+<!-- MODAL -->
 <div class="modal-overlay" id="modal-new-project">
   <div class="modal">
     <div class="modal-title">🎬 פרויקט וידאו חדש</div>
     <div class="form-group">
       <label class="form-label">שם היחידה / הנושא</label>
-      <input class="form-input" id="new-proj-name" placeholder="למשל: יהודים בספרד — בין הסהר והצלב" />
+      <input class="form-input" id="new-proj-name" placeholder="למשל: יהודים בספרד" />
     </div>
     <div class="form-group">
       <label class="form-label">משך הסרטון הרצוי (דקות)</label>
       <input class="form-input" id="new-proj-duration" type="number" placeholder="10" min="1" max="60" />
     </div>
     <div class="form-group">
-      <label class="form-label">תתי נושאים — הוסיפי אחד בכל פעם</label>
+      <label class="form-label">תתי נושאים לפי הסדר הרצוי</label>
       <div class="topics-list" id="new-topics-list"></div>
       <div style="display:flex;gap:8px;">
         <input class="form-input" id="new-topic-input" placeholder="הוסיפי תת נושא..." style="flex:1;" onkeydown="if(event.key==='Enter')addTopic()" />
@@ -443,540 +135,394 @@ body::before {
 </div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
-  authDomain: "et-hadaat.firebaseapp.com",
-  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
-  projectId: "et-hadaat",
-  storageBucket: "et-hadaat.firebasestorage.app",
-  messagingSenderId: "141400405468",
-  appId: "1:141400405468:web:c1090c52477d14a159cb19"
-};
+const firebaseConfig={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db=firebase.database();
+let projects={},currentProject=null,newTopics=[];
 
-// ── State ──
-let projects = {};
-let currentProject = null;
-let newTopics = [];
-
-// ── Init ──
-loadProjects();
-
-function loadProjects() {
-  db.ref('video_agent/projects').on('value', snap => {
-    projects = snap.val() || {};
-    renderProjectsList();
-    if (currentProject && projects[currentProject.id]) {
-      currentProject = projects[currentProject.id];
-      renderProject(currentProject);
-    }
-  });
-}
-
-function renderProjectsList() {
-  const cont = document.getElementById('projects-list');
-  const list = Object.values(projects).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
-  if (!list.length) {
-    cont.innerHTML = '<div style="padding:16px;font-size:.82rem;color:var(--muted);text-align:center;">אין פרויקטים עדיין</div>';
-    return;
-  }
-  cont.innerHTML = list.map(p => `
-    <div class="project-item ${currentProject && currentProject.id === p.id ? 'active' : ''}"
-      onclick="openProject('${p.id}')">
-      <span class="project-icon">🎬</span>
-      <div>
-        <div class="project-item-name">${p.name}</div>
-        <div class="project-item-sub">${(p.topics||[]).length} נושאים · ${(p.videos||[]).length} סרטונים</div>
-      </div>
-    </div>`).join('');
-}
-
-// ── New Project ──
-function showNewProjectModal() {
-  newTopics = [];
-  document.getElementById('new-proj-name').value = '';
-  document.getElementById('new-proj-duration').value = '10';
-  document.getElementById('new-topics-list').innerHTML = '';
-  document.getElementById('new-topic-input').value = '';
-  document.getElementById('modal-new-project').classList.add('open');
-  setTimeout(() => document.getElementById('new-proj-name').focus(), 100);
-}
-
-function addTopic() {
-  const input = document.getElementById('new-topic-input');
-  const val = input.value.trim();
-  if (!val) return;
-  newTopics.push(val);
-  input.value = '';
-  renderNewTopics();
-  input.focus();
-}
-
-function renderNewTopics() {
-  document.getElementById('new-topics-list').innerHTML = newTopics.map((t,i) => `
-    <div class="topic-item">
-      <div class="topic-num">${i+1}</div>
-      <div class="topic-text">${t}</div>
-      <button class="btn-del-topic" onclick="removeTopic(${i})">✕</button>
-    </div>`).join('');
-}
-
-function removeTopic(i) {
-  newTopics.splice(i, 1);
-  renderNewTopics();
-}
-
-function createProject() {
-  const name = document.getElementById('new-proj-name').value.trim();
-  const duration = parseInt(document.getElementById('new-proj-duration').value) || 10;
-  if (!name) { alert('אנא הכניסי שם לפרויקט'); return; }
-  if (!newTopics.length) { alert('אנא הוסיפי לפחות תת נושא אחד'); return; }
-
-  const id = 'proj_' + Date.now();
-  const project = {
-    id, name, duration,
-    topics: newTopics,
-    videos: [],
-    segments: [],
-    createdAt: Date.now()
-  };
-  db.ref('video_agent/projects/' + id).set(project).then(() => {
-    closeModal('modal-new-project');
-    openProject(id);
-  });
-}
-
-// ── Open Project ──
-function openProject(id) {
-  currentProject = projects[id];
-  if (!currentProject) return;
+db.ref('video_agent/projects').on('value',snap=>{
+  projects=snap.val()||{};
   renderProjectsList();
-  renderProject(currentProject);
+  if(currentProject&&projects[currentProject.id]){currentProject=projects[currentProject.id];renderProject(currentProject);}
+});
+
+function renderProjectsList(){
+  const cont=document.getElementById('projects-list');
+  const list=Object.values(projects).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!list.length){cont.innerHTML='<div style="padding:16px;font-size:.82rem;color:var(--muted);text-align:center;">אין פרויקטים</div>';return;}
+  cont.innerHTML=list.map(p=>`<div class="project-item ${currentProject&&currentProject.id===p.id?'active':''}" onclick="openProject('${p.id}')"><span>🎬</span><div><div class="project-item-name">${p.name}</div><div class="project-item-sub">${(p.topics||[]).length} נושאים · ${(p.videos||[]).length} סרטונים</div></div></div>`).join('');
 }
 
-function renderProject(p) {
-  document.getElementById('main-area').innerHTML = `
-    <div style="margin-bottom:20px;">
-      <div style="font-size:1.4rem;font-weight:900;font-family:'Frank Ruhl Libre',serif;color:var(--gold2);">
-        🎬 ${p.name}
-      </div>
-      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">
-        ${p.topics.length} תתי נושאים · משך רצוי: ${p.duration} דקות
-      </div>
-    </div>
+function showNewProjectModal(){
+  newTopics=[];
+  ['new-proj-name','new-proj-duration','new-topic-input'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('new-proj-duration').value='10';
+  document.getElementById('new-topics-list').innerHTML='';
+  document.getElementById('modal-new-project').classList.add('open');
+  setTimeout(()=>document.getElementById('new-proj-name').focus(),100);
+}
 
+function addTopic(){
+  const input=document.getElementById('new-topic-input');
+  const val=input.value.trim();if(!val)return;
+  newTopics.push(val);input.value='';renderNewTopics();input.focus();
+}
+
+function renderNewTopics(){
+  document.getElementById('new-topics-list').innerHTML=newTopics.map((t,i)=>`<div class="topic-item"><div class="topic-num">${i+1}</div><div class="topic-text">${t}</div><button class="btn-del-small" onclick="newTopics.splice(${i},1);renderNewTopics()">✕</button></div>`).join('');
+}
+
+function createProject(){
+  const name=document.getElementById('new-proj-name').value.trim();
+  const duration=parseInt(document.getElementById('new-proj-duration').value)||10;
+  if(!name){alert('אנא הכניסי שם');return;}
+  if(!newTopics.length){alert('אנא הוסיפי לפחות תת נושא');return;}
+  const id='proj_'+Date.now();
+  db.ref('video_agent/projects/'+id).set({id,name,duration,topics:newTopics,videos:[],segments:[],createdAt:Date.now()}).then(()=>{closeModal('modal-new-project');openProject(id);});
+}
+
+function openProject(id){currentProject=projects[id];if(!currentProject)return;renderProjectsList();renderProject(currentProject);}
+
+function renderProject(p){
+  document.getElementById('main-area').innerHTML=`
+    <div style="margin-bottom:20px;">
+      <div style="font-size:1.4rem;font-weight:900;font-family:'Frank Ruhl Libre',serif;color:var(--gold2);">🎬 ${p.name}</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">${p.topics.length} תתי נושאים · משך רצוי: ${p.duration} דקות</div>
+    </div>
     <div class="tabs">
       <button class="tab active" onclick="switchTab('tab-topics')">📋 נושאים</button>
-      <button class="tab" onclick="switchTab('tab-videos')">🔗 סרטונים</button>
-      <button class="tab" onclick="switchTab('tab-edit')">✂️ עריכה מוצעת</button>
-      <button class="tab" onclick="switchTab('tab-srt')">📝 תמלול וכתוביות</button>
+      <button class="tab" onclick="switchTab('tab-videos')">🎥 סרטונים</button>
+      <button class="tab" onclick="switchTab('tab-analyze')">🔍 ניתוח</button>
+      <button class="tab" onclick="switchTab('tab-srt')">📝 כתוביות SRT</button>
     </div>
-
-    <!-- TAB: TOPICS -->
     <div class="tab-panel active" id="tab-topics">
       <div class="card">
         <div class="card-title">📋 תתי נושאים לסרטון</div>
-        <div class="topics-list">
-          ${p.topics.map((t,i) => `
-            <div class="topic-item">
-              <div class="topic-num">${i+1}</div>
-              <div class="topic-text">${t}</div>
-            </div>`).join('')}
-        </div>
-        <button class="btn btn-ghost" style="margin-top:8px;" onclick="editTopics()">✏️ ערכי נושאים</button>
+        <div class="topics-list">${p.topics.map((t,i)=>`<div class="topic-item"><div class="topic-num">${i+1}</div><div class="topic-text">${t}</div></div>`).join('')}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="editTopics()">✏️ ערכי נושאים</button>
       </div>
     </div>
-
-    <!-- TAB: VIDEOS -->
     <div class="tab-panel" id="tab-videos">
       <div class="card">
-        <div class="card-title">🔗 הוסיפי קישורי יוטיוב לניתוח</div>
-        <div class="form-group">
-          <div style="display:flex;gap:8px;">
-            <input class="form-input" id="video-url-input"
-              placeholder="https://www.youtube.com/watch?v=..."
-              style="flex:1;" />
-            <button class="btn btn-primary" onclick="addVideoUrl()">➕ הוסיפי</button>
-          </div>
+        <div class="card-title">🎥 הוסיפי סרטונים</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input class="form-input" id="video-url-input" placeholder="https://www.youtube.com/watch?v=..." style="flex:1;" />
+          <button class="btn btn-primary" onclick="addVideo()">➕</button>
         </div>
-        <div id="videos-list">
-          ${renderVideosList(p)}
-        </div>
-        ${(p.videos||[]).length ? `
-        <button class="btn btn-gold" style="margin-top:12px;width:100%;"
-          onclick="analyzeAllVideos()">
-          🔍 נתח את כל הסרטונים
-        </button>` : ''}
-      </div>
-      <div id="analysis-output"></div>
-    </div>
-
-    <!-- TAB: EDIT -->
-    <div class="tab-panel" id="tab-edit">
-      <div id="edit-content">
-        ${(p.segments||[]).length ? renderEditTab(p) : `
-        <div class="empty-state" style="min-height:40vh;">
-          <div class="empty-icon">✂️</div>
-          <div class="empty-title">עדיין לא נותחו סרטונים</div>
-          <div class="empty-sub">עברי ללשונית "סרטונים" ונתחי את הסרטונים תחילה</div>
-        </div>`}
+        <div id="videos-list">${renderVideosList(p)}</div>
       </div>
     </div>
-
-    <!-- TAB: SRT -->
+    <div class="tab-panel" id="tab-analyze">
+      <div id="analyze-content">${(p.segments||[]).length?renderAnalyzeTab(p):renderAnalyzeEmpty(p)}</div>
+    </div>
     <div class="tab-panel" id="tab-srt">
-      <div id="srt-content">
-        ${(p.segments||[]).length ? renderSRTTab(p) : `
-        <div class="empty-state" style="min-height:40vh;">
-          <div class="empty-icon">📝</div>
-          <div class="empty-title">עדיין אין קטעים לתמלול</div>
-          <div class="empty-sub">נתחי סרטונים תחילה</div>
-        </div>`}
-      </div>
-    </div>
-  `;
+      <div id="srt-content">${(p.segments||[]).length?renderSRTSection(p):'<div class="empty-state" style="min-height:30vh;"><div class="empty-icon">📝</div><div class="empty-title">נתחי סרטונים תחילה</div></div>'}</div>
+    </div>`;
 }
 
-function renderVideosList(p) {
-  if (!(p.videos||[]).length) return '<div style="color:var(--muted);font-size:.85rem;padding:8px 0;">אין סרטונים עדיין</div>';
-  return p.videos.map((v,i) => `
-    <div class="url-item">
-      <span class="url-icon">▶</span>
-      <span class="url-text">${v.url}</span>
-      <span class="url-status ${v.status||'pending'}">${
-        v.status === 'done' ? '✓ נותח' :
-        v.status === 'analyzing' ? '⏳ מנתח...' :
-        v.status === 'error' ? '✗ שגיאה' : '⏸ ממתין'}</span>
-      <button class="btn-del-topic" onclick="removeVideo(${i})">✕</button>
+function renderVideosList(p){
+  if(!(p.videos||[]).length)return'<div style="color:var(--muted);font-size:.85rem;">אין סרטונים עדיין</div>';
+  return(p.videos||[]).map((v,i)=>`
+    <div class="video-card">
+      <div class="video-card-header">
+        <div class="video-num">${i+1}</div>
+        <div class="video-url-text">${v.url}</div>
+        <span class="vstatus ${v.transcript?'vstatus-ok':'vstatus-pending'}">${v.transcript?'✓ יש תמלול':'⏸ חסר'}</span>
+        <button class="btn-del-small" onclick="removeVideo(${i})">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="toggleTranscript(${i})">📝 ${v.transcript?'הצג/הסתר תמלול':'הוסיפי תמלול'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="fetchTranscript(${i})" id="fetch-btn-${i}">⬇️ שלוף מיוטיוב</button>
+      </div>
+      <div class="transcript-box" id="tbox-${i}">
+        <textarea class="form-textarea" id="transcript-${i}" rows="6" style="margin-top:8px;"
+          placeholder="הדביקי תמלול כאן...&#10;פורמט: [MM:SS] טקסט&#10;&#10;לשלוף מיוטיוב: לחצי 'שלוף מיוטיוב' למעלה&#10;לתמלול ידני: ביוטיוב → '...' → 'פתח תמלול' → העתיקי">${v.transcript||''}</textarea>
+        <button class="btn btn-primary btn-sm" style="margin-top:6px;" onclick="saveTranscript(${i})">💾 שמור תמלול</button>
+      </div>
     </div>`).join('');
 }
 
-function addVideoUrl() {
-  const input = document.getElementById('video-url-input');
-  const url = input.value.trim();
-  if (!url || !url.includes('youtube')) { alert('אנא הכניסי קישור יוטיוב תקין'); return; }
-  if (!currentProject) return;
-  const videos = currentProject.videos || [];
-  videos.push({ url, status: 'pending', addedAt: Date.now() });
-  db.ref('video_agent/projects/' + currentProject.id + '/videos').set(videos);
-  input.value = '';
+function addVideo(){
+  const input=document.getElementById('video-url-input');
+  const url=input.value.trim();
+  if(!url||(!url.includes('youtube')&&!url.includes('youtu.be'))){alert('אנא הכניסי קישור יוטיוב תקין');return;}
+  const videos=currentProject.videos||[];
+  videos.push({url,transcript:'',addedAt:Date.now()});
+  db.ref('video_agent/projects/'+currentProject.id+'/videos').set(videos);
+  input.value='';
 }
 
-function removeVideo(i) {
-  if (!confirm('למחוק סרטון זה?')) return;
-  const videos = currentProject.videos || [];
-  videos.splice(i, 1);
-  db.ref('video_agent/projects/' + currentProject.id + '/videos').set(videos);
+function removeVideo(i){
+  if(!confirm('למחוק?'))return;
+  const videos=currentProject.videos||[];videos.splice(i,1);
+  db.ref('video_agent/projects/'+currentProject.id+'/videos').set(videos);
 }
 
-// ── ANALYZE VIDEOS ──
-async function analyzeAllVideos() {
-  const output = document.getElementById('analysis-output');
-  output.innerHTML = '<div class="loading"><div class="spinner"></div>מנתח סרטונים... זה עשוי לקחת כמה דקות</div>';
+function toggleTranscript(i){document.getElementById('tbox-'+i).classList.toggle('open');}
 
-  const videos = currentProject.videos || [];
-  const topics = currentProject.topics || [];
+function saveTranscript(i){
+  const text=document.getElementById('transcript-'+i).value.trim();
+  const videos=currentProject.videos||[];
+  if(videos[i]){videos[i].transcript=text;db.ref('video_agent/projects/'+currentProject.id+'/videos').set(videos);}
+}
 
-  // Build prompt
-  const videoList = videos.map((v,i) => `סרטון ${i+1}: ${v.url}`).join('\n');
-  const topicList = topics.map((t,i) => `${i+1}. ${t}`).join('\n');
-
-  const prompt = `אני מורה להיסטוריה ואני בונה סרטון לימודי על הנושא: "${currentProject.name}".
-
-תתי הנושאים שאני רוצה לכסות (לפי הסדר):
-${topicList}
-
-קישורי הסרטונים שמצאתי:
-${videoList}
-
-אנא עבור על כל סרטון ונתח אותו לפי התמלול/תיאור שלו.
-לכל סרטון, ציין:
-1. אילו תתי נושאים הוא מכסה
-2. מאיזה זמן עד איזה זמן (בפורמט MM:SS - MM:SS) הקטע הרלוונטי
-3. דירוג רלוונטיות 1-5
-
-לאחר מכן הצע:
-- סדר הקטעים לסרטון החדש (לפי ציר זמן היסטורי)
-- קטעי מעבר מוצעים בין הקטעים
-- מה חסר ויש להוסיף/לצלם
-
-ענה בעברית בפורמט JSON כך:
-{
-  "videos": [
-    {
-      "url": "...",
-      "title": "...",
-      "segments": [
-        {
-          "topic": "שם תת הנושא",
-          "start": "MM:SS",
-          "end": "MM:SS",
-          "relevance": 4,
-          "description": "תיאור קצר"
+async function fetchTranscript(i){
+  const video=(currentProject.videos||[])[i];if(!video)return;
+  const match=video.url.match(/(?:v=|youtu\.be\/)([^&\n?#]+)/);
+  if(!match){alert('לא ניתן לחלץ מזהה סרטון');return;}
+  const videoId=match[1];
+  const btn=document.getElementById('fetch-btn-'+i);
+  btn.textContent='⏳ שולף...';btn.disabled=true;
+  try{
+    let transcript='';
+    for(const lang of['he','en','iw']){
+      try{
+        const r=await fetch(`https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`);
+        if(r.ok){
+          const data=await r.json();
+          if(data.events&&data.events.length>0){
+            transcript=data.events.filter(e=>e.segs).map(e=>{
+              const time=formatTime(Math.floor((e.tStartMs||0)/1000));
+              const text=e.segs.map(s=>s.utf8||'').join('').replace(/\n/g,' ').trim();
+              return text?`[${time}] ${text}`:'';
+            }).filter(Boolean).join('\n');
+            if(transcript)break;
+          }
         }
-      ]
+      }catch(e){continue;}
     }
-  ],
-  "suggested_order": [
-    {
-      "step": 1,
-      "video_index": 0,
-      "segment_index": 0,
-      "topic": "...",
-      "start": "MM:SS",
-      "end": "MM:SS"
+    if(transcript){
+      const videos=currentProject.videos||[];videos[i].transcript=transcript;
+      db.ref('video_agent/projects/'+currentProject.id+'/videos').set(videos);
+      document.getElementById('tbox-'+i).classList.add('open');
+      document.getElementById('transcript-'+i).value=transcript;
+      btn.textContent='✓ נשלף!';
+    }else{
+      btn.textContent='⚠️ לא נמצא';
+      document.getElementById('tbox-'+i).classList.add('open');
+      alert('לא נמצאו כתוביות אוטומטיות.\n\nכדי לקבל תמלול ידנית:\n1. פתחי את הסרטון ביוטיוב\n2. לחצי על "..." מתחת לסרטון\n3. בחרי "פתח תמלול"\n4. העתיקי והדביקי בתיבה');
     }
-  ],
-  "transitions": [
-    {
-      "between": "אחרי שלב 1, לפני שלב 2",
-      "suggestion": "טקסט מעבר מוצע"
-    }
-  ],
-  "missing": ["נושא שחסר 1", "נושא שחסר 2"]
-}`;
-
-  // Show prompt to copy to Claude
-  output.innerHTML = `
-    <div class="card" style="border-color:rgba(227,179,65,.4);">
-      <div class="card-title">📋 העתיקי את הפרומפט הזה לקלוד</div>
-      <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">
-        בשל מגבלות אבטחה של הדפדפן, יש להדביק את הטקסט הבא בשיחת קלוד ולהחזיר את התוצאה לכאן.
-      </div>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('prompt-text').textContent).then(()=>alert('הועתק!'))">📋 העתקי</button>
-      <div style="clear:both;height:8px;"></div>
-      <div class="srt-output" id="prompt-text" style="max-height:200px;">${prompt}</div>
-      <div style="margin-top:16px;">
-        <label class="form-label">הדביקי כאן את תשובת קלוד (JSON):</label>
-        <textarea class="form-textarea" id="claude-response" rows="8"
-          placeholder='{"videos":[...],"suggested_order":[...],"transitions":[...],"missing":[]}'></textarea>
-        <button class="btn btn-primary" style="margin-top:8px;width:100%;"
-          onclick="processClaudeResponse()">✓ עבדי על התשובה</button>
-      </div>
-    </div>`;
+  }catch(e){btn.textContent='✗ שגיאה';}
+  setTimeout(()=>{btn.textContent='⬇️ שלוף מיוטיוב';btn.disabled=false;},3000);
 }
 
-// ── RENDER EDIT TAB ──
-function renderEditTab(p) {
-  const segments = p.segments || [];
-  const transitions = p.transitions || [];
-  const missing = p.missing || [];
-  const colors = ['seg-color-0','seg-color-1','seg-color-2','seg-color-3','seg-color-4'];
+function formatTime(secs){const m=Math.floor(secs/60),s=secs%60;return`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
 
-  let html = '';
-
-  // Timeline
-  html += `<div class="timeline-container">
-    <div class="timeline-title">⏱ ציר זמן הסרטון החדש</div>
-    <div class="timeline-track">`;
-  segments.forEach((s, i) => {
-    html += `<div class="timeline-segment ${colors[i%5]}" title="${s.topic}">
-      ${i+1}. ${s.topic.length > 20 ? s.topic.slice(0,20)+'...' : s.topic}
-      <div style="font-size:.68rem;opacity:.7;font-family:'Courier Prime',monospace;">${s.start}→${s.end}</div>
-    </div>`;
-  });
-  html += '</div></div>';
-
-  // Segments table
-  html += `<div class="card">
-    <div class="card-title">✂️ קטעים לעריכה</div>
-    <table class="segments-table">
-      <thead><tr>
-        <th>#</th><th>נושא</th><th>מקור</th><th>זמן</th>
-      </tr></thead><tbody>`;
-  segments.forEach((s, i) => {
-    const videoNum = (p.videos||[]).findIndex(v => v.url === s.videoUrl) + 1;
-    html += `<tr>
-      <td><span class="badge badge-blue">${i+1}</span></td>
-      <td>${s.topic}</td>
-      <td><span style="font-size:.75rem;color:var(--muted);">סרטון ${videoNum||'?'}</span></td>
-      <td><span class="time-badge">${s.start} – ${s.end}</span></td>
-    </tr>`;
-  });
-  html += '</tbody></table></div>';
-
-  // Transitions
-  if (transitions.length) {
-    html += `<div class="card">
-      <div class="card-title">🔄 קטעי מעבר מוצעים</div>`;
-    transitions.forEach(t => {
-      html += `<div class="transition-card">
-        <div class="transition-label">🔀 ${t.between||''}</div>
-        <div>${t.suggestion||''}</div>
-      </div>`;
-    });
-    html += '</div>';
-  }
-
-  // Missing topics
-  if (missing.length) {
-    html += `<div class="card" style="border-color:rgba(248,81,73,.3);">
-      <div class="card-title" style="color:var(--red);">⚠️ נושאים חסרים — יש לצלם/להוסיף</div>
-      <ul style="padding-right:20px;line-height:2;">
-        ${missing.map(m => `<li style="font-size:.85rem;">${m}</li>`).join('')}
-      </ul>
-    </div>`;
-  }
-
-  return html;
-}
-
-// ── RENDER SRT TAB ──
-function renderSRTTab(p) {
-  const segments = p.segments || [];
-  if (!segments.length) return '<div class="empty-state" style="min-height:40vh;"><div class="empty-icon">📝</div><div class="empty-title">אין קטעים</div></div>';
-
-  return `<div class="card">
-    <div class="card-title">📝 תמלול וכתוביות</div>
-    <div style="margin-bottom:12px;font-size:.85rem;color:var(--muted);">
-      לחצי על "צרי תמלול" ליצירת תמלול עברי לקטעים הנבחרים וקובץ SRT מוכן לייבוא ל-Moviemaker.
-    </div>
-    <button class="btn btn-gold" onclick="generateSRT()" style="margin-bottom:16px;">
-      📝 צרי תמלול עברי + קובץ SRT
-    </button>
-    <div id="srt-output-area"></div>
+function renderAnalyzeEmpty(p){
+  const hasT=(p.videos||[]).some(v=>v.transcript);
+  if(!hasT)return`<div class="empty-state" style="min-height:30vh;"><div class="empty-icon">🔍</div><div class="empty-title">הוסיפי תמלולים תחילה</div><div class="empty-sub">עברי ללשונית "סרטונים" והוסיפי תמלול לכל סרטון</div></div>`;
+  return`<div class="card"><div class="card-title">🔍 ניתוח קטעים רלוונטיים</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:16px;line-height:1.7;">הסוכן יחפש בתמלולים ויזהה קטעים רלוונטיים לפי נושאי היחידה.</div>
+    <button class="btn btn-gold" style="width:100%;" onclick="analyzeTranscripts()">🔍 נתח קטעים רלוונטיים</button>
+    <div id="analyze-progress" style="margin-top:12px;"></div>
   </div>`;
 }
 
-async function processClaudeResponse() {
-  const text = document.getElementById('claude-response').value.trim();
-  if (!text) { alert('אנא הדביקי את תשובת קלוד'); return; }
+function renderAnalyzeTab(p){
+  const segments=p.segments||[],transitions=p.transitions||[],missing=p.missing||[];
+  const colors=['sc0','sc1','sc2','sc3','sc4'];
+  let html=`<div class="card"><div class="card-title">🔍 תוצאות הניתוח</div>
+    <button class="btn btn-ghost btn-sm" onclick="analyzeTranscripts()" style="margin-bottom:12px;">🔄 נתח מחדש</button>
+    <div class="timeline-container">
+      <div style="font-size:.82rem;font-weight:700;color:var(--muted);">⏱ ציר הזמן המוצע:</div>
+      <div class="timeline-track">
+        ${segments.map((s,i)=>`<div class="tseg ${colors[i%5]}" title="${s.topic}">${i+1}. ${s.topic.length>16?s.topic.slice(0,16)+'...':s.topic}<div style="font-size:.68rem;opacity:.7;">${s.start}→${s.end}</div></div>`).join('')}
+      </div>
+    </div>
+    <table class="segments-table"><thead><tr><th>#</th><th>נושא</th><th>סרטון</th><th>זמן</th></tr></thead><tbody>
+    ${segments.map((s,i)=>{const vi=(p.videos||[]).findIndex(v=>v.url===s.videoUrl)+1;return`<tr><td style="color:var(--blue);font-weight:700;">${i+1}</td><td>${s.topic}</td><td style="color:var(--muted);font-size:.75rem;">סרטון ${vi||'?'}</td><td><span class="time-badge">${s.start}–${s.end}</span></td></tr>`;}).join('')}
+    </tbody></table></div>`;
 
-  let result;
-  try {
-    const clean = text.replace(/```json|```/g, '').trim();
-    result = JSON.parse(clean);
-  } catch(e) {
-    alert('שגיאה בפענוח JSON — ודאי שהדבקת את כל התשובה');
-    return;
+  if(transitions.length){
+    html+=`<div class="card"><div class="card-title">🔄 קטעי מעבר מוצעים</div>
+    ${transitions.map(t=>`<div class="transition-card"><div class="transition-label">🔀 ${t.between}</div><div style="font-size:.85rem;">${t.text}</div></div>`).join('')}</div>`;
   }
 
-  const allSegments = [];
-  (result.suggested_order || []).forEach((s, i) => {
-    allSegments.push({
-      step: i + 1,
-      topic: s.topic,
-      videoUrl: (currentProject.videos[s.video_index] || {}).url || '',
-      start: s.start,
-      end: s.end
+  if(missing.length){
+    html+=`<div class="card" style="border-color:rgba(248,81,73,.3);"><div class="card-title" style="color:var(--red);">⚠️ נושאים שלא נמצאו — יש לצלם</div>
+    ${missing.map(m=>`<div class="missing-item">⚠️ ${m}</div>`).join('')}</div>`;
+  }
+  return html;
+}
+
+function analyzeTranscripts(){
+  const p=currentProject;
+  const topics=p.topics||[];
+  const videos=(p.videos||[]).filter(v=>v.transcript);
+  if(!videos.length){alert('אנא הוסיפי תמלולים תחילה');return;}
+
+  const progEl=document.getElementById('analyze-progress');
+  if(progEl)progEl.innerHTML='<div class="loading"><div class="spinner"></div>מנתח...</div>';
+
+  const segments=[];
+  const foundTopics=new Set();
+
+  // Keywords per topic
+  const topicKW=topics.map(t=>({
+    topic:t,
+    keywords:t.split(/[\s,،\-–]+/).filter(w=>w.length>3).map(w=>w.toLowerCase())
+  }));
+
+  videos.forEach((v,vIdx)=>{
+    const lines=v.transcript.split('\n').filter(Boolean);
+    const timeRe=/\[(\d{2}:\d{2})\]/;
+    const chunks=[];
+    let cur={start:'',end:'',text:'',count:0};
+
+    lines.forEach((line,li)=>{
+      const tm=line.match(timeRe);
+      const text=line.replace(timeRe,'').trim();
+      if(tm){
+        if(!cur.start)cur.start=tm[1];
+        cur.end=tm[1];cur.text+=' '+text;cur.count++;
+        if(cur.count>=8||li===lines.length-1){
+          chunks.push({...cur});
+          cur={start:cur.end,end:cur.end,text:'',count:0};
+        }
+      }else{cur.text+=' '+text;}
+    });
+
+    topicKW.forEach(({topic,keywords})=>{
+      let best=null,bestScore=0;
+      chunks.forEach(chunk=>{
+        const lower=chunk.text.toLowerCase();
+        let score=keywords.reduce((acc,kw)=>acc+(lower.includes(kw)?1:0),0);
+        if(score>bestScore){bestScore=score;best=chunk;}
+      });
+      if(best&&bestScore>0){
+        foundTopics.add(topic);
+        segments.push({topic,videoUrl:v.url,videoIndex:vIdx,start:best.start||'00:00',end:best.end||'00:30',relevance:Math.min(5,bestScore+1)});
+      }
     });
   });
 
-  await db.ref('video_agent/projects/' + currentProject.id + '/segments').set(allSegments);
-  await db.ref('video_agent/projects/' + currentProject.id + '/transitions').set(result.transitions || []);
-  await db.ref('video_agent/projects/' + currentProject.id + '/missing').set(result.missing || []);
-  await db.ref('video_agent/projects/' + currentProject.id + '/analysis').set(result);
+  // Sort by topic order, remove duplicates
+  const seen=new Set(),unique=[];
+  segments.sort((a,b)=>topics.indexOf(a.topic)-topics.indexOf(b.topic))
+    .forEach(s=>{if(!seen.has(s.topic)){seen.add(s.topic);unique.push(s);}});
 
-  const videos2 = currentProject.videos.map(v => ({ ...v, status: 'done' }));
-  await db.ref('video_agent/projects/' + currentProject.id + '/videos').set(videos2);
+  const missing=topics.filter(t=>!foundTopics.has(t));
+  const transitions=unique.slice(0,-1).map((s,i)=>({
+    between:`אחרי "${s.topic}", לפני "${unique[i+1].topic}"`,
+    text:genTransition(s.topic,unique[i+1].topic)
+  }));
 
-  document.getElementById('analysis-output').innerHTML =
-    '<div style="color:var(--green);padding:12px;">✓ הניתוח הושלם! עברי ללשונית "עריכה מוצעת"</div>';
-  setTimeout(() => switchTab('tab-edit'), 1500);
+  db.ref('video_agent/projects/'+p.id+'/segments').set(unique);
+  db.ref('video_agent/projects/'+p.id+'/transitions').set(transitions);
+  db.ref('video_agent/projects/'+p.id+'/missing').set(missing);
+
+  setTimeout(()=>{
+    document.getElementById('analyze-content').innerHTML=renderAnalyzeTab({...currentProject,segments:unique,transitions,missing});
+  },300);
 }
 
-async function generateSRT() {
-  const output = document.getElementById('srt-output-area');
-  output.innerHTML = '<div class="loading"><div class="spinner"></div>יוצר תמלול עברי...</div>';
+function genTransition(from,to){
+  const opts=[
+    `לאחר שלמדנו על "${from}", נעבור כעת ל"${to}".`,
+    `ראינו את "${from}". עכשיו נבחן את "${to}".`,
+    `"${from}" הוא רקע חשוב להבנת "${to}".`,
+    `מ"${from}" נעבור ל"${to}" — שלב חשוב נוסף בתקופה.`
+  ];
+  return opts[Math.floor(Math.random()*opts.length)];
+}
 
-  const segments = currentProject.segments || [];
-  const segList = segments.map((s,i) =>
-    `קטע ${i+1}: נושא "${s.topic}", מסרטון: ${s.videoUrl}, זמן: ${s.start} עד ${s.end}`
-  ).join('\n');
+function renderSRTSection(p){
+  return`<div class="card">
+    <div class="card-title">📝 יצירת כתוביות SRT לסרטון החדש</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:16px;line-height:1.7;">
+      הסוכן יייצר קובץ SRT מהקטעים הנבחרים — מוכן לייבוא ל-Moviemaker.
+    </div>
+    <button class="btn btn-gold" onclick="generateSRT()" style="margin-bottom:12px;width:100%;">📝 צרי קובץ כתוביות SRT</button>
+    <div id="srt-output-area">${p.srt?`<div class="srt-output">${p.srt}</div><button class="btn btn-success" style="margin-top:12px;" onclick="downloadSRT()">⬇️ הורידי קובץ SRT</button>`:''}</div>
+  </div>`;
+}
 
-  const prompt = `אני מורה להיסטוריה ובניתי סרטון לימודי על: "${currentProject.name}".
-הסרטון מורכב מהקטעים הבאים:
-${segList}
+function generateSRT(){
+  const p=currentProject;
+  const segments=p.segments||[];
+  if(!segments.length){alert('אין קטעים — נתחי תחילה');return;}
 
-אנא צור עבורי:
-1. תמלול עברי לכל קטע (תרגם מאנגלית אם נדרש, התאם לשפה פשוטה לתלמידי חטיבה)
-2. קובץ SRT מוכן לייבוא
+  let srt='',idx=1,t=0;
+  segments.forEach((seg,si)=>{
+    const dur=Math.max(10,parseTime(seg.end)-parseTime(seg.start));
+    const video=(p.videos||[]).find(v=>v.url===seg.videoUrl);
+    const lines=video?getSegmentLines(video.transcript,seg.start,seg.end):[];
 
-הנח שכל קטע מתחיל מהזמן שצוין, וחשב זמן מצטבר לסרטון החדש.
-כל כתובית — 2 שורות מקסימום, 7 שניות מקסימום.
+    if(lines.length){
+      const chunkSize=Math.max(1,Math.ceil(lines.length/Math.ceil(dur/7)));
+      for(let i=0;i<lines.length;i+=chunkSize){
+        const chunk=lines.slice(i,i+chunkSize);
+        const st=t+(i/lines.length)*dur;
+        const en=Math.min(st+7,t+dur);
+        const text=chunk.join(' ').replace(/\[[\d:]+\]/g,'').trim();
+        if(text){srt+=`${idx}\n${toSRT(st)} --> ${toSRT(en)}\n${text}\n\n`;idx++;}
+      }
+    }else{
+      srt+=`${idx}\n${toSRT(t)} --> ${toSRT(t+5)}\n${seg.topic}\n\n`;idx++;
+    }
+    t+=dur+2;
 
-פורמט SRT:
-1
-00:00:00,000 --> 00:00:05,000
-טקסט כתובית
+    const trans=(p.transitions||[])[si];
+    if(trans&&si<segments.length-1){
+      srt+=`${idx}\n${toSRT(t)} --> ${toSRT(t+4)}\n${trans.text}\n\n`;idx++;t+=5;
+    }
+  });
 
-2
-00:00:05,000 --> 00:00:10,000
-טקסט כתובית
-
-וכן הלאה.`;
-
-  output.innerHTML = `
-    <div class="card" style="border-color:rgba(227,179,65,.4);">
-      <div class="card-title">📋 העתיקי את הפרומפט לקלוד</div>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('srt-prompt').textContent).then(()=>alert('הועתק!'))">📋 העתקי</button>
-      <div style="clear:both;height:8px;"></div>
-      <div class="srt-output" id="srt-prompt" style="max-height:200px;">${prompt}</div>
-      <div style="margin-top:16px;">
-        <label class="form-label">הדביקי כאן את תשובת קלוד (תמלול SRT):</label>
-        <textarea class="form-textarea" id="srt-response" rows="8" placeholder="1&#10;00:00:00,000 --> 00:00:05,000&#10;טקסט..."></textarea>
-        <button class="btn btn-success" style="margin-top:8px;width:100%;"
-          onclick="saveSRT()">✓ שמרי תמלול</button>
-      </div>
+  db.ref('video_agent/projects/'+p.id+'/srt').set(srt);
+  document.getElementById('srt-output-area').innerHTML=`
+    <div class="srt-output" id="srt-out">${srt}</div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-success" onclick="downloadSRT()">⬇️ הורידי קובץ SRT</button>
+      <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('srt-out').textContent).then(()=>alert('הועתק!'))">📋 העתקי</button>
     </div>`;
 }
 
-function saveSRT() {
-  const text = document.getElementById('srt-response').value.trim();
-  if (!text) { alert('אנא הדביקי את תשובת קלוד'); return; }
-  db.ref('video_agent/projects/' + currentProject.id + '/srt').set(text);
-  document.getElementById('srt-output-area').innerHTML = `
-    <button class="copy-btn" onclick="copyText('srt-saved')">📋 העתקי</button>
-    <div style="clear:both;height:4px;"></div>
-    <div class="srt-output" id="srt-saved">${text}</div>
-    <button class="btn btn-success" style="margin-top:12px;"
-      onclick="downloadSRT('${currentProject.name}')">⬇️ הורידי קובץ SRT</button>`;
-}
-
-function downloadSRT(name) {
-  const text = document.getElementById('srt-text').textContent;
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name + '.srt';
-  a.click();
-}
-
-function copyText(id) {
-  const text = document.getElementById(id).textContent;
-  navigator.clipboard.writeText(text).then(() => alert('הועתק!'));
-}
-
-// ── TABS ──
-function switchTab(id) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const panels = ['tab-topics','tab-videos','tab-edit','tab-srt'];
-    t.classList.toggle('active', panels[i] === id);
-  });
-  document.querySelectorAll('.tab-panel').forEach(p => {
-    p.classList.toggle('active', p.id === id);
+function getSegmentLines(transcript,start,end){
+  if(!transcript)return[];
+  const s=parseTime(start),e=parseTime(end);
+  return transcript.split('\n').filter(line=>{
+    const m=line.match(/\[(\d{2}:\d{2})\]/);
+    if(!m)return false;
+    const t=parseTime(m[1]);
+    return t>=s&&t<=e;
   });
 }
 
-// ── EDIT TOPICS ──
-function editTopics() {
-  const topics = currentProject.topics || [];
-  const newList = prompt('ערכי נושאים (כל שורה = נושא):\n', topics.join('\n'));
-  if (newList === null) return;
-  const updated = newList.split('\n').map(t => t.trim()).filter(Boolean);
-  db.ref('video_agent/projects/' + currentProject.id + '/topics').set(updated);
+function parseTime(str){
+  if(!str)return 0;
+  const p=str.split(':').map(Number);
+  return p.length===2?p[0]*60+p[1]:p.length===3?p[0]*3600+p[1]*60+p[2]:0;
 }
 
-// ── MODAL ──
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+function toSRT(secs){
+  const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=Math.floor(secs%60),ms=Math.floor((secs%1)*1000);
+  return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
 }
 
-// Close on overlay click
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
-});
+function downloadSRT(){
+  const el=document.getElementById('srt-out');if(!el)return;
+  const blob=new Blob([el.textContent],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(currentProject.name||'video')+'.srt';a.click();
+}
+
+function editTopics(){
+  const t=(currentProject.topics||[]).join('\n');
+  const n=prompt('ערכי נושאים (כל שורה = נושא):\n',t);
+  if(n===null)return;
+  db.ref('video_agent/projects/'+currentProject.id+'/topics').set(n.split('\n').map(x=>x.trim()).filter(Boolean));
+}
+
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const panels=['tab-topics','tab-videos','tab-analyze','tab-srt'];
+    t.classList.toggle('active',panels[i]===id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===id));
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
 </script>
 </body>
 </html>
