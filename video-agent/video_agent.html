@@ -370,24 +370,67 @@ function normalizeTranscript(text){
   if(!text)return'';
   const lines=text.split('\n');
   const result=[];
-  // YouTube format: timestamp on one line, text on next line(s)
-  // e.g. "0:00\nSome text\n0:05\nMore text"
-  const ytTimeRe=/^(\d{1,2}:\d{2}(?::\d{2})?)$/;
   let currentTime='';
+
   lines.forEach(line=>{
     line=line.trim();
     if(!line)return;
-    if(ytTimeRe.test(line)){
-      currentTime=padTime(line.replace(/^(\d+):(\d{2})(:\d{2})?$/,(m,h,m2,s)=>s?line:h.padStart(2,'0')+':'+m2));
-    } else if(currentTime){
+
+    // Remove "שניות" / "שניה" suffix
+    line=line.replace(/\s*(שניות|שניה)\s*/g,' ').trim();
+
+    // Format 1: "0:011 text" or "0:07 text" (time at start of line with text after)
+    const inlineTime=line.match(/^(\d{1,2}:\d{2,3})\s+(.+)/);
+    if(inlineTime){
+      const t=normalizeTimeStr(inlineTime[1]);
+      const txt=inlineTime[2].trim();
+      if(txt)result.push('['+t+'] '+txt);
+      currentTime='';
+      return;
+    }
+
+    // Format 2: "0:00" alone on a line (YouTube standard)
+    const aloneTime=line.match(/^(\d{1,2}:\d{2}(?::\d{2})?)$/);
+    if(aloneTime){
+      currentTime=normalizeTimeStr(aloneTime[1]);
+      return;
+    }
+
+    // Format 3: "[MM:SS] text" (already normalized)
+    const bracketTime=line.match(/^\[(\d{2}:\d{2})\]\s*(.+)/);
+    if(bracketTime){
+      result.push(line);
+      currentTime='';
+      return;
+    }
+
+    // Text after alone timestamp
+    if(currentTime){
       result.push('['+currentTime+'] '+line);
       currentTime='';
-    } else {
-      // Already in [MM:SS] format or plain text
-      result.push(line);
+      return;
     }
+
+    // Plain text — skip (headers like "פרק 1")
   });
+
   return result.join('\n');
+}
+
+function normalizeTimeStr(t){
+  // Handle "0:011" → "00:11", "0:07" → "00:07"
+  const parts=t.split(':');
+  if(parts.length===2){
+    const mins=parts[0].padStart(2,'0');
+    let secs=parts[1];
+    if(secs.length===3)secs=secs.slice(0,2); // "011" → "01" (take first 2 digits)
+    secs=secs.padStart(2,'0');
+    return mins+':'+secs;
+  }
+  if(parts.length===3){
+    return parts[0].padStart(2,'0')+':'+parts[1].padStart(2,'0');
+  }
+  return t;
 }
 
 function analyzeTranscripts(){
