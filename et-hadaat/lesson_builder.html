@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>בונה שיעור — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);
+  --border:rgba(212,168,67,0.18);
+  --border2:rgba(212,168,67,0.38);
+  --green:#22863a;
+  --intro-c:#0d2e1a;--body-c:#0d1e2e;
+  --close-c:#2e0d0d;--enrich-c:#1a0d2e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direction:rtl;min-height:100vh;}
+
+.screen{display:none;flex-direction:column;min-height:100vh;}
+.screen.active{display:flex;}
+
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.btn-back{padding:5px 14px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;transition:all .18s;}
+.btn-back:hover{background:rgba(212,168,67,.1);}
+
+.main-wrap{flex:1;padding:28px 24px;max-width:700px;margin:0 auto;width:100%;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
+.card-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:18px;}
+.section-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.45;margin-bottom:10px;}
+
+.input-field{width:100%;padding:10px 14px;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;transition:border .18s;}
+.input-field:focus{border-color:var(--gold);}
+.input-field::placeholder{opacity:.35;}
+.input-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+.input-label{font-size:.85rem;font-weight:600;margin-bottom:6px;display:block;}
+
+.btn{padding:10px 22px;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .18s;}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);}
+.btn-gold:hover{opacity:.9;}
+.btn-ghost{background:none;border:1.5px solid var(--border2);color:var(--parch);}
+.btn-ghost:hover{background:rgba(253,245,224,.06);}
+.btn-green{background:#1a5c2a;color:#a3f0b5;border:1px solid #2a7a3a;}
+.btn-green:hover{background:#226e34;}
+.btn-sm{padding:6px 14px;font-size:.8rem;}
+.btn-row{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+.subject-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+.subject-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;}
+.subject-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.subject-card .sc-icon{font-size:2rem;margin-bottom:8px;}
+.subject-card .sc-name{font-size:.9rem;font-weight:700;}
+
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
+.choice-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;}
+.choice-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.choice-card .ch-icon{font-size:2.2rem;margin-bottom:10px;}
+.choice-card .ch-title{font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;}
+.choice-card .ch-sub{font-size:.78rem;opacity:.5;}
+
+.avatar-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;}
+.avatar-opt{width:56px;height:56px;border-radius:50%;font-size:1.8rem;display:flex;align-items:center;justify-content:center;background:rgba(253,245,224,.06);border:2px solid var(--border);cursor:pointer;transition:all .18s;}
+.avatar-opt:hover,.avatar-opt.selected{border-color:var(--gold);background:rgba(212,168,67,.15);}
+
+.lesson-setup-list{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.lesson-setup-row{display:flex;align-items:center;gap:10px;background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+.ls-num{min-width:26px;height:26px;border-radius:6px;background:rgba(212,168,67,.2);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;flex-shrink:0;}
+.ls-input{flex:1;background:none;border:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;}
+.ls-input::placeholder{opacity:.3;}
+
+.unit-header{background:linear-gradient(135deg,rgba(44,26,14,.9),rgba(30,15,5,.95));border:1px solid var(--border2);border-radius:14px;padding:22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+.unit-avatar{font-size:3rem;}
+.unit-info-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
+.unit-info-sub{font-size:.8rem;opacity:.5;margin-top:3px;}
+
+.lesson-list-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:10px;cursor:pointer;transition:all .18s;}
+.lesson-list-item:hover{border-color:var(--gold);transform:translateX(-3px);}
+.li-num{min-width:34px;height:34px;border-radius:8px;background:rgba(212,168,67,.15);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;}
+.li-info{flex:1;}
+.li-name{font-size:.92rem;font-weight:700;}
+.li-status{font-size:.74rem;margin-top:3px;opacity:.5;}
+.li-arrow{opacity:.4;font-size:1.1rem;}
+
+/* BUILDER */
+#screen-builder{flex-direction:column;}
+.builder-topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;position:sticky;top:0;}
+.builder-meta{display:flex;align-items:center;gap:8px;font-size:.82rem;flex-wrap:wrap;}
+.builder-unit{color:var(--gold);font-weight:700;}
+.builder-lesson{opacity:.55;}
+.builder-actions{display:flex;gap:8px;}
+.builder-body{display:grid;grid-template-columns:1fr 320px;flex:1;overflow:hidden;min-height:0;}
+
+.lesson-panel{overflow-y:auto;padding:18px;}
+.lesson-meta-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.lesson-topic{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:10px;}
+.goals-area{width:100%;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:10px;resize:vertical;min-height:70px;outline:none;}
+.goals-area:focus{border-color:var(--gold);}
+.goals-area::placeholder{opacity:.3;}
+
+.section-block{border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid transparent;}
+.section-block.intro{background:var(--intro-c);border-color:rgba(42,110,66,.4);}
+.section-block.body-sec{background:var(--body-c);border-color:rgba(29,78,216,.25);}
+.section-block.closing{background:var(--close-c);border-color:rgba(139,32,32,.35);}
+.section-block.enrichment{background:var(--enrich-c);border-color:rgba(109,40,217,.3);}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;user-select:none;}
+.section-header-left{display:flex;align-items:center;gap:8px;}
+.section-icon{font-size:1rem;}
+.section-name{font-size:.88rem;font-weight:700;}
+.section-count{font-size:.7rem;opacity:.4;}
+.section-chevron{opacity:.4;font-size:.75rem;transition:transform .2s;}
+.section-body{display:none;padding:0 12px 12px;}
+.section-body.open{display:block;}
+
+.row-item{display:flex;align-items:center;gap:10px;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.1);border-radius:8px;padding:8px 12px;margin-bottom:7px;cursor:pointer;transition:all .15s;min-height:42px;}
+.row-item:hover{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.row-item.active{border-color:var(--gold2);background:rgba(212,168,67,.1);}
+.row-num{min-width:22px;height:22px;border-radius:5px;background:rgba(212,168,67,.15);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;}
+.row-content{flex:1;font-size:.82rem;}
+.row-empty{opacity:.3;font-style:italic;}
+.row-type-badge{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(212,168,67,.15);color:var(--gold);flex-shrink:0;}
+.row-text{font-size:.78rem;opacity:.65;margin-right:6px;}
+
+.station-block{background:rgba(253,245,224,.03);border:1px solid rgba(212,168,67,.08);border-radius:10px;margin-bottom:8px;}
+.station-header{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;}
+.station-num{min-width:26px;height:26px;border-radius:6px;background:rgba(29,78,216,.3);color:#93c5fd;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0;}
+.station-label{font-size:.85rem;font-weight:600;flex:1;}
+.station-rows{padding:0 10px 10px;display:none;}
+.station-rows.open{display:block;}
+
+.aud-toggle{display:flex;gap:4px;flex-shrink:0;}
+.aud-btn{padding:2px 8px;font-size:.65rem;font-weight:700;border-radius:10px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .15s;}
+.aud-all{background:rgba(34,134,58,.15);color:#6ee7a0;}
+.aud-diff{background:rgba(168,85,247,.15);color:#c4b5fd;}
+.aud-all.on{background:#1a5c2a;color:#a3f0b5;}
+.aud-diff.on{background:#4c1d95;color:#ddd6fe;}
+
+.inline-editor{background:rgba(10,5,2,.7);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-top:4px;margin-bottom:6px;}
+.inline-editor-title{font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;opacity:.75;}
+.inline-field{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:8px 12px;outline:none;margin-bottom:8px;resize:vertical;min-height:60px;}
+.inline-field:focus{border-color:var(--gold);}
+.inline-field::placeholder{opacity:.3;}
+.editor-btns{display:flex;gap:6px;justify-content:flex-end;}
+
+.side-panel{border-right:1px solid var(--border);background:rgba(8,4,1,.7);display:flex;flex-direction:column;overflow:hidden;}
+.side-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.side-tab{flex:1;padding:11px 6px;text-align:center;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;border-bottom:2px solid transparent;color:var(--parch);opacity:.4;}
+.side-tab.active{opacity:1;border-bottom-color:var(--gold);color:var(--gold2);}
+.side-tab-body{flex:1;overflow-y:auto;padding:14px;}
+
+.ai-messages{display:flex;flex-direction:column;gap:9px;margin-bottom:10px;}
+.ai-msg{border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;}
+.ai-msg.assistant{background:rgba(212,168,67,.09);border:1px solid rgba(212,168,67,.15);}
+.ai-msg.user{background:rgba(29,78,216,.14);border:1px solid rgba(29,78,216,.2);margin-right:16px;}
+.ai-thinking{font-size:.75rem;opacity:.4;font-style:italic;padding:4px 0;}
+.ai-input-row{display:flex;gap:8px;flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);}
+.ai-input{flex:1;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:8px 12px;outline:none;resize:none;}
+.ai-input:focus{border-color:var(--gold);}
+.ai-send{padding:8px 14px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;cursor:pointer;font-size:1rem;}
+.ai-send:hover{opacity:.9;}
+
+.bank-section-title{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.35;margin:12px 0 7px;}
+.bank-item{background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:all .18s;}
+.bank-item:hover{border-color:var(--gold);background:rgba(212,168,67,.08);}
+.bank-item-icon{font-size:1.1rem;margin-bottom:3px;}
+.bank-item-name{font-size:.83rem;font-weight:700;margin-bottom:2px;}
+.bank-item-desc{font-size:.72rem;opacity:.4;}
+.bank-hint{font-size:.76rem;opacity:.32;text-align:center;padding:8px 0;font-style:italic;line-height:1.5;}
+
+.save-bar{border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,5,2,.9);flex-shrink:0;}
+.save-status{font-size:.78rem;opacity:.4;}
+.save-status.saved{color:#6ee7a0;opacity:1;}
+
+.loading-msg{text-align:center;padding:60px 20px;opacity:.4;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:1.5rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty-msg{text-align:center;padding:40px 20px;opacity:.32;font-size:.88rem;}
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: בחירת מקצוע -->
+<div class="screen active" id="screen-subject">
+  <div class="topbar">
+    <div class="topbar-title">📖 עת הדעת — בונה שיעורים</div>
+    <div></div>
+  </div>
+  <div class="main-wrap">
+    <div class="card">
+      <div class="card-title">בחרי מקצוע</div>
+      <div class="subject-grid" id="subject-grid">
+        <div class="loading-msg"><span class="spin">⏳</span><br>טוען...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2: יחידה חדשה / קיימת -->
+<div class="screen" id="screen-unit-choice">
+  <div class="topbar">
+    <button class="btn-back" onclick="goTo('screen-subject')">← מקצועות</button>
+    <div class="topbar-title" id="uc-subject-name"></div>
+    <div></div>
+  </div>
+  <div class="main-wrap">
+    <div class="card">
+      <div class="card-title">מה תרצי לעשות?</div>
+      <div class="choice-grid">
+        <div class="choice-card" onclick="startNewUnit()">
+          <div class="ch-icon">✨</div>
+          <div class="ch-title">יחידה חדשה</div>
+          <div class="ch-sub">צרי יחידת לימוד מאפס</div>
+        </div>
+        <div class="choice-card" onclick="showExistingUnits()">
+          <div class="ch-icon">📂</div>
+          <div class="ch-title">יחידה קיימת</div>
+          <div class="ch-sub">ערכי יחידה שכבר יצרת</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="existing-units-card" style="display:none;">
+      <div class="card-title">יחידות קיימות</div>
+      <div id="existing-units-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: הגדרת יחידה -->
+<div class="screen" id="screen-unit-setup">
+  <div class="topbar">
+    <button class="btn-back" onclick="goTo('screen-unit-choice')">← בחירה</button>
+    <div class="topbar-title">הגדרת יחידה</div>
+    <div></div>
+  </div>
+  <div class="main-wrap">
+    <div class="card">
+      <div class="card-title">פרטי היחידה</div>
+      <div class="section-label">מספר ושם</div>
+      <div class="input-row">
+        <input class="input-field" id="unit-num" type="number" min="1" max="99"
+          placeholder="מס׳" style="width:70px;text-align:center;">
+        <input class="input-field" id="unit-name" placeholder="שם היחידה" style="flex:1;">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">אווטאר מלווה</div>
+      <div class="section-label">בחרי דמות שתלווה את התלמידים לאורך היחידה</div>
+      <div class="avatar-grid" id="avatar-grid"></div>
+      <input type="hidden" id="selected-avatar" value="">
+    </div>
+
+    <div class="card">
+      <div class="card-title">שיעורים ביחידה</div>
+      <div class="input-row" style="margin-bottom:14px;">
+        <span style="font-size:.85rem;font-weight:600;white-space:nowrap;">מספר שיעורים:</span>
+        <input class="input-field" id="lesson-count" type="number" min="1" max="20"
+          value="5" style="width:80px;text-align:center;" oninput="buildLessonSetup()">
+      </div>
+      <div class="lesson-setup-list" id="lesson-setup-list"></div>
+    </div>
+
+    <div class="card" style="border-color:rgba(212,168,67,.3);">
+      <div class="card-title">🤖 עוזר הוראה</div>
+      <div style="font-size:.82rem;opacity:.5;margin-bottom:12px;">שאלי עזרה בתכנון היחידה</div>
+      <div id="setup-ai-msgs" class="ai-messages">
+        <div class="ai-msg assistant">שלום! אני כאן לעזור בתכנון היחידה. אוכל להציע נושאי שיעורים, מספר שיעורים מומלץ ועוד.</div>
+      </div>
+      <div id="setup-ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input class="input-field" id="setup-ai-input" placeholder="שאלי..."
+          onkeydown="if(event.key==='Enter') sendSetupAI()">
+        <button class="btn btn-gold btn-sm" onclick="sendSetupAI()">שלח</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goTo('screen-unit-choice')">ביטול</button>
+      <button class="btn btn-gold" onclick="saveUnitSetup()">המשך לתכנון ←</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 4: סקירת יחידה -->
+<div class="screen" id="screen-unit-overview">
+  <div class="topbar">
+    <button class="btn-back" onclick="goTo('screen-unit-choice')">← מקצוע</button>
+    <div class="topbar-title" id="ov-unit-title">סקירת יחידה</div>
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-unit-setup')">✏️ ערכי</button>
+  </div>
+  <div class="main-wrap">
+    <div class="unit-header">
+      <div class="unit-avatar" id="ov-avatar">📖</div>
+      <div>
+        <div class="unit-info-title" id="ov-unit-name">שם היחידה</div>
+        <div class="unit-info-sub" id="ov-unit-meta"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">שיעורים</div>
+      <div id="lessons-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 5: בונה שיעור -->
+<div class="screen" id="screen-builder">
+  <div class="builder-topbar">
+    <button class="btn-back" onclick="goTo('screen-unit-overview')">← חזרה</button>
+    <div class="builder-meta">
+      <span class="builder-unit" id="b-unit-name"></span>
+      <span class="builder-lesson" id="b-lesson-label"></span>
+    </div>
+    <div class="builder-actions">
+      <button class="btn btn-green btn-sm" onclick="saveLesson()">💾 שמור</button>
+    </div>
+  </div>
+
+  <div class="builder-body">
+    <!-- LEFT -->
+    <div class="lesson-panel">
+      <div class="lesson-meta-card">
+        <div class="lesson-topic" id="b-topic-display"></div>
+        <div class="section-label">מטרות השיעור</div>
+        <textarea class="goals-area" id="b-goals" placeholder="רשמי את מטרות השיעור..."></textarea>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
+      </div>
+
+      <div class="section-block intro">
+        <div class="section-header" onclick="toggleSection('intro-body',this)">
+          <div class="section-header-left">
+            <span class="section-icon">🌅</span>
+            <span class="section-name">פתיח</span>
+            <span class="section-count">3 שורות</span>
+          </div>
+          <span class="section-chevron open">▼</span>
+        </div>
+        <div class="section-body open" id="intro-body">
+          <div id="intro-rows"></div>
+        </div>
+      </div>
+
+      <div class="section-block body-sec">
+        <div class="section-header" onclick="toggleSection('body-content',this)">
+          <div class="section-header-left">
+            <span class="section-icon">🚂</span>
+            <span class="section-name">גוף השיעור</span>
+            <span class="section-count">4 תחנות</span>
+          </div>
+          <span class="section-chevron open">▼</span>
+        </div>
+        <div class="section-body open" id="body-content">
+          <div id="stations-wrap"></div>
+        </div>
+      </div>
+
+      <div class="section-block closing">
+        <div class="section-header" onclick="toggleSection('close-body',this)">
+          <div class="section-header-left">
+            <span class="section-icon">🌇</span>
+            <span class="section-name">סיום</span>
+            <span class="section-count">שורה אחת</span>
+          </div>
+          <span class="section-chevron open">▼</span>
+        </div>
+        <div class="section-body open" id="close-body">
+          <div id="close-rows"></div>
+        </div>
+      </div>
+
+      <div class="section-block enrichment">
+        <div class="section-header" onclick="toggleSection('enrich-body',this)">
+          <div class="section-header-left">
+            <span class="section-icon">⭐</span>
+            <span class="section-name">העשרה</span>
+            <span class="section-count">3 תבניות</span>
+          </div>
+          <span class="section-chevron">▼</span>
+        </div>
+        <div class="section-body" id="enrich-body">
+          <div id="enrich-rows"></div>
+        </div>
+      </div>
+      <div style="height:50px;"></div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="side-panel">
+      <div class="side-tabs">
+        <div class="side-tab active" onclick="switchSideTab('ai')" id="tab-ai">🤖 עוזר הוראה</div>
+        <div class="side-tab" onclick="switchSideTab('bank')" id="tab-bank">📦 בנק פריטים</div>
+      </div>
+      <div class="side-tab-body" id="panel-ai">
+        <div class="ai-messages" id="ai-messages">
+          <div class="ai-msg assistant">שלום! לחצי על שורה בשיעור כדי שאעזור לך למלא אותה, או שאלי אותי כל שאלה.</div>
+        </div>
+        <div id="ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
+      </div>
+      <div class="ai-input-row" id="ai-input-row">
+        <textarea class="ai-input" id="ai-input" rows="2"
+          placeholder="כתבי הודעה..."
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI();}"></textarea>
+        <button class="ai-send" onclick="sendAI()">↑</button>
+      </div>
+      <div class="side-tab-body" id="panel-bank" style="display:none;">
+        <div class="bank-hint" id="bank-hint">לחצי על שורה בשיעור, ואז בחרי פריט מהבנק</div>
+        <div id="bank-items-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <div class="save-status" id="save-status">לא נשמר</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="goTo('screen-unit-overview')">← ליחידה</button>
+      <button class="btn btn-green btn-sm" onclick="saveLesson()">💾 שמור ועדכן</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+let currentSubject=null,currentUnit=null,currentLessonIdx=null,lessonData={},activeRow=null,teacherData=null;
+const AVATARS=['🦁','🦊','🐉','🦅','🦋','🌟','🏺','⚔️','🗺️','📜','🌙','🔭'];
+const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
+let aiHistory=[];
+
+const ITEM_BANK=[
+  {type:'entry_card', icon:'🚪',name:'כרטיס כניסה',  desc:'שאלה שמפעילה ידע קודם'},
+  {type:'exit_card',  icon:'🎫',name:'כרטיס יציאה',  desc:'שאלה מסכמת לסוף שיעור'},
+  {type:'text',       icon:'📄',name:'טקסט / מקור',  desc:'קטע קריאה או מקור ראשוני'},
+  {type:'image',      icon:'🖼️',name:'תמונה',         desc:'תמונה, מפה או מסמך חזותי'},
+  {type:'video',      icon:'▶️',name:'סרטון',         desc:'קישור YouTube'},
+  {type:'question',   icon:'❓',name:'שאלה',          desc:'שאלה פתוחה או סגורה'},
+  {type:'drag_drop',  icon:'🔀',name:'סדר כרונולוגי',desc:'פעילות גרירה לפי סדר'},
+  {type:'discussion', icon:'💬',name:'דיון',          desc:'שאלה לדיון כיתתי'},
+  {type:'summary',    icon:'📝',name:'סיכום',         desc:'ממלאים בסוף תחנה'},
+];
+
+// ── NAV ──
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ── INIT ──
+window.onload=function(){
+  db.ref('teacher').once('value',snap=>{
+    teacherData=snap.val()||{};
+    renderSubjects();
+  });
+  renderAvatars();
+  buildLessonSetup();
+  renderBankItems();
+};
+
+// ── SCREEN 1 ──
+function renderSubjects(){
+  const grid=document.getElementById('subject-grid');
+  const subjects=teacherData.subjects?Object.values(teacherData.subjects):[];
+  if(!subjects.length){grid.innerHTML='<div class="empty-msg">אין מקצועות. צרי מקצוע בלוח המורה.</div>';return;}
+  grid.innerHTML=subjects.map(s=>`<div class="subject-card" onclick="selectSubject('${s.id}')"><div class="sc-icon">${s.icon||'📚'}</div><div class="sc-name">${s.name}</div></div>`).join('');
+}
+
+function selectSubject(id){
+  const subjects=teacherData.subjects?Object.values(teacherData.subjects):[];
+  currentSubject=subjects.find(s=>s.id===id);
+  if(!currentSubject)return;
+  document.getElementById('uc-subject-name').textContent=currentSubject.name;
+  document.getElementById('existing-units-card').style.display='none';
+  goTo('screen-unit-choice');
+}
+
+// ── SCREEN 2 ──
+function showExistingUnits(){
+  const card=document.getElementById('existing-units-card');
+  const list=document.getElementById('existing-units-list');
+  const units=currentSubject.units?Object.values(currentSubject.units):[];
+  if(!units.length){list.innerHTML='<div class="empty-msg">אין יחידות קיימות.</div>';}
+  else{list.innerHTML=units.map(u=>`<div class="lesson-list-item" onclick='openExistingUnit(${JSON.stringify(u)})'><div class="li-num">${u.avatar||'📖'}</div><div class="li-info"><div class="li-name">${u.num?u.num+'. ':''}${u.name}</div><div class="li-status">${u.lessons?u.lessons.length:0} שיעורים</div></div><div class="li-arrow">←</div></div>`).join('');}
+  card.style.display='block';
+}
+
+function openExistingUnit(unit){
+  currentUnit=unit;
+  if(!currentUnit.lessons)currentUnit.lessons=[];
+  renderUnitOverview();
+  goTo('screen-unit-overview');
+}
+
+// ── SCREEN 3 ──
+function startNewUnit(){
+  const units=currentSubject.units?Object.values(currentSubject.units):[];
+  document.getElementById('unit-num').value=units.length+1;
+  document.getElementById('unit-name').value='';
+  document.getElementById('selected-avatar').value=AVATARS[0];
+  document.getElementById('lesson-count').value=5;
+  renderAvatars();
+  buildLessonSetup();
+  goTo('screen-unit-setup');
+}
+
+function renderAvatars(){
+  const grid=document.getElementById('avatar-grid');
+  if(!grid)return;
+  const sel=document.getElementById('selected-avatar')?.value||AVATARS[0];
+  grid.innerHTML=AVATARS.map(a=>`<div class="avatar-opt ${a===sel?'selected':''}" onclick="selectAvatar('${a}')">${a}</div>`).join('');
+}
+
+function selectAvatar(a){document.getElementById('selected-avatar').value=a;renderAvatars();}
+
+function buildLessonSetup(){
+  const n=parseInt(document.getElementById('lesson-count')?.value)||5;
+  const list=document.getElementById('lesson-setup-list');
+  if(!list)return;
+  const existing=Array.from(list.querySelectorAll('.ls-input')).map(i=>i.value);
+  list.innerHTML=Array.from({length:n},(_,i)=>`<div class="lesson-setup-row"><div class="ls-num">${i+1}</div><input class="ls-input" placeholder="נושא שיעור ${i+1}..." value="${existing[i]||''}"></div>`).join('');
+}
+
+async function sendSetupAI(){
+  const inp=document.getElementById('setup-ai-input');
+  const msg=inp.value.trim();if(!msg)return;
+  inp.value='';
+  addMsg('setup-ai-msgs',msg,'user');
+  document.getElementById('setup-ai-thinking').style.display='block';
+  const sys=`אתה עוזר הוראה. המורה בונה יחידה: "${document.getElementById('unit-name').value||''}". ענה בעברית, קצר ומקצועי.`;
+  const reply=await callAI(sys,msg,[]);
+  document.getElementById('setup-ai-thinking').style.display='none';
+  addMsg('setup-ai-msgs',reply,'assistant');
+}
+
+function addMsg(containerId,text,role){
+  const el=document.getElementById(containerId);
+  const d=document.createElement('div');d.className='ai-msg '+role;d.textContent=text;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+
+async function saveUnitSetup(){
+  const name=document.getElementById('unit-name').value.trim();
+  if(!name){alert('יש להזין שם ליחידה');return;}
+  const num=document.getElementById('unit-num').value.trim();
+  const inputs=document.querySelectorAll('.ls-input');
+  const lessons=Array.from(inputs).map((inp,i)=>({
+    id:'lesson_'+(i+1),num:i+1,
+    name:'שיעור '+(i+1),
+    topic:inp.value.trim()||'',
+    status:'draft',data:null
+  }));
+  currentUnit={
+    id:currentUnit?.id||'unit_'+Date.now(),
+    num,name,
+    avatar:document.getElementById('selected-avatar').value||AVATARS[0],
+    lessons
+  };
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}`).set(currentUnit);
+  renderUnitOverview();
+  goTo('screen-unit-overview');
+}
+
+// ── SCREEN 4 ──
+function renderUnitOverview(){
+  document.getElementById('ov-unit-title').textContent=currentUnit.name;
+  document.getElementById('ov-avatar').textContent=currentUnit.avatar||'📖';
+  document.getElementById('ov-unit-name').textContent=(currentUnit.num?currentUnit.num+'. ':'')+currentUnit.name;
+  document.getElementById('ov-unit-meta').textContent=(currentUnit.lessons?.length||0)+' שיעורים';
+  const list=document.getElementById('lessons-list');
+  const lessons=currentUnit.lessons||[];
+  if(!lessons.length){list.innerHTML='<div class="empty-msg">אין שיעורים</div>';return;}
+  list.innerHTML=lessons.map((l,i)=>`
+    <div class="lesson-list-item" onclick="openLessonBuilder(${i})">
+      <div class="li-num">${l.num||i+1}</div>
+      <div class="li-info">
+        <div class="li-name">${l.topic||l.name}</div>
+        <div class="li-status">${l.status==='ready'?'✅ מוכן':'✏️ טיוטה'}</div>
+      </div>
+      <div class="li-arrow">←</div>
+    </div>`).join('');
+}
+
+// ── SCREEN 5 ──
+function openLessonBuilder(idx){
+  currentLessonIdx=idx;
+  const lesson=currentUnit.lessons[idx];
+  const saved=lesson.data||{};
+  lessonData={
+    goals:saved.goals||'',
+    intro:saved.intro||[{type:null,content:''},{type:null,content:''},{type:null,content:''}],
+    stations:saved.stations||Array.from({length:4},()=>[
+      {type:null,content:'',audience:'all'},
+      {type:null,content:'',audience:'all'},
+      {type:null,content:'',audience:'diff'}
+    ]),
+    closing:saved.closing||[{type:null,content:''}],
+    enrichment:saved.enrichment||[{type:null,content:''},{type:null,content:''},{type:null,content:''}]
+  };
+  document.getElementById('b-unit-name').textContent=currentUnit.name;
+  document.getElementById('b-lesson-label').textContent=' · שיעור '+(lesson.num||idx+1)+'/'+currentUnit.lessons.length+(lesson.topic?' · '+lesson.topic:'');
+  document.getElementById('b-topic-display').textContent=lesson.topic||lesson.name;
+  document.getElementById('b-goals').value=lessonData.goals;
+  activeRow=null;
+  aiHistory=[];
+  renderLessonStructure();
+  renderBankItems();
+  setSaveStatus('');
+  goTo('screen-builder');
+}
+
+function renderLessonStructure(){
+  renderSimpleRows('intro-rows',lessonData.intro,'intro');
+  renderStations();
+  renderSimpleRows('close-rows',lessonData.closing,'closing');
+  renderSimpleRows('enrich-rows',lessonData.enrichment,'enrichment');
+}
+
+function renderSimpleRows(containerId,rows,section){
+  const c=document.getElementById(containerId);
+  if(!c)return;
+  c.innerHTML=rows.map((row,i)=>rowHTML(row,section,i,null)).join('');
+}
+
+function rowHTML(row,section,ri,si){
+  const uid=rowId(section,ri,si);
+  const item=ITEM_BANK.find(b=>b.type===row.type);
+  const clickFn=`selectRow('${section}',${ri},${si===null||si===undefined?'null':si})`;
+  let audHTML='';
+  if(section==='stations'){
+    const isAll=row.audience!=='diff';
+    audHTML=`<div class="aud-toggle">
+      <button class="aud-btn aud-all ${isAll?'on':''}" onclick="event.stopPropagation();setAud(${ri},${si},'all')">כולם</button>
+      <button class="aud-btn aud-diff ${!isAll?'on':''}" onclick="event.stopPropagation();setAud(${ri},${si},'diff')">דיפ׳</button>
+    </div>`;
+  }
+  const isActive=activeRow&&activeRow.section===section&&activeRow.ri===ri&&activeRow.si===si;
+  return `<div class="row-item${isActive?' active':''}" id="${uid}" onclick="${clickFn}">
+    <div class="row-num">${ri+1}</div>
+    <div class="row-content">
+      ${row.type
+        ?`<span class="row-type-badge">${item?.icon||'📄'} ${item?.name||row.type}</span>${row.content?`<span class="row-text">${trunc(row.content,38)}</span>`:''}`
+        :`<span class="row-empty">לחצי לבחירת פריט...</span>`}
+    </div>
+    ${audHTML}
+  </div>
+  <div class="inline-editor" id="ed-${uid}" style="display:none;"></div>`;
+}
+
+function rowId(section,ri,si){return `row-${section}-${si!==null&&si!==undefined?si+'-':''}${ri}`;}
+
+function renderStations(){
+  const wrap=document.getElementById('stations-wrap');
+  wrap.innerHTML=lessonData.stations.map((rows,si)=>`
+    <div class="station-block">
+      <div class="station-header" onclick="toggleStation(${si})">
+        <div class="station-num">${si+1}</div>
+        <div class="station-label">תחנה ${si+1}</div>
+        <span id="stch-${si}" style="opacity:.4;font-size:.75rem;">▼</span>
+      </div>
+      <div class="station-rows" id="st-rows-${si}">
+        ${rows.map((row,ri)=>rowHTML(row,'stations',ri,si)).join('')}
+      </div>
+    </div>`).join('');
+  toggleStation(0);
+}
+
+function toggleStation(si){
+  const el=document.getElementById(`st-rows-${si}`);
+  const ch=document.getElementById(`stch-${si}`);
+  const open=el.classList.toggle('open');
+  if(ch)ch.textContent=open?'▲':'▼';
+}
+
+function toggleSection(bodyId,header){
+  const body=document.getElementById(bodyId);
+  const chevron=header.querySelector('.section-chevron');
+  const wasOpen=body.classList.contains('open');
+  body.classList.toggle('open',!wasOpen);
+  if(chevron){chevron.textContent=wasOpen?'▼':'▲';chevron.classList.toggle('open',!wasOpen);}
+}
+
+// ── ROW SELECTION ──
+function selectRow(section,ri,si){
+  // close previous editor
+  if(activeRow){
+    const pid=rowId(activeRow.section,activeRow.ri,activeRow.si);
+    document.getElementById(pid)?.classList.remove('active');
+    const ped=document.getElementById('ed-'+pid);
+    if(ped)ped.style.display='none';
+  }
+  activeRow={section,ri,si};
+  const uid=rowId(section,ri,si);
+  document.getElementById(uid)?.classList.add('active');
+
+  const row=getRow(section,ri,si);
+  const edEl=document.getElementById('ed-'+uid);
+  if(edEl){edEl.style.display='block';edEl.innerHTML=buildEditor(row,section,ri,si,uid);}
+
+  switchSideTab('bank');
+  const item=ITEM_BANK.find(b=>b.type===row?.type);
+  document.getElementById('bank-hint').textContent=
+    row?.type?`סוג נוכחי: ${item?.name||row.type} — בחרי פריט אחר להחלפה`:'בחרי פריט מהבנק עבור שורה זו';
+}
+
+function getRow(section,ri,si){
+  if(section==='stations')return lessonData.stations[si]?.[ri];
+  if(section==='intro')return lessonData.intro[ri];
+  if(section==='closing')return lessonData.closing[ri];
+  if(section==='enrichment')return lessonData.enrichment[ri];
+}
+
+function setRow(section,ri,si,data){
+  if(section==='stations'){if(lessonData.stations[si])lessonData.stations[si][ri]={...lessonData.stations[si][ri],...data};}
+  else if(section==='intro')lessonData.intro[ri]={...lessonData.intro[ri],...data};
+  else if(section==='closing')lessonData.closing[ri]={...lessonData.closing[ri],...data};
+  else if(section==='enrichment')lessonData.enrichment[ri]={...lessonData.enrichment[ri],...data};
+}
+
+function buildEditor(row,section,ri,si,uid){
+  if(!row?.type)return `<div class="inline-editor-title">בחרי פריט מבנק הפריטים ←</div>`;
+  const item=ITEM_BANK.find(b=>b.type===row.type);
+  const isUrl=row.type==='video'||row.type==='image';
+  const field=isUrl
+    ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;" placeholder="${row.type==='video'?'קישור YouTube...':'קישור לתמונה...'}" value="${esc(row.content||'')}">`
+    :`<textarea class="inline-field" id="ef-${uid}" placeholder="הכניסי תוכן...">${esc(row.content||'')}</textarea>`;
+  return `<div class="inline-editor-title">${item?.icon} ${item?.name}</div>
+    ${field}
+    <div class="editor-btns">
+      <button class="btn btn-ghost btn-sm" onclick="clearRowItem('${section}',${ri},${si===null?'null':si},'${uid}')">נקי</button>
+      <button class="btn btn-ghost btn-sm" onclick="askRowAI('${uid}','${section}',${ri},${si===null?'null':si})">🤖 עוזר</button>
+      <button class="btn btn-gold btn-sm" onclick="saveRowContent('${section}',${ri},${si===null?'null':si},'${uid}')">שמור ←</button>
+    </div>`;
+}
+
+function saveRowContent(section,ri,si,uid){
+  const f=document.getElementById('ef-'+uid);
+  if(!f)return;
+  setRow(section,ri,si,{content:f.value.trim()});
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectRow(section,ri,si),30);
+}
+
+function clearRowItem(section,ri,si,uid){
+  setRow(section,ri,si,{type:null,content:'',audience:'all'});
+  activeRow=null;
+  renderLessonStructure();
+}
+
+function setAud(ri,si,aud){
+  if(lessonData.stations[si])lessonData.stations[si][ri].audience=aud;
+  renderLessonStructure();
+}
+
+// ── BANK ──
+function renderBankItems(){
+  const list=document.getElementById('bank-items-list');
+  if(!list)return;
+  list.innerHTML='<div class="bank-section-title">בחרי סוג פריט</div>'+
+    ITEM_BANK.map(item=>`<div class="bank-item" onclick="selectBankItem('${item.type}')">
+      <div class="bank-item-icon">${item.icon}</div>
+      <div class="bank-item-name">${item.name}</div>
+      <div class="bank-item-desc">${item.desc}</div>
+    </div>`).join('');
+}
+
+function selectBankItem(type){
+  if(!activeRow){document.getElementById('bank-hint').textContent='לחצי תחילה על שורה בשיעור';return;}
+  const{section,ri,si}=activeRow;
+  setRow(section,ri,si,{type});
+  renderLessonStructure();
+  setTimeout(()=>selectRow(section,ri,si),40);
+}
+
+// ── AI ──
+async function callAI(sys,msg,hist){
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:sys,
+        messages:[...hist,{role:'user',content:msg}]})});
+    const d=await r.json();
+    const text=d.content?.[0]?.text||'לא קיבלתי תשובה';
+    return text;
+  }catch(e){return 'שגיאה בחיבור לעוזר.';}
+}
+
+function switchSideTab(tab){
+  document.getElementById('tab-ai').classList.toggle('active',tab==='ai');
+  document.getElementById('tab-bank').classList.toggle('active',tab==='bank');
+  document.getElementById('panel-ai').style.display=tab==='ai'?'block':'none';
+  document.getElementById('panel-bank').style.display=tab==='bank'?'block':'none';
+  document.getElementById('ai-input-row').style.display=tab==='ai'?'flex':'none';
+}
+
+async function sendAI(){
+  const inp=document.getElementById('ai-input');
+  const msg=inp.value.trim();if(!msg)return;
+  inp.value='';
+  addMsg('ai-messages',msg,'user');
+  showThinking(true);
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const sys=`אתה עוזר הוראה למורה שבונה שיעור היסטוריה. יחידה: ${currentUnit?.name||''}. שיעור: ${lesson?.topic||''}. ענה בעברית, קצר ומקצועי.`;
+  aiHistory.push({role:'user',content:msg});
+  const reply=await callAI(sys,msg,aiHistory.slice(0,-1));
+  aiHistory.push({role:'assistant',content:reply});
+  if(aiHistory.length>16)aiHistory=aiHistory.slice(-16);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+}
+
+async function askGoalsAI(){
+  switchSideTab('ai');
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const prompt=`נסחי 3-4 מטרות שיעור ברורות לשיעור בנושא: "${lesson?.topic||''}". כתבי כרשימה.`;
+  addMsg('ai-messages',prompt,'user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה. כתוב מטרות שיעור בעברית.',prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  addMsg('ai-messages','העתיקי את המטרות לשדה למעלה אם מתאים לך.','assistant');
+}
+
+async function askRowAI(uid,section,ri,si){
+  switchSideTab('ai');
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const f=document.getElementById('ef-'+uid);
+  const cur=f?.value||'';
+  const row=getRow(section,ri,si);
+  const item=ITEM_BANK.find(b=>b.type===row?.type);
+  const sNames={intro:'פתיח',stations:'תחנה',closing:'סיום',enrichment:'העשרה'};
+  const prompt=cur
+    ?`שפרי את הטקסט לפריט "${item?.name||''}" ב${sNames[section]||section}: "${cur}"`
+    :`הצעי תוכן לפריט "${item?.name||''}" ב${sNames[section]||section} בשיעור בנושא "${lesson?.topic||''}"`;
+  addMsg('ai-messages',prompt,'user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה. ענה בעברית, תוכן פדגוגי קצר.',prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  addMsg('ai-messages','העתיקי את התשובה לשדה הפריט.','assistant');
+}
+
+function showThinking(v){document.getElementById('ai-thinking').style.display=v?'block':'none';}
+
+// ── SAVE ──
+async function saveLesson(){
+  lessonData.goals=document.getElementById('b-goals').value;
+  const lesson=currentUnit.lessons[currentLessonIdx];
+  lesson.data=lessonData;
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons/${currentLessonIdx}`).set(lesson);
+  setSaveStatus('saved');
+  setTimeout(()=>setSaveStatus(''),3000);
+}
+
+function setSaveStatus(s){
+  const el=document.getElementById('save-status');
+  if(!el)return;
+  if(s==='saved'){el.textContent='✅ נשמר';el.className='save-status saved';}
+  else if(s===''){el.textContent='שמור';el.className='save-status';}
+  else{el.textContent=s;el.className='save-status';}
+}
+
+function trunc(s,n){return s&&s.length>n?s.substr(0,n)+'...':s||'';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
