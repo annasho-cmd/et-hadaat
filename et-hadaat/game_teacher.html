@@ -816,6 +816,8 @@ async function startGame() {
     state: 'lobby', currentQuestion: 0, questions,
     students: studentsLive, answers: {}, startedAt: Date.now()
   });
+  // הודע ללוח התלמיד שמשחק פעיל
+  await set(ref(db, 'teacher/liveGame'), { active: true, code: gameCode });
   gs = { state: 'lobby', currentQuestion: 0 };
   setButtons({ start:false, open:true, end:true });
   renderQDots();
@@ -844,6 +846,8 @@ async function nextQuestion() {
 
 async function endGame() {
   await update(ref(db, `games/${gameCode}`), { state: 'ended' });
+  // הסר את המשחק הפעיל מלוח התלמיד
+  await set(ref(db, 'teacher/liveGame'), { active: false });
   setButtons({ start:true });
   document.getElementById('btnStart').textContent = '🔄 משחק חדש';
 }
