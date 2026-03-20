@@ -224,6 +224,39 @@ body::before{
   text-align:center;padding:40px 20px;
   opacity:.45;font-size:.88rem;
 }
+
+/* ── GAME BANNER ── */
+#game-banner{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+  padding:16px 20px;
+  flex-direction:column;align-items:center;gap:10px;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.4);
+  animation:slideUp .4s ease;
+}
+#game-banner.active{display:flex;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.game-banner-title{
+  font-size:1rem;font-weight:800;color:#fff;
+  text-align:center;
+}
+.game-banner-pulse{
+  display:inline-block;
+  animation:pulse 1s infinite;
+  margin-left:6px;
+}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+.btn-join-game{
+  padding:12px 32px;
+  background:#fff;
+  color:#1d4ed8;
+  border:none;border-radius:10px;
+  font-family:'Heebo',sans-serif;font-size:1rem;font-weight:800;
+  cursor:pointer;width:100%;max-width:320px;
+  transition:opacity .2s;
+}
+.btn-join-game:hover{opacity:.9;}
 </style>
 </head>
 <body>
@@ -292,6 +325,14 @@ body::before{
   </div>
 </div>
 
+<!-- ══ GAME BANNER ══ -->
+<div id="game-banner">
+  <div class="game-banner-title">
+    🎮 המורה הפעילה משחק!<span class="game-banner-pulse">🔔</span>
+  </div>
+  <button class="btn-join-game" onclick="joinLiveGame()">הצטרף/י למשחק ←</button>
+</div>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
@@ -305,6 +346,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// שמירת הגדרות Firebase עבור game_student.html
+localStorage.setItem('fbConfig', JSON.stringify(firebaseConfig));
+
 // ── STATE ──
 let classCode = '';
 let groupData = null;
@@ -312,6 +356,7 @@ let teacherData = null;
 let studentName = '';
 let currentSubject = null;
 let currentUnit = null;
+let liveGameCode = null;
 
 // ── INIT ──
 window.onload = function() {
@@ -436,6 +481,7 @@ function enterApp(isTeacher) {
 
   showView('view-loading');
   loadSubjects();
+  startGameListener();
 }
 
 // ── LOAD SUBJECTS ──
@@ -607,7 +653,28 @@ function updateBreadcrumb(items) {
   bc.innerHTML = html;
 }
 
-// ── AUTO LOGIN (returning student) ──
+// ── GAME LISTENER ──
+function startGameListener() {
+  db.ref('teacher/liveGame').on('value', snap => {
+    const data = snap.val();
+    const banner = document.getElementById('game-banner');
+    if (data && data.active && data.code) {
+      liveGameCode = data.code;
+      banner.classList.add('active');
+    } else {
+      liveGameCode = null;
+      banner.classList.remove('active');
+    }
+  });
+}
+
+function joinLiveGame() {
+  if (!liveGameCode) return;
+  const base = window.location.href.split('/').slice(0, -1).join('/');
+  const name = encodeURIComponent(studentName);
+  window.location.href = `${base}/game_student.html?code=${liveGameCode}&name=${name}`;
+}
+
 window.addEventListener('load', () => {
   // Check if student was already logged in
   const saved = localStorage.getItem('et_hadaat_name_' + classCode);
