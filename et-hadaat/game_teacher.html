@@ -1018,7 +1018,13 @@ function openBoardWindow() {
   const code = localStorage.getItem('gameCode') || '';
   if (!code) { alert('יש להפעיל משחק תחילה'); return; }
   const base = window.location.href.split('?')[0].replace('game_teacher.html','game_board.html');
-  window.open(base + '?code=' + code, '_blank');
+  const a = document.createElement('a');
+  a.href = base + '?code=' + code;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 </script>
 </body>
