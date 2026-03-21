@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>בנק הפריטים — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--surface:rgba(44,26,14,0.88);
+  --border:rgba(212,168,67,0.18);--border2:rgba(212,168,67,0.38);
+  --green:#1a5c2a;--red:#8b2020;
+  --cat1:#1a2e1a;--cat2:#1a1a2e;--cat3:#2e1a0d;--cat4:#2e0d2e;--cat5:#0d2e2e;
+  --cat1b:rgba(42,110,42,.35);--cat2b:rgba(42,42,180,.3);
+  --cat3b:rgba(180,90,20,.3);--cat4b:rgba(140,20,140,.3);--cat5b:rgba(20,140,140,.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direction:rtl;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);}
+.btn-add{padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .18s;}
+.btn-add:hover{opacity:.9;}
+.btn-back{padding:5px 14px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;}
+.btn-back:hover{background:rgba(212,168,67,.1);}
+
+/* MAIN */
+.main{padding:24px;max-width:1100px;margin:0 auto;}
+
+/* CATEGORY */
+.category-section{margin-bottom:32px;}
+.category-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.category-icon{font-size:1.3rem;}
+.category-name{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.category-count{font-size:.75rem;opacity:.4;}
+
+/* ITEMS GRID */
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+
+/* ITEM CUBE */
+.item-cube{
+  border-radius:12px;padding:14px 10px;text-align:center;
+  cursor:pointer;transition:all .2s;
+  border:1.5px solid var(--border);
+  background:var(--surface);
+  position:relative;
+}
+.item-cube:hover{transform:translateY(-3px);border-color:var(--gold);}
+.item-cube .cube-icon{font-size:1.6rem;margin-bottom:6px;display:block;}
+.item-cube .cube-name{font-size:.8rem;font-weight:700;line-height:1.3;}
+.item-cube .cube-edit{
+  position:absolute;top:6px;left:6px;
+  padding:2px 7px;font-size:.65rem;font-weight:700;
+  background:rgba(212,168,67,.15);border:1px solid var(--border);
+  border-radius:10px;color:var(--gold);cursor:pointer;
+  opacity:0;transition:opacity .18s;font-family:'Heebo',sans-serif;
+}
+.item-cube:hover .cube-edit{opacity:1;}
+
+/* category colors */
+.cat-1{background:var(--cat1);border-color:var(--cat1b);}
+.cat-1:hover{border-color:#6ee7a0;}
+.cat-2{background:var(--cat2);border-color:var(--cat2b);}
+.cat-2:hover{border-color:#93c5fd;}
+.cat-3{background:var(--cat3);border-color:var(--cat3b);}
+.cat-3:hover{border-color:#fcd34d;}
+.cat-4{background:var(--cat4);border-color:var(--cat4b);}
+.cat-4:hover{border-color:#c4b5fd;}
+.cat-5{background:var(--cat5);border-color:var(--cat5b);}
+.cat-5:hover{border-color:#67e8f9;}
+
+/* MODAL OVERLAY */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:#1a0f05;border:1px solid var(--border2);border-radius:18px;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+
+/* MODAL HEADER */
+.modal-header{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.modal-icon{font-size:2.2rem;flex-shrink:0;}
+.modal-title-wrap{flex:1;}
+.modal-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
+.modal-cat-badge{font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:12px;display:inline-block;margin-top:4px;opacity:.7;}
+.modal-close{padding:6px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--parch);cursor:pointer;font-size:.9rem;flex-shrink:0;}
+
+/* MODAL BODY */
+.modal-body{padding:16px 24px 24px;}
+.modal-section{margin-bottom:18px;}
+.modal-section-title{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:8px;}
+.modal-desc{font-size:.88rem;line-height:1.65;opacity:.8;}
+.modal-desc p{margin-bottom:6px;}
+
+/* STYLES LIST */
+.styles-list{display:flex;flex-direction:column;gap:7px;}
+.style-item{background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
+.style-name{font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:3px;}
+.style-desc{font-size:.78rem;opacity:.6;line-height:1.5;}
+
+/* WRITE AREA */
+.write-area{width:100%;background:rgba(253,245,224,.05);border:1.5px solid var(--border);border-radius:10px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:12px;resize:vertical;min-height:90px;outline:none;transition:border .18s;}
+.write-area:focus{border-color:var(--gold);}
+.write-area::placeholder{opacity:.3;}
+.ai-strip{display:flex;gap:8px;margin-top:8px;}
+.ai-input{flex:1;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;outline:none;}
+.ai-input:focus{border-color:var(--gold);}
+.ai-btn{padding:8px 14px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:700;}
+.ai-reply{background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.15);border-radius:8px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin-top:8px;display:none;}
+.ai-thinking{font-size:.75rem;opacity:.4;font-style:italic;margin-top:6px;display:none;}
+
+/* MODAL FOOTER */
+.modal-footer{padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end;}
+.btn-save{padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;}
+.btn-cancel{padding:10px 18px;background:none;border:1.5px solid var(--border2);color:var(--parch);border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;cursor:pointer;}
+.btn-delete{padding:10px 18px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;cursor:pointer;}
+
+/* ADD ITEM MODAL */
+.form-row{margin-bottom:14px;}
+.form-label{font-size:.82rem;font-weight:700;margin-bottom:6px;display:block;opacity:.7;}
+.form-input{width:100%;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:9px 12px;outline:none;}
+.form-input:focus{border-color:var(--gold);}
+.form-select{width:100%;background:rgba(20,10,2,.9);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:9px 12px;outline:none;}
+.form-textarea{width:100%;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:9px 12px;resize:vertical;min-height:80px;outline:none;}
+.form-textarea:focus,.form-input:focus,.form-select:focus{border-color:var(--gold);}
+.form-textarea::placeholder,.form-input::placeholder{opacity:.3;}
+
+/* styles editor */
+.styles-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.style-edit-row{display:flex;gap:8px;}
+.style-edit-name{width:150px;flex-shrink:0;}
+.style-edit-desc{flex:1;}
+.style-remove{padding:0 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:6px;color:#f87171;cursor:pointer;font-size:.8rem;}
+.btn-add-style{padding:6px 14px;background:rgba(212,168,67,.1);border:1px solid var(--border2);border-radius:6px;color:var(--gold);font-family:'Heebo',sans-serif;font-size:.78rem;cursor:pointer;}
+
+.empty-bank{text-align:center;padding:60px 20px;opacity:.3;font-size:.9rem;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="btn-back" onclick="history.back()">← חזרה</button>
+    <div class="topbar-title">📦 בנק הפריטים</div>
+  </div>
+  <button class="btn-add" onclick="openAddModal()">+ הוסף פריט</button>
+</div>
+
+<div class="main" id="main-content">
+  <div class="empty-bank"><span class="spin">⏳</span><br>טוען פריטים...</div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="view-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon" id="vm-icon">📄</div>
+      <div class="modal-title-wrap">
+        <div class="modal-title" id="vm-title">שם הפריט</div>
+        <span class="modal-cat-badge" id="vm-cat"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal('view-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section" id="vm-desc-section">
+        <div class="modal-section-title">על הפריט</div>
+        <div class="modal-desc" id="vm-desc"></div>
+      </div>
+      <div class="modal-section" id="vm-styles-section">
+        <div class="modal-section-title">סגנונות ודוגמאות</div>
+        <div class="styles-list" id="vm-styles"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">הערות אישיות (אופציונלי)</div>
+        <textarea class="write-area" id="vm-notes" placeholder="הוסיפי הערות, רעיונות או דוגמאות מהניסיון שלך..."></textarea>
+        <div class="ai-strip">
+          <input class="ai-input" id="vm-ai-input" placeholder="שאלי את עוזר ההוראה..." onkeydown="if(event.key==='Enter') askViewAI()">
+          <button class="ai-btn" onclick="askViewAI()">🤖 שאלי</button>
+        </div>
+        <div class="ai-thinking" id="vm-ai-thinking">חושב...</div>
+        <div class="ai-reply" id="vm-ai-reply"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-delete" onclick="editFromView()">✏️ ערכי פריט</button>
+      <button class="btn-cancel" onclick="closeModal('view-modal')">סגור</button>
+      <button class="btn-save" onclick="saveItemNotes()">💾 שמור הערות</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon">✏️</div>
+      <div class="modal-title-wrap">
+        <div class="modal-title" id="em-title">פריט חדש</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">שם הפריט</label>
+        <input class="form-input" id="em-name" placeholder="למשל: שאלה פתוחה">
+      </div>
+      <div class="form-row">
+        <label class="form-label">אייקון (אמוג׳י)</label>
+        <input class="form-input" id="em-icon" placeholder="למשל: ❓" style="width:100px;">
+      </div>
+      <div class="form-row">
+        <label class="form-label">קטגוריה</label>
+        <select class="form-select" id="em-cat">
+          <option value="0">📝 שאלות ומשימות</option>
+          <option value="1">✍️ כתיבה ויצירה</option>
+          <option value="2">🎬 מדיה</option>
+          <option value="3">🎮 משחקי ידע ותחרות</option>
+          <option value="4">🔍 גילוי מיון והתאמה</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">הסבר על הפריט</label>
+        <textarea class="form-textarea" id="em-desc" placeholder="תיאור קצר של הפריט, מטרתו ואופן השימוש..."></textarea>
+      </div>
+      <div class="form-row">
+        <label class="form-label">סגנונות / דוגמאות</label>
+        <div class="styles-editor" id="em-styles-editor"></div>
+        <button class="btn-add-style" onclick="addStyleRow()">+ הוסף סגנון</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-delete" id="em-delete-btn" style="display:none;" onclick="deleteItem()">🗑 מחק פריט</button>
+      <button class="btn-cancel" onclick="closeModal('edit-modal')">ביטול</button>
+      <button class="btn-save" onclick="saveItem()">💾 שמור פריט</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
+
+// ── CATEGORIES ──
+const CATS=[
+  {id:'questions', icon:'📝', name:'שאלות ומשימות', cls:'cat-1'},
+  {id:'writing',   icon:'✍️', name:'כתיבה ויצירה',  cls:'cat-2'},
+  {id:'media',     icon:'🎬', name:'מדיה',           cls:'cat-3'},
+  {id:'games',     icon:'🎮', name:'משחקי ידע ותחרות',cls:'cat-4'},
+  {id:'discovery', icon:'🔍', name:'גילוי מיון והתאמה',cls:'cat-5'},
+];
+
+// ── DEFAULT ITEMS ──
+const DEFAULT_ITEMS=[
+  // שאלות ומשימות
+  {id:'open_q',   cat:0, icon:'❓', name:'שאלה פתוחה',
+    desc:'שאלה הדורשת מהתלמיד לנסח תשובה מלאה במילים שלו. מאפשרת ביטוי אישי, חשיבה ביקורתית ועומק.',
+    styles:[
+      {name:'שאלה מערערת',   desc:'מאתגרת הנחה מוקדמת — "האם תמיד נכון ש...?"'},
+      {name:'שאלה מעשירה',   desc:'מרחיבה ידע — "מה עוד ניתן ללמוד מ...?"'},
+      {name:'שאלה מחוברת',   desc:'מקשרת לחיי התלמיד — "איך זה קשור אליך?"'},
+      {name:'שאלת דילמה',    desc:'מציגה בחירה מוסרית — "מה היית עושה אם...?"'},
+      {name:'שאלה מעשית',    desc:'מכוונת לפעולה — "איך ניתן ליישם זאת?"'},
+      {name:'בדיקת השערות',  desc:'מזמינה ניחוש מושכל — "מה לדעתך יקרה אם...?"'},
+    ]},
+  {id:'mc_q',     cat:0, icon:'🔘', name:'שאלת רב-ברירה',
+    desc:'שאלה עם 4 תשובות אפשריות, אחת נכונה ושלוש מסיחות. מתאימה לבדיקת הבנה ממוקדת.',
+    styles:[
+      {name:'עובדה ישירה',   desc:'בודקת ידע עובדתי ספציפי'},
+      {name:'הבנת מושג',     desc:'בודקת הגדרה או הסבר'},
+      {name:'השוואה',        desc:'מזהה הבדל בין שני פריטים'},
+      {name:'סיבה ותוצאה',   desc:'קושרת בין גורם לתוצאה'},
+    ]},
+  {id:'tf_q',     cat:0, icon:'✅', name:'נכון / לא נכון',
+    desc:'הצהרה שהתלמיד צריך לאמת או להפריך. פשוטה לביצוע ויעילה לבדיקת הבנה בסיסית.',
+    styles:[
+      {name:'היגד עובדתי',   desc:'טענה על עובדה היסטורית'},
+      {name:'היגד מטעה',     desc:'נראה נכון אבל שגוי בפרט אחד'},
+      {name:'היגד + הסבר',   desc:'התלמיד מסמן ומסביר מדוע'},
+    ]},
+  {id:'entry',    cat:0, icon:'🚪', name:'כרטיס כניסה',
+    desc:'כלי פדגוגי מהיר (3-5 דקות) בתחילת השיעור. מייצר סקרנות, מחבר לנושא או מפעיל ידע מוקדם.',
+    styles:[
+      {name:'חיבור לידע קודם', desc:'שאלה אחת על השיעור הקודם'},
+      {name:'העלאת סקרנות',    desc:'תמונה, ציטוט או שאלה חמה'},
+      {name:'תחזית',           desc:'"מה לדעתך נלמד היום?"'},
+      {name:'שיתוף אישי',      desc:'קישור הנושא לחיי התלמיד'},
+      {name:'בדיקת הבנה',      desc:'הגדרת מושג מפתח במילים שלהם'},
+    ]},
+  {id:'exit',     cat:0, icon:'🎫', name:'כרטיס יציאה',
+    desc:'משימה קצרה בסוף השיעור לבדיקת הבנה. מאפשרת למורה להעריך מה נקלט ומה טעון חיזוק.',
+    styles:[
+      {name:'3-2-1',           desc:'3 דברים שלמדתי, 2 שאלות, 1 תובנה'},
+      {name:'מה למדתי?',       desc:'סיכום בשני משפטים'},
+      {name:'עוד רוצה לדעת',   desc:'שאלה שנותרה פתוחה'},
+      {name:'הייתי מסביר ל...', desc:'מסביר את הנושא לחבר'},
+    ]},
+  {id:'snowman',  cat:0, icon:'⛄', name:'איש השלג',
+    desc:'משחק ניחוש מילים: טעות אחת = חלק גוף נוסף. מגביל מספר טעויות ומגביר מתח.',
+    styles:[
+      {name:'מושג להגדרה',  desc:'מנחשים מושג לפי הגדרה'},
+      {name:'דמות היסטורית',desc:'מנחשים שם של דמות'},
+    ]},
+  // כתיבה ויצירה
+  {id:'argue',    cat:1, icon:'🖊️', name:'כתיבה טיעונית',
+    desc:'המורה מגדירה טענה ועל התלמיד לתמוך בה עם נימוקים ודוגמאות. מפתחת חשיבה ביקורתית.',
+    styles:[
+      {name:'טענה-נימוק-דוגמה', desc:'מבנה קלאסי בשלושה חלקים'},
+      {name:'בעד ונגד',          desc:'שתי טענות מנוגדות'},
+      {name:'מכתב שכנוע',        desc:'מכתב לדמות היסטורית'},
+    ]},
+  {id:'full_ans', cat:1, icon:'📝', name:'כתיבת תשובה מלאה',
+    desc:'תשובה מפורטת הכוללת הסבר, נימוק ודוגמה. מבנה ברור: פתיחה, גוף, סיום.',
+    styles:[
+      {name:'הסבר מושג',    desc:'הגדרה + דוגמה + חשיבות'},
+      {name:'תיאור אירוע',  desc:'מה/מתי/איפה/מדוע/תוצאות'},
+      {name:'השוואה',       desc:'דמיון והבדל בין שני נושאים'},
+    ]},
+  {id:'dialogue', cat:1, icon:'💬', name:'דו-שיח בין דמויות',
+    desc:'שתי דמויות היסטוריות מנהלות שיחה. מפתח הזדהות, יצירתיות והבנת נקודות מבט.',
+    styles:[
+      {name:'ויכוח',       desc:'שתי דמויות עם עמדות מנוגדות'},
+      {name:'פגישה',       desc:'דמויות מתקופות שונות נפגשות'},
+      {name:'ראיון',       desc:'עיתונאי מראיין דמות היסטורית'},
+    ]},
+  {id:'newspaper',cat:1, icon:'📰', name:'עיתון',
+    desc:'התלמיד כותב כתבה עיתונאית על אירוע היסטורי. מפתח כתיבה עובדתית ויצירתית.',
+    styles:[
+      {name:'כתבה',       desc:'תיאור אירוע בסגנון עיתוני'},
+      {name:'כותרת',      desc:'ניסוח כותרת מושכת'},
+      {name:'ראיון',      desc:'ראיון עם עד לאירוע'},
+    ]},
+  {id:'stickies', cat:1, icon:'🗒️', name:'פתקיות',
+    desc:'תלמידים כותבים רעיונות קצרים על פתקיות. מתאים לסיעור מוחות ושיתוף.',
+    styles:[
+      {name:'מה למדתי',    desc:'תובנה אחת מהשיעור'},
+      {name:'שאלה',        desc:'שאלה אחת שנותרה'},
+      {name:'קשר לחיים',   desc:'חיבור לחיי היומיום'},
+    ]},
+  {id:'wordcloud',cat:1, icon:'☁️', name:'ענן מילים',
+    desc:'תלמידים מזינים מילים מפתח. נוצר ענן ויזואלי לפי תדירות.',
+    styles:[
+      {name:'סיכום נושא',  desc:'מילים שמייצגות את הנושא'},
+      {name:'רגשות',       desc:'מילים שמתארות תחושה'},
+    ]},
+  {id:'debate',   cat:1, icon:'🎤', name:'דיבייט',
+    desc:'שתי קבוצות מתווכחות על נושא שנוי במחלוקת. מפתח טיעון, הקשבה וחשיבה ביקורתית.',
+    styles:[
+      {name:'עמדה קבועה',  desc:'כל קבוצה מגנה עמדה שהוקצתה'},
+      {name:'בחירת עמדה',  desc:'תלמידים בוחרים בעצמם'},
+    ]},
+  // מדיה
+  {id:'video',    cat:2, icon:'▶️', name:'סרטון',
+    desc:'קישור לסרטון YouTube עם שאלות לפניו ואחריו. מגוון קצב למידה.',
+    styles:[
+      {name:'לפני הצפייה',  desc:'שאלת חיזוי או הפעלת ידע'},
+      {name:'תוך כדי',      desc:'נקודת עצירה עם שאלה'},
+      {name:'אחרי הצפייה',  desc:'סיכום או בדיקת הבנה'},
+    ]},
+  {id:'image',    cat:2, icon:'🖼️', name:'תמונה',
+    desc:'תמונה, מפה, ציור או קריקטורה להתבוננות וניתוח. מדיה ויזואלית עשירה.',
+    styles:[
+      {name:'קריקטורה',     desc:'ניתוח מסר ויזואלי ופוליטי'},
+      {name:'מפה',          desc:'זיהוי מקומות ומרחבים'},
+      {name:'תרשים',        desc:'קריאה של גרף או ציר זמן'},
+      {name:'צילום היסטורי',desc:'ניתוח עדות חזותית'},
+    ]},
+  {id:'sources',  cat:2, icon:'📜', name:'קריאת מקורות',
+    desc:'קטע טקסט ממקור ראשוני או משני לקריאה, ניתוח ומענה על שאלות.',
+    styles:[
+      {name:'מקור ראשוני',  desc:'עדות, מכתב, חוק, נאום'},
+      {name:'מקור משני',    desc:'טקסט היסטורי, מאמר'},
+      {name:'השוואת מקורות',desc:'שני מקורות על אותו אירוע'},
+    ]},
+  // משחקי ידע
+  {id:'trivia',   cat:3, icon:'🎯', name:'טריוויה',
+    desc:'שאלות ידע מרובות-ברירה בתחרות. ניתן לשחק יחיד, ראש בראש או כיתתי.',
+    styles:[
+      {name:'רב-ברירה',     desc:'4 תשובות, אחת נכונה'},
+      {name:'5 קטגוריות',   desc:'ג׳פרדי — 5 שאלות לכל קטגוריה'},
+    ]},
+  {id:'quiz',     cat:3, icon:'📋', name:'קוויז',
+    desc:'סדרת שאלות אוטומטיות עם ניקוד. מתאים לחזרה ובדיקה עצמית.',
+    styles:[
+      {name:'רב-ברירה',     desc:'20 שאלות, 4 תשובות'},
+      {name:'נכון/לא נכון',  desc:'20 היגדים'},
+    ]},
+  {id:'escape',   cat:3, icon:'🔐', name:'חדר בריחה',
+    desc:'תלמידים פותרים שאלות כדי לפתוח מנעולים. מגביר מעורבות ומתח.',
+    styles:[
+      {name:'שאלה + רמז',   desc:'10 שלבים עם רמזים'},
+      {name:'חקירה',        desc:'פתרון תעלומה היסטורית'},
+    ]},
+  {id:'million',  cat:3, icon:'💰', name:'מי רוצה להיות מיליונר',
+    desc:'שאלות בסדר עולה של קושי עם ״קשרים״. מרגש ומוכר.',
+    styles:[
+      {name:'קלאסי',        desc:'15 שאלות עם 3 קשרים'},
+      {name:'כיתתי',        desc:'הכיתה עוזרת ביחד'},
+    ]},
+  {id:'wheel',    cat:3, icon:'🎡', name:'גלגל המזל',
+    desc:'תלמידים מסובבים גלגל ומקבלים שאלה אקראית. מוסיף מזל וכיף.',
+    styles:[
+      {name:'שאלות',        desc:'גלגל עם שאלות ידע'},
+      {name:'משימות',       desc:'גלגל עם משימות יצירתיות'},
+    ]},
+  {id:'board',    cat:3, icon:'🎲', name:'משחק מסלול',
+    desc:'תלמידים זורקים קובייה ומתקדמים. שאלה נכונה = קידום, שגויה = נסיגה.',
+    styles:[
+      {name:'יחיד',         desc:'תלמיד מול המסלול'},
+      {name:'ראש בראש',     desc:'שני שחקנים על אותו לוח'},
+    ]},
+  {id:'jeopardy', cat:3, icon:'📊', name:'ג׳פרדי',
+    desc:'לוח קטגוריות עם ערכי נקודות. הקבוצה בוחרת שאלה לפי קטגוריה וקושי.',
+    styles:[
+      {name:'5 קטגוריות',   desc:'5 שאלות לכל קטגוריה'},
+    ]},
+  {id:'nine_sq',  cat:3, icon:'⬜', name:'תשע בריבוע',
+    desc:'שתי קבוצות (X ו-O) מתחרות. תשובה נכונה כובשת משבצת.',
+    styles:[
+      {name:'רב-ברירה',     desc:'שאלה עם 2 תשובות'},
+    ]},
+  {id:'puzzle_p', cat:3, icon:'🧩', name:'פיצוחים',
+    desc:'שתי קבוצות מתחרות לבנות רצף בכוורת. 3 שאלות לכל אות.',
+    styles:[
+      {name:'כיתתי',        desc:'כחולים לרצף אנכי, אדומים לרוחבי'},
+    ]},
+  // גילוי מיון
+  {id:'memory',   cat:4, icon:'🃏', name:'משחק זיכרון',
+    desc:'צמדים הפוכים — תלמיד הופך שתי קלפים ומחפש התאמה. מחזק זיכרון וריכוז.',
+    styles:[
+      {name:'מושג-הגדרה',   desc:'כרטיס מושג מול כרטיס הגדרה'},
+      {name:'תמונה-מילה',   desc:'כרטיס תמונה מול כרטיס שם'},
+    ]},
+  {id:'timeline', cat:4, icon:'📅', name:'ציר הזמן',
+    desc:'תלמיד מציב אירועים על ציר כרונולוגי. מחזק הבנת רצף היסטורי.',
+    styles:[
+      {name:'ציר פשוט',     desc:'אירועים לפי שנה'},
+      {name:'השוואתי',      desc:'שני צירים במקביל'},
+    ]},
+  {id:'sort_seq', cat:4, icon:'🔢', name:'מיון וגרירה — רצף אירועים',
+    desc:'תלמיד מסדר אירועים לפי סדר כרונולוגי נכון.',
+    styles:[{name:'רצף',   desc:'עד 10 אירועים לסידור'}]},
+  {id:'sort_cloze',cat:4,icon:'📝', name:'מיון וגרירה — קלוז',
+    desc:'טקסט עם מילים חסרות. תלמיד גורר מילה ממאגר למקומה הנכון.',
+    styles:[{name:'בנק מילים',desc:'עד 10 חסרים'}]},
+  {id:'sort_sent',cat:4, icon:'✏️', name:'מיון וגרירה — השלמת משפטים',
+    desc:'משפטים חסרים. תלמיד מוסיף את המילה המתאימה.',
+    styles:[{name:'מילה חסרה',desc:'עד 10 משפטים'}]},
+  {id:'sort_cat', cat:4, icon:'🗂️', name:'מיון — מה קשור?',
+    desc:'פריטים למיון לפי קטגוריות. תלמיד מזהה שייכות ומסביר.',
+    styles:[{name:'קטגוריות',desc:'2-4 קטגוריות, עד 20 פריטים'}]},
+  {id:'sort_rel', cat:4, icon:'🔗', name:'מיון — מה הקשר?',
+    desc:'תלמיד בוחר 2 פריטים ומסביר את הקשר ביניהם.',
+    styles:[{name:'זוגות חופשיים',desc:'עד 20 פריטים'}]},
+  {id:'matchline',cat:4, icon:'↔️', name:'מתיחת קו — התאמת צמדים',
+    desc:'תלמיד מחבר בקו בין פריטים תואמים. מתאים לסיבה-תוצאה, מושג-הגדרה.',
+    styles:[
+      {name:'סיבה ותוצאה',  desc:'קו בין גורם לתוצאתו'},
+      {name:'מושג-הגדרה',   desc:'קו בין מושג להסבר'},
+    ]},
+  {id:'bingo',    cat:4, icon:'🎰', name:'בינגו',
+    desc:'לוח 3×3 עם מושגים. המורה קוראת הגדרה, תלמיד מסמן אם המושג בלוח שלו.',
+    styles:[
+      {name:'לוח אקראי',    desc:'לוח נוצר אוטומטית'},
+      {name:'לוח בחירה',    desc:'תלמיד בוחר מושגים ללוח'},
+    ]},
+  {id:'crossword',cat:4, icon:'✏️', name:'תשבץ',
+    desc:'תלמיד ממלא תשבץ לפי הגדרות. מחזק ידע ואוצר מילים.',
+    styles:[{name:'מושג+הגדרה',desc:'עד 10 מושגים'}]},
+  {id:'wordsearch',cat:4,icon:'🔤', name:'תפזורת',
+    desc:'תלמיד מוצא מילים נסתרות בלוח אותיות.',
+    styles:[{name:'מושגים',desc:'עד 10 מילים לחיפוש'}]},
+  {id:'reveal_img',cat:4,icon:'🖼️', name:'גלה את התמונה',
+    desc:'תמונה מכוסה מתגלה בהדרגה עם תשובות נכונות.',
+    styles:[{name:'6 חלקים',desc:'כל תשובה נכונה מגלה חלק'}]},
+  {id:'reveal_concept',cat:4,icon:'🔍',name:'גלה את המושג',
+    desc:'4 תמונות מכוונות למושג אחד. תלמיד מנחש לפי הרמזים.',
+    styles:[{name:'4 תמונות',desc:'התמונה האחרונה היא המושג'}]},
+  {id:'zoom',     cat:4, icon:'🔎', name:'זום תמונה',
+    desc:'תמונה מוצגת בזום חזק ומתרחקת בהדרגה. תלמיד מנחש מה בתמונה.',
+    styles:[{name:'15 שלבים',desc:'מהקרוב לרחוק'}]},
+  {id:'puzzle',   cat:4, icon:'🧩', name:'פאזל',
+    desc:'תלמיד מרכיב פאזל ומגלה תמונה, ואז עונה על שאלה.',
+    styles:[{name:'10 חלקים',desc:'פאזל + שאלה'},
+           {name:'20 חלקים',desc:'פאזל מורכב + שאלה'}]},
+  {id:'hidden_char',cat:4,icon:'👤',name:'הדמות המסתתרת',
+    desc:'רמזים מתגלים בהדרגה. תלמיד מנחש את שם הדמות ההיסטורית.',
+    styles:[{name:'רמזים',desc:'עד 10 רמזים'}]},
+  {id:'cipher',   cat:4, icon:'🔏', name:'כתב סתרים',
+    desc:'טקסט מוצפן. תלמיד מקבל מפתח ומפענח את ההודעה.',
+    styles:[{name:'אלפבית',desc:'החלפת אותיות לפי קוד'}]},
+  {id:'flashcard',cat:4, icon:'📇', name:'כרטיסיות',
+    desc:'כרטיס עם שאלה — תלמיד מנחש, הופך ובודק. מצוין לחזרה.',
+    styles:[{name:'שאלה-תשובה',desc:'הפוך לגלות תשובה'},
+           {name:'מושג-הגדרה',  desc:'הפוך לגלות הגדרה'}]},
+  {id:'picture_riddle',cat:4,icon:'🎨',name:'חידות בציורים — מהו המושג?',
+    desc:'חידת ציורים — תלמיד מפענח תמונות לגילוי מושג.',
+    styles:[{name:'תמונות',desc:'עד 15 תמונות לפיענוח'}]},
+  {id:'hidden_details',cat:4,icon:'🔎',name:'גלה את הפרטים המסתתרים',
+    desc:'תמונה עם פרטים נסתרים. תלמיד מזהה ומסמן.',
+    styles:[{name:'פרטים',desc:'עד 10 פרטים לגילוי'}]},
+  {id:'event_research',cat:4,icon:'🏛️',name:'אירוע היסטורי — חקר',
+    desc:'תבנית חקר: מתי? איפה? מי? מה? מדוע? תוצאות.',
+    styles:[{name:'5 שאלות',desc:'תבנית חקר מובנית'}]},
+];
+
+let bankItems=[];
+let currentItemId=null;
+let editingItemId=null;
+
+// ── INIT ──
+window.onload=function(){
+  db.ref('teacher/itemBank').once('value',snap=>{
+    const saved=snap.val();
+    if(saved){
+      bankItems=Object.values(saved);
+    } else {
+      // טעינת ברירת מחדל
+      bankItems=DEFAULT_ITEMS.map(item=>({...item}));
+      saveBankToFirebase();
+    }
+    renderBank();
+  });
+};
+
+function saveBankToFirebase(){
+  const obj={};
+  bankItems.forEach(item=>obj[item.id]=item);
+  db.ref('teacher/itemBank').set(obj);
+}
+
+// ── RENDER ──
+function renderBank(){
+  const main=document.getElementById('main-content');
+  main.innerHTML='';
+  CATS.forEach((cat,ci)=>{
+    const items=bankItems.filter(it=>it.cat===ci);
+    if(!items.length)return;
+    const sec=document.createElement('div');
+    sec.className='category-section';
+    sec.innerHTML=`<div class="category-header">
+      <span class="category-icon">${cat.icon}</span>
+      <span class="category-name">${cat.name}</span>
+      <span class="category-count">(${items.length} פריטים)</span>
+    </div>
+    <div class="items-grid">
+      ${items.map(item=>`
+        <div class="item-cube ${cat.cls}" onclick="openViewModal('${item.id}')">
+          <button class="cube-edit" onclick="event.stopPropagation();openEditModal('${item.id}')">✏️ ערכי</button>
+          <span class="cube-icon">${item.icon||'📄'}</span>
+          <div class="cube-name">${item.name}</div>
+        </div>`).join('')}
+    </div>`;
+    main.appendChild(sec);
+  });
+}
+
+// ── VIEW MODAL ──
+function openViewModal(id){
+  currentItemId=id;
+  const item=bankItems.find(it=>it.id===id);
+  if(!item)return;
+  const cat=CATS[item.cat];
+  document.getElementById('vm-icon').textContent=item.icon||'📄';
+  document.getElementById('vm-title').textContent=item.name;
+  const badge=document.getElementById('vm-cat');
+  badge.textContent=cat?.name||'';
+  badge.style.background=`rgba(212,168,67,.15)`;
+  badge.style.color='var(--gold)';
+  // desc
+  const descEl=document.getElementById('vm-desc');
+  descEl.innerHTML=`<p>${item.desc||''}</p>`;
+  document.getElementById('vm-desc-section').style.display=item.desc?'block':'none';
+  // styles
+  const stylesEl=document.getElementById('vm-styles');
+  const stylesSec=document.getElementById('vm-styles-section');
+  if(item.styles&&item.styles.length){
+    stylesEl.innerHTML=item.styles.map(s=>`
+      <div class="style-item">
+        <div class="style-name">${s.name}</div>
+        <div class="style-desc">${s.desc||''}</div>
+      </div>`).join('');
+    stylesSec.style.display='block';
+  } else {
+    stylesSec.style.display='none';
+  }
+  document.getElementById('vm-notes').value=item.notes||'';
+  document.getElementById('vm-ai-reply').style.display='none';
+  document.getElementById('vm-ai-input').value='';
+  document.getElementById('view-modal').classList.add('open');
+}
+
+function saveItemNotes(){
+  const item=bankItems.find(it=>it.id===currentItemId);
+  if(!item)return;
+  item.notes=document.getElementById('vm-notes').value;
+  db.ref(`teacher/itemBank/${item.id}`).update({notes:item.notes});
+  closeModal('view-modal');
+}
+
+function editFromView(){
+  closeModal('view-modal');
+  openEditModal(currentItemId);
+}
+
+// ── EDIT MODAL ──
+function openEditModal(id){
+  editingItemId=id||null;
+  const item=id?bankItems.find(it=>it.id===id):null;
+  document.getElementById('em-title').textContent=item?'ערכי פריט':'פריט חדש';
+  document.getElementById('em-name').value=item?.name||'';
+  document.getElementById('em-icon').value=item?.icon||'';
+  document.getElementById('em-cat').value=item?.cat||0;
+  document.getElementById('em-desc').value=item?.desc||'';
+  document.getElementById('em-delete-btn').style.display=item?'block':'none';
+  buildStylesEditor(item?.styles||[]);
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function openAddModal(){openEditModal(null);}
+
+function buildStylesEditor(styles){
+  const editor=document.getElementById('em-styles-editor');
+  editor.innerHTML=(styles.length?styles:[{name:'',desc:''}]).map((s,i)=>`
+    <div class="style-edit-row">
+      <input class="form-input style-edit-name" placeholder="שם הסגנון" value="${esc(s.name||'')}">
+      <input class="form-input style-edit-desc" placeholder="תיאור קצר" value="${esc(s.desc||'')}">
+      <button class="style-remove" onclick="removeStyleRow(this)">✕</button>
+    </div>`).join('');
+}
+
+function addStyleRow(){
+  const editor=document.getElementById('em-styles-editor');
+  const row=document.createElement('div');
+  row.className='style-edit-row';
+  row.innerHTML=`<input class="form-input style-edit-name" placeholder="שם הסגנון">
+    <input class="form-input style-edit-desc" placeholder="תיאור קצר">
+    <button class="style-remove" onclick="removeStyleRow(this)">✕</button>`;
+  editor.appendChild(row);
+}
+
+function removeStyleRow(btn){btn.parentElement.remove();}
+
+async function saveItem(){
+  const name=document.getElementById('em-name').value.trim();
+  if(!name){alert('יש להזין שם פריט');return;}
+  const rows=document.querySelectorAll('#em-styles-editor .style-edit-row');
+  const styles=Array.from(rows)
+    .map(r=>({name:r.querySelector('.style-edit-name').value.trim(),desc:r.querySelector('.style-edit-desc').value.trim()}))
+    .filter(s=>s.name);
+  const item={
+    id:editingItemId||'item_'+Date.now(),
+    name,
+    icon:document.getElementById('em-icon').value.trim()||'📄',
+    cat:parseInt(document.getElementById('em-cat').value),
+    desc:document.getElementById('em-desc').value.trim(),
+    styles,
+    notes:editingItemId?bankItems.find(it=>it.id===editingItemId)?.notes||'':''
+  };
+  if(editingItemId){
+    const idx=bankItems.findIndex(it=>it.id===editingItemId);
+    if(idx>=0)bankItems[idx]=item;
+  } else {
+    bankItems.push(item);
+  }
+  await db.ref(`teacher/itemBank/${item.id}`).set(item);
+  closeModal('edit-modal');
+  renderBank();
+}
+
+async function deleteItem(){
+  if(!editingItemId)return;
+  if(!confirm('למחוק את הפריט?'))return;
+  bankItems=bankItems.filter(it=>it.id!==editingItemId);
+  await db.ref(`teacher/itemBank/${editingItemId}`).remove();
+  closeModal('edit-modal');
+  renderBank();
+}
+
+// ── AI ──
+async function askViewAI(){
+  const input=document.getElementById('vm-ai-input');
+  const msg=input.value.trim();if(!msg)return;
+  input.value='';
+  const item=bankItems.find(it=>it.id===currentItemId);
+  document.getElementById('vm-ai-thinking').style.display='block';
+  document.getElementById('vm-ai-reply').style.display='none';
+  const sys=`אתה עוזר הוראה. המורה שואלת על הפריט הפדגוגי "${item?.name||''}". ענה בעברית, קצר ומועיל.`;
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,
+        messages:[{role:'user',content:msg}]})});
+    const d=await r.json();
+    const text=d.content?.[0]?.text||'לא קיבלתי תשובה';
+    document.getElementById('vm-ai-reply').textContent=text;
+    document.getElementById('vm-ai-reply').style.display='block';
+  }catch(e){
+    document.getElementById('vm-ai-reply').textContent='שגיאה בחיבור';
+    document.getElementById('vm-ai-reply').style.display='block';
+  }
+  document.getElementById('vm-ai-thinking').style.display='none';
+}
+
+// ── UTILS ──
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');});
+});
+</script>
+</body>
+</html>
