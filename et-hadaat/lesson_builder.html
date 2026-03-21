@@ -216,12 +216,40 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .ai-send:hover{opacity:.9;}
 
 .bank-section-title{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.35;margin:12px 0 7px;}
-.bank-item{background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:all .18s;}
-.bank-item:hover{border-color:var(--gold);background:rgba(212,168,67,.08);}
-.bank-item-icon{font-size:1.1rem;margin-bottom:3px;}
-.bank-item-name{font-size:.83rem;font-weight:700;margin-bottom:2px;}
-.bank-item-desc{font-size:.72rem;opacity:.4;}
 .bank-hint{font-size:.76rem;opacity:.32;text-align:center;padding:8px 0;font-style:italic;line-height:1.5;}
+
+/* ── STEP NAV ── */
+.step-nav{display:flex;align-items:center;justify-content:center;gap:0;padding:10px 20px;background:rgba(10,5,2,.8);border-bottom:1px solid var(--border);flex-shrink:0;}
+.step-item{display:flex;align-items:center;}
+.step-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid transparent;background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;opacity:.4;}
+.step-btn:hover{opacity:.65;}
+.step-btn.active{background:rgba(212,168,67,.12);border-color:var(--border2);color:var(--gold2);opacity:1;}
+.step-btn.done{opacity:.6;color:#6ee7a0;}
+.step-sep{width:20px;height:1px;background:var(--border);flex-shrink:0;margin:0 2px;}
+
+/* ── STEP PANELS ── */
+.step-panel{display:none;padding:16px;}
+.step-panel.active{display:block;}
+
+/* ── STEP FOOTER ── */
+.step-footer{border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,5,2,.9);flex-shrink:0;}
+
+/* ── BANK ACCORDION ── */
+.bank-cat-section{margin-bottom:4px;}
+.bank-cat-header{display:flex;align-items:center;gap:7px;padding:8px 10px;cursor:pointer;border-radius:8px;border:1px solid transparent;transition:all .15s;}
+.bank-cat-header:hover{background:rgba(212,168,67,.07);border-color:var(--border);}
+.bank-cat-header.open{background:rgba(212,168,67,.05);border-color:var(--border);}
+.bank-cat-icon{font-size:.9rem;}
+.bank-cat-name{font-size:.78rem;font-weight:700;flex:1;}
+.bank-cat-count{font-size:.65rem;opacity:.35;}
+.bank-cat-chevron{font-size:.6rem;opacity:.4;transition:transform .18s;}
+.bank-cat-chevron.open{transform:rotate(180deg);}
+.bank-cat-items{display:none;padding:6px 4px 8px;grid-template-columns:1fr 1fr;gap:5px;}
+.bank-cat-items.open{display:grid;}
+.bank-cube{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:7px;padding:7px 5px;text-align:center;cursor:pointer;transition:all .15s;}
+.bank-cube:hover{border-color:var(--gold);background:rgba(212,168,67,.08);transform:translateY(-1px);}
+.bank-cube-icon{font-size:1rem;margin-bottom:2px;display:block;}
+.bank-cube-name{font-size:.65rem;font-weight:700;line-height:1.3;}
 
 .save-bar{border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,5,2,.9);flex-shrink:0;}
 .save-status{font-size:.78rem;opacity:.4;}
@@ -381,6 +409,8 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 
 <!-- SCREEN 5: בונה שיעור -->
 <div class="screen" id="screen-builder">
+
+  <!-- topbar -->
   <div class="builder-topbar">
     <button class="btn-back" onclick="goTo('screen-unit-overview')">← חזרה</button>
     <div class="builder-meta">
@@ -388,14 +418,35 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
       <span class="builder-lesson" id="b-lesson-label"></span>
     </div>
     <div class="builder-actions">
-      <button class="btn btn-green btn-sm" onclick="saveLesson()">💾 שמור</button>
+      <button class="btn btn-green btn-sm" onclick="saveLesson()">💾 שמור שיעור</button>
+    </div>
+  </div>
+
+  <!-- step navigation -->
+  <div class="step-nav">
+    <div class="step-item">
+      <button class="step-btn active" id="step-btn-0" onclick="goToStep(0)">🌅 פתיח</button>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step-item">
+      <button class="step-btn" id="step-btn-1" onclick="goToStep(1)">🚂 גוף השיעור</button>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step-item">
+      <button class="step-btn" id="step-btn-2" onclick="goToStep(2)">🌇 סיום</button>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step-item">
+      <button class="step-btn" id="step-btn-3" onclick="goToStep(3)">⭐ העשרה</button>
     </div>
   </div>
 
   <div class="builder-body">
-    <!-- LEFT -->
+    <!-- RIGHT: lesson content -->
     <div class="lesson-panel">
-      <div class="lesson-meta-card">
+
+      <!-- meta (always visible) -->
+      <div class="lesson-meta-card" style="margin-bottom:14px;">
         <div class="topic-edit-wrap">
           <input class="topic-edit-input" id="b-topic-input" placeholder="נושא השיעור...">
           <button class="topic-edit-btn" onclick="saveTopicEdit()">✓ שמור</button>
@@ -405,96 +456,104 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
         <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
       </div>
 
-      <div class="section-block intro">
-        <div class="section-header" onclick="toggleSection('intro-body',this)">
-          <div class="section-header-left">
-            <span class="section-icon">🌅</span>
-            <span class="section-name">פתיח</span>
-            <span class="section-count">3 שורות</span>
+      <!-- STEP 0: פתיח -->
+      <div class="step-panel active" id="step-panel-0">
+        <div class="section-block intro" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;">
+            <span>🌅</span>
+            <span style="font-size:.9rem;font-weight:700;">פתיח</span>
+            <span style="font-size:.7rem;opacity:.4;">3 שורות</span>
           </div>
-          <span class="section-chevron open">▼</span>
-        </div>
-        <div class="section-body open" id="intro-body">
-          <div id="intro-rows"></div>
+          <div style="padding:0 12px 12px;">
+            <div id="intro-rows"></div>
+          </div>
         </div>
       </div>
 
-      <div class="section-block body-sec">
-        <div class="section-header" onclick="toggleSection('body-content',this)">
-          <div class="section-header-left">
-            <span class="section-icon">🚂</span>
-            <span class="section-name">גוף השיעור</span>
-            <span class="section-count">4 תחנות</span>
+      <!-- STEP 1: גוף השיעור -->
+      <div class="step-panel" id="step-panel-1">
+        <div class="section-block body-sec" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;">
+            <span>🚂</span>
+            <span style="font-size:.9rem;font-weight:700;">גוף השיעור</span>
+            <span style="font-size:.7rem;opacity:.4;">4 תחנות</span>
           </div>
-          <span class="section-chevron open">▼</span>
-        </div>
-        <div class="section-body open" id="body-content">
-          <div id="stations-wrap"></div>
+          <div style="padding:0 12px 12px;">
+            <div id="stations-wrap"></div>
+          </div>
         </div>
       </div>
 
-      <div class="section-block closing">
-        <div class="section-header" onclick="toggleSection('close-body',this)">
-          <div class="section-header-left">
-            <span class="section-icon">🌇</span>
-            <span class="section-name">סיום</span>
-            <span class="section-count">שורה אחת</span>
+      <!-- STEP 2: סיום -->
+      <div class="step-panel" id="step-panel-2">
+        <div class="section-block closing" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;">
+            <span>🌇</span>
+            <span style="font-size:.9rem;font-weight:700;">סיום השיעור</span>
+            <span style="font-size:.7rem;opacity:.4;">שורה אחת</span>
           </div>
-          <span class="section-chevron open">▼</span>
-        </div>
-        <div class="section-body open" id="close-body">
-          <div id="close-rows"></div>
+          <div style="padding:0 12px 12px;">
+            <div id="close-rows"></div>
+          </div>
         </div>
       </div>
 
-      <div class="section-block enrichment">
-        <div class="section-header" onclick="toggleSection('enrich-body',this)">
-          <div class="section-header-left">
-            <span class="section-icon">⭐</span>
-            <span class="section-name">העשרה</span>
-            <span class="section-count">4 תבניות</span>
+      <!-- STEP 3: העשרה -->
+      <div class="step-panel" id="step-panel-3">
+        <div class="section-block enrichment" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;">
+            <span>⭐</span>
+            <span style="font-size:.9rem;font-weight:700;">העשרה</span>
+            <span style="font-size:.7rem;opacity:.4;">4 תבניות</span>
           </div>
-          <span class="section-chevron">▼</span>
-        </div>
-        <div class="section-body" id="enrich-body">
-          <div id="enrich-templates"></div>
+          <div style="padding:0 12px 12px;">
+            <div id="enrich-templates"></div>
+          </div>
         </div>
       </div>
-      <div style="height:50px;"></div>
+
+      <div style="height:20px;"></div>
     </div>
 
-    <!-- RIGHT -->
+    <!-- LEFT: side panel -->
     <div class="side-panel">
       <div class="side-tabs">
-        <div class="side-tab active" onclick="switchSideTab('ai')" id="tab-ai">🤖 עוזר הוראה</div>
-        <div class="side-tab" onclick="switchSideTab('bank')" id="tab-bank">📦 בנק פריטים</div>
+        <div class="side-tab active" onclick="switchSideTab('bank')" id="tab-bank">📦 בנק פריטים</div>
+        <div class="side-tab" onclick="switchSideTab('ai')" id="tab-ai">🤖 עוזר הוראה</div>
       </div>
-      <div class="side-tab-body" id="panel-ai">
+
+      <!-- bank tab -->
+      <div class="side-tab-body" id="panel-bank">
+        <div class="bank-hint" id="bank-hint">לחצי על שורה בשיעור, ואז בחרי פריט</div>
+        <div id="bank-accordion"></div>
+      </div>
+
+      <!-- ai tab -->
+      <div class="side-tab-body" id="panel-ai" style="display:none;">
         <div class="ai-messages" id="ai-messages">
           <div class="ai-msg assistant">שלום! לחצי על שורה בשיעור כדי שאעזור לך למלא אותה, או שאלי אותי כל שאלה.</div>
         </div>
         <div id="ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
       </div>
-      <div class="ai-input-row" id="ai-input-row">
+      <div class="ai-input-row" id="ai-input-row" style="display:none;">
         <textarea class="ai-input" id="ai-input" rows="2"
           placeholder="כתבי הודעה..."
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI();}"></textarea>
         <button class="ai-send" onclick="sendAI()">↑</button>
       </div>
-      <div class="side-tab-body" id="panel-bank" style="display:none;">
-        <div class="bank-hint" id="bank-hint">לחצי על שורה בשיעור, ואז בחרי פריט מהבנק</div>
-        <div id="bank-items-list"></div>
-      </div>
     </div>
   </div>
 
-  <div class="save-bar">
-    <div class="save-status" id="save-status">לא נשמר</div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-ghost btn-sm" onclick="goTo('screen-unit-overview')">← ליחידה</button>
-      <button class="btn btn-green btn-sm" onclick="saveLesson()">💾 שמור ועדכן</button>
+  <!-- step footer -->
+  <div class="step-footer">
+    <button class="btn btn-ghost btn-sm" id="btn-prev" onclick="prevStep()" style="visibility:hidden;">← קודם</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="save-status" id="save-status">לא נשמר</span>
+      <button class="btn btn-ghost btn-sm" onclick="saveLesson()">💾 שמור</button>
     </div>
+    <button class="btn btn-gold btn-sm" id="btn-next" onclick="nextStep()">הבא ←</button>
   </div>
+
 </div>
 
 <script>
@@ -744,8 +803,11 @@ function openLessonBuilder(idx){
   document.getElementById('b-goals').value=lessonData.goals;
   activeRow=null;
   aiHistory=[];
+  currentStep=0;
   renderLessonStructure();
-  renderBankItems();
+  // load bank from Firebase then render accordion
+  loadBankFromFirebase(()=>renderBankAccordion());
+  goToStep(0);
   setSaveStatus('');
   goTo('screen-builder');
 }
@@ -903,25 +965,94 @@ function setAud(ri,si,aud){
   renderLessonStructure();
 }
 
-// ── BANK ──
-function renderBankItems(){
-  const list=document.getElementById('bank-items-list');
-  if(!list)return;
-  list.innerHTML='<div class="bank-section-title">בחרי סוג פריט</div>'+
-    ITEM_BANK.map(item=>`<div class="bank-item" onclick="selectBankItem('${item.type}')">
-      <div class="bank-item-icon">${item.icon}</div>
-      <div class="bank-item-name">${item.name}</div>
-      <div class="bank-item-desc">${item.desc}</div>
-    </div>`).join('');
+// ── STEP NAVIGATION ──
+let currentStep=0;
+const STEPS=['intro','body','closing','enrichment'];
+const STEP_LABELS=['🌅 פתיח','🚂 גוף','🌇 סיום','⭐ העשרה'];
+
+function goToStep(step){
+  currentStep=step;
+  document.querySelectorAll('.step-panel').forEach((p,i)=>p.classList.toggle('active',i===step));
+  document.querySelectorAll('.step-btn').forEach((b,i)=>{
+    b.classList.remove('active','done');
+    if(i===step)b.classList.add('active');
+    else if(i<step)b.classList.add('done');
+  });
+  document.getElementById('btn-prev').style.visibility=step===0?'hidden':'visible';
+  document.getElementById('btn-next').textContent=step===3?'✅ סיום ←':'הבא ←';
+  activeRow=null;
 }
 
-function selectBankItem(type){
+function nextStep(){
+  if(currentStep<3)goToStep(currentStep+1);
+  else{saveLesson();goTo('screen-unit-overview');}
+}
+
+function prevStep(){if(currentStep>0)goToStep(currentStep-1);}
+
+// ── BANK (accordion) ──
+const BANK_CATS=[
+  {id:'questions',icon:'📝',name:'שאלות ומשימות'},
+  {id:'writing',  icon:'✍️',name:'כתיבה ויצירה'},
+  {id:'media',    icon:'🎬',name:'מדיה'},
+  {id:'games',    icon:'🎮',name:'משחקי ידע'},
+  {id:'discovery',icon:'🔍',name:'גילוי מיון והתאמה'},
+];
+
+let bankData=[];
+
+function loadBankFromFirebase(cb){
+  firebase.database().ref('teacher/itemBank').once('value',snap=>{
+    bankData=snap.val()?Object.values(snap.val()):ITEM_BANK.map(i=>({...i,cat:ITEM_BANK.indexOf(i)}));
+    cb&&cb();
+  });
+}
+
+function renderBankAccordion(){
+  const acc=document.getElementById('bank-accordion');
+  if(!acc)return;
+  acc.innerHTML=BANK_CATS.map((cat,ci)=>{
+    const items=bankData.filter(it=>it.cat===ci);
+    if(!items.length)return '';
+    return `<div class="bank-cat-section">
+      <div class="bank-cat-header" onclick="toggleBankCat(${ci},this)">
+        <span class="bank-cat-icon">${cat.icon}</span>
+        <span class="bank-cat-name">${cat.name}</span>
+        <span class="bank-cat-count">(${items.length})</span>
+        <span class="bank-cat-chevron" id="bch-${ci}">▼</span>
+      </div>
+      <div class="bank-cat-items" id="bci-${ci}">
+        ${items.map(item=>`
+          <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')">
+            <span class="bank-cube-icon">${item.icon||'📄'}</span>
+            <div class="bank-cube-name">${item.name}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleBankCat(ci,header){
+  const items=document.getElementById('bci-'+ci);
+  const chevron=document.getElementById('bch-'+ci);
+  const open=items.classList.toggle('open');
+  header.classList.toggle('open',open);
+  if(chevron)chevron.classList.toggle('open',open);
+}
+
+function renderBankItems(){renderBankAccordion();}
+
+function selectBankItem(typeOrId){
   if(!activeRow){document.getElementById('bank-hint').textContent='לחצי תחילה על שורה בשיעור';return;}
   const{section,ri,si}=activeRow;
+  // find type from bankData
+  const bankItem=bankData.find(b=>b.id===typeOrId||b.type===typeOrId);
+  const type=bankItem?.type||typeOrId;
   setRow(section,ri,si,{type});
   renderLessonStructure();
   setTimeout(()=>selectRow(section,ri,si),40);
 }
+
 
 // ── AI ──
 async function callAI(sys,msg,hist){
