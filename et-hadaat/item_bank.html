@@ -138,6 +138,11 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .empty-bank{text-align:center;padding:60px 20px;opacity:.3;font-size:.9rem;}
 .spin{display:inline-block;animation:spin 1.2s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+
+/* used-in chips */
+.used-chip{padding:4px 12px;border-radius:14px;font-size:.78rem;font-weight:700;}
+.used-chip.on{background:rgba(42,110,42,.25);border:1px solid rgba(42,180,42,.35);color:#6ee7a0;}
+.used-chip.off{background:rgba(253,245,224,.04);border:1px solid var(--border);color:var(--parch);opacity:.3;}
 </style>
 </head>
 <body>
@@ -173,6 +178,11 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
       <div class="modal-section" id="vm-styles-section">
         <div class="modal-section-title">סגנונות ודוגמאות</div>
         <div class="styles-list" id="vm-styles"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">מומלץ לשימוש ב</div>
+        <div id="vm-used-in" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;"></div>
+        <div style="font-size:.72rem;opacity:.35;font-style:italic;">המלצה בלבד — ניתן למשוך לכל קרון</div>
       </div>
       <div class="modal-section">
         <div class="modal-section-title">הערות אישיות (אופציונלי)</div>
@@ -257,256 +267,52 @@ const CATS=[
 
 // ── DEFAULT ITEMS ──
 const DEFAULT_ITEMS=[
-  // שאלות ומשימות
-  {id:'open_q',   cat:0, icon:'❓', name:'שאלה פתוחה',
-    desc:'שאלה הדורשת מהתלמיד לנסח תשובה מלאה במילים שלו. מאפשרת ביטוי אישי, חשיבה ביקורתית ועומק.',
-    styles:[
-      {name:'שאלה מערערת',   desc:'מאתגרת הנחה מוקדמת — "האם תמיד נכון ש...?"'},
-      {name:'שאלה מעשירה',   desc:'מרחיבה ידע — "מה עוד ניתן ללמוד מ...?"'},
-      {name:'שאלה מחוברת',   desc:'מקשרת לחיי התלמיד — "איך זה קשור אליך?"'},
-      {name:'שאלת דילמה',    desc:'מציגה בחירה מוסרית — "מה היית עושה אם...?"'},
-      {name:'שאלה מעשית',    desc:'מכוונת לפעולה — "איך ניתן ליישם זאת?"'},
-      {name:'בדיקת השערות',  desc:'מזמינה ניחוש מושכל — "מה לדעתך יקרה אם...?"'},
-    ]},
-  {id:'mc_q',     cat:0, icon:'🔘', name:'שאלת רב-ברירה',
-    desc:'שאלה עם 4 תשובות אפשריות, אחת נכונה ושלוש מסיחות. מתאימה לבדיקת הבנה ממוקדת.',
-    styles:[
-      {name:'עובדה ישירה',   desc:'בודקת ידע עובדתי ספציפי'},
-      {name:'הבנת מושג',     desc:'בודקת הגדרה או הסבר'},
-      {name:'השוואה',        desc:'מזהה הבדל בין שני פריטים'},
-      {name:'סיבה ותוצאה',   desc:'קושרת בין גורם לתוצאה'},
-    ]},
-  {id:'tf_q',     cat:0, icon:'✅', name:'נכון / לא נכון',
-    desc:'הצהרה שהתלמיד צריך לאמת או להפריך. פשוטה לביצוע ויעילה לבדיקת הבנה בסיסית.',
-    styles:[
-      {name:'היגד עובדתי',   desc:'טענה על עובדה היסטורית'},
-      {name:'היגד מטעה',     desc:'נראה נכון אבל שגוי בפרט אחד'},
-      {name:'היגד + הסבר',   desc:'התלמיד מסמן ומסביר מדוע'},
-    ]},
-  {id:'entry',    cat:0, icon:'🚪', name:'כרטיס כניסה',
-    desc:'כלי פדגוגי מהיר (3-5 דקות) בתחילת השיעור. מייצר סקרנות, מחבר לנושא או מפעיל ידע מוקדם.',
-    styles:[
-      {name:'חיבור לידע קודם', desc:'שאלה אחת על השיעור הקודם'},
-      {name:'העלאת סקרנות',    desc:'תמונה, ציטוט או שאלה חמה'},
-      {name:'תחזית',           desc:'"מה לדעתך נלמד היום?"'},
-      {name:'שיתוף אישי',      desc:'קישור הנושא לחיי התלמיד'},
-      {name:'בדיקת הבנה',      desc:'הגדרת מושג מפתח במילים שלהם'},
-    ]},
-  {id:'exit',     cat:0, icon:'🎫', name:'כרטיס יציאה',
-    desc:'משימה קצרה בסוף השיעור לבדיקת הבנה. מאפשרת למורה להעריך מה נקלט ומה טעון חיזוק.',
-    styles:[
-      {name:'3-2-1',           desc:'3 דברים שלמדתי, 2 שאלות, 1 תובנה'},
-      {name:'מה למדתי?',       desc:'סיכום בשני משפטים'},
-      {name:'עוד רוצה לדעת',   desc:'שאלה שנותרה פתוחה'},
-      {name:'הייתי מסביר ל...', desc:'מסביר את הנושא לחבר'},
-    ]},
-  {id:'snowman',  cat:0, icon:'⛄', name:'איש השלג',
-    desc:'משחק ניחוש מילים: טעות אחת = חלק גוף נוסף. מגביל מספר טעויות ומגביר מתח.',
-    styles:[
-      {name:'מושג להגדרה',  desc:'מנחשים מושג לפי הגדרה'},
-      {name:'דמות היסטורית',desc:'מנחשים שם של דמות'},
-    ]},
-  // כתיבה ויצירה
-  {id:'argue',    cat:1, icon:'🖊️', name:'כתיבה טיעונית',
-    desc:'המורה מגדירה טענה ועל התלמיד לתמוך בה עם נימוקים ודוגמאות. מפתחת חשיבה ביקורתית.',
-    styles:[
-      {name:'טענה-נימוק-דוגמה', desc:'מבנה קלאסי בשלושה חלקים'},
-      {name:'בעד ונגד',          desc:'שתי טענות מנוגדות'},
-      {name:'מכתב שכנוע',        desc:'מכתב לדמות היסטורית'},
-    ]},
-  {id:'full_ans', cat:1, icon:'📝', name:'כתיבת תשובה מלאה',
-    desc:'תשובה מפורטת הכוללת הסבר, נימוק ודוגמה. מבנה ברור: פתיחה, גוף, סיום.',
-    styles:[
-      {name:'הסבר מושג',    desc:'הגדרה + דוגמה + חשיבות'},
-      {name:'תיאור אירוע',  desc:'מה/מתי/איפה/מדוע/תוצאות'},
-      {name:'השוואה',       desc:'דמיון והבדל בין שני נושאים'},
-    ]},
-  {id:'dialogue', cat:1, icon:'💬', name:'דו-שיח בין דמויות',
-    desc:'שתי דמויות היסטוריות מנהלות שיחה. מפתח הזדהות, יצירתיות והבנת נקודות מבט.',
-    styles:[
-      {name:'ויכוח',       desc:'שתי דמויות עם עמדות מנוגדות'},
-      {name:'פגישה',       desc:'דמויות מתקופות שונות נפגשות'},
-      {name:'ראיון',       desc:'עיתונאי מראיין דמות היסטורית'},
-    ]},
-  {id:'newspaper',cat:1, icon:'📰', name:'עיתון',
-    desc:'התלמיד כותב כתבה עיתונאית על אירוע היסטורי. מפתח כתיבה עובדתית ויצירתית.',
-    styles:[
-      {name:'כתבה',       desc:'תיאור אירוע בסגנון עיתוני'},
-      {name:'כותרת',      desc:'ניסוח כותרת מושכת'},
-      {name:'ראיון',      desc:'ראיון עם עד לאירוע'},
-    ]},
-  {id:'stickies', cat:1, icon:'🗒️', name:'פתקיות',
-    desc:'תלמידים כותבים רעיונות קצרים על פתקיות. מתאים לסיעור מוחות ושיתוף.',
-    styles:[
-      {name:'מה למדתי',    desc:'תובנה אחת מהשיעור'},
-      {name:'שאלה',        desc:'שאלה אחת שנותרה'},
-      {name:'קשר לחיים',   desc:'חיבור לחיי היומיום'},
-    ]},
-  {id:'wordcloud',cat:1, icon:'☁️', name:'ענן מילים',
-    desc:'תלמידים מזינים מילים מפתח. נוצר ענן ויזואלי לפי תדירות.',
-    styles:[
-      {name:'סיכום נושא',  desc:'מילים שמייצגות את הנושא'},
-      {name:'רגשות',       desc:'מילים שמתארות תחושה'},
-    ]},
-  {id:'debate',   cat:1, icon:'🎤', name:'דיבייט',
-    desc:'שתי קבוצות מתווכחות על נושא שנוי במחלוקת. מפתח טיעון, הקשבה וחשיבה ביקורתית.',
-    styles:[
-      {name:'עמדה קבועה',  desc:'כל קבוצה מגנה עמדה שהוקצתה'},
-      {name:'בחירת עמדה',  desc:'תלמידים בוחרים בעצמם'},
-    ]},
-  // מדיה
-  {id:'video',    cat:2, icon:'▶️', name:'סרטון',
-    desc:'קישור לסרטון YouTube עם שאלות לפניו ואחריו. מגוון קצב למידה.',
-    styles:[
-      {name:'לפני הצפייה',  desc:'שאלת חיזוי או הפעלת ידע'},
-      {name:'תוך כדי',      desc:'נקודת עצירה עם שאלה'},
-      {name:'אחרי הצפייה',  desc:'סיכום או בדיקת הבנה'},
-    ]},
-  {id:'image',    cat:2, icon:'🖼️', name:'תמונה',
-    desc:'תמונה, מפה, ציור או קריקטורה להתבוננות וניתוח. מדיה ויזואלית עשירה.',
-    styles:[
-      {name:'קריקטורה',     desc:'ניתוח מסר ויזואלי ופוליטי'},
-      {name:'מפה',          desc:'זיהוי מקומות ומרחבים'},
-      {name:'תרשים',        desc:'קריאה של גרף או ציר זמן'},
-      {name:'צילום היסטורי',desc:'ניתוח עדות חזותית'},
-    ]},
-  {id:'sources',  cat:2, icon:'📜', name:'קריאת מקורות',
-    desc:'קטע טקסט ממקור ראשוני או משני לקריאה, ניתוח ומענה על שאלות.',
-    styles:[
-      {name:'מקור ראשוני',  desc:'עדות, מכתב, חוק, נאום'},
-      {name:'מקור משני',    desc:'טקסט היסטורי, מאמר'},
-      {name:'השוואת מקורות',desc:'שני מקורות על אותו אירוע'},
-    ]},
-  // משחקי ידע
-  {id:'trivia',   cat:3, icon:'🎯', name:'טריוויה',
-    desc:'שאלות ידע מרובות-ברירה בתחרות. ניתן לשחק יחיד, ראש בראש או כיתתי.',
-    styles:[
-      {name:'רב-ברירה',     desc:'4 תשובות, אחת נכונה'},
-      {name:'5 קטגוריות',   desc:'ג׳פרדי — 5 שאלות לכל קטגוריה'},
-    ]},
-  {id:'quiz',     cat:3, icon:'📋', name:'קוויז',
-    desc:'סדרת שאלות אוטומטיות עם ניקוד. מתאים לחזרה ובדיקה עצמית.',
-    styles:[
-      {name:'רב-ברירה',     desc:'20 שאלות, 4 תשובות'},
-      {name:'נכון/לא נכון',  desc:'20 היגדים'},
-    ]},
-  {id:'escape',   cat:3, icon:'🔐', name:'חדר בריחה',
-    desc:'תלמידים פותרים שאלות כדי לפתוח מנעולים. מגביר מעורבות ומתח.',
-    styles:[
-      {name:'שאלה + רמז',   desc:'10 שלבים עם רמזים'},
-      {name:'חקירה',        desc:'פתרון תעלומה היסטורית'},
-    ]},
-  {id:'million',  cat:3, icon:'💰', name:'מי רוצה להיות מיליונר',
-    desc:'שאלות בסדר עולה של קושי עם ״קשרים״. מרגש ומוכר.',
-    styles:[
-      {name:'קלאסי',        desc:'15 שאלות עם 3 קשרים'},
-      {name:'כיתתי',        desc:'הכיתה עוזרת ביחד'},
-    ]},
-  {id:'wheel',    cat:3, icon:'🎡', name:'גלגל המזל',
-    desc:'תלמידים מסובבים גלגל ומקבלים שאלה אקראית. מוסיף מזל וכיף.',
-    styles:[
-      {name:'שאלות',        desc:'גלגל עם שאלות ידע'},
-      {name:'משימות',       desc:'גלגל עם משימות יצירתיות'},
-    ]},
-  {id:'board',    cat:3, icon:'🎲', name:'משחק מסלול',
-    desc:'תלמידים זורקים קובייה ומתקדמים. שאלה נכונה = קידום, שגויה = נסיגה.',
-    styles:[
-      {name:'יחיד',         desc:'תלמיד מול המסלול'},
-      {name:'ראש בראש',     desc:'שני שחקנים על אותו לוח'},
-    ]},
-  {id:'jeopardy', cat:3, icon:'📊', name:'ג׳פרדי',
-    desc:'לוח קטגוריות עם ערכי נקודות. הקבוצה בוחרת שאלה לפי קטגוריה וקושי.',
-    styles:[
-      {name:'5 קטגוריות',   desc:'5 שאלות לכל קטגוריה'},
-    ]},
-  {id:'nine_sq',  cat:3, icon:'⬜', name:'תשע בריבוע',
-    desc:'שתי קבוצות (X ו-O) מתחרות. תשובה נכונה כובשת משבצת.',
-    styles:[
-      {name:'רב-ברירה',     desc:'שאלה עם 2 תשובות'},
-    ]},
-  {id:'puzzle_p', cat:3, icon:'🧩', name:'פיצוחים',
-    desc:'שתי קבוצות מתחרות לבנות רצף בכוורת. 3 שאלות לכל אות.',
-    styles:[
-      {name:'כיתתי',        desc:'כחולים לרצף אנכי, אדומים לרוחבי'},
-    ]},
-  // גילוי מיון
-  {id:'memory',   cat:4, icon:'🃏', name:'משחק זיכרון',
-    desc:'צמדים הפוכים — תלמיד הופך שתי קלפים ומחפש התאמה. מחזק זיכרון וריכוז.',
-    styles:[
-      {name:'מושג-הגדרה',   desc:'כרטיס מושג מול כרטיס הגדרה'},
-      {name:'תמונה-מילה',   desc:'כרטיס תמונה מול כרטיס שם'},
-    ]},
-  {id:'timeline', cat:4, icon:'📅', name:'ציר הזמן',
-    desc:'תלמיד מציב אירועים על ציר כרונולוגי. מחזק הבנת רצף היסטורי.',
-    styles:[
-      {name:'ציר פשוט',     desc:'אירועים לפי שנה'},
-      {name:'השוואתי',      desc:'שני צירים במקביל'},
-    ]},
-  {id:'sort_seq', cat:4, icon:'🔢', name:'מיון וגרירה — רצף אירועים',
-    desc:'תלמיד מסדר אירועים לפי סדר כרונולוגי נכון.',
-    styles:[{name:'רצף',   desc:'עד 10 אירועים לסידור'}]},
-  {id:'sort_cloze',cat:4,icon:'📝', name:'מיון וגרירה — קלוז',
-    desc:'טקסט עם מילים חסרות. תלמיד גורר מילה ממאגר למקומה הנכון.',
-    styles:[{name:'בנק מילים',desc:'עד 10 חסרים'}]},
-  {id:'sort_sent',cat:4, icon:'✏️', name:'מיון וגרירה — השלמת משפטים',
-    desc:'משפטים חסרים. תלמיד מוסיף את המילה המתאימה.',
-    styles:[{name:'מילה חסרה',desc:'עד 10 משפטים'}]},
-  {id:'sort_cat', cat:4, icon:'🗂️', name:'מיון — מה קשור?',
-    desc:'פריטים למיון לפי קטגוריות. תלמיד מזהה שייכות ומסביר.',
-    styles:[{name:'קטגוריות',desc:'2-4 קטגוריות, עד 20 פריטים'}]},
-  {id:'sort_rel', cat:4, icon:'🔗', name:'מיון — מה הקשר?',
-    desc:'תלמיד בוחר 2 פריטים ומסביר את הקשר ביניהם.',
-    styles:[{name:'זוגות חופשיים',desc:'עד 20 פריטים'}]},
-  {id:'matchline',cat:4, icon:'↔️', name:'מתיחת קו — התאמת צמדים',
-    desc:'תלמיד מחבר בקו בין פריטים תואמים. מתאים לסיבה-תוצאה, מושג-הגדרה.',
-    styles:[
-      {name:'סיבה ותוצאה',  desc:'קו בין גורם לתוצאתו'},
-      {name:'מושג-הגדרה',   desc:'קו בין מושג להסבר'},
-    ]},
-  {id:'bingo',    cat:4, icon:'🎰', name:'בינגו',
-    desc:'לוח 3×3 עם מושגים. המורה קוראת הגדרה, תלמיד מסמן אם המושג בלוח שלו.',
-    styles:[
-      {name:'לוח אקראי',    desc:'לוח נוצר אוטומטית'},
-      {name:'לוח בחירה',    desc:'תלמיד בוחר מושגים ללוח'},
-    ]},
-  {id:'crossword',cat:4, icon:'✏️', name:'תשבץ',
-    desc:'תלמיד ממלא תשבץ לפי הגדרות. מחזק ידע ואוצר מילים.',
-    styles:[{name:'מושג+הגדרה',desc:'עד 10 מושגים'}]},
-  {id:'wordsearch',cat:4,icon:'🔤', name:'תפזורת',
-    desc:'תלמיד מוצא מילים נסתרות בלוח אותיות.',
-    styles:[{name:'מושגים',desc:'עד 10 מילים לחיפוש'}]},
-  {id:'reveal_img',cat:4,icon:'🖼️', name:'גלה את התמונה',
-    desc:'תמונה מכוסה מתגלה בהדרגה עם תשובות נכונות.',
-    styles:[{name:'6 חלקים',desc:'כל תשובה נכונה מגלה חלק'}]},
-  {id:'reveal_concept',cat:4,icon:'🔍',name:'גלה את המושג',
-    desc:'4 תמונות מכוונות למושג אחד. תלמיד מנחש לפי הרמזים.',
-    styles:[{name:'4 תמונות',desc:'התמונה האחרונה היא המושג'}]},
-  {id:'zoom',     cat:4, icon:'🔎', name:'זום תמונה',
-    desc:'תמונה מוצגת בזום חזק ומתרחקת בהדרגה. תלמיד מנחש מה בתמונה.',
-    styles:[{name:'15 שלבים',desc:'מהקרוב לרחוק'}]},
-  {id:'puzzle',   cat:4, icon:'🧩', name:'פאזל',
-    desc:'תלמיד מרכיב פאזל ומגלה תמונה, ואז עונה על שאלה.',
-    styles:[{name:'10 חלקים',desc:'פאזל + שאלה'},
-           {name:'20 חלקים',desc:'פאזל מורכב + שאלה'}]},
-  {id:'hidden_char',cat:4,icon:'👤',name:'הדמות המסתתרת',
-    desc:'רמזים מתגלים בהדרגה. תלמיד מנחש את שם הדמות ההיסטורית.',
-    styles:[{name:'רמזים',desc:'עד 10 רמזים'}]},
-  {id:'cipher',   cat:4, icon:'🔏', name:'כתב סתרים',
-    desc:'טקסט מוצפן. תלמיד מקבל מפתח ומפענח את ההודעה.',
-    styles:[{name:'אלפבית',desc:'החלפת אותיות לפי קוד'}]},
-  {id:'flashcard',cat:4, icon:'📇', name:'כרטיסיות',
-    desc:'כרטיס עם שאלה — תלמיד מנחש, הופך ובודק. מצוין לחזרה.',
-    styles:[{name:'שאלה-תשובה',desc:'הפוך לגלות תשובה'},
-           {name:'מושג-הגדרה',  desc:'הפוך לגלות הגדרה'}]},
-  {id:'picture_riddle',cat:4,icon:'🎨',name:'חידות בציורים — מהו המושג?',
-    desc:'חידת ציורים — תלמיד מפענח תמונות לגילוי מושג.',
-    styles:[{name:'תמונות',desc:'עד 15 תמונות לפיענוח'}]},
-  {id:'hidden_details',cat:4,icon:'🔎',name:'גלה את הפרטים המסתתרים',
-    desc:'תמונה עם פרטים נסתרים. תלמיד מזהה ומסמן.',
-    styles:[{name:'פרטים',desc:'עד 10 פרטים לגילוי'}]},
-  {id:'event_research',cat:4,icon:'🏛️',name:'אירוע היסטורי — חקר',
-    desc:'תבנית חקר: מתי? איפה? מי? מה? מדוע? תוצאות.',
-    styles:[{name:'5 שאלות',desc:'תבנית חקר מובנית'}]},
+  // ── קטגוריה 0: שאלות ומשימות ──
+  {id:'open_q',    cat:0, icon:'❓', name:'שאלה פתוחה',           desc:'', styles:[], usedIn:['intro','body','closing']},
+  {id:'mc_q',      cat:0, icon:'🔘', name:'שאלות רב-ברירה',       desc:'', styles:[], usedIn:['intro','body','closing']},
+  {id:'tf_q',      cat:0, icon:'✅', name:'שאלות נכון/לא נכון',   desc:'', styles:[], usedIn:['intro','body','closing']},
+  {id:'snowman',   cat:0, icon:'⛄', name:'איש השלג',              desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'sources',   cat:0, icon:'📜', name:'קריאת מקורות',         desc:'', styles:[], usedIn:['intro','body']},
+  {id:'entry',     cat:0, icon:'🚪', name:'כרטיס כניסה',          desc:'', styles:[], usedIn:['intro']},
+  {id:'exit',      cat:0, icon:'🎫', name:'כרטיס יציאה',          desc:'', styles:[], usedIn:['closing']},
+  // ── קטגוריה 1: כתיבה ויצירה ──
+  {id:'argue',     cat:1, icon:'🖊️', name:'כתיבה טיעונית',        desc:'', styles:[], usedIn:['body','closing','enrichment']},
+  {id:'dialogue',  cat:1, icon:'💬', name:'דו-שיח בין דמויות',    desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'newspaper', cat:1, icon:'📰', name:'עיתון',                 desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'stickies',  cat:1, icon:'🗒️', name:'פתקיות',               desc:'', styles:[], usedIn:['intro','closing']},
+  {id:'wordcloud', cat:1, icon:'☁️', name:'ענן מילים',             desc:'', styles:[], usedIn:['intro','closing']},
+  {id:'debate',    cat:1, icon:'🎤', name:'דיבייט',                desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'full_ans',  cat:1, icon:'📝', name:'כתיבת תשובה מלאה',     desc:'', styles:[], usedIn:['body','closing']},
+  // ── קטגוריה 2: מדיה ──
+  {id:'video',     cat:2, icon:'▶️', name:'סרטונים',               desc:'', styles:[], usedIn:['intro','body']},
+  {id:'image',     cat:2, icon:'🖼️', name:'תמונות',                desc:'', styles:[], usedIn:['intro','body','enrichment']},
+  // ── קטגוריה 3: משחקי ידע ותחרות ──
+  {id:'escape',    cat:3, icon:'🔐', name:'חדר בריחה',             desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'trivia',    cat:3, icon:'🎯', name:'טריוויה — סגנונות שונים',desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'puzzle_p',  cat:3, icon:'🎲', name:'פיצוחים',               desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'nine_sq',   cat:3, icon:'⬜', name:'תשע בריבוע',            desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'bingo',     cat:3, icon:'🎰', name:'בינגו',                 desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'cipher',    cat:3, icon:'🔏', name:'כתב סתרים',             desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'flashcard', cat:3, icon:'📇', name:'כרטיסיות — שאלה תשובה',desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'quiz',      cat:3, icon:'📋', name:'קוויז',                 desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'board',     cat:3, icon:'🎲', name:'משחק מסלול',            desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'jeopardy',  cat:3, icon:'📊', name:'טריוויה — ג׳פרדי',     desc:'', styles:[], usedIn:['body','enrichment']},
+  // ── קטגוריה 4: גילוי מיון והתאמה ──
+  {id:'sort_rel',  cat:4, icon:'🔗', name:'מיון — מה הקשר?',       desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'sort_cloze',cat:4, icon:'✍️', name:'מיון וגרירה — קלוז',   desc:'', styles:[], usedIn:['body']},
+  {id:'timeline',  cat:4, icon:'📅', name:'מיון וגרירה — ציר הזמן',desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'sort_seq',  cat:4, icon:'🔢', name:'מיון וגרירה — רצף אירועים',desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'sort_sent', cat:4, icon:'✏️', name:'מיון וגרירה — השלמת משפטים',desc:'', styles:[], usedIn:['body']},
+  {id:'reveal_img',cat:4, icon:'🖼️', name:'גלה את התמונה',         desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'zoom',      cat:4, icon:'🔎', name:'זום תמונה',              desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'puzzle',    cat:4, icon:'🧩', name:'פאזל',                  desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'memory',    cat:4, icon:'🃏', name:'משחק זיכרון',            desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'matchline', cat:4, icon:'↔️', name:'מתיחת קו',              desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'crossword', cat:4, icon:'📐', name:'תשבץ',                  desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'wordsearch',cat:4, icon:'🔤', name:'תפזורת',                desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'pic_riddle',cat:4, icon:'🎨', name:'חידות בציורים — מהו המושג?',desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'rev_concept',cat:4,icon:'🔍', name:'גלה את המושג',           desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'hid_details',cat:4,icon:'🕵️',name:'גלה את הפרטים המסתתרים בתמונה',desc:'', styles:[], usedIn:['body','enrichment']},
 ];
 
 let bankItems=[];
@@ -592,6 +398,11 @@ function openViewModal(id){
   document.getElementById('vm-notes').value=item.notes||'';
   document.getElementById('vm-ai-reply').style.display='none';
   document.getElementById('vm-ai-input').value='';
+  // usedIn
+  const usedIn=item.usedIn||[];
+  const usedLabels=[{key:'intro',label:'🌅 פתיח'},{key:'body',label:'🚂 גוף השיעור'},{key:'closing',label:'🌇 סיום'},{key:'enrichment',label:'⭐ העשרה'}];
+  document.getElementById('vm-used-in').innerHTML=usedLabels.map(u=>
+    `<span class="used-chip ${usedIn.includes(u.key)?'on':'off'}">${u.label}</span>`).join('');
   document.getElementById('view-modal').classList.add('open');
 }
 
