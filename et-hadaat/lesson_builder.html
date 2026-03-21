@@ -138,13 +138,13 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .li-arrow{opacity:.4;font-size:1.1rem;}
 
 /* BUILDER */
-#screen-builder{flex-direction:column;}
-.builder-topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;position:sticky;top:0;}
+#screen-builder{flex-direction:column;height:100vh;}
+.builder-topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;}
 .builder-meta{display:flex;align-items:center;gap:8px;font-size:.82rem;flex-wrap:wrap;}
 .builder-unit{color:var(--gold);font-weight:700;}
 .builder-lesson{opacity:.55;}
 .builder-actions{display:flex;gap:8px;}
-.builder-body{display:grid;grid-template-columns:1fr 320px;flex:1;overflow:hidden;min-height:0;}
+.builder-body{display:grid;grid-template-columns:1fr 280px;flex:1;min-height:0;overflow:hidden;}
 
 .lesson-panel{overflow-y:auto;padding:18px;}
 .lesson-meta-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
@@ -549,9 +549,10 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
     <button class="btn btn-ghost btn-sm" id="btn-prev" onclick="prevStep()" style="visibility:hidden;">← קודם</button>
     <div style="display:flex;gap:8px;align-items:center;">
       <span class="save-status" id="save-status">לא נשמר</span>
+      <button class="btn btn-ghost btn-sm" onclick="goTo('screen-unit-overview')">← ליחידה</button>
       <button class="btn btn-ghost btn-sm" onclick="saveLesson()">💾 שמור</button>
     </div>
-    <button class="btn btn-gold btn-sm" id="btn-next" onclick="nextStep()">הבא ←</button>
+    <button class="btn btn-gold btn-sm" id="btn-next" onclick="nextStep()">המשך הבא ←</button>
   </div>
 
 </div>
@@ -772,7 +773,12 @@ function renderUnitOverview(){
         <div class="li-name">${l.topic||l.name}</div>
         <div class="li-status">${l.status==='ready'?'✅ מוכן':'✏️ טיוטה'}</div>
       </div>
-      <div class="li-arrow">←</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+          onclick="event.stopPropagation();openLessonBuilder(${i})">✏️ ערכי</button>
+        <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
+          onclick="event.stopPropagation();deleteLesson(${i})">🗑</button>
+      </div>
     </div>`).join('');
 }
 
@@ -810,6 +816,14 @@ function openLessonBuilder(idx){
   goToStep(0);
   setSaveStatus('');
   goTo('screen-builder');
+}
+
+async function deleteLesson(idx){
+  if(!confirm('למחוק את השיעור "'+currentUnit.lessons[idx].topic+'"?'))return;
+  currentUnit.lessons.splice(idx,1);
+  currentUnit.lessons.forEach((l,i)=>{l.num=i+1;});
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons`).set(currentUnit.lessons);
+  renderUnitOverview();
 }
 
 function saveTopicEdit(){
