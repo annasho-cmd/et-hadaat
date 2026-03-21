@@ -75,6 +75,23 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .ls-input{flex:1;background:none;border:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;}
 .ls-input::placeholder{opacity:.3;}
 
+/* ── SETUP SPLIT (screen 3) ── */
+#screen-unit-setup{flex-direction:column;}
+.setup-body{display:grid;grid-template-columns:1fr 300px;flex:1;overflow:hidden;min-height:0;}
+.setup-form{overflow-y:auto;padding:20px 24px;}
+.setup-side{border-right:1px solid var(--border);background:rgba(8,4,1,.7);display:flex;flex-direction:column;overflow:hidden;}
+.setup-side-header{padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.setup-side-title{font-size:.85rem;font-weight:700;color:var(--gold2);margin-bottom:4px;}
+.setup-side-sub{font-size:.74rem;opacity:.4;}
+.setup-ai-body{flex:1;overflow-y:auto;padding:14px;}
+.quick-btns{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.quick-btn{padding:9px 14px;background:rgba(212,168,67,.08);border:1px solid var(--border2);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;text-align:right;transition:all .18s;}
+.quick-btn:hover{background:rgba(212,168,67,.16);border-color:var(--gold);}
+.setup-ai-input-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;}
+.setup-ai-input{flex:1;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;}
+.setup-ai-input:focus{border-color:var(--gold);}
+.setup-ai-send{padding:7px 12px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:7px;cursor:pointer;font-size:.9rem;}
+
 .unit-header{background:linear-gradient(135deg,rgba(44,26,14,.9),rgba(30,15,5,.95));border:1px solid var(--border2);border-radius:14px;padding:22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
 .unit-avatar{font-size:3rem;}
 .unit-info-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
@@ -232,58 +249,78 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
   </div>
 </div>
 
-<!-- SCREEN 3: הגדרת יחידה -->
+<!-- SCREEN 3: הגדרת יחידה — split layout -->
 <div class="screen" id="screen-unit-setup">
   <div class="topbar">
     <button class="btn-back" onclick="goTo('screen-unit-choice')">← בחירה</button>
     <div class="topbar-title">הגדרת יחידה</div>
-    <div></div>
+    <button class="btn btn-gold btn-sm" onclick="saveUnitSetup()">המשך לתכנון ←</button>
   </div>
-  <div class="main-wrap">
-    <div class="card">
-      <div class="card-title">פרטי היחידה</div>
-      <div class="section-label">מספר ושם</div>
-      <div class="input-row">
-        <input class="input-field" id="unit-num" type="number" min="1" max="99"
-          placeholder="מס׳" style="width:70px;text-align:center;">
-        <input class="input-field" id="unit-name" placeholder="שם היחידה" style="flex:1;">
+
+  <div class="setup-body">
+    <!-- LEFT: טופס -->
+    <div class="setup-form">
+
+      <div class="card">
+        <div class="card-title">פרטי היחידה</div>
+        <div class="section-label">מספר ושם</div>
+        <div class="input-row">
+          <input class="input-field" id="unit-num" type="number" min="1" max="99"
+            placeholder="מס׳" style="width:70px;text-align:center;">
+          <input class="input-field" id="unit-name" placeholder="שם היחידה" style="flex:1;"
+            oninput="onUnitNameChange()">
+        </div>
+        <!-- avatarTheme נשמר ב-Firebase לשימוש עתידי (תלבושות) -->
+        <input type="hidden" id="unit-avatar-theme" value="">
+      </div>
+
+      <div class="card">
+        <div class="card-title">אווטאר מלווה</div>
+        <div class="section-label">בחרי דמות — בעתיד תקבל תלבושת לפי נושא היחידה</div>
+        <div class="avatar-grid" id="avatar-grid"></div>
+        <input type="hidden" id="selected-avatar" value="">
+      </div>
+
+      <div class="card">
+        <div class="card-title">שיעורים ביחידה</div>
+        <div class="input-row" style="margin-bottom:14px;">
+          <span style="font-size:.85rem;font-weight:600;white-space:nowrap;">מספר שיעורים:</span>
+          <input class="input-field" id="lesson-count" type="number" min="1" max="20"
+            value="5" style="width:80px;text-align:center;" oninput="buildLessonSetup()">
+        </div>
+        <div class="lesson-setup-list" id="lesson-setup-list"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goTo('screen-unit-choice')">ביטול</button>
+        <button class="btn btn-gold" onclick="saveUnitSetup()">המשך לתכנון ←</button>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">אווטאר מלווה</div>
-      <div class="section-label">בחרי דמות שתלווה את התלמידים לאורך היחידה</div>
-      <div class="avatar-grid" id="avatar-grid"></div>
-      <input type="hidden" id="selected-avatar" value="">
-    </div>
-
-    <div class="card">
-      <div class="card-title">שיעורים ביחידה</div>
-      <div class="input-row" style="margin-bottom:14px;">
-        <span style="font-size:.85rem;font-weight:600;white-space:nowrap;">מספר שיעורים:</span>
-        <input class="input-field" id="lesson-count" type="number" min="1" max="20"
-          value="5" style="width:80px;text-align:center;" oninput="buildLessonSetup()">
+    <!-- RIGHT: עוזר הוראה -->
+    <div class="setup-side">
+      <div class="setup-side-header">
+        <div class="setup-side-title">🤖 עוזר הוראה</div>
+        <div class="setup-side-sub">לחצי על כפתור או שאלי בחופשיות</div>
       </div>
-      <div class="lesson-setup-list" id="lesson-setup-list"></div>
-    </div>
 
-    <div class="card" style="border-color:rgba(212,168,67,.3);">
-      <div class="card-title">🤖 עוזר הוראה</div>
-      <div style="font-size:.82rem;opacity:.5;margin-bottom:12px;">שאלי עזרה בתכנון היחידה</div>
-      <div id="setup-ai-msgs" class="ai-messages">
-        <div class="ai-msg assistant">שלום! אני כאן לעזור בתכנון היחידה. אוכל להציע נושאי שיעורים, מספר שיעורים מומלץ ועוד.</div>
+      <div class="setup-ai-body">
+        <div class="quick-btns">
+          <button class="quick-btn" onclick="quickSetupAI('lessons')">📚 הצע מספר שיעורים מומלץ</button>
+          <button class="quick-btn" onclick="quickSetupAI('topics')">📋 הצע נושאי שיעורים</button>
+          <button class="quick-btn" onclick="quickSetupAI('avatars')">🎭 הצע אוואטרים לתקופה</button>
+        </div>
+        <div id="setup-ai-msgs" class="ai-messages">
+          <div class="ai-msg assistant">שלום! הזיני שם יחידה ואעזור לך לתכנן אותה.</div>
+        </div>
+        <div id="setup-ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
       </div>
-      <div id="setup-ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <input class="input-field" id="setup-ai-input" placeholder="שאלי..."
+
+      <div class="setup-ai-input-row">
+        <input class="setup-ai-input" id="setup-ai-input" placeholder="שאלי..."
           onkeydown="if(event.key==='Enter') sendSetupAI()">
-        <button class="btn btn-gold btn-sm" onclick="sendSetupAI()">שלח</button>
+        <button class="setup-ai-send" onclick="sendSetupAI()">↑</button>
       </div>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn btn-ghost" onclick="goTo('screen-unit-choice')">ביטול</button>
-      <button class="btn btn-gold" onclick="saveUnitSetup()">המשך לתכנון ←</button>
     </div>
   </div>
 </div>
@@ -524,6 +561,34 @@ function buildLessonSetup(){
   list.innerHTML=Array.from({length:n},(_,i)=>`<div class="lesson-setup-row"><div class="ls-num">${i+1}</div><input class="ls-input" placeholder="נושא שיעור ${i+1}..." value="${existing[i]||''}"></div>`).join('');
 }
 
+function onUnitNameChange(){
+  // reset avatar theme suggestion when name changes
+  document.getElementById('unit-avatar-theme').value='';
+}
+
+async function quickSetupAI(type){
+  const unitName=document.getElementById('unit-name').value.trim();
+  const lessonCount=document.getElementById('lesson-count').value||'5';
+  let prompt='';
+  if(type==='lessons'){
+    prompt=`יחידת לימוד בנושא: "${unitName||'לא הוגדר עדיין'}". כמה שיעורים מומלץ ליחידה כזו? הסבירי בקצרה.`;
+  } else if(type==='topics'){
+    if(!unitName){addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;}
+    prompt=`יחידת לימוד בנושא: "${unitName}". הצעי ${lessonCount} נושאי שיעורים מסודרים לפי רצף לוגי. כתבי רשימה ממוספרת בלבד.`;
+  } else if(type==='avatars'){
+    if(!unitName){addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;}
+    prompt=`יחידת לימוד בנושא: "${unitName}". הצעי 4 אמוג׳י מתאימים כאוואטרים לתקופה/נושא. כתבי רק את 4 האמוג׳י עם שם קצר לכל אחד.`;
+  }
+  addMsg('setup-ai-msgs',prompt,'user');
+  document.getElementById('setup-ai-thinking').style.display='block';
+  const sys=`אתה עוזר הוראה לתכנון יחידות לימוד. ענה בעברית, קצר ומקצועי.`;
+  const reply=await callAI(sys,prompt,[]);
+  document.getElementById('setup-ai-thinking').style.display='none';
+  addMsg('setup-ai-msgs',reply,'assistant');
+  // if avatars — save theme suggestion
+  if(type==='avatars') document.getElementById('unit-avatar-theme').value=unitName;
+}
+
 async function sendSetupAI(){
   const inp=document.getElementById('setup-ai-input');
   const msg=inp.value.trim();if(!msg)return;
@@ -557,6 +622,7 @@ async function saveUnitSetup(){
     id:currentUnit?.id||'unit_'+Date.now(),
     num,name,
     avatar:document.getElementById('selected-avatar').value||AVATARS[0],
+    avatarTheme:document.getElementById('unit-avatar-theme').value||'',
     lessons
   };
   await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}`).set(currentUnit);
