@@ -108,8 +108,10 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .ls-input::placeholder{opacity:.3;}
 
 /* ── SETUP SPLIT (screen 3) ── */
-#screen-unit-setup{flex-direction:column;height:100vh;}
-.setup-body{display:grid;grid-template-columns:1fr 300px;flex:1;overflow:hidden;min-height:0;height:calc(100vh - 52px - 53px);}
+#screen-unit-setup{flex-direction:column;min-height:100vh;}
+.setup-body{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 54px);}
+.setup-form{overflow-y:auto;padding:20px 24px;max-height:calc(100vh - 54px);}
+.setup-side{border-right:1px solid var(--border);background:rgba(8,4,1,.7);display:flex;flex-direction:column;position:sticky;top:54px;height:calc(100vh - 54px);overflow:hidden;}
 .setup-form{overflow-y:auto;padding:20px 24px;}
 .setup-side{border-right:1px solid var(--border);background:rgba(8,4,1,.7);display:flex;flex-direction:column;overflow:hidden;}
 .setup-side-header{padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -194,12 +196,24 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .row-type-badge{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(212,168,67,.15);color:var(--gold);flex-shrink:0;}
 .row-text{font-size:.78rem;opacity:.65;margin-right:6px;}
 
-.station-block{background:rgba(253,245,224,.03);border:1px solid rgba(212,168,67,.08);border-radius:10px;margin-bottom:8px;}
-.station-header{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;}
+/* ── STATION NEW LAYOUT ── */
+.station-block{background:rgba(253,245,224,.03);border:1px solid rgba(212,168,67,.08);border-radius:10px;margin-bottom:10px;}
+.station-header{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;}
 .station-num{min-width:26px;height:26px;border-radius:6px;background:rgba(29,78,216,.3);color:#93c5fd;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0;}
 .station-label{font-size:.85rem;font-weight:600;flex:1;}
-.station-rows{padding:0 10px 10px;display:none;}
-.station-rows.open{display:block;}
+.station-display-toggle{display:flex;gap:4px;flex-shrink:0;}
+.disp-btn{padding:2px 8px;font-size:.65rem;font-weight:700;border-radius:10px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .15s;background:rgba(253,245,224,.06);color:var(--parch);opacity:.5;}
+.disp-btn.on{background:rgba(212,168,67,.2);color:var(--gold2);opacity:1;border:1px solid rgba(212,168,67,.3);}
+.station-slots{display:none;padding:8px 10px 10px;gap:8px;flex-direction:row;}
+.station-slots.open{display:flex;}
+.slot-item{flex:1;min-width:0;background:rgba(253,245,224,.03);border:1px solid rgba(212,168,67,.1);border-radius:8px;padding:8px;cursor:pointer;transition:all .15s;text-align:center;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;}
+.slot-item:hover{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.slot-item.active{border-color:var(--gold2);background:rgba(212,168,67,.1);}
+.slot-num{font-size:.65rem;font-weight:800;color:var(--gold);opacity:.6;position:absolute;top:4px;right:6px;}
+.slot-type{font-size:.75rem;font-weight:700;}
+.slot-empty{font-size:.72rem;opacity:.3;font-style:italic;}
+.slot-icon{font-size:1.2rem;}
+.slot-inline-editor{margin-top:6px;padding:8px;background:rgba(10,5,2,.7);border:1px solid var(--border2);border-radius:8px;}
 
 .aud-toggle{display:flex;gap:4px;flex-shrink:0;}
 .aud-btn{padding:2px 8px;font-size:.65rem;font-weight:700;border-radius:10px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .15s;}
@@ -918,13 +932,9 @@ function openLessonBuilder(idx){
   const saved=lesson.data||{};
   lessonData={
     goals:saved.goals||'',
-    intro:saved.intro||[{type:null,content:''},{type:null,content:''},{type:null,content:''}],
-    stations:saved.stations||Array.from({length:4},()=>[
-      {type:null,content:'',audience:'all'},
-      {type:null,content:'',audience:'all'},
-      {type:null,content:'',audience:'diff'}
-    ]),
-    closing:saved.closing||[{type:null,content:''}],
+    intro:saved.intro||Array.from({length:3},()=>({slots:[{type:null,content:''},{type:null,content:''},{type:null,content:''}],displayMode:'simultaneous',newPage:true})),
+    stations:saved.stations||Array.from({length:4},()=>({slots:[{type:null,content:''},{type:null,content:''},{type:null,content:''}],displayMode:'simultaneous',newPage:true})),
+    closing:saved.closing||[{slots:[{type:null,content:''},{type:null,content:''},{type:null,content:''}],displayMode:'simultaneous',newPage:true}],
     enrichment:saved.enrichment||{
       pairs:[],selectedGames:[],
       qa:[],qaSelectedGames:[],
@@ -965,67 +975,186 @@ function saveTopicEdit(){
 }
 
 function renderLessonStructure(){
-  renderSimpleRows('intro-rows',lessonData.intro,'intro');
-  renderStations();
-  renderSimpleRows('close-rows',lessonData.closing,'closing');
+  renderSectionStations('intro-rows', lessonData.intro, 'intro');
+  renderSectionStations('stations-wrap', lessonData.stations, 'body');
+  renderSectionStations('close-rows', lessonData.closing, 'closing');
   renderEnrichmentTemplates();
 }
 
 function renderSimpleRows(containerId,rows,section){
+  // legacy fallback — redirect to new renderer
+  renderSectionStations(containerId, lessonData[section==='closing'?'closing':section==='intro'?'intro':'stations'], section==='closing'?'closing':section==='intro'?'intro':'body');
+}
+
+function renderSectionStations(containerId, stations, section){
   const c=document.getElementById(containerId);
   if(!c)return;
-  c.innerHTML=rows.map((row,i)=>rowHTML(row,section,i,null)).join('');
+  c.innerHTML=stations.map((st,si)=>buildStationHTML(st,si,section)).join('');
+  // open first station
+  const firstSlots=document.getElementById(`st-slots-${section}-0`);
+  if(firstSlots){firstSlots.classList.add('open');}
 }
 
-function rowHTML(row,section,ri,si){
-  const uid=rowId(section,ri,si);
-  const item=ITEM_BANK.find(b=>b.type===row.type);
-  const clickFn=`selectRow('${section}',${ri},${si===null||si===undefined?'null':si})`;
-  let audHTML='';
-  if(section==='stations'){
-    const isAll=row.audience!=='diff';
-    audHTML=`<div class="aud-toggle">
-      <button class="aud-btn aud-all ${isAll?'on':''}" onclick="event.stopPropagation();setAud(${ri},${si},'all')">כולם</button>
-      <button class="aud-btn aud-diff ${!isAll?'on':''}" onclick="event.stopPropagation();setAud(${ri},${si},'diff')">דיפ׳</button>
-    </div>`;
-  }
-  const isActive=activeRow&&activeRow.section===section&&activeRow.ri===ri&&activeRow.si===si;
-  return `<div class="row-item${isActive?' active':''}" id="${uid}" onclick="${clickFn}">
-    <div class="row-num">${ri+1}</div>
-    <div class="row-content">
-      ${row.type
-        ?`<span class="row-type-badge">${item?.icon||'📄'} ${item?.name||row.type}</span>${row.content?`<span class="row-text">${trunc(row.content,38)}</span>`:''}`
-        :`<span class="row-empty">לחצי לבחירת פריט...</span>`}
+function buildStationHTML(st, si, section){
+  const isSim = st.displayMode !== 'sequential';
+  return `<div class="station-block" id="st-block-${section}-${si}">
+    <div class="station-header" onclick="toggleStationNew('${section}',${si})">
+      <div class="station-num">${si+1}</div>
+      <div class="station-label">תחנה ${si+1}</div>
+      <div class="station-display-toggle" onclick="event.stopPropagation()">
+        <button class="disp-btn ${isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'simultaneous')">בו-זמנית</button>
+        <button class="disp-btn ${!isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'sequential')">זה אחר זה</button>
+      </div>
+      <span id="stch-${section}-${si}" style="opacity:.4;font-size:.7rem;margin-right:4px;">▼</span>
     </div>
-    ${audHTML}
+    <div class="station-slots" id="st-slots-${section}-${si}">
+      ${st.slots.map((slot,sli)=>buildSlotHTML(slot,si,sli,section)).join('')}
+    </div>
+  </div>`;
+}
+
+function buildSlotHTML(slot, si, sli, section){
+  const uid=`slot-${section}-${si}-${sli}`;
+  const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
+  const hasContent=slot.type&&slot.content;
+  return `<div class="slot-item ${activeRow&&activeRow.uid===uid?'active':''}" 
+    id="${uid}" onclick="selectSlot('${section}',${si},${sli})">
+    <span class="slot-num">${sli+1}</span>
+    ${slot.type
+      ?`<span class="slot-icon">${bankItem?.icon||'📄'}</span>
+        <span class="slot-type">${bankItem?.name||slot.type}</span>
+        ${hasContent?`<span style="font-size:.65rem;opacity:.55;">${trunc(slot.content,25)}</span>`:''}`
+      :`<span class="slot-icon" style="opacity:.2;">+</span>
+        <span class="slot-empty">בחרי פריט</span>`}
   </div>
-  <div class="inline-editor" id="ed-${uid}" style="display:none;"></div>`;
+  <div class="slot-inline-editor" id="ed-${uid}" style="display:none;"></div>`;
 }
 
-function rowId(section,ri,si){return `row-${section}-${si!==null&&si!==undefined?si+'-':''}${ri}`;}
-
-function renderStations(){
-  const wrap=document.getElementById('stations-wrap');
-  wrap.innerHTML=lessonData.stations.map((rows,si)=>`
-    <div class="station-block">
-      <div class="station-header" onclick="toggleStation(${si})">
-        <div class="station-num">${si+1}</div>
-        <div class="station-label">תחנה ${si+1}</div>
-        <span id="stch-${si}" style="opacity:.4;font-size:.75rem;">▼</span>
-      </div>
-      <div class="station-rows" id="st-rows-${si}">
-        ${rows.map((row,ri)=>rowHTML(row,'stations',ri,si)).join('')}
-      </div>
-    </div>`).join('');
-  toggleStation(0);
-}
-
-function toggleStation(si){
-  const el=document.getElementById(`st-rows-${si}`);
-  const ch=document.getElementById(`stch-${si}`);
+function toggleStationNew(section, si){
+  const el=document.getElementById(`st-slots-${section}-${si}`);
+  const ch=document.getElementById(`stch-${section}-${si}`);
   const open=el.classList.toggle('open');
   if(ch)ch.textContent=open?'▲':'▼';
 }
+
+function setDisplayMode(section, si, mode){
+  const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
+  arr[si].displayMode=mode;
+  renderLessonStructure();
+  // reopen this station
+  setTimeout(()=>{
+    const el=document.getElementById(`st-slots-${section}-${si}`);
+    if(el)el.classList.add('open');
+  },30);
+  setSaveStatus('שינויים לא שמורים');
+}
+
+// ── SLOT SELECTION ──
+function selectSlot(section, si, sli){
+  const uid=`slot-${section}-${si}-${sli}`;
+  // close previous
+  if(activeRow){
+    const pEl=document.getElementById(activeRow.uid);
+    if(pEl)pEl.classList.remove('active');
+    const pEd=document.getElementById('ed-'+activeRow.uid);
+    if(pEd)pEd.style.display='none';
+  }
+  activeRow={section,si,sli,uid};
+  const el=document.getElementById(uid);
+  if(el)el.classList.add('active');
+  const slot=getSlot(section,si,sli);
+  const edEl=document.getElementById('ed-'+uid);
+  if(edEl){edEl.style.display='block';edEl.innerHTML=buildSlotEditor(slot,section,si,sli,uid);}
+  switchSideTab('bank');
+  const bankItem=bankData.find(b=>b.id===slot?.type||b.type===slot?.type);
+  document.getElementById('bank-hint').textContent=
+    slot?.type?`נוכחי: ${bankItem?.name||slot.type} — בחרי פריט להחלפה`:'בחרי פריט מהבנק';
+}
+
+function getSlot(section, si, sli){
+  const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
+  return arr[si]?.slots[sli];
+}
+
+function setSlot(section, si, sli, data){
+  const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
+  if(arr[si]&&arr[si].slots[sli]) arr[si].slots[sli]={...arr[si].slots[sli],...data};
+}
+
+function buildSlotEditor(slot, section, si, sli, uid){
+  if(!slot?.type)return `<div style="font-size:.75rem;opacity:.45;text-align:center;padding:6px;">בחרי פריט מבנק הפריטים ←</div>`;
+  const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
+  const isUrl=slot.type==='video'||slot.type==='image';
+  const field=isUrl
+    ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;" 
+        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה...'}" value="${esc(slot.content||'')}">`
+    :`<textarea class="inline-field" id="ef-${uid}" placeholder="הכניסי תוכן...">${esc(slot.content||'')}</textarea>`;
+  return `<div class="inline-editor-title">${bankItem?.icon||''} ${bankItem?.name||slot.type}</div>
+    ${field}
+    <div class="editor-btns">
+      <button class="btn btn-ghost btn-sm" onclick="clearSlot('${section}',${si},${sli},'${uid}')">נקי</button>
+      <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+      <button class="btn btn-gold btn-sm" onclick="saveSlotContent('${section}',${si},${sli},'${uid}')">שמור ←</button>
+    </div>`;
+}
+
+function saveSlotContent(section, si, sli, uid){
+  const f=document.getElementById('ef-'+uid);
+  if(!f)return;
+  setSlot(section,si,sli,{content:f.value.trim()});
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+
+function clearSlot(section, si, sli, uid){
+  setSlot(section,si,sli,{type:null,content:''});
+  activeRow=null;
+  renderLessonStructure();
+}
+
+async function askSlotAI(uid, section, si, sli){
+  switchSideTab('ai');
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const slot=getSlot(section,si,sli);
+  const bankItem=bankData.find(b=>b.id===slot?.type||b.type===slot?.type);
+  const f=document.getElementById('ef-'+uid);
+  const cur=f?.value||'';
+  const sNames={intro:'פתיח',body:'גוף השיעור',closing:'סיום'};
+  const prompt=cur
+    ?`שפרי את הטקסט לפריט "${bankItem?.name||''}" ב${sNames[section]||section}: "${cur}"`
+    :`הצעי תוכן לפריט "${bankItem?.name||''}" ב${sNames[section]||section} בשיעור: "${lesson?.topic||''}"`;
+  addMsg('ai-messages',prompt,'user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה. ענה בעברית, תוכן פדגוגי קצר.',prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+}
+
+// ── BANK ITEM SELECTION (updated for slots) ──
+function selectBankItem(typeOrId){
+  if(!activeRow){document.getElementById('bank-hint').textContent='לחצי תחילה על שורה בשיעור';return;}
+  const{section,si,sli}=activeRow;
+  const bankItem=bankData.find(b=>b.id===typeOrId||b.type===typeOrId);
+  const type=bankItem?.type||typeOrId;
+  setSlot(section,si,sli,{type:bankItem?.id||typeOrId});
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),40);
+}
+
+// legacy selectors — kept for compatibility
+function selectRow(section,ri,si){ selectSlot(section,si||0,ri); }
+function getRow(section,ri,si){ return getSlot(section,si||0,ri); }
+function setRow(section,ri,si,data){ setSlot(section,si||0,ri,data); }
+function saveRowContent(section,ri,si,uid){ saveSlotContent(section,si||0,ri,uid); }
+function clearRowItem(section,ri,si,uid){ clearSlot(section,si||0,ri,uid); }
+function setAud(ri,si,aud){
+  const arr=lessonData.stations;
+  if(arr[si]&&arr[si].slots[ri]) arr[si].slots[ri].audience=aud;
+  renderLessonStructure();
+}
+
+function rowId(section,ri,si){return `slot-${section}-${si||0}-${ri}`;}
 
 function toggleSection(bodyId,header){
   const body=document.getElementById(bodyId);
