@@ -519,15 +519,38 @@ function selectSubject(id){
 function showExistingUnits(){
   const card=document.getElementById('existing-units-card');
   const list=document.getElementById('existing-units-list');
-  const units=currentSubject.units?Object.values(currentSubject.units):[];
-  if(!units.length){list.innerHTML='<div class="empty-msg">אין יחידות קיימות.</div>';}
-  else{list.innerHTML=units.map(u=>`<div class="lesson-list-item" onclick='openExistingUnit(${JSON.stringify(u)})'><div class="li-num">${u.avatar||'📖'}</div><div class="li-info"><div class="li-name">${u.num?u.num+'. ':''}${u.name}</div><div class="li-status">${u.lessons?u.lessons.length:0} שיעורים</div></div><div class="li-arrow">←</div></div>`).join('');}
+  list.innerHTML='<div class="empty-msg">טוען...</div>';
   card.style.display='block';
+  // קריאה טרייה מ-Firebase
+  db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value',snap=>{
+    const units=snap.val()?Object.values(snap.val()):[];
+    // עדכון currentSubject בזיכרון
+    if(!teacherData.subjects[currentSubject.id]) teacherData.subjects[currentSubject.id]=currentSubject;
+    teacherData.subjects[currentSubject.id].units=snap.val()||{};
+    currentSubject=teacherData.subjects[currentSubject.id];
+    if(!units.length){
+      list.innerHTML='<div class="empty-msg">אין יחידות קיימות.</div>';
+      return;
+    }
+    list.innerHTML=units.map(u=>`
+      <div class="lesson-list-item" onclick='openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})'>
+        <div class="li-num">${u.avatar||'📖'}</div>
+        <div class="li-info">
+          <div class="li-name">${u.num?u.num+'. ':''}${u.name}</div>
+          <div class="li-status">${u.lessons?Object.values(u.lessons).length:0} שיעורים</div>
+        </div>
+        <div class="li-arrow">←</div>
+      </div>`).join('');
+  });
 }
 
 function openExistingUnit(unit){
   currentUnit=unit;
-  if(!currentUnit.lessons)currentUnit.lessons=[];
+  // Firebase מחזיר lessons כ-object — נמיר למערך
+  if(currentUnit.lessons && !Array.isArray(currentUnit.lessons)){
+    currentUnit.lessons=Object.values(currentUnit.lessons);
+  }
+  if(!currentUnit.lessons) currentUnit.lessons=[];
   renderUnitOverview();
   goTo('screen-unit-overview');
 }
@@ -625,7 +648,14 @@ async function saveUnitSetup(){
     avatarTheme:document.getElementById('unit-avatar-theme').value||'',
     lessons
   };
+  // שמירה ב-Firebase
   await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}`).set(currentUnit);
+  // עדכון teacherData בזיכרון
+  if(!teacherData.subjects) teacherData.subjects={};
+  if(!teacherData.subjects[currentSubject.id]) teacherData.subjects[currentSubject.id]=currentSubject;
+  if(!teacherData.subjects[currentSubject.id].units) teacherData.subjects[currentSubject.id].units={};
+  teacherData.subjects[currentSubject.id].units[currentUnit.id]=currentUnit;
+  currentSubject=teacherData.subjects[currentSubject.id];
   renderUnitOverview();
   goTo('screen-unit-overview');
 }
