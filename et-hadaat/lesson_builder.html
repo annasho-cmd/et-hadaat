@@ -124,6 +124,23 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .setup-ai-input:focus{border-color:var(--gold);}
 .setup-ai-send{padding:7px 12px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:7px;cursor:pointer;font-size:.9rem;}
 
+/* book titles textarea */
+.book-titles-wrap{margin-bottom:12px;}
+.book-titles-label{font-size:.72rem;font-weight:700;opacity:.45;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;display:block;}
+.book-titles-input{width:100%;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.8rem;padding:8px 10px;resize:vertical;min-height:70px;outline:none;}
+.book-titles-input:focus{border-color:var(--gold);}
+.book-titles-input::placeholder{opacity:.3;line-height:1.6;}
+
+/* unit goal */
+.unit-goal-wrap{background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.15);border-radius:8px;padding:10px;margin-bottom:10px;}
+.unit-goal-label{font-size:.72rem;font-weight:700;color:var(--gold);opacity:.7;margin-bottom:5px;display:block;}
+.unit-goal-text{font-size:.82rem;line-height:1.55;opacity:.85;font-style:italic;}
+.unit-goal-empty{font-size:.78rem;opacity:.3;font-style:italic;}
+
+/* ai apply btn */
+.ai-apply-btn{padding:4px 10px;background:rgba(212,168,67,.12);border:1px solid var(--border2);border-radius:6px;color:var(--gold);font-family:'Heebo',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;margin-top:6px;display:inline-block;}
+.ai-apply-btn:hover{background:rgba(212,168,67,.22);}
+
 .unit-header{background:linear-gradient(135deg,rgba(44,26,14,.9),rgba(30,15,5,.95));border:1px solid var(--border2);border-radius:14px;padding:22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
 .unit-avatar{font-size:3rem;}
 .unit-info-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
@@ -360,24 +377,43 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
     <!-- RIGHT: עוזר הוראה -->
     <div class="setup-side">
       <div class="setup-side-header">
-        <div class="setup-side-title">🤖 עוזר הוראה</div>
-        <div class="setup-side-sub">לחצי על כפתור או שאלי בחופשיות</div>
+        <div class="setup-side-title">🤖 עוזר הוראה — שלב 1</div>
+        <div class="setup-side-sub">תכנון מבנה היחידה</div>
       </div>
 
       <div class="setup-ai-body">
+
+        <!-- מטרת-על -->
+        <div class="unit-goal-wrap" id="unit-goal-wrap">
+          <span class="unit-goal-label">🎯 מטרת-על ליחידה</span>
+          <div id="unit-goal-display" class="unit-goal-empty">עוד לא הוגדרה — לחצי על "הצע מטרת-על"</div>
+          <input type="hidden" id="unit-goal-value" value="">
+        </div>
+
+        <!-- כותרות ספר -->
+        <div class="book-titles-wrap">
+          <span class="book-titles-label">📖 כותרות מספר הלימוד (אופציונלי)</span>
+          <textarea class="book-titles-input" id="book-titles-input"
+            placeholder="הדביקי כאן את כותרות המשנה מספר הלימוד...&#10;למשל:&#10;פרק 1: הרקע לצלבנות&#10;פרק 2: מסע הצלב הראשון&#10;..."></textarea>
+        </div>
+
+        <!-- כפתורים מהירים -->
         <div class="quick-btns">
-          <button class="quick-btn" onclick="quickSetupAI('lessons')">📚 הצע מספר שיעורים מומלץ</button>
+          <button class="quick-btn" onclick="quickSetupAI('goal')">🎯 הצע מטרת-על ליחידה</button>
+          <button class="quick-btn" onclick="quickSetupAI('all')">✨ הצע הכל ביחד</button>
           <button class="quick-btn" onclick="quickSetupAI('topics')">📋 הצע נושאי שיעורים</button>
           <button class="quick-btn" onclick="quickSetupAI('avatars')">🎭 הצע אוואטרים לתקופה</button>
         </div>
+
         <div id="setup-ai-msgs" class="ai-messages">
-          <div class="ai-msg assistant">שלום! הזיני שם יחידה ואעזור לך לתכנן אותה.</div>
+          <div class="ai-msg assistant">שלום! אני עוזר ההוראה שלך לשלב תכנון היחידה.<br><br>
+          תוכלי להדביק כותרות מספר הלימוד ואנסח לך מטרת-על + מבנה שיעורים מותאם, או שאוכל להציע מיחידות הלימוד שלי.</div>
         </div>
         <div id="setup-ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
       </div>
 
       <div class="setup-ai-input-row">
-        <input class="setup-ai-input" id="setup-ai-input" placeholder="שאלי..."
+        <input class="setup-ai-input" id="setup-ai-input" placeholder="שאלי בחופשיות..."
           onkeydown="if(event.key==='Enter') sendSetupAI()">
         <button class="setup-ai-send" onclick="sendSetupAI()">↑</button>
       </div>
@@ -657,6 +693,13 @@ function startNewUnit(){
   document.getElementById('unit-name').value='';
   document.getElementById('selected-avatar').value=AVATARS[0];
   document.getElementById('lesson-count').value=5;
+  document.getElementById('unit-goal-value').value='';
+  document.getElementById('unit-goal-display').textContent='עוד לא הוגדרה — לחצי על "הצע מטרת-על"';
+  document.getElementById('unit-goal-display').className='unit-goal-empty';
+  document.getElementById('book-titles-input').value='';
+  // reset AI chat
+  const msgs=document.getElementById('setup-ai-msgs');
+  msgs.innerHTML='<div class="ai-msg assistant">שלום! אני עוזר ההוראה שלך לשלב תכנון היחידה.<br><br>תוכלי להדביק כותרות מספר הלימוד ואנסח לך מטרת-על + מבנה שיעורים, או שאוכל להציע מתוך הידע שלי.</div>';
   renderAvatars();
   buildLessonSetup();
   goTo('screen-unit-setup');
@@ -687,24 +730,104 @@ function onUnitNameChange(){
 async function quickSetupAI(type){
   const unitName=document.getElementById('unit-name').value.trim();
   const lessonCount=document.getElementById('lesson-count').value||'5';
+  const bookTitles=document.getElementById('book-titles-input').value.trim();
+  const unitGoal=document.getElementById('unit-goal-value').value.trim();
+
+  if(!unitName&&type!=='avatars'){
+    addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;
+  }
+
   let prompt='';
-  if(type==='lessons'){
-    prompt=`יחידת לימוד בנושא: "${unitName||'לא הוגדר עדיין'}". כמה שיעורים מומלץ ליחידה כזו? הסבירי בקצרה.`;
+  const bookCtx=bookTitles?`\nכותרות ספר הלימוד:\n${bookTitles}`:'';
+  const goalCtx=unitGoal?`\nמטרת-על: ${unitGoal}`:'';
+
+  if(type==='goal'){
+    prompt=`אני מורה לבנה יחידת לימוד בנושא: "${unitName}".${bookCtx}
+נסחי מטרת-על אחת ליחידה בפורמט: "בסיום היחידה התלמיד יוכל..."
+כתבי משפט אחד בלבד, ברור ומדיד.`;
+
   } else if(type==='topics'){
-    if(!unitName){addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;}
-    prompt=`יחידת לימוד בנושא: "${unitName}". הצעי ${lessonCount} נושאי שיעורים מסודרים לפי רצף לוגי. כתבי רשימה ממוספרת בלבד.`;
+    prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}${goalCtx}
+הצעי ${lessonCount} נושאי שיעורים מסודרים לפי רצף לוגי.
+כתבי רשימה ממוספרת בלבד, כל נושא בשורה אחת.`;
+
+  } else if(type==='all'){
+    prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}
+אנא עזרי לי עם:
+1. מטרת-על אחת ליחידה (פורמט: "בסיום היחידה התלמיד יוכל...")
+2. ${lessonCount} נושאי שיעורים מסודרים לפי רצף לוגי (רשימה ממוספרת)
+הפרד בין החלקים בכותרות ברורות.`;
+
   } else if(type==='avatars'){
     if(!unitName){addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;}
-    prompt=`יחידת לימוד בנושא: "${unitName}". הצעי 4 אמוג׳י מתאימים כאוואטרים לתקופה/נושא. כתבי רק את 4 האמוג׳י עם שם קצר לכל אחד.`;
+    prompt=`יחידת לימוד בנושא: "${unitName}". הצעי 4 אמוג׳י מתאימים כאוואטרים לתקופה/נושא. כתבי רק 4 אמוג׳י עם שם קצר לכל אחד.`;
   }
+
   addMsg('setup-ai-msgs',prompt,'user');
   document.getElementById('setup-ai-thinking').style.display='block';
-  const sys=`אתה עוזר הוראה לתכנון יחידות לימוד. ענה בעברית, קצר ומקצועי.`;
+
+  const sys=`אתה עוזר הוראה מקצועי לתכנון יחידות לימוד בהיסטוריה.
+ענה בעברית, קצר וממוקד. אל תוסיף הסברים מיותרים.`;
+
   const reply=await callAI(sys,prompt,[]);
   document.getElementById('setup-ai-thinking').style.display='none';
   addMsg('setup-ai-msgs',reply,'assistant');
-  // if avatars — save theme suggestion
+
+  // הצע כפתור "החל הצעה" אחרי תשובה על goal או all
+  if(type==='goal'||type==='all'){
+    addApplyBtn(reply, type);
+  }
   if(type==='avatars') document.getElementById('unit-avatar-theme').value=unitName;
+}
+
+function addApplyBtn(aiReply, type){
+  const msgs=document.getElementById('setup-ai-msgs');
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;';
+
+  if(type==='goal'||type==='all'){
+    const btn1=document.createElement('button');
+    btn1.className='ai-apply-btn';
+    btn1.textContent='✓ החל מטרת-על';
+    btn1.onclick=()=>{
+      // מחלץ את שורת מטרת-העל מהתשובה
+      const lines=aiReply.split('\n').filter(l=>l.trim());
+      const goalLine=lines.find(l=>l.includes('יוכל')||l.includes('יבין')||l.includes('יזהה')||l.includes('יסביר'))||lines[0];
+      const clean=goalLine.replace(/^\d+\.\s*/,'').replace(/^מטרת-על[:：]\s*/i,'').trim();
+      document.getElementById('unit-goal-value').value=clean;
+      document.getElementById('unit-goal-display').textContent=clean;
+      document.getElementById('unit-goal-display').className='unit-goal-text';
+      addMsg('setup-ai-msgs','✅ מטרת-העל הוחלה','assistant');
+      wrap.remove();
+    };
+    wrap.appendChild(btn1);
+  }
+
+  if(type==='all'){
+    const btn2=document.createElement('button');
+    btn2.className='ai-apply-btn';
+    btn2.textContent='✓ החל נושאי שיעורים';
+    btn2.onclick=()=>{
+      // מחלץ שורות ממוספרות
+      const lines=aiReply.split('\n')
+        .filter(l=>/^\d+[\.\)]\s+/.test(l.trim()))
+        .map(l=>l.replace(/^\d+[\.\)]\s+/,'').trim())
+        .filter(Boolean);
+      if(!lines.length){addMsg('setup-ai-msgs','לא מצאתי נושאים ממוספרים בתשובה','assistant');return;}
+      document.getElementById('lesson-count').value=lines.length;
+      buildLessonSetup();
+      setTimeout(()=>{
+        const inputs=document.querySelectorAll('.ls-input');
+        lines.forEach((t,i)=>{if(inputs[i])inputs[i].value=t;});
+        addMsg('setup-ai-msgs','✅ נושאי השיעורים הוחלו','assistant');
+      },100);
+      wrap.remove();
+    };
+    wrap.appendChild(btn2);
+  }
+
+  msgs.appendChild(wrap);
+  msgs.scrollTop=msgs.scrollHeight;
 }
 
 async function sendSetupAI(){
@@ -713,7 +836,12 @@ async function sendSetupAI(){
   inp.value='';
   addMsg('setup-ai-msgs',msg,'user');
   document.getElementById('setup-ai-thinking').style.display='block';
-  const sys=`אתה עוזר הוראה. המורה בונה יחידה: "${document.getElementById('unit-name').value||''}". ענה בעברית, קצר ומקצועי.`;
+  const unitName=document.getElementById('unit-name').value.trim();
+  const unitGoal=document.getElementById('unit-goal-value').value.trim();
+  const bookTitles=document.getElementById('book-titles-input').value.trim();
+  const sys=`אתה עוזר הוראה לתכנון יחידות לימוד.
+יחידה: "${unitName||'לא הוגדר'}"${unitGoal?'\nמטרת-על: '+unitGoal:''}${bookTitles?'\nכותרות ספר:\n'+bookTitles.substring(0,300):''}
+ענה בעברית, קצר ומקצועי.`;
   const reply=await callAI(sys,msg,[]);
   document.getElementById('setup-ai-thinking').style.display='none';
   addMsg('setup-ai-msgs',reply,'assistant');
@@ -745,6 +873,7 @@ async function saveUnitSetup(){
     num,name,
     avatar:document.getElementById('selected-avatar').value||AVATARS[0],
     avatarTheme:document.getElementById('unit-avatar-theme').value||'',
+    unitGoal:document.getElementById('unit-goal-value').value.trim()||'',
     lessons
   };
   await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}`).set(currentUnit);
