@@ -16,6 +16,38 @@
   --border2:rgba(212,168,67,0.38);
   --green:#22863a;
   --intro-c:#0d2e1a;--body-c:#0d1e2e;
+/* ── ENRICHMENT TEMPLATES ── */
+.enrich-template{background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.25);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.enrich-template-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.enrich-template-icon{font-size:1.2rem;}
+.enrich-template-title{font-size:.9rem;font-weight:700;color:#c4b5fd;flex:1;}
+.enrich-template-sub{font-size:.72rem;opacity:.45;}
+.enrich-template-body{display:none;padding:0 14px 14px;}
+.enrich-template-body.open{display:block;}
+.enrich-pairs-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
+.enrich-pair-row{display:flex;gap:8px;align-items:center;}
+.enrich-pair-num{min-width:22px;height:22px;border-radius:5px;background:rgba(109,40,217,.2);color:#c4b5fd;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;}
+.enrich-pair-input{flex:1;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;padding:6px 10px;outline:none;}
+.enrich-pair-input:focus{border-color:#a78bfa;}
+.enrich-pair-input::placeholder{opacity:.3;}
+.enrich-add-btn{padding:5px 12px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.3);border-radius:6px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:.78rem;cursor:pointer;margin-bottom:12px;}
+.enrich-add-btn:hover{background:rgba(109,40,217,.25);}
+.enrich-games-title{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.4;margin-bottom:8px;}
+.enrich-games-list{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;}
+.enrich-game-chip{padding:5px 12px;border-radius:20px;font-size:.78rem;font-weight:600;border:1px solid rgba(109,40,217,.3);background:rgba(109,40,217,.08);color:#c4b5fd;cursor:pointer;transition:all .15s;font-family:'Heebo',sans-serif;}
+.enrich-game-chip:hover{background:rgba(109,40,217,.2);}
+.enrich-game-chip.selected{background:#4c1d95;border-color:#7c3aed;color:#ede9fe;}
+.enrich-save-btn{width:100%;padding:9px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:white;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;}
+.enrich-save-btn:hover{opacity:.9;}
+.enrich-saved-games{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.enrich-saved-chip{padding:4px 10px;border-radius:14px;font-size:.75rem;background:#4c1d95;color:#ede9fe;border:1px solid #7c3aed;}
+
+/* editable topic */
+.topic-edit-wrap{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.topic-edit-input{flex:1;background:none;border:none;border-bottom:1.5px solid var(--border);color:var(--gold2);font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;outline:none;padding:2px 4px;}
+.topic-edit-input:focus{border-bottom-color:var(--gold);}
+.topic-edit-btn{padding:4px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;}
+
   --close-c:#2e0d0d;--enrich-c:#1a0d2e;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -364,7 +396,10 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
     <!-- LEFT -->
     <div class="lesson-panel">
       <div class="lesson-meta-card">
-        <div class="lesson-topic" id="b-topic-display"></div>
+        <div class="topic-edit-wrap">
+          <input class="topic-edit-input" id="b-topic-input" placeholder="נושא השיעור...">
+          <button class="topic-edit-btn" onclick="saveTopicEdit()">✓ שמור</button>
+        </div>
         <div class="section-label">מטרות השיעור</div>
         <textarea class="goals-area" id="b-goals" placeholder="רשמי את מטרות השיעור..."></textarea>
         <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
@@ -417,12 +452,12 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
           <div class="section-header-left">
             <span class="section-icon">⭐</span>
             <span class="section-name">העשרה</span>
-            <span class="section-count">3 תבניות</span>
+            <span class="section-count">4 תבניות</span>
           </div>
           <span class="section-chevron">▼</span>
         </div>
         <div class="section-body" id="enrich-body">
-          <div id="enrich-rows"></div>
+          <div id="enrich-templates"></div>
         </div>
       </div>
       <div style="height:50px;"></div>
@@ -635,12 +670,16 @@ async function saveUnitSetup(){
   if(!name){alert('יש להזין שם ליחידה');return;}
   const num=document.getElementById('unit-num').value.trim();
   const inputs=document.querySelectorAll('.ls-input');
-  const lessons=Array.from(inputs).map((inp,i)=>({
-    id:'lesson_'+(i+1),num:i+1,
-    name:'שיעור '+(i+1),
-    topic:inp.value.trim()||'',
-    status:'draft',data:null
-  }));
+  // שמירה רק של שיעורים עם נושא
+  const lessons=Array.from(inputs)
+    .filter(inp=>inp.value.trim())
+    .map((inp,i)=>({
+      id:'lesson_'+(i+1),num:i+1,
+      name:'שיעור '+(i+1),
+      topic:inp.value.trim(),
+      status:'draft',data:null
+    }));
+  if(!lessons.length){alert('יש להזין נושא לפחות לשיעור אחד');return;}
   currentUnit={
     id:currentUnit?.id||'unit_'+Date.now(),
     num,name,
@@ -648,9 +687,7 @@ async function saveUnitSetup(){
     avatarTheme:document.getElementById('unit-avatar-theme').value||'',
     lessons
   };
-  // שמירה ב-Firebase
   await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}`).set(currentUnit);
-  // עדכון teacherData בזיכרון
   if(!teacherData.subjects) teacherData.subjects={};
   if(!teacherData.subjects[currentSubject.id]) teacherData.subjects[currentSubject.id]=currentSubject;
   if(!teacherData.subjects[currentSubject.id].units) teacherData.subjects[currentSubject.id].units={};
@@ -694,11 +731,16 @@ function openLessonBuilder(idx){
       {type:null,content:'',audience:'diff'}
     ]),
     closing:saved.closing||[{type:null,content:''}],
-    enrichment:saved.enrichment||[{type:null,content:''},{type:null,content:''},{type:null,content:''}]
+    enrichment:saved.enrichment||{
+      pairs:[],selectedGames:[],
+      qa:[],qaSelectedGames:[],
+      sequence:[],seqSelectedGames:[],
+      categories:[],catSelectedGames:[]
+    }
   };
   document.getElementById('b-unit-name').textContent=currentUnit.name;
-  document.getElementById('b-lesson-label').textContent=' · שיעור '+(lesson.num||idx+1)+'/'+currentUnit.lessons.length+(lesson.topic?' · '+lesson.topic:'');
-  document.getElementById('b-topic-display').textContent=lesson.topic||lesson.name;
+  document.getElementById('b-lesson-label').textContent=' · שיעור '+(lesson.num||idx+1)+'/'+currentUnit.lessons.length;
+  document.getElementById('b-topic-input').value=lesson.topic||lesson.name;
   document.getElementById('b-goals').value=lessonData.goals;
   activeRow=null;
   aiHistory=[];
@@ -708,11 +750,20 @@ function openLessonBuilder(idx){
   goTo('screen-builder');
 }
 
+function saveTopicEdit(){
+  const val=document.getElementById('b-topic-input').value.trim();
+  if(!val)return;
+  currentUnit.lessons[currentLessonIdx].topic=val;
+  document.getElementById('b-lesson-label').textContent=
+    ' · שיעור '+(currentUnit.lessons[currentLessonIdx].num||currentLessonIdx+1)+'/'+currentUnit.lessons.length;
+  setSaveStatus('שינויים לא שמורים');
+}
+
 function renderLessonStructure(){
   renderSimpleRows('intro-rows',lessonData.intro,'intro');
   renderStations();
   renderSimpleRows('close-rows',lessonData.closing,'closing');
-  renderSimpleRows('enrich-rows',lessonData.enrichment,'enrichment');
+  renderEnrichmentTemplates();
 }
 
 function renderSimpleRows(containerId,rows,section){
@@ -945,6 +996,9 @@ function showThinking(v){document.getElementById('ai-thinking').style.display=v?
 async function saveLesson(){
   lessonData.goals=document.getElementById('b-goals').value;
   const lesson=currentUnit.lessons[currentLessonIdx];
+  lessonData.goals=document.getElementById('b-goals').value;
+  // שמירת נושא מעודכן
+  lesson.topic=document.getElementById('b-topic-input').value.trim()||lesson.topic;
   lesson.data=lessonData;
   await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons/${currentLessonIdx}`).set(lesson);
   setSaveStatus('saved');
@@ -957,6 +1011,164 @@ function setSaveStatus(s){
   if(s==='saved'){el.textContent='✅ נשמר';el.className='save-status saved';}
   else if(s===''){el.textContent='שמור';el.className='save-status';}
   else{el.textContent=s;el.className='save-status';}
+}
+
+// ── ENRICHMENT TEMPLATES ──
+const ENRICH_TEMPLATES=[
+  {
+    id:'pairs',icon:'🔗',title:'תבנית א׳ — צמדים',
+    sub:'מושג ↔ הגדרה / מילה ↔ תמונה',
+    colA:'מושג / מילה',colB:'הגדרה / תמונה',
+    games:['מתיחת קו','משחק זיכרון','כרטיסיות','בינגו','תשבץ','תפזורת','כתב סתרים','גלה את המושג']
+  },
+  {
+    id:'qa',icon:'❓',title:'תבנית ב׳ — שאלה + תשובות',
+    sub:'שאלה עם תשובה נכונה ומסיחים (+ תמונה אופציונלית)',
+    colA:'שאלה',colB:'תשובה נכונה',hasDistractors:true,hasImage:true,
+    games:['טריוויה','מי רוצה להיות מיליונר','ג׳פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','גלה את התמונה','זום תמונה','פאזל']
+  },
+  {
+    id:'sequence',icon:'📅',title:'תבנית ג׳ — רצף ומבנה',
+    sub:'רשימת אירועים / משפטים לפי סדר',
+    colA:'אירוע / משפט',colB:'',
+    games:['ציר זמן','רצף אירועים','קלוז','השלמת משפטים','אירוע היסטורי']
+  },
+  {
+    id:'categories',icon:'🗂️',title:'תבנית ד׳ — קטגוריות וקשרים',
+    sub:'מיון לקטגוריות / מציאת קשר בין פריטים',
+    isCategories:true,
+    games:['מה קשור?','מה הקשר?','מיון וגרירה']
+  }
+];
+
+function renderEnrichmentTemplates(){
+  const wrap=document.getElementById('enrich-templates');
+  if(!wrap)return;
+  const enr=lessonData.enrichment||{};
+  wrap.innerHTML=ENRICH_TEMPLATES.map(t=>buildTemplateHTML(t,enr)).join('');
+}
+
+function buildTemplateHTML(t,enr){
+  const data=enr[t.id]||[];
+  const selectedGames=enr[t.id+'SelectedGames']||[];
+  const isOpen=data.length>0||selectedGames.length>0;
+
+  let inputsHTML='';
+  if(t.isCategories){
+    const cats=enr[t.id+'Cats']||[{name:'',items:''},{name:'',items:''}];
+    inputsHTML=`
+      <div style="font-size:.78rem;opacity:.5;margin-bottom:8px;">הגדירי קטגוריות ומילים:</div>
+      ${cats.map((c,ci)=>`
+        <div style="margin-bottom:10px;">
+          <input class="enrich-pair-input" style="margin-bottom:5px;" placeholder="שם קטגוריה ${ci+1}"
+            value="${esc(c.name||'')}" onchange="updateCat(${ci},'name',this.value)">
+          <input class="enrich-pair-input" placeholder="מילים (מופרדות בפסיק)"
+            value="${esc(c.items||'')}" onchange="updateCat(${ci},'items',this.value)">
+        </div>`).join('')}
+      <button class="enrich-add-btn" onclick="addCategory()">+ הוסף קטגוריה</button>`;
+  } else {
+    const rows=data.length?data:Array.from({length:5},()=>({a:'',b:'',img:''}));
+    inputsHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr${t.hasImage?' 80px':''};gap:6px;margin-bottom:6px;">
+        <div style="font-size:.7rem;opacity:.4;font-weight:700;">${t.colA}</div>
+        <div style="font-size:.7rem;opacity:.4;font-weight:700;">${t.colB||'—'}</div>
+        ${t.hasImage?'<div style="font-size:.7rem;opacity:.4;font-weight:700;">תמונה</div>':''}
+      </div>
+      <div class="enrich-pairs-list" id="pairs-${t.id}">
+        ${rows.map((r,ri)=>`
+          <div class="enrich-pair-row">
+            <div class="enrich-pair-num">${ri+1}</div>
+            <input class="enrich-pair-input" placeholder="${t.colA}..." value="${esc(r.a||'')}"
+              onchange="updateEnrichRow('${t.id}',${ri},'a',this.value)">
+            ${t.colB?`<input class="enrich-pair-input" placeholder="${t.colB}..." value="${esc(r.b||'')}"
+              onchange="updateEnrichRow('${t.id}',${ri},'b',this.value)">`:''}
+            ${t.hasImage?`<input class="enrich-pair-input" placeholder="URL תמונה" value="${esc(r.img||'')}"
+              onchange="updateEnrichRow('${t.id}',${ri},'img',this.value)" style="font-size:.72rem;">`:''}
+          </div>`).join('')}
+      </div>
+      ${t.hasDistractors?`
+        <div style="font-size:.72rem;opacity:.4;margin:8px 0 4px;">מסיחים (3 לכל שאלה — אופציונלי):</div>
+        <div style="font-size:.75rem;opacity:.55;margin-bottom:8px;">הזיני מסיחים מופרדים בפסיקים לאחר התשובה הנכונה בעמודה ב׳</div>`:''}
+      <button class="enrich-add-btn" onclick="addEnrichRow('${t.id}')">+ הוסף שורה</button>`;
+  }
+
+  const gamesHTML=`
+    <div class="enrich-games-title">בחרי משחקים לתלמידים:</div>
+    <div class="enrich-games-list">
+      ${t.games.map(g=>`<button class="enrich-game-chip ${selectedGames.includes(g)?'selected':''}"
+        onclick="toggleGame('${t.id}','${g}',this)">${g}</button>`).join('')}
+    </div>
+    ${selectedGames.length?`<div class="enrich-saved-games">${selectedGames.map(g=>`<span class="enrich-saved-chip">✓ ${g}</span>`).join('')}</div>`:''}
+    <button class="enrich-save-btn" onclick="saveEnrichTemplate('${t.id}')">💾 שמור תבנית</button>`;
+
+  return `<div class="enrich-template">
+    <div class="enrich-template-header" onclick="toggleEnrichTemplate('et-${t.id}',this)">
+      <span class="enrich-template-icon">${t.icon}</span>
+      <div>
+        <div class="enrich-template-title">${t.title}</div>
+        <div class="enrich-template-sub">${t.sub}</div>
+      </div>
+      <span style="opacity:.4;font-size:.75rem;" id="etch-${t.id}">${isOpen?'▲':'▼'}</span>
+    </div>
+    <div class="enrich-template-body${isOpen?' open':''}" id="et-${t.id}">
+      ${inputsHTML}
+      <div style="height:1px;background:rgba(109,40,217,.2);margin:12px 0;"></div>
+      ${gamesHTML}
+    </div>
+  </div>`;
+}
+
+function toggleEnrichTemplate(bodyId,header){
+  const body=document.getElementById(bodyId);
+  const id=bodyId.replace('et-','');
+  const ch=document.getElementById('etch-'+id);
+  const open=body.classList.toggle('open');
+  if(ch)ch.textContent=open?'▲':'▼';
+}
+
+function updateEnrichRow(tid,ri,field,val){
+  if(!lessonData.enrichment[tid]) lessonData.enrichment[tid]=[];
+  if(!lessonData.enrichment[tid][ri]) lessonData.enrichment[tid][ri]={a:'',b:'',img:''};
+  lessonData.enrichment[tid][ri][field]=val;
+}
+
+function addEnrichRow(tid){
+  if(!lessonData.enrichment[tid]) lessonData.enrichment[tid]=[];
+  lessonData.enrichment[tid].push({a:'',b:'',img:''});
+  renderEnrichmentTemplates();
+  // reopen this template
+  const body=document.getElementById('et-'+tid);
+  if(body){body.classList.add('open');const ch=document.getElementById('etch-'+tid);if(ch)ch.textContent='▲';}
+}
+
+function updateCat(ci,field,val){
+  if(!lessonData.enrichment.categoriesCats) lessonData.enrichment.categoriesCats=[];
+  if(!lessonData.enrichment.categoriesCats[ci]) lessonData.enrichment.categoriesCats[ci]={name:'',items:''};
+  lessonData.enrichment.categoriesCats[ci][field]=val;
+}
+
+function addCategory(){
+  if(!lessonData.enrichment.categoriesCats) lessonData.enrichment.categoriesCats=[];
+  lessonData.enrichment.categoriesCats.push({name:'',items:''});
+  renderEnrichmentTemplates();
+  const body=document.getElementById('et-categories');
+  if(body){body.classList.add('open');const ch=document.getElementById('etch-categories');if(ch)ch.textContent='▲';}
+}
+
+function toggleGame(tid,game,btn){
+  if(!lessonData.enrichment[tid+'SelectedGames']) lessonData.enrichment[tid+'SelectedGames']=[];
+  const arr=lessonData.enrichment[tid+'SelectedGames'];
+  const idx=arr.indexOf(game);
+  if(idx>=0){arr.splice(idx,1);btn.classList.remove('selected');}
+  else{arr.push(game);btn.classList.add('selected');}
+  setSaveStatus('שינויים לא שמורים');
+}
+
+function saveEnrichTemplate(tid){
+  setSaveStatus('שינויים לא שמורים');
+  // visual feedback
+  const btn=document.querySelector(`[onclick="saveEnrichTemplate('${tid}')"]`);
+  if(btn){btn.textContent='✅ נשמר';setTimeout(()=>{btn.textContent='💾 שמור תבנית';},2000);}
 }
 
 function trunc(s,n){return s&&s.length>n?s.substr(0,n)+'...':s||'';}
