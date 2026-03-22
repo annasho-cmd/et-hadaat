@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ניהול שיעור חי — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.18);
+  --border2:rgba(212,168,67,0.38);--green:#1a5c2a;--red:#8b2020;
+  --blue:#1d4ed8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;direction:rtl;}
+
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;color:#f87171;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#f87171;animation:blink 1.2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.btn{padding:8px 16px;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .18s;}
+.btn-ghost{background:none;border:1.5px solid var(--border2);color:var(--parch);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;}
+.btn-red{background:rgba(139,32,32,.25);border:1px solid rgba(139,32,32,.5);color:#f87171;}
+.btn-blue{background:rgba(29,78,216,.25);border:1px solid rgba(29,78,216,.5);color:#93c5fd;}
+.btn-purple{background:rgba(124,58,237,.25);border:1px solid rgba(124,58,237,.5);color:#c4b5fd;}
+.btn-sm{padding:5px 12px;font-size:.78rem;}
+
+.main{display:grid;grid-template-rows:auto 1fr;height:calc(100vh - 56px);}
+
+/* TOP: קרונות */
+.section-top{padding:14px 20px;border-bottom:1px solid var(--border);overflow-x:auto;}
+.section-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.4;margin-bottom:10px;}
+.stations-row{display:flex;gap:10px;min-width:max-content;}
+.station-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;min-width:110px;cursor:pointer;transition:all .18s;text-align:center;}
+.station-card:hover{border-color:var(--gold);}
+.station-card.active{border-color:var(--gold2);background:rgba(212,168,67,.1);}
+.station-card-name{font-size:.8rem;font-weight:700;margin-bottom:4px;}
+.station-card-count{font-size:1.4rem;font-weight:900;color:var(--gold2);}
+.station-card-label{font-size:.68rem;opacity:.45;}
+
+/* BOTTOM: תלמידים */
+.section-bottom{display:grid;grid-template-columns:1fr 320px;overflow:hidden;}
+
+/* LEFT: רשימת תלמידים */
+.students-panel{overflow-y:auto;padding:14px 20px;}
+.students-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+.student-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .18s;position:relative;}
+.student-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.student-card.connected{border-color:rgba(42,180,42,.4);}
+.student-card.selected{border-color:var(--gold2);background:rgba(212,168,67,.1);}
+.student-avatar{font-size:1.8rem;margin-bottom:6px;}
+.student-name{font-size:.8rem;font-weight:700;margin-bottom:3px;}
+.student-status{font-size:.68rem;opacity:.5;}
+.student-status.connected{color:#6ee7a0;opacity:1;}
+.connected-dot{width:8px;height:8px;border-radius:50%;background:#6ee7a0;position:absolute;top:8px;left:8px;animation:blink 2s infinite;}
+.student-station{font-size:.7rem;color:var(--gold);margin-top:2px;}
+
+/* RIGHT: פנל פרטי תלמיד / קרון */
+.detail-panel{border-right:1px solid var(--border);background:rgba(8,4,1,.7);overflow-y:auto;padding:16px;}
+.detail-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:14px;}
+.detail-empty{text-align:center;padding:40px 10px;opacity:.3;font-size:.85rem;}
+
+.answer-block{background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;}
+.answer-label{font-size:.7rem;font-weight:700;color:var(--gold);opacity:.6;margin-bottom:5px;}
+.answer-text{font-size:.85rem;line-height:1.55;direction:rtl;}
+.answer-empty{font-size:.8rem;opacity:.3;font-style:italic;}
+
+.station-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.filter-chip{padding:4px 10px;border-radius:14px;font-size:.72rem;font-weight:600;border:1px solid var(--border);background:rgba(253,245,224,.05);color:var(--parch);cursor:pointer;}
+.filter-chip.on{background:rgba(212,168,67,.2);border-color:var(--gold);color:var(--gold2);}
+
+/* FOCUS MODE */
+.focus-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.focus-overlay.active{display:flex;}
+.focus-timer{font-size:5rem;font-weight:900;color:var(--gold2);font-family:'Frank Ruhl Libre',serif;line-height:1;}
+.focus-label{font-size:1rem;opacity:.6;margin-bottom:30px;margin-top:8px;}
+.focus-msg{font-size:1.3rem;font-weight:700;color:var(--parch);margin-bottom:30px;}
+
+/* DISPLAY ALL */
+.display-answer{background:rgba(44,26,14,.95);border:2px solid var(--gold);border-radius:16px;padding:24px;max-width:600px;width:90%;text-align:center;}
+.display-answer-text{font-size:1.1rem;line-height:1.7;direction:rtl;margin-bottom:16px;}
+.display-answer-note{font-size:.78rem;opacity:.45;}
+
+.loading{text-align:center;padding:60px 20px;opacity:.4;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:1.5rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="live-badge"><span class="live-dot"></span>שיעור חי</div>
+    <div class="topbar-title" id="lesson-title">טוען...</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-purple btn-sm" onclick="focusMode()">👁 עיניים ללוח</button>
+    <button class="btn btn-blue btn-sm" onclick="displayForAll()">📺 הצג לכולם</button>
+    <button class="btn btn-red btn-sm" onclick="endLesson()">🏁 סיים שיעור</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- TOP: קרונות -->
+  <div class="section-top">
+    <div class="section-label">קרונות השיעור</div>
+    <div class="stations-row" id="stations-row">
+      <div class="loading"><span class="spin">⏳</span></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="section-bottom">
+    <!-- תלמידים -->
+    <div class="students-panel">
+      <div class="section-label" style="margin-bottom:10px;">
+        תלמידים (<span id="connected-count">0</span> מחוברים מתוך <span id="total-count">0</span>)
+      </div>
+      <div class="students-grid" id="students-grid">
+        <div class="loading"><span class="spin">⏳</span></div>
+      </div>
+    </div>
+
+    <!-- פנל פרטים -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-empty">לחצי על תלמיד או קרון לפרטים</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOCUS OVERLAY -->
+<div class="focus-overlay" id="focus-overlay">
+  <div class="focus-msg">👁 עיניים ללוח!</div>
+  <div class="focus-timer" id="focus-timer">2:00</div>
+  <div class="focus-label">דקות</div>
+  <button class="btn btn-gold" onclick="stopFocus()">שחרר תלמידים ←</button>
+</div>
+
+<!-- DISPLAY ALL OVERLAY -->
+<div class="focus-overlay" id="display-overlay">
+  <div class="display-answer" id="display-answer-box">
+    <div class="display-answer-text" id="display-answer-text"></div>
+    <div class="display-answer-note">התשובה מוצגת ללא שם</div>
+    <button class="btn btn-gold" style="margin-top:16px;" onclick="stopDisplay()">סגור ←</button>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+const params=new URLSearchParams(window.location.search);
+const subjectId=params.get('subject');
+const unitId=params.get('unit');
+const lessonIdx=parseInt(params.get('lesson')||'0');
+const groupId=params.get('group');
+
+let lessonData=null;
+let groupData=null;
+let allStudents=[];
+let connectedStudents={};
+let studentAnswers={};
+let allStations=[];
+let selectedStudentName=null;
+let selectedStationIdx=null;
+let focusInterval=null;
+
+// ── INIT ──
+window.onload=async function(){
+  // טען שיעור
+  const snap=await db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}`).once('value');
+  lessonData=snap.val();
+  if(!lessonData){document.getElementById('lesson-title').textContent='שיעור לא נמצא';return;}
+  document.getElementById('lesson-title').textContent=lessonData.topic||lessonData.name||'שיעור';
+
+  // טען קבוצה
+  const gSnap=await db.ref(`teacher/groups/${groupId}`).once('value');
+  groupData=gSnap.val();
+  if(!groupData){return;}
+  allStudents=groupData.students?Object.values(groupData.students):[];
+  document.getElementById('total-count').textContent=allStudents.length;
+
+  buildStations();
+  renderStationsRow();
+  renderStudentsGrid();
+  startListeners();
+};
+
+function buildStations(){
+  const d=lessonData.data||{};
+  allStations=[];
+  if(d.intro) d.intro.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'intro',si,slots,label:`פתיח ${si+1}`});
+  });
+  if(d.stations) d.stations.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'body',si,slots,label:`תחנה ${si+1}`});
+  });
+  if(d.closing) d.closing.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'closing',si,slots,label:`סיום ${si+1}`});
+  });
+}
+
+// ── RENDER STATIONS ──
+function renderStationsRow(){
+  const row=document.getElementById('stations-row');
+  if(!allStations.length){row.innerHTML='<div style="opacity:.35;font-size:.85rem;">אין תחנות בשיעור</div>';return;}
+  row.innerHTML=allStations.map((st,i)=>{
+    const count=Object.values(connectedStudents).filter(s=>s.currentStation===i).length;
+    return `<div class="station-card ${selectedStationIdx===i?'active':''}" onclick="selectStation(${i})">
+      <div class="station-card-name">${st.label}</div>
+      <div class="station-card-count">${count}</div>
+      <div class="station-card-label">תלמידים</div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER STUDENTS ──
+function renderStudentsGrid(){
+  const grid=document.getElementById('students-grid');
+  const connected=Object.keys(connectedStudents);
+  document.getElementById('connected-count').textContent=connected.length;
+
+  if(!allStudents.length){
+    grid.innerHTML='<div style="opacity:.35;font-size:.85rem;">אין תלמידים בקבוצה</div>';
+    return;
+  }
+
+  grid.innerHTML=allStudents.map(s=>{
+    const name=typeof s==='string'?s:(s.name||s.firstName+' '+s.lastName||'');
+    const isConn=connected.includes(name);
+    const info=connectedStudents[name];
+    const stLabel=info&&allStations[info.currentStation]?allStations[info.currentStation].label:'';
+    return `<div class="student-card ${isConn?'connected':''} ${selectedStudentName===name?'selected':''}"
+      onclick="selectStudent('${name.replace(/'/g,"\\'")}')">
+      ${isConn?'<span class="connected-dot"></span>':''}
+      <div class="student-avatar">👤</div>
+      <div class="student-name">${name}</div>
+      <div class="student-status ${isConn?'connected':''}">
+        ${isConn?'🟢 מחובר':'⚪ לא מחובר'}
+      </div>
+      ${stLabel?`<div class="student-station">${stLabel}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── LISTENERS ──
+function startListeners(){
+  // האזן לנתוני תלמידים בזמן אמת
+  const answersPath=`studentAnswers/${groupData.code}`;
+  db.ref(answersPath).on('value',snap=>{
+    studentAnswers=snap.val()||{};
+    // עדכן מי מחובר לפי זמן עדכון אחרון
+    const now=Date.now();
+    connectedStudents={};
+    Object.entries(studentAnswers).forEach(([name,data])=>{
+      if(data.lastSeen && now-data.lastSeen<120000){
+        connectedStudents[name]={
+          currentStation:data.currentStation||0,
+          ...data
+        };
+      }
+    });
+    renderStationsRow();
+    renderStudentsGrid();
+    if(selectedStudentName) showStudentDetail(selectedStudentName);
+    if(selectedStationIdx!==null) showStationDetail(selectedStationIdx);
+  });
+
+  // שלח heartbeat לתלמידים שיעדכנו מיקום
+  db.ref('teacher/liveLesson').update({active:true,timestamp:Date.now()});
+}
+
+// ── SELECT STUDENT ──
+function selectStudent(name){
+  selectedStudentName=name;
+  selectedStationIdx=null;
+  renderStudentsGrid();
+  showStudentDetail(name);
+}
+
+function showStudentDetail(name){
+  const panel=document.getElementById('detail-panel');
+  const data=studentAnswers[name]||{};
+  const isConn=Object.keys(connectedStudents).includes(name);
+  const stIdx=connectedStudents[name]?.currentStation||0;
+  const stLabel=allStations[stIdx]?.label||'';
+
+  let html=`<div class="detail-title">👤 ${name}</div>
+    <div style="font-size:.78rem;margin-bottom:12px;">
+      <span style="color:${isConn?'#6ee7a0':'#888'}">${isConn?'🟢 מחובר':'⚪ לא מחובר'}</span>
+      ${isConn&&stLabel?` · נמצא ב${stLabel}`:''}
+    </div>`;
+
+  // הצג תשובות לפי תחנות
+  const lessonAnswers=data[`lesson_${lessonIdx}`]||{};
+  if(!Object.keys(lessonAnswers).length){
+    html+=`<div class="detail-empty">אין תשובות עדיין</div>`;
+  } else {
+    allStations.forEach((st,stI)=>{
+      const stAnswers=Object.entries(lessonAnswers)
+        .filter(([k])=>k.startsWith(`station_${stI}_`));
+      if(!stAnswers.length)return;
+      html+=`<div style="font-size:.72rem;font-weight:700;color:var(--gold);opacity:.6;margin:10px 0 6px;text-transform:uppercase;">${st.label}</div>`;
+      stAnswers.forEach(([k,v])=>{
+        html+=`<div class="answer-block">
+          <div class="answer-text">${v.answer||'<span class="answer-empty">ריק</span>'}</div>
+          <button class="btn btn-blue btn-sm" style="margin-top:8px;"
+            onclick="displayAnswerForAll('${esc(v.answer||'')}')">📺 הצג לכולם</button>
+        </div>`;
+      });
+    });
+  }
+
+  panel.innerHTML=html;
+}
+
+// ── SELECT STATION ──
+function selectStation(idx){
+  selectedStationIdx=idx;
+  selectedStudentName=null;
+  renderStationsRow();
+  renderStudentsGrid();
+  showStationDetail(idx);
+}
+
+function showStationDetail(idx){
+  const panel=document.getElementById('detail-panel');
+  const st=allStations[idx];
+  if(!st){return;}
+
+  const studentsInStation=Object.entries(connectedStudents)
+    .filter(([,d])=>d.currentStation===idx)
+    .map(([name])=>name);
+
+  let html=`<div class="detail-title">${st.label}</div>
+    <div style="font-size:.78rem;margin-bottom:12px;opacity:.5;">${studentsInStation.length} תלמידים בתחנה</div>`;
+
+  if(!studentsInStation.length){
+    html+=`<div class="detail-empty">אין תלמידים בתחנה זו כרגע</div>`;
+  } else {
+    studentsInStation.forEach(name=>{
+      html+=`<div class="student-card" style="margin-bottom:8px;text-align:right;padding:10px 12px;" onclick="selectStudent('${name.replace(/'/g,"\\'")}')">
+        <span style="font-size:.85rem;font-weight:700;">👤 ${name}</span>
+      </div>`;
+    });
+  }
+
+  panel.innerHTML=html;
+}
+
+// ── FOCUS MODE ──
+let focusSecondsLeft=120;
+function focusMode(){
+  focusSecondsLeft=120;
+  document.getElementById('focus-timer').textContent='2:00';
+  document.getElementById('focus-overlay').classList.add('active');
+  db.ref('teacher/liveLesson').update({focusMode:true,focusUntil:Date.now()+120000});
+  focusInterval=setInterval(()=>{
+    focusSecondsLeft--;
+    const m=Math.floor(focusSecondsLeft/60);
+    const s=focusSecondsLeft%60;
+    document.getElementById('focus-timer').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+    if(focusSecondsLeft<=0)stopFocus();
+  },1000);
+}
+
+function stopFocus(){
+  clearInterval(focusInterval);
+  document.getElementById('focus-overlay').classList.remove('active');
+  db.ref('teacher/liveLesson').update({focusMode:false});
+}
+
+// ── DISPLAY FOR ALL ──
+function displayForAll(){
+  // הצג את תשובת התלמיד הנבחר
+  if(!selectedStudentName){alert('בחרי תלמיד תחילה');return;}
+  const data=studentAnswers[selectedStudentName]||{};
+  const lessonAnswers=data[`lesson_${lessonIdx}`]||{};
+  const answers=Object.values(lessonAnswers);
+  if(!answers.length){alert('אין תשובות לתלמיד זה');return;}
+  const lastAnswer=answers[answers.length-1];
+  displayAnswerForAll(lastAnswer.answer||'');
+}
+
+function displayAnswerForAll(text){
+  document.getElementById('display-answer-text').textContent=text;
+  document.getElementById('display-overlay').classList.add('active');
+  db.ref('teacher/liveLesson').update({displayAnswer:text,displayActive:true});
+  // נקודות לתלמיד
+  if(selectedStudentName){
+    db.ref(`studentAnswers/${groupData.code}/${selectedStudentName}/points`)
+      .transaction(p=>(p||0)+10);
+  }
+}
+
+function stopDisplay(){
+  document.getElementById('display-overlay').classList.remove('active');
+  db.ref('teacher/liveLesson').update({displayActive:false,displayAnswer:''});
+}
+
+// ── END LESSON ──
+async function endLesson(){
+  if(!confirm('לסיים את השיעור החי?'))return;
+  await db.ref('teacher/liveLesson').set({active:false});
+  window.close();
+}
+
+function esc(s){return String(s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>

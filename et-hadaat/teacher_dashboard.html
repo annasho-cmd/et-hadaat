@@ -567,6 +567,45 @@ let currentFrontalTab = 's1';
 let selectedStudent = null;
 let studentsData = {};
 let dbListener = null;
+let currentLiveLesson = null;
+
+// ── LIVE LESSON ──
+async function startLiveLesson(groupId, lessonId, lessonIdx){
+  const subj=subjects.find(s=>s.id===currentSubject?.id);
+  const unit=(subj?.units||[]).find(u=>u.id===currentUnit?.id);
+  const lesson=(unit?.lessons||[])[lessonIdx];
+  if(!lesson)return;
+  currentLiveLesson={groupId,lessonId,lessonIdx};
+  await db.ref('teacher/liveLesson').set({
+    active:true,
+    groupId,lessonId,lessonIdx,
+    subjectId:currentSubject.id,
+    unitId:currentUnit.id,
+    topic:lesson.topic||lesson.name||'',
+    startedAt:Date.now()
+  });
+  // פתח live_lesson.html בטאב חדש
+  const base=window.location.href.split('?')[0].replace('teacher_dashboard.html','live_lesson.html');
+  const a=document.createElement('a');
+  a.href=`${base}?subject=${currentSubject.id}&unit=${currentUnit.id}&lesson=${lessonIdx}&group=${groupId}`;
+  a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  renderUnitGroups();
+}
+
+async function stopLiveLesson(groupId, lessonId){
+  currentLiveLesson=null;
+  await db.ref('teacher/liveLesson').set({active:false});
+  renderUnitGroups();
+}
+
+// האזנה לסיום שיעור חי (כשנסגר מ-live_lesson.html)
+db.ref('teacher/liveLesson/active').on('value',snap=>{
+  if(snap.val()===false && currentLiveLesson){
+    currentLiveLesson=null;
+    renderUnitGroups();
+  }
+});
 
 // ══════════════════════════════════════
 // FIREBASE PERSISTENCE
@@ -778,16 +817,23 @@ function renderUnitGroups() {
     const lessons = currentUnit.lessons || [];
     const card = document.createElement('div');
     card.className = 'group-assign-card';
-    const togglesHtml = lessons.map(l => {
+    const togglesHtml = lessons.map((l,li) => {
       const isOpen = (states[l.id] || 'locked') === 'open';
       const gameOpen = (states[l.id + '_game'] || 'locked') === 'open';
+      const isBuilderLesson = l.topic !== undefined;
+      const isLive = currentLiveLesson && currentLiveLesson.lessonId === l.id && currentLiveLesson.groupId === gid;
       return `<div class="lesson-toggle">
-        <span class="lt-name">${l.name}</span>
+        <span class="lt-name">${l.topic||l.name}</span>
         <button class="toggle-btn ${isOpen?'open':'locked'}"
           onclick="toggleLesson('${gid}','${l.id}')">
           ${isOpen ? '✅ פתוח' : '🔒 נעול'}
         </button>
-        ${isOpen && l.dbKey ? `<button class="btn-watch" onclick="watchStudents('${gid}','${l.id}')">👁</button>` : ''}
+        ${isOpen && isBuilderLesson ? `
+          <button class="toggle-btn ${isLive?'open':'locked'}" style="margin-right:4px;"
+            onclick="${isLive?`stopLiveLesson('${gid}','${l.id}')`:`startLiveLesson('${gid}','${l.id}',${li})`}">
+            ${isLive ? '🔴 פעיל — עצור' : '▶ הפעל'}
+          </button>` : ''}
+        ${isOpen && !isBuilderLesson && l.dbKey ? `<button class="btn-watch" onclick="watchStudents('${gid}','${l.id}')">👁</button>` : ''}
         ${l.gameCode ? `<button class="toggle-btn ${gameOpen?'open':'locked'}" style="margin-right:4px;"
           onclick="toggleLesson('${gid}','${l.id}_game')">
           🎮 ${gameOpen ? 'פתוח' : 'נעול'}
