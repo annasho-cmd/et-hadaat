@@ -1131,6 +1131,46 @@ function setSlot(section, si, sli, data){
 function buildSlotEditor(slot, section, si, sli, uid){
   if(!slot?.type)return `<div style="font-size:.75rem;opacity:.45;text-align:center;padding:6px;">בחרי פריט מבנק הפריטים ←</div>`;
   const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
+
+  // ── טבלת מיון ──
+  if(slot.type==='sort_table'){
+    const tableData=slot.tableData||{cols:[{name:'עמודה 1'},{name:'עמודה 2'},{name:'עמודה 3'}],items:[{text:'',answer:0}]};
+    const colsHtml=tableData.cols.map((c,ci)=>`
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+        <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;"
+          placeholder="שם עמודה ${ci+1}" value="${esc(c.name||'')}"
+          onchange="updateTableCol('${section}',${si},${sli},${ci},this.value)">
+        <button onclick="removeTableCol('${section}',${si},${sli},${ci})"
+          style="padding:2px 7px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:4px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>
+      </div>`).join('');
+    const itemsHtml=tableData.items.map((item,ii)=>`
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+        <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;"
+          placeholder="פריט ${ii+1}" value="${esc(item.text||'')}"
+          onchange="updateTableItem('${section}',${si},${sli},${ii},'text',this.value)">
+        <select style="background:rgba(20,10,2,.9);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.78rem;padding:4px 6px;"
+          onchange="updateTableItem('${section}',${si},${sli},${ii},'answer',parseInt(this.value))">
+          ${tableData.cols.map((c,ci)=>`<option value="${ci}" ${item.answer===ci?'selected':''}>${c.name||'עמודה '+(ci+1)}</option>`).join('')}
+        </select>
+        <button onclick="removeTableItem('${section}',${si},${sli},${ii})"
+          style="padding:2px 7px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:4px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>
+      </div>`).join('');
+    return `<div class="inline-editor-title">📊 טבלת מיון</div>
+      <div style="font-size:.72rem;opacity:.45;margin-bottom:8px;">הגדירי עמודות, פריטים ותשובות נכונות</div>
+      <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:5px;">עמודות (קטגוריות):</div>
+      ${colsHtml}
+      <button onclick="addTableCol('${section}',${si},${sli})"
+        style="padding:4px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border2);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;margin-bottom:10px;">+ הוסף עמודה</button>
+      <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:5px;">פריטים למיון + תשובה נכונה:</div>
+      ${itemsHtml}
+      <button onclick="addTableItem('${section}',${si},${sli})"
+        style="padding:4px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border2);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;margin-bottom:10px;">+ הוסף פריט</button>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveTableData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   const isUrl=slot.type==='video'||slot.type==='image';
   const field=isUrl
     ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;" 
@@ -1145,6 +1185,7 @@ function buildSlotEditor(slot, section, si, sli, uid){
     </div>`;
 }
 
+// ── TABLE SORT EDITOR ──
 function saveSlotContent(section, si, sli, uid){
   const f=document.getElementById('ef-'+uid);
   if(!f)return;
@@ -1152,6 +1193,59 @@ function saveSlotContent(section, si, sli, uid){
   setSaveStatus('שינויים לא שמורים');
   renderLessonStructure();
   setTimeout(()=>selectSlot(section,si,sli),30);
+}
+
+function getTableData(section,si,sli){
+  const slot=getSlot(section,si,sli);
+  return slot?.tableData||{cols:[{name:'עמודה 1'},{name:'עמודה 2'},{name:'עמודה 3'}],items:[]};
+}
+function setTableData(section,si,sli,td){
+  setSlot(section,si,sli,{tableData:td});
+}
+function saveTableData(section,si,sli){
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function addTableCol(section,si,sli){
+  const td=getTableData(section,si,sli);
+  td.cols.push({name:'עמודה '+(td.cols.length+1)});
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function removeTableCol(section,si,sli,ci){
+  const td=getTableData(section,si,sli);
+  if(td.cols.length<=1)return;
+  td.cols.splice(ci,1);
+  td.items=td.items.map(it=>({...it,answer:Math.min(it.answer,td.cols.length-1)}));
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function addTableItem(section,si,sli){
+  const td=getTableData(section,si,sli);
+  td.items.push({text:'',answer:0});
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function removeTableItem(section,si,sli,ii){
+  const td=getTableData(section,si,sli);
+  td.items.splice(ii,1);
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function updateTableCol(section,si,sli,ci,val){
+  const td=getTableData(section,si,sli);
+  if(td.cols[ci])td.cols[ci].name=val;
+  setTableData(section,si,sli,td);
+}
+function updateTableItem(section,si,sli,ii,field,val){
+  const td=getTableData(section,si,sli);
+  if(td.items[ii])td.items[ii][field]=val;
+  setTableData(section,si,sli,td);
 }
 
 function clearSlot(section, si, sli, uid){
@@ -1209,79 +1303,6 @@ function toggleSection(bodyId,header){
   const wasOpen=body.classList.contains('open');
   body.classList.toggle('open',!wasOpen);
   if(chevron){chevron.textContent=wasOpen?'▼':'▲';chevron.classList.toggle('open',!wasOpen);}
-}
-
-// ── ROW SELECTION ──
-function selectRow(section,ri,si){
-  // close previous editor
-  if(activeRow){
-    const pid=rowId(activeRow.section,activeRow.ri,activeRow.si);
-    document.getElementById(pid)?.classList.remove('active');
-    const ped=document.getElementById('ed-'+pid);
-    if(ped)ped.style.display='none';
-  }
-  activeRow={section,ri,si};
-  const uid=rowId(section,ri,si);
-  document.getElementById(uid)?.classList.add('active');
-
-  const row=getRow(section,ri,si);
-  const edEl=document.getElementById('ed-'+uid);
-  if(edEl){edEl.style.display='block';edEl.innerHTML=buildEditor(row,section,ri,si,uid);}
-
-  switchSideTab('bank');
-  const item=ITEM_BANK.find(b=>b.type===row?.type);
-  document.getElementById('bank-hint').textContent=
-    row?.type?`סוג נוכחי: ${item?.name||row.type} — בחרי פריט אחר להחלפה`:'בחרי פריט מהבנק עבור שורה זו';
-}
-
-function getRow(section,ri,si){
-  if(section==='stations')return lessonData.stations[si]?.[ri];
-  if(section==='intro')return lessonData.intro[ri];
-  if(section==='closing')return lessonData.closing[ri];
-  if(section==='enrichment')return lessonData.enrichment[ri];
-}
-
-function setRow(section,ri,si,data){
-  if(section==='stations'){if(lessonData.stations[si])lessonData.stations[si][ri]={...lessonData.stations[si][ri],...data};}
-  else if(section==='intro')lessonData.intro[ri]={...lessonData.intro[ri],...data};
-  else if(section==='closing')lessonData.closing[ri]={...lessonData.closing[ri],...data};
-  else if(section==='enrichment')lessonData.enrichment[ri]={...lessonData.enrichment[ri],...data};
-}
-
-function buildEditor(row,section,ri,si,uid){
-  if(!row?.type)return `<div class="inline-editor-title">בחרי פריט מבנק הפריטים ←</div>`;
-  const item=ITEM_BANK.find(b=>b.type===row.type);
-  const isUrl=row.type==='video'||row.type==='image';
-  const field=isUrl
-    ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;" placeholder="${row.type==='video'?'קישור YouTube...':'קישור לתמונה...'}" value="${esc(row.content||'')}">`
-    :`<textarea class="inline-field" id="ef-${uid}" placeholder="הכניסי תוכן...">${esc(row.content||'')}</textarea>`;
-  return `<div class="inline-editor-title">${item?.icon} ${item?.name}</div>
-    ${field}
-    <div class="editor-btns">
-      <button class="btn btn-ghost btn-sm" onclick="clearRowItem('${section}',${ri},${si===null?'null':si},'${uid}')">נקי</button>
-      <button class="btn btn-ghost btn-sm" onclick="askRowAI('${uid}','${section}',${ri},${si===null?'null':si})">🤖 עוזר</button>
-      <button class="btn btn-gold btn-sm" onclick="saveRowContent('${section}',${ri},${si===null?'null':si},'${uid}')">שמור ←</button>
-    </div>`;
-}
-
-function saveRowContent(section,ri,si,uid){
-  const f=document.getElementById('ef-'+uid);
-  if(!f)return;
-  setRow(section,ri,si,{content:f.value.trim()});
-  setSaveStatus('שינויים לא שמורים');
-  renderLessonStructure();
-  setTimeout(()=>selectRow(section,ri,si),30);
-}
-
-function clearRowItem(section,ri,si,uid){
-  setRow(section,ri,si,{type:null,content:'',audience:'all'});
-  activeRow=null;
-  renderLessonStructure();
-}
-
-function setAud(ri,si,aud){
-  if(lessonData.stations[si])lessonData.stations[si][ri].audience=aud;
-  renderLessonStructure();
 }
 
 // ── STEP NAVIGATION ──

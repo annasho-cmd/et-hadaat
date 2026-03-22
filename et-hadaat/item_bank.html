@@ -314,6 +314,14 @@ const DEFAULT_ITEMS=[
   {id:'riddles_hevhee', cat:3, icon:'🎭', name:'חידות הוא והיא',  desc:'', styles:[], usedIn:['body','enrichment']},
   // ── קטגוריה 4: גילוי מיון והתאמה ──
   {id:'sort_rel',  cat:4, icon:'🔗', name:'מיון — מה הקשר?',       desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'sort_table',cat:4, icon:'📊', name:'טבלת מיון',
+    desc:'התלמיד גורר פריטים לעמודות הנכונות בטבלה. המורה מגדירה קטגוריות, פריטים ומחוון תשובות. הפריטים מוצגים בסדר אקראי.',
+    styles:[
+      {name:'מיון לקטגוריות', desc:'גרירת פריטים לעמודות (למשל ספרי תנ"ך לתורה/נביאים/כתובים)'},
+      {name:'מיון לקבוצות', desc:'מיון מושגים, דמויות או אירועים לפי תקופה/נושא'},
+      {name:'מיון עם טעויות', desc:'טבלה עם ערכים מוטמעים — התלמיד מזהה ומתקן'},
+    ],
+    usedIn:['intro','body','enrichment']},
   {id:'sort_cloze',cat:4, icon:'✍️', name:'מיון וגרירה — קלוז',   desc:'', styles:[], usedIn:['body']},
   {id:'timeline',  cat:4, icon:'📅', name:'מיון וגרירה — ציר הזמן',desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'sort_seq',  cat:4, icon:'🔢', name:'מיון וגרירה — רצף אירועים',desc:'', styles:[], usedIn:['body','enrichment']},

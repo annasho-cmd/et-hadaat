@@ -68,7 +68,23 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .btn-next:disabled{opacity:.4;cursor:not-allowed;}
 .station-counter{font-size:.78rem;opacity:.45;}
 
-/* LOADING */
+/* SORT TABLE */
+.sort-wrap{display:grid;grid-template-columns:1fr 180px;gap:12px;align-items:start;}
+.sort-table-area{overflow-x:auto;}
+.sort-table{width:100%;border-collapse:collapse;}
+.sort-table th{background:rgba(212,168,67,.15);border:1px solid var(--border2);padding:8px 10px;font-size:.82rem;font-weight:700;color:var(--gold2);text-align:center;}
+.sort-table td{border:1px solid var(--border);padding:6px;vertical-align:top;min-height:40px;min-width:90px;}
+.sort-cell{min-height:36px;border-radius:6px;padding:4px;}
+.sort-cell.drag-over{background:rgba(212,168,67,.15);outline:2px dashed var(--gold);}
+.sort-chip{background:rgba(44,26,14,.9);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:.8rem;margin:3px;cursor:grab;display:inline-block;user-select:none;transition:all .15s;}
+.sort-chip:hover{border-color:var(--gold);}
+.sort-chip.correct{background:rgba(26,92,42,.4);border-color:#6ee7a0;color:#6ee7a0;}
+.sort-chip.wrong{background:rgba(139,32,32,.3);border-color:#f87171;color:#f87171;}
+.sort-bank{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;padding:10px;}
+.sort-bank-title{font-size:.72rem;font-weight:700;opacity:.45;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
+.sort-bank-items{display:flex;flex-direction:column;gap:4px;}
+.btn-check{padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;margin-top:10px;width:100%;}
+.sort-result{font-size:.82rem;margin-top:8px;text-align:center;font-weight:700;}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;opacity:.4;}
 .spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:2rem;margin-bottom:12px;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -220,6 +236,10 @@ function buildSlotBlock(slot,stIdx,sli){
 
   let html=`<div class="slot-type-label">${typeInfo.label}</div>`;
 
+  if(slot.type==='sort_table'){
+    return buildSortTable(slot, stIdx, sli);
+  }
+
   if(slot.type==='image'){
     html+=`<img class="slot-image" src="${esc(slot.content||'')}" alt="תמונה">`;
   } else if(slot.type==='video'){
@@ -244,11 +264,116 @@ function buildSlotBlock(slot,stIdx,sli){
   return block;
 }
 
+function buildSortTable(slot, stIdx, sli){
+  const block=document.createElement('div');
+  block.className='slot-block';
+  const td=slot.tableData;
+  if(!td||!td.cols||!td.items){
+    block.innerHTML='<div style="opacity:.4;font-size:.85rem;">טבלת המיון אינה מוגדרת</div>';
+    return block;
+  }
+
+  // ערבוב פריטים
+  const shuffled=[...td.items.map((it,i)=>({...it,origIdx:i}))].sort(()=>Math.random()-.5);
+
+  const id=`st-${stIdx}-${sli}`;
+
+  // בניית טבלה
+  const colsHtml=td.cols.map((c,ci)=>`<th>${c.name}</th>`).join('');
+  // מספר שורות = כמות הפריטים / עמודות (לפחות 1)
+  const rows=Math.ceil(td.items.length/td.cols.length)||1;
+  let tableRows='';
+  for(let r=0;r<rows;r++){
+    tableRows+=`<tr>${td.cols.map((_,ci)=>`<td><div class="sort-cell" id="${id}-cell-${r}-${ci}"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="dropChip(event,'${id}',${r},${ci})"></div></td>`).join('')}</tr>`;
+  }
+
+  const bankHtml=shuffled.map(it=>`
+    <div class="sort-chip" draggable="true" id="${id}-chip-${it.origIdx}"
+      data-idx="${it.origIdx}" data-answer="${it.answer}"
+      ondragstart="dragChip(event,'${id}',${it.origIdx})">
+      ${esc(it.text)}
+    </div>`).join('');
+
+  block.innerHTML=`
+    <div class="slot-type-label">📊 טבלת מיון</div>
+    <div class="sort-wrap">
+      <div class="sort-table-area">
+        <table class="sort-table">
+          <thead><tr>${colsHtml}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <button class="btn-check" onclick="checkSortTable('${id}',${stIdx},${sli})">בדוק ✓</button>
+        <div class="sort-result" id="${id}-result"></div>
+      </div>
+      <div class="sort-bank">
+        <div class="sort-bank-title">פריטים למיון</div>
+        <div class="sort-bank-items" id="${id}-bank">${bankHtml}</div>
+      </div>
+    </div>`;
+
+  // שמירת מידע לבדיקה
+  block.dataset.tableId=id;
+  block.dataset.cols=td.cols.length;
+  return block;
+}
+
+// ── DRAG & DROP ──
+let dragInfo={};
+function dragChip(event,tableId,idx){
+  dragInfo={tableId,idx};
+  event.dataTransfer.setData('text/plain',`${tableId}|${idx}`);
+}
+
+function dropChip(event,tableId,row,col){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const data=event.dataTransfer.getData('text/plain').split('|');
+  const fromTable=data[0];
+  const chipIdx=parseInt(data[1]);
+  const chip=document.getElementById(`${fromTable}-chip-${chipIdx}`);
+  if(!chip)return;
+
+  // הסר מהמיקום הקודם (החזר לבנק אם צריך)
+  const cell=event.currentTarget;
+  cell.appendChild(chip);
+}
+
+function checkSortTable(tableId, stIdx, sli){
+  const cells=document.querySelectorAll(`[id^="${tableId}-cell-"]`);
+  let correct=0, total=0;
+  cells.forEach(cell=>{
+    const chips=cell.querySelectorAll('.sort-chip');
+    const ci=parseInt(cell.id.split('-').pop());
+    chips.forEach(chip=>{
+      total++;
+      const correctCol=parseInt(chip.dataset.answer);
+      if(correctCol===ci){correct++;chip.classList.add('correct');chip.classList.remove('wrong');}
+      else{chip.classList.add('wrong');chip.classList.remove('correct');}
+    });
+  });
+  const result=document.getElementById(`${tableId}-result`);
+  if(result){
+    if(total===0){result.textContent='גררי פריטים לטבלה תחילה';return;}
+    result.textContent=correct===total
+      ?`✅ מצוין! כל ${total} הפריטים נכונים!`
+      :`${correct}/${total} נכון — נסי שוב`;
+    result.style.color=correct===total?'#6ee7a0':'#f59e0b';
+  }
+  // שמירה ב-Firebase
+  if(studentName&&classCode){
+    db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
+      correct,total,timestamp:Date.now(),lessonTopic:lessonData.topic||''
+    });
+  }
+}
+
 function saveAnswer(stIdx,sli,uid){
   const val=document.getElementById(uid)?.value.trim();
   if(!val)return;
   answers[`${stIdx}-${sli}`]=val;
-  // שמירה ב-Firebase
   if(studentName&&classCode){
     db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
       answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
