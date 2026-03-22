@@ -311,7 +311,14 @@ const DEFAULT_ITEMS=[
   {id:'wordsearch',cat:4, icon:'🔤', name:'תפזורת',                desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'pic_riddle',cat:4, icon:'🎨', name:'חידות בציורים — מהו המושג?',desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'rev_concept',cat:4,icon:'🔍', name:'גלה את המושג',           desc:'', styles:[], usedIn:['body','enrichment']},
-  {id:'hid_details',cat:4,icon:'🕵️',name:'גלה את הפרטים המסתתרים בתמונה',desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'mark_image', cat:4, icon:'🖱️', name:'סמן על תמונה',
+    desc:'התלמיד לוחץ על אזורים בתמונה לפי המשימה. המורה מגדירה תמונה, אזורי יעד וסוג המשימה.',
+    styles:[
+      {name:'גלה פרטים', desc:'התלמיד מוצא פרטים נסתרים בתמונה'},
+      {name:'מצא טעויות', desc:'התלמיד מזהה תאים/אזורים שגויים בטבלה או תמונה'},
+      {name:'זהה מיקום', desc:'התלמיד סומן מיקום ספציפי על מפה או תרשים'},
+    ],
+    usedIn:['body','enrichment']},
 ];
 
 let bankItems=[];
