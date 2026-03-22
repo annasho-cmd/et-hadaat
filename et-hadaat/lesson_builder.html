@@ -1190,8 +1190,14 @@ function buildSlotEditor(slot, section, si, sli, uid){
 
   const isUrl=slot.type==='video'||slot.type==='image';
   const field=isUrl
-    ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;" 
-        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה...'}" value="${esc(slot.content||'')}">`
+    ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;"
+        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה או Google Drive...'}"
+        value="${esc(slot.content||'')}" oninput="convertDriveLink('ef-${uid}')">
+      ${slot.type==='image'?`<div style="font-size:.7rem;opacity:.4;margin-top:4px;line-height:1.5;">
+        💡 Google Drive: שיתוף ← "כל מי שיש לו קישור" ← העתיקי את ה-ID מהקישור והכניסי:<br>
+        <span style="font-family:monospace;opacity:.6;">https://drive.google.com/uc?export=view&id=<b>ID</b></span>
+      </div>`:''}
+      ${slot.type==='image'&&slot.content?`<img src="${esc(slot.content)}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:8px;object-fit:contain;" onerror="this.style.display='none'">`:''}` 
     :`<textarea class="inline-field" id="ef-${uid}" placeholder="הכניסי תוכן...">${esc(slot.content||'')}</textarea>`;
   return `<div class="inline-editor-title">${bankItem?.icon||''} ${bankItem?.name||slot.type}</div>
     ${field}
@@ -1203,6 +1209,17 @@ function buildSlotEditor(slot, section, si, sli, uid){
 }
 
 // ── TABLE SORT EDITOR ──
+function convertDriveLink(inputId){
+  const inp=document.getElementById(inputId);
+  if(!inp)return;
+  const val=inp.value.trim();
+  // המרת קישור Drive רגיל לקישור תמונה ישיר
+  const m=val.match(/\/file\/d\/([^\/\?]+)/);
+  if(m&&!val.includes('uc?export')){
+    inp.value=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+  }
+}
+
 function saveSlotContent(section, si, sli, uid){
   const f=document.getElementById('ef-'+uid);
   if(!f)return;
