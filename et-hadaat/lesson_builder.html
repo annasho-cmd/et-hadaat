@@ -688,13 +688,19 @@ function showExistingUnits(){
 
 async function deleteUnit(unitId, unitName){
   if(!confirm('למחוק את היחידה "'+unitName+'"?\nכל השיעורים בתוכה יימחקו גם כן.'))return;
-  await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
-  // עדכון זיכרון
-  if(teacherData.subjects[currentSubject.id]?.units){
-    delete teacherData.subjects[currentSubject.id].units[unitId];
-    currentSubject=teacherData.subjects[currentSubject.id];
+  try{
+    await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
+    // עדכון זיכרון — בטוח
+    if(teacherData?.subjects?.[currentSubject.id]?.units){
+      delete teacherData.subjects[currentSubject.id].units[unitId];
+    }
+    if(currentSubject?.units){
+      delete currentSubject.units[unitId];
+    }
+    showExistingUnits();
+  }catch(e){
+    alert('שגיאה במחיקה: '+e.message);
   }
-  showExistingUnits();
 }
 
 function openExistingUnit(unit){
