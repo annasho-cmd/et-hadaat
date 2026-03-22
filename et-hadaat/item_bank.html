@@ -196,7 +196,6 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-delete" onclick="editFromView()">✏️ ערכי פריט</button>
       <button class="btn-cancel" onclick="closeModal('view-modal')">סגור</button>
       <button class="btn-save" onclick="saveItemNotes()">💾 שמור הערות</button>
     </div>
@@ -296,7 +295,7 @@ const DEFAULT_ITEMS=[
   {id:'flashcard', cat:3, icon:'📇', name:'כרטיסיות — שאלה תשובה',desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'quiz',      cat:3, icon:'📋', name:'קוויז',                 desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'board',     cat:3, icon:'🎲', name:'משחק מסלול',            desc:'', styles:[], usedIn:['body','enrichment']},
-  {id:'jeopardy',  cat:3, icon:'📊', name:'טריוויה — ג׳פרדי',     desc:'', styles:[], usedIn:['body','enrichment']},
+  {id:'riddles_hevhee', cat:3, icon:'🎭', name:'חידות הוא והיא',  desc:'', styles:[], usedIn:['body','enrichment']},
   // ── קטגוריה 4: גילוי מיון והתאמה ──
   {id:'sort_rel',  cat:4, icon:'🔗', name:'מיון — מה הקשר?',       desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'sort_cloze',cat:4, icon:'✍️', name:'מיון וגרירה — קלוז',   desc:'', styles:[], usedIn:['body']},
@@ -357,7 +356,7 @@ function renderBank(){
     <div class="items-grid">
       ${items.map(item=>`
         <div class="item-cube ${cat.cls}" onclick="openViewModal('${item.id}')">
-          <button class="cube-edit" onclick="event.stopPropagation();openEditModal('${item.id}')">✏️ ערכי</button>
+          <button class="cube-edit" style="display:none;"></button>
           <span class="cube-icon">${item.icon||'📄'}</span>
           <div class="cube-name">${item.name}</div>
         </div>`).join('')}
