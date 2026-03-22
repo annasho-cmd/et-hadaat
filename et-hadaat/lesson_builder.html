@@ -1106,9 +1106,9 @@ function buildSlotEditor(slot, section, si, sli, uid){
   return `<div class="inline-editor-title">${bankItem?.icon||''} ${bankItem?.name||slot.type}</div>
     ${field}
     <div class="editor-btns">
-      <button class="btn btn-ghost btn-sm" onclick="clearSlot('${section}',${si},${sli},'${uid}')">נקי</button>
+      <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
       <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
-      <button class="btn btn-gold btn-sm" onclick="saveSlotContent('${section}',${si},${sli},'${uid}')">שמור ←</button>
+      <button class="btn btn-gold btn-sm" onclick="saveSlotContent('${section}',${si},${sli},'${uid}')">שמור ✓</button>
     </div>`;
 }
 
@@ -1327,18 +1327,6 @@ function toggleBankCat(ci,header){
 }
 
 function renderBankItems(){renderBankAccordion();}
-
-function selectBankItem(typeOrId){
-  if(!activeRow){document.getElementById('bank-hint').textContent='לחצי תחילה על שורה בשיעור';return;}
-  const{section,ri,si}=activeRow;
-  // find type from bankData
-  const bankItem=bankData.find(b=>b.id===typeOrId||b.type===typeOrId);
-  const type=bankItem?.type||typeOrId;
-  setRow(section,ri,si,{type});
-  renderLessonStructure();
-  setTimeout(()=>selectRow(section,ri,si),40);
-}
-
 
 // ── AI ──
 async function callAI(sys,msg,hist){
