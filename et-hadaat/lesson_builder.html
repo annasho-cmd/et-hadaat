@@ -785,12 +785,23 @@ async function quickSetupAI(type){
 
   let prompt='';
   const bookCtx=bookTitles?`\nכותרות ספר הלימוד:\n${bookTitles}`:'';
-  const goalCtx=unitGoal?`\nמטרת-על: ${unitGoal}`:'';
+  const goalCtx=unitGoal?`\nמטרת-על קיימת: ${unitGoal}`:'';
+
+  const goalInstructions=`מטרת-על היא הרמה הכוללנית ביותר — היא מתארת חזון חינוכי לטווח רחוק, לא ביצוע ספציפי.
+היא משתמשת בפעלים כמו: "לטפח", "לבסס", "לחנך ל", "להעמיק זיקה", "לפתח תודעה".
+היא אינה נמדדת במבחן — היא מכוונת את הדרך.
+דוגמאות לניסוח נכון:
+- "לטפח זיקה חיה ומשמעותית למורשת ישראל"
+- "לבסס תודעה היסטורית כחלק מרצף תרבותי רב-דורי"
+- "לחנך לאחריות אזרחית ולהבנת הקשר בין עבר להווה"
+דוגמאות לניסוח שגוי (אלה מטרות שיעור, לא מטרת-על):
+- "בסיום היחידה התלמיד יוכל לתאר..."
+- "התלמיד יזהה את..."`;
 
   if(type==='goal'){
-    prompt=`אני מורה לבנה יחידת לימוד בנושא: "${unitName}".${bookCtx}
-נסחי מטרת-על אחת ליחידה בפורמט: "בסיום היחידה התלמיד יוכל..."
-כתבי משפט אחד בלבד, ברור ומדיד.`;
+    prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}
+${goalInstructions}
+נסחי מטרת-על אחת ליחידה זו. כתבי משפט אחד בלבד.`;
 
   } else if(type==='topics'){
     prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}${goalCtx}
@@ -800,9 +811,10 @@ async function quickSetupAI(type){
   } else if(type==='all'){
     prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}
 אנא עזרי לי עם:
-1. מטרת-על אחת ליחידה (פורמט: "בסיום היחידה התלמיד יוכל...")
+1. מטרת-על ליחידה — משפט אחד בלבד לפי ההנחיות הבאות:
+${goalInstructions}
 2. ${lessonCount} נושאי שיעורים מסודרים לפי רצף לוגי (רשימה ממוספרת)
-הפרד בין החלקים בכותרות ברורות.`;
+הפרידי בין החלקים בכותרות ברורות.`;
 
   } else if(type==='avatars'){
     if(!unitName){addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;}
@@ -812,7 +824,7 @@ async function quickSetupAI(type){
   addMsg('setup-ai-msgs',prompt,'user');
   document.getElementById('setup-ai-thinking').style.display='block';
 
-  const sys=`אתה עוזר הוראה מקצועי לתכנון יחידות לימוד בהיסטוריה.
+  const sys=`אתה עוזר הוראה מקצועי לתכנון יחידות לימוד.
 ענה בעברית, קצר וממוקד. אל תוסיף הסברים מיותרים.`;
 
   const reply=await callAI(sys,prompt,[]);
@@ -836,10 +848,13 @@ function addApplyBtn(aiReply, type){
     btn1.className='ai-apply-btn';
     btn1.textContent='✓ החל מטרת-על';
     btn1.onclick=()=>{
-      // מחלץ את שורת מטרת-העל מהתשובה
       const lines=aiReply.split('\n').filter(l=>l.trim());
-      const goalLine=lines.find(l=>l.includes('יוכל')||l.includes('יבין')||l.includes('יזהה')||l.includes('יסביר'))||lines[0];
-      const clean=goalLine.replace(/^\d+\.\s*/,'').replace(/^מטרת-על[:：]\s*/i,'').trim();
+      // מחפש שורה עם פעלי מטרת-על
+      const goalVerbs=['לטפח','לבסס','לחנך','להעמיק','לפתח','לעודד','לחזק','לטפח'];
+      let goalLine=lines.find(l=>goalVerbs.some(v=>l.includes(v)));
+      if(!goalLine) goalLine=lines.find(l=>l.includes('מטרת-על')||l.includes('מטרת על'));
+      if(!goalLine) goalLine=lines[0];
+      const clean=goalLine.replace(/^\d+[\.\)]\s*/,'').replace(/^מטרת-על[:：]\s*/i,'').replace(/^\*+\s*/,'').trim();
       document.getElementById('unit-goal-value').value=clean;
       document.getElementById('unit-goal-display').textContent=clean;
       document.getElementById('unit-goal-display').className='unit-goal-text';
