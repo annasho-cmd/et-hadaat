@@ -669,7 +669,7 @@ function showExistingUnits(){
       list.innerHTML='<div class="empty-msg">אין יחידות קיימות.</div>';
       return;
     }
-    list.innerHTML=units.map(u=>`
+    list.innerHTML=units.map((u,idx)=>`
       <div class="lesson-list-item" onclick='openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})'>
         <div class="li-num">${u.avatar||'📖'}</div>
         <div class="li-info">
@@ -680,10 +680,16 @@ function showExistingUnits(){
           <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
             onclick="event.stopPropagation();openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})">✏️ ערכי</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
-            onclick="event.stopPropagation();deleteUnit('${u.id}','${u.name}')">🗑</button>
+            data-uid="${u.id}" onclick="event.stopPropagation();deleteUnitById(this)">🗑</button>
         </div>
       </div>`).join('');
   });
+}
+
+function deleteUnitById(btn){
+  const unitId=btn.dataset.uid;
+  const name=btn.closest('.lesson-list-item').querySelector('.li-name').textContent;
+  deleteUnit(unitId, name);
 }
 
 async function deleteUnit(unitId, unitName){
