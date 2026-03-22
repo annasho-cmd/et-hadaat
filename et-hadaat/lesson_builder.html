@@ -982,6 +982,8 @@ function renderUnitOverview(){
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+          onclick="event.stopPropagation();previewLesson(${i})">👁 תצוגה</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
           onclick="event.stopPropagation();openLessonBuilder(${i})">✏️ ערכי</button>
         <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
           onclick="event.stopPropagation();deleteLesson(${i})">🗑</button>
@@ -1019,6 +1021,17 @@ function openLessonBuilder(idx){
   goToStep(0);
   setSaveStatus('');
   goTo('screen-builder');
+}
+
+function previewLesson(idx){
+  const lesson=currentUnit.lessons[idx];
+  if(!lesson){alert('יש לשמור את השיעור תחילה');return;}
+  const base=window.location.href.split('?')[0].replace('lesson_builder.html','lesson_page.html');
+  const params=`subject=${currentSubject.id}&unit=${currentUnit.id}&lesson=${idx}&student=תצוגה+מקדימה&preview=1`;
+  const a=document.createElement('a');
+  a.href=base+'?'+params;
+  a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 async function deleteLesson(idx){
