@@ -225,6 +225,63 @@ body::before{
   opacity:.45;font-size:.88rem;
 }
 
+/* ── HOME GRID ── */
+.home-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  padding:20px 0;
+}
+.home-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:14px;padding:22px 16px;text-align:center;
+  cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.home-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-accent,var(--gold));}
+.home-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.home-card:active{transform:scale(.97);}
+.home-card-icon{font-size:2.2rem;margin-bottom:10px;}
+.home-card-title{font-size:.92rem;font-weight:700;color:var(--parch);margin-bottom:4px;}
+.home-card-sub{font-size:.72rem;opacity:.45;}
+.home-card.coming-soon{opacity:.55;cursor:default;}
+.home-card.coming-soon:hover{transform:none;border-color:var(--border);}
+.soon-badge{font-size:.65rem;background:rgba(212,168,67,.15);border:1px solid var(--border);border-radius:10px;padding:2px 8px;color:var(--gold);display:inline-block;margin-top:4px;}
+
+/* ── AGENT SETUP ── */
+.agent-setup{padding:20px 0;}
+.agent-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);margin-bottom:6px;}
+.agent-sub{font-size:.82rem;opacity:.5;margin-bottom:24px;}
+.agent-avatars{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
+.agent-avatar-opt{
+  width:60px;height:60px;border-radius:50%;font-size:2rem;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(253,245,224,.06);border:2px solid var(--border);
+  cursor:pointer;transition:all .18s;
+}
+.agent-avatar-opt:hover,.agent-avatar-opt.selected{border-color:var(--gold);background:rgba(212,168,67,.15);}
+.agent-traits{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.trait-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.trait-label{font-size:.82rem;font-weight:700;margin-bottom:8px;color:var(--gold2);}
+.trait-options{display:flex;gap:8px;flex-wrap:wrap;}
+.trait-opt{
+  padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:600;
+  border:1px solid var(--border);background:rgba(253,245,224,.05);
+  color:var(--parch);cursor:pointer;transition:all .15s;
+}
+.trait-opt:hover{border-color:var(--gold);}
+.trait-opt.selected{background:rgba(212,168,67,.2);border-color:var(--gold);color:var(--gold2);}
+.agent-preview{
+  background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.2);
+  border-radius:12px;padding:14px;margin-bottom:20px;
+  font-size:.85rem;line-height:1.6;
+}
+.agent-preview-name{font-weight:700;color:var(--gold);margin-bottom:4px;}
+.btn-save-agent{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:var(--ink);border:none;border-radius:10px;
+  font-family:'Heebo',sans-serif;font-size:1rem;font-weight:800;
+  cursor:pointer;
+}
+
 /* ── GAME BANNER ── */
 #game-banner{
   display:none;
@@ -291,10 +348,98 @@ body::before{
 
   <div class="main-content">
 
-    <!-- VIEW: SUBJECTS -->
-    <div class="view active" id="view-subjects">
+    <!-- VIEW: HOME GRID -->
+    <div class="view active" id="view-home">
       <div class="welcome-title" id="welcome-title">שלום!</div>
-      <div class="welcome-sub">בחרי מקצוע להמשיך בלימוד</div>
+      <div class="welcome-sub" id="welcome-sub">מה תרצה/י לעשות היום?</div>
+      <div class="home-grid">
+        <div class="home-card" style="--card-accent:#7c3aed;" onclick="showView('view-agent')">
+          <div class="home-card-icon" id="home-agent-icon">🤖</div>
+          <div class="home-card-title">הסוכן שלי</div>
+          <div class="home-card-sub">עוזר הלמידה האישי שלך</div>
+        </div>
+        <div class="home-card coming-soon" style="--card-accent:#1d4ed8;">
+          <div class="home-card-icon">👤</div>
+          <div class="home-card-title">הפרופיל שלי</div>
+          <div class="home-card-sub">פרטים אישיים</div>
+          <div class="soon-badge">🔜 בקרוב</div>
+        </div>
+        <div class="home-card" style="--card-accent:var(--gold);" onclick="goToSubjects()">
+          <div class="home-card-icon">📚</div>
+          <div class="home-card-title">המקצועות שלי</div>
+          <div class="home-card-sub">יחידות ושיעורים</div>
+        </div>
+        <div class="home-card coming-soon" style="--card-accent:#f59e0b;">
+          <div class="home-card-icon">⭐</div>
+          <div class="home-card-title">הבונוסים שלי</div>
+          <div class="home-card-sub">נקודות והישגים</div>
+          <div class="soon-badge">🔜 בקרוב</div>
+        </div>
+        <div class="home-card coming-soon" style="--card-accent:#22863a;">
+          <div class="home-card-icon">🏆</div>
+          <div class="home-card-title">לוח תוצאות</div>
+          <div class="home-card-sub">דירוג הכיתה</div>
+          <div class="soon-badge">🔜 בקרוב</div>
+        </div>
+        <div class="home-card coming-soon" style="--card-accent:#8b2020;">
+          <div class="home-card-icon">📊</div>
+          <div class="home-card-title">הציונים שלי</div>
+          <div class="home-card-sub">ציונים והערכות</div>
+          <div class="soon-badge">🔜 בקרוב</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: AGENT SETUP -->
+    <div class="view" id="view-agent">
+      <div class="agent-setup">
+        <div class="agent-title" id="agent-title">הגדרת סוכן הלמידה</div>
+        <div class="agent-sub">בחר/י את האוואטר ואת סגנון הסוכן שילווה אותך</div>
+
+        <!-- אוואטר -->
+        <div style="font-size:.75rem;font-weight:700;opacity:.45;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">בחר/י אוואטר</div>
+        <div class="agent-avatars" id="agent-avatars"></div>
+
+        <!-- תכונות -->
+        <div class="agent-traits" id="agent-traits">
+          <div class="trait-row">
+            <div class="trait-label">סגנון תקשורת</div>
+            <div class="trait-options">
+              <div class="trait-opt selected" data-trait="style" data-val="encouraging" onclick="selectTrait(this,'style')">🤗 מעודד</div>
+              <div class="trait-opt" data-trait="style" data-val="challenging" onclick="selectTrait(this,'style')">💪 מאתגר</div>
+              <div class="trait-opt" data-trait="style" data-val="patient" onclick="selectTrait(this,'style')">🕊️ סבלני</div>
+            </div>
+          </div>
+          <div class="trait-row">
+            <div class="trait-label">שפה</div>
+            <div class="trait-options">
+              <div class="trait-opt selected" data-trait="language" data-val="simple" onclick="selectTrait(this,'language')">😊 פשוטה</div>
+              <div class="trait-opt" data-trait="language" data-val="professional" onclick="selectTrait(this,'language')">🎓 מקצועית</div>
+            </div>
+          </div>
+          <div class="trait-row">
+            <div class="trait-label">מתי הסוכן יתערב?</div>
+            <div class="trait-options">
+              <div class="trait-opt selected" data-trait="intervention" data-val="on-request" onclick="selectTrait(this,'intervention')">✋ רק כשאבקש</div>
+              <div class="trait-opt" data-trait="intervention" data-val="proactive" onclick="selectTrait(this,'intervention')">🔔 יזום</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- תצוגה מקדימה -->
+        <div class="agent-preview" id="agent-preview">
+          <div class="agent-preview-name" id="preview-name">🤖 הסוכן שלי</div>
+          <div id="preview-text">שלום! אני כאן לעזור לך בלמידה. פנה/י אלי בכל עת! 😊</div>
+        </div>
+
+        <button class="btn-save-agent" onclick="saveAgent()">✨ שמור והתחל ללמוד</button>
+      </div>
+    </div>
+
+    <!-- VIEW: SUBJECTS -->
+    <div class="view" id="view-subjects">
+      <div class="welcome-title" id="subjects-title">📚 המקצועות שלי</div>
+      <div class="welcome-sub">בחר/י מקצוע להמשיך בלימוד</div>
       <div class="subjects-grid" id="subjects-grid"></div>
       <div class="empty-state" id="subjects-empty" style="display:none;">
         אין מקצועות פעילים כרגע. פנה/י למורה.
@@ -304,9 +449,7 @@ body::before{
     <!-- VIEW: UNITS -->
     <div class="view" id="view-units">
       <div class="units-grid" id="units-grid"></div>
-      <div class="empty-state" id="units-empty" style="display:none;">
-        אין יחידות לימוד פעילות כרגע.
-      </div>
+      <div class="empty-state" id="units-empty" style="display:none;">אין יחידות לימוד פעילות כרגע.</div>
     </div>
 
     <!-- VIEW: LESSONS -->
@@ -316,10 +459,7 @@ body::before{
 
     <!-- LOADING -->
     <div class="view" id="view-loading">
-      <div class="loading">
-        <span class="loading-spinner">⏳</span>
-        טוען...
-      </div>
+      <div class="loading"><span class="loading-spinner">⏳</span>טוען...</div>
     </div>
 
   </div>
@@ -466,21 +606,72 @@ function doLogout() {
 }
 
 // ── ENTER APP ──
+// ── AGENT ──
+const AGENT_AVATARS=['🦁','🦊','🐉','🦅','🦋','🌟','🏺','⚔️','🗺️','📜','🌙','🔭'];
+let agentConfig={avatar:AGENT_AVATARS[0],style:'encouraging',language:'simple',intervention:'on-request'};
+
+function initAgentSetup(){
+  renderAgentAvatars();
+  updateAgentPreview();
+}
+
+function renderAgentAvatars(){
+  const grid=document.getElementById('agent-avatars');
+  if(!grid)return;
+  grid.innerHTML=AGENT_AVATARS.map(a=>
+    `<div class="agent-avatar-opt ${a===agentConfig.avatar?'selected':''}" onclick="selectAgentAvatar('${a}')">${a}</div>`).join('');
+}
+
+function selectAgentAvatar(a){
+  agentConfig.avatar=a;renderAgentAvatars();updateAgentPreview();
+}
+
+function selectTrait(el,trait){
+  el.closest('.trait-options').querySelectorAll('.trait-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  agentConfig[trait]=el.dataset.val;
+  updateAgentPreview();
+}
+
+function updateAgentPreview(){
+  const texts={encouraging:'אני כאן לעודד אותך בכל צעד! 🤗',challenging:'אתגר את עצמך — אני כאן לדחוף אותך קדימה! 💪',patient:'קח/י את הזמן שלך, אני כאן בכל קצב 🕊️'};
+  document.getElementById('preview-name').textContent=agentConfig.avatar+' הסוכן שלי';
+  document.getElementById('preview-text').textContent=texts[agentConfig.style]||'';
+}
+
+function saveAgent(){
+  localStorage.setItem('agent_'+classCode+'_'+studentName,JSON.stringify(agentConfig));
+  document.getElementById('home-agent-icon').textContent=agentConfig.avatar;
+  showView('view-home');
+}
+
+function goToSubjects(){
+  updateBreadcrumb([{label:'המקצועות שלי'}]);
+  loadSubjects();
+}
+
+// ── ENTER APP ──
 function enterApp(isTeacher) {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-app').classList.add('active');
 
-  if (isTeacher) {
-    document.getElementById('student-badge').textContent = '👩‍🏫 מצב מורה';
-    document.getElementById('welcome-title').textContent = 'מצב תצוגה — מורה';
-    document.getElementById('welcome-sub') && (document.getElementById('welcome-sub').textContent = 'רואה את כל השיעורים. נתונים לא נשמרים.');
-  } else {
-    document.getElementById('student-badge').textContent = '👤 ' + studentName;
-    document.getElementById('welcome-title').textContent = 'שלום, ' + studentName.split(' ')[0] + '!';
-  }
+  document.getElementById('student-badge').textContent = isTeacher?'👩‍🏫 מצב מורה':'👤 '+studentName;
+  document.getElementById('welcome-title').textContent = isTeacher?'מצב תצוגה — מורה':'שלום, '+studentName.split(' ')[0]+'!';
 
-  showView('view-loading');
-  loadSubjects();
+  if(!isTeacher){
+    const saved=localStorage.getItem('agent_'+classCode+'_'+studentName);
+    if(saved){
+      const ag=JSON.parse(saved);
+      agentConfig=ag;
+      document.getElementById('home-agent-icon').textContent=ag.avatar||'🤖';
+      showView('view-home');
+    } else {
+      initAgentSetup();
+      showView('view-agent');
+    }
+  } else {
+    showView('view-home');
+  }
   startGameListener();
 }
 
@@ -642,7 +833,7 @@ function showView(id) {
 
 function updateBreadcrumb(items) {
   const bc = document.getElementById('breadcrumb');
-  let html = `<span class="bc-item" onclick="loadSubjects()">🏠 המקצועות שלי</span>`;
+  let html = `<span class="bc-item" onclick="showView('view-home')">🏠 הבית</span>`;
   items.forEach((item, i) => {
     html += '<span class="bc-sep">›</span>';
     if (i < items.length - 1)
