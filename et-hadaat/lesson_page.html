@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>שיעור — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.18);
+  --border2:rgba(212,168,67,0.38);--green:#1a5c2a;
+  --intro:#0d2e1a;--body:#0d1e2e;--close:#2e0d0d;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overscroll-behavior:none;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;direction:rtl;}
+
+/* TOPBAR */
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;font-weight:700;color:var(--gold2);}
+.topbar-meta{font-size:.78rem;opacity:.5;}
+.btn-back{padding:5px 12px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;font-weight:600;}
+
+/* PROGRESS BAR */
+.progress-bar{background:rgba(212,168,67,.1);height:4px;flex-shrink:0;}
+.progress-fill{height:100%;background:var(--gold);transition:width .4s ease;}
+
+/* SECTION HEADER */
+.section-header{padding:10px 20px 0;display:flex;align-items:center;gap:8px;}
+.section-badge{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid var(--border2);opacity:.7;}
+
+/* STATION PAGE */
+.station-page{display:none;min-height:calc(100vh - 110px);padding:16px 20px;flex-direction:column;}
+.station-page.active{display:flex;}
+.station-title{font-size:.8rem;font-weight:700;color:var(--gold);opacity:.6;margin-bottom:12px;}
+
+/* SLOTS */
+.slots-wrap{display:flex;flex-direction:column;gap:14px;flex:1;}
+.slots-wrap.simultaneous{display:flex;flex-direction:column;}
+
+/* SLOT ITEM */
+.slot-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;width:100%;}
+.slot-type-label{font-size:.7rem;font-weight:700;color:var(--gold);opacity:.55;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
+
+/* TEXT/SOURCE */
+.source-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:8px;}
+.source-text{font-size:.92rem;line-height:1.8;direction:rtl;text-align:right;}
+
+/* IMAGE */
+.slot-image{width:100%;border-radius:8px;max-height:260px;object-fit:contain;}
+
+/* QUESTION */
+.question-text{font-size:.95rem;font-weight:600;line-height:1.6;margin-bottom:12px;}
+.answer-area{width:100%;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;padding:10px;resize:vertical;min-height:90px;outline:none;direction:rtl;}
+.answer-area:focus{border-color:var(--gold);}
+.answer-area::placeholder{opacity:.3;}
+.btn-submit{padding:8px 20px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;margin-top:8px;}
+.answer-saved{font-size:.78rem;color:#6ee7a0;margin-top:6px;display:none;}
+
+/* NAVIGATION FOOTER */
+.nav-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(10,5,2,.9);flex-shrink:0;position:sticky;bottom:0;}
+.btn-nav{padding:10px 22px;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .18s;}
+.btn-prev{background:none;border:1.5px solid var(--border2);color:var(--parch);}
+.btn-next{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;}
+.btn-next:disabled{opacity:.4;cursor:not-allowed;}
+.station-counter{font-size:.78rem;opacity:.45;}
+
+/* LOADING */
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;opacity:.4;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:2rem;margin-bottom:12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* END SCREEN */
+.end-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 56px);text-align:center;padding:32px;}
+.end-screen.active{display:flex;}
+.end-icon{font-size:4rem;margin-bottom:16px;animation:bounce 1s infinite alternate;}
+@keyframes bounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+.end-title{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;font-weight:700;color:var(--gold2);margin-bottom:8px;}
+.end-sub{font-size:.88rem;opacity:.55;margin-bottom:24px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="btn-back" onclick="goBack()">← חזרה</button>
+  <div class="topbar-title" id="lesson-title">טוען שיעור...</div>
+  <div class="topbar-meta" id="lesson-meta"></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+<div id="loading-screen" class="loading-screen">
+  <span class="spin">⏳</span>
+  <div>טוען שיעור...</div>
+</div>
+
+<div id="stations-container"></div>
+
+<div class="end-screen" id="end-screen">
+  <div class="end-icon">🎉</div>
+  <div class="end-title">סיימת את השיעור!</div>
+  <div class="end-sub" id="end-sub">כל הכבוד על העבודה היום</div>
+  <button class="btn-nav btn-next" onclick="goBack()">← חזרה ליחידה</button>
+</div>
+
+<div class="nav-footer" id="nav-footer" style="display:none;">
+  <button class="btn-nav btn-prev" id="btn-prev" onclick="prevStation()">← קודם</button>
+  <div class="station-counter" id="station-counter"></div>
+  <button class="btn-nav btn-next" id="btn-next" onclick="nextStation()">הבא ←</button>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+// URL params
+const params=new URLSearchParams(window.location.search);
+const subjectId=params.get('subject');
+const unitId=params.get('unit');
+const lessonIdx=parseInt(params.get('lesson')||'0');
+const studentName=decodeURIComponent(params.get('student')||'');
+const classCode=params.get('class')||'';
+
+let lessonData=null;
+let allStations=[];
+let currentStation=0;
+let answers={};
+
+const SECTION_LABELS={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום',enrichment:'⭐ העשרה'};
+const ITEM_TYPES={
+  entry_card:{label:'כרטיס כניסה',hasAnswer:true},
+  exit_card:{label:'כרטיס יציאה',hasAnswer:true},
+  open_q:{label:'שאלה פתוחה',hasAnswer:true},
+  question:{label:'שאלה',hasAnswer:true},
+  sources:{label:'קריאת מקורות',hasAnswer:false},
+  text:{label:'טקסט',hasAnswer:false},
+  image:{label:'תמונה',hasAnswer:false},
+  video:{label:'סרטון',hasAnswer:false},
+  mc_q:{label:'רב-ברירה',hasAnswer:true},
+  tf_q:{label:'נכון/לא נכון',hasAnswer:true},
+};
+
+// ── INIT ──
+window.onload=function(){
+  if(!subjectId||!unitId){showError('חסרים פרמטרים. חזרי ללוח התלמיד.');return;}
+  db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}`).once('value',snap=>{
+    const lesson=snap.val();
+    if(!lesson){showError('השיעור לא נמצא.');return;}
+    lessonData=lesson;
+    buildStations();
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('nav-footer').style.display='flex';
+    renderCurrentStation();
+  });
+};
+
+function buildStations(){
+  const d=lessonData.data||{};
+  allStations=[];
+
+  // פתיח
+  if(d.intro) d.intro.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'intro',si,slots,mode:st.displayMode||'simultaneous'});
+  });
+  // גוף
+  if(d.stations) d.stations.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'body',si,slots,mode:st.displayMode||'simultaneous'});
+  });
+  // סיום
+  if(d.closing) d.closing.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'closing',si,slots,mode:st.displayMode||'simultaneous'});
+  });
+
+  document.getElementById('lesson-title').textContent=lessonData.topic||lessonData.name||'שיעור';
+  document.getElementById('lesson-meta').textContent=studentName;
+}
+
+function renderCurrentStation(){
+  const container=document.getElementById('stations-container');
+  // remove old
+  container.querySelectorAll('.station-page').forEach(p=>p.remove());
+
+  if(currentStation>=allStations.length){
+    showEndScreen();return;
+  }
+
+  const st=allStations[currentStation];
+  const page=document.createElement('div');
+  page.className='station-page active';
+  page.id='station-page-'+currentStation;
+
+  const sectionLabel=SECTION_LABELS[st.section]||'';
+  const stationNum=allStations.filter((s,i)=>i<=currentStation&&s.section===st.section).length;
+
+  page.innerHTML=`<div class="station-title">${sectionLabel} · תחנה ${st.si+1}</div>
+    <div class="slots-wrap ${st.mode}" id="slots-${currentStation}"></div>`;
+
+  container.appendChild(page);
+
+  const slotsWrap=document.getElementById('slots-'+currentStation);
+  st.slots.forEach((slot,sli)=>{
+    const block=buildSlotBlock(slot,currentStation,sli);
+    slotsWrap.appendChild(block);
+  });
+
+  updateNav();
+}
+
+function buildSlotBlock(slot,stIdx,sli){
+  const block=document.createElement('div');
+  block.className='slot-block';
+  const typeInfo=ITEM_TYPES[slot.type]||{label:slot.type,hasAnswer:false};
+  const savedAnswer=answers[`${stIdx}-${sli}`]||'';
+
+  let html=`<div class="slot-type-label">${typeInfo.label}</div>`;
+
+  if(slot.type==='image'){
+    html+=`<img class="slot-image" src="${esc(slot.content||'')}" alt="תמונה">`;
+  } else if(slot.type==='video'){
+    const ytId=extractYT(slot.content||'');
+    html+=ytId
+      ?`<iframe width="100%" height="200" src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>`
+      :`<div style="opacity:.4;font-size:.85rem;">קישור וידאו: ${esc(slot.content||'')}</div>`;
+  } else if(slot.content){
+    html+=`<div class="source-text">${slot.content.replace(/\n/g,'<br>')}</div>`;
+  }
+
+  if(typeInfo.hasAnswer){
+    const uid=`ans-${stIdx}-${sli}`;
+    html+=`<textarea class="answer-area" id="${uid}" placeholder="כתוב/כתבי את תשובתך כאן...">${esc(savedAnswer)}</textarea>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn-submit" onclick="saveAnswer('${stIdx}','${sli}','${uid}')">שמור תשובה ✓</button>
+        <span class="answer-saved" id="saved-${stIdx}-${sli}">✅ נשמר</span>
+      </div>`;
+  }
+
+  block.innerHTML=html;
+  return block;
+}
+
+function saveAnswer(stIdx,sli,uid){
+  const val=document.getElementById(uid)?.value.trim();
+  if(!val)return;
+  answers[`${stIdx}-${sli}`]=val;
+  // שמירה ב-Firebase
+  if(studentName&&classCode){
+    db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
+      answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
+    });
+  }
+  const savedEl=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(savedEl){savedEl.style.display='block';setTimeout(()=>savedEl.style.display='none',2500);}
+}
+
+function updateNav(){
+  const total=allStations.length;
+  document.getElementById('station-counter').textContent=`${currentStation+1} / ${total}`;
+  document.getElementById('btn-prev').style.visibility=currentStation===0?'hidden':'visible';
+  document.getElementById('btn-next').textContent=currentStation>=total-1?'סיים שיעור ✓':'הבא ←';
+  document.getElementById('progress-fill').style.width=((currentStation+1)/total*100)+'%';
+}
+
+function nextStation(){
+  if(currentStation>=allStations.length-1){showEndScreen();return;}
+  currentStation++;
+  renderCurrentStation();
+  window.scrollTo(0,0);
+}
+
+function prevStation(){
+  if(currentStation<=0)return;
+  currentStation--;
+  renderCurrentStation();
+  window.scrollTo(0,0);
+}
+
+function showEndScreen(){
+  document.getElementById('stations-container').querySelectorAll('.station-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('end-screen').classList.add('active');
+  document.getElementById('nav-footer').style.display='none';
+  document.getElementById('progress-fill').style.width='100%';
+  document.getElementById('end-sub').textContent=`${lessonData.topic||'השיעור'} הושלם בהצלחה 🎉`;
+}
+
+function goBack(){history.back();}
+
+function showError(msg){
+  document.getElementById('loading-screen').innerHTML=`<div style="text-align:center;opacity:.5;padding:40px;">${msg}</div>`;
+}
+
+function extractYT(url){
+  const m=url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
+  return m?m[1]:null;
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>

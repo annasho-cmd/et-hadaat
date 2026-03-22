@@ -784,24 +784,47 @@ function openUnit(unit) {
   lessons.forEach((lesson, i) => {
     const state = groupStates[lesson.id] || 'locked';
     const isOpen = state === 'open';
+    // שיעורי בונה יש להם topic ו-data; שיעורים ישנים יש להם url
+    const isBuilderLesson = lesson.topic !== undefined;
+    const displayName = lesson.topic || lesson.name || 'שיעור '+(i+1);
 
     const card = document.createElement('div');
     card.className = 'lesson-card ' + (isOpen ? 'open' : 'locked');
 
+    let enterBtn = '';
+    if (isOpen) {
+      if (isBuilderLesson) {
+        // שיעור מהבונה — פתח lesson_page.html
+        const params = `subject=${currentSubject.id}&unit=${unit.id}&lesson=${i}&student=${encodeURIComponent(studentName)}`;
+        enterBtn = `<button class="btn-enter" onclick="enterBuilderLesson('${currentSubject.id}','${unit.id}',${i})">כנס/י לשיעור ←</button>`;
+      } else {
+        enterBtn = `<button class="btn-enter" onclick="enterLesson('${lesson.url}')">כנס/י לשיעור ←</button>`;
+      }
+    } else {
+      enterBtn = '<span class="lc-arrow">🔒</span>';
+    }
+
     card.innerHTML = `
-      <div class="lc-num ${isOpen ? '' : ''}">${i + 1}</div>
+      <div class="lc-num">${lesson.num || i+1}</div>
       <div class="lc-info">
-        <div class="lc-name">${lesson.name}</div>
+        <div class="lc-name">${displayName}</div>
         <div class="lc-status ${state}">
           ${isOpen ? '✅ פתוח ללמידה' : '🔒 נעול — המתן/י למורה'}
         </div>
       </div>
-      ${isOpen ? `<button class="btn-enter" onclick="enterLesson('${lesson.url}')">כנס/י לשיעור ←</button>` : '<span class="lc-arrow">🔒</span>'}`;
+      ${enterBtn}`;
 
     list.appendChild(card);
   });
 
   showView('view-lessons');
+}
+
+// ── ENTER BUILDER LESSON ──
+function enterBuilderLesson(subjectId, unitId, lessonIdx) {
+  const base = window.location.href.split('/').slice(0,-1).join('/');
+  const params = `subject=${subjectId}&unit=${unitId}&lesson=${lessonIdx}&student=${encodeURIComponent(studentName)}&class=${classCode}`;
+  window.location.href = `${base}/lesson_page.html?${params}`;
 }
 
 // ── ENTER LESSON ──
