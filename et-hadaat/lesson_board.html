@@ -92,12 +92,21 @@ window.onload=async function(){
   document.getElementById('lesson-title').textContent=lessonData.topic||lessonData.name||'שיעור';
   buildStations();
   buildStepNav();
-  // התחל מהקרון שנבחר בבונה
   const stepSection=STEP_SECTIONS[initStep]||'intro';
   const firstInSection=allStations.findIndex(s=>s.section===stepSection);
   currentStation=firstInSection>=0?firstInSection:0;
+  currentSlot=0;
   renderStation();
 };
+
+function buildStepNav(){
+  const nav=document.getElementById('step-nav');
+  const sections=['intro','body','closing'];
+  const labels=['🌅 פתיח','🚂 גוף','🌇 סיום'];
+  nav.innerHTML=sections.map((sec,i)=>`
+    <button class="step-btn" data-section="${sec}"
+      onclick="jumpToSection('${sec}')">${labels[i]}</button>`).join('');
+}
 
 function buildStations(){
   const d=lessonData.data||{};
@@ -125,27 +134,40 @@ function jumpToSection(section){
   if(idx>=0){currentStation=idx;renderStation();}
 }
 
+let currentSlot=0;
+
 function renderStation(){
   if(!allStations.length){
     document.getElementById('main').innerHTML='<div class="loading">אין תחנות בשיעור</div>';
     return;
   }
   const st=allStations[Math.min(currentStation,allStations.length-1)];
+  currentSlot=Math.min(currentSlot,st.slots.length-1);
   const main=document.getElementById('main');
 
-  // עדכן כפתורי nav
+  // עדכן כפתורי step nav
   document.querySelectorAll('.step-btn').forEach(b=>{
-    b.classList.toggle('active',b.onclick?.toString().includes(st.section));
+    const sec=b.getAttribute('data-section');
+    b.classList.toggle('active',sec===st.section);
   });
 
-  let html=`<div class="section-label">${SECTION_LABELS[st.section]||''} · תחנה ${st.si+1}</div>
-    <div class="station-display">`;
+  const slot=st.slots[currentSlot];
+  const totalSlots=st.slots.length;
 
-  st.slots.forEach(slot=>{
-    html+=buildSlotHTML(slot);
-  });
+  let html=`<div class="section-label">${SECTION_LABELS[st.section]||''} · תחנה ${st.si+1}
+    ${totalSlots>1?`<span style="margin-right:10px;opacity:.5;">פריט ${currentSlot+1}/${totalSlots}</span>`:''}
+  </div>
+  <div class="station-display">
+    ${buildSlotHTML(slot)}
+  </div>`;
 
-  html+='</div>';
+  if(totalSlots>1){
+    html+=`<div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">
+      ${currentSlot>0?`<button class="btn-ctrl btn-prev" onclick="prevSlot()">← פריט קודם</button>`:''}
+      ${currentSlot<totalSlots-1?`<button class="btn-ctrl btn-next" onclick="nextSlot()">פריט הבא ←</button>`:''}
+    </div>`;
+  }
+
   main.innerHTML=html;
 }
 
@@ -183,11 +205,34 @@ function buildSlotHTML(slot){
   </div>`;
 }
 
+function buildStepNav(){
+  const nav=document.getElementById('step-nav');
+  const sections=['intro','body','closing'];
+  const labels=['🌅 פתיח','🚂 גוף','🌇 סיום'];
+  nav.innerHTML=sections.map((sec,i)=>`
+    <button class="step-btn" data-section="${sec}"
+      onclick="jumpToSection('${sec}')">${labels[i]}</button>`).join('');
+}
+
+function jumpToSection(section){
+  const idx=allStations.findIndex(s=>s.section===section);
+  if(idx>=0){currentStation=idx;currentSlot=0;renderStation();}
+}
+
 function nextStation(){
-  if(currentStation<allStations.length-1){currentStation++;renderStation();}
+  if(currentStation<allStations.length-1){currentStation++;currentSlot=0;renderStation();}
 }
 function prevStation(){
-  if(currentStation>0){currentStation--;renderStation();}
+  if(currentStation>0){currentStation--;currentSlot=0;renderStation();}
+}
+function nextSlot(){
+  const st=allStations[currentStation];
+  if(currentSlot<st.slots.length-1){currentSlot++;renderStation();}
+  else nextStation();
+}
+function prevSlot(){
+  if(currentSlot>0){currentSlot--;renderStation();}
+  else prevStation();
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

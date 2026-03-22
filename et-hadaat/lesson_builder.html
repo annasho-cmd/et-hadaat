@@ -1142,7 +1142,14 @@ function getSlot(section, si, sli){
 
 function setSlot(section, si, sli, data){
   const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
-  if(arr[si]&&arr[si].slots[sli]) arr[si].slots[sli]={...arr[si].slots[sli],...data};
+  if(arr[si]&&arr[si].slots[sli]){
+    // tableData צריך merge עמוק ולא spread שטוח
+    if(data.tableData){
+      arr[si].slots[sli].tableData=data.tableData;
+    } else {
+      arr[si].slots[sli]={...arr[si].slots[sli],...data};
+    }
+  }
 }
 
 function buildSlotEditor(slot, section, si, sli, uid){
