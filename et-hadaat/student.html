@@ -661,9 +661,12 @@ function enterApp(isTeacher) {
   if(!isTeacher){
     const saved=localStorage.getItem('agent_'+classCode+'_'+studentName);
     if(saved){
-      const ag=JSON.parse(saved);
-      agentConfig=ag;
-      document.getElementById('home-agent-icon').textContent=ag.avatar||'🤖';
+      try{
+        const ag=JSON.parse(saved);
+        agentConfig=ag;
+        document.getElementById('home-agent-icon').textContent=ag.avatar||'🤖';
+      }catch(e){}
+      // תמיד מתחיל ממסך הבית
       showView('view-home');
     } else {
       initAgentSetup();
@@ -672,7 +675,8 @@ function enterApp(isTeacher) {
   } else {
     showView('view-home');
   }
-  startGameListener();
+  // מאחר את ה-listener כדי שלא יקפוץ הבאנר מיד
+  setTimeout(()=>startGameListener(), 1500);
 }
 
 // ── LOAD SUBJECTS ──
