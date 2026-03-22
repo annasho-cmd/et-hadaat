@@ -706,8 +706,8 @@ function renderUnits() {
     const gCount = Object.keys(unit.groups||{}).length;
     const lCount = (unit.lessons||[]).length;
     card.innerHTML = `
-      <div class="unit-icon">📖</div>
-      <div class="unit-name">${unit.name}</div>
+      <div class="unit-icon">${unit.avatar||'📖'}</div>
+      <div class="unit-name">${unit.num?unit.num+'. ':''}${unit.name}</div>
       <div class="unit-meta">${lCount} שיעורים · ${gCount} קבוצות משויכות</div>
       <div class="unit-arrow">‹</div>`;
     card.onclick = () => openUnit(unit);
@@ -732,22 +732,28 @@ function renderUnitLessons() {
   const cont = document.getElementById('unit-lessons');
   const lessons = currentUnit.lessons || [];
   if (!lessons.length) {
-    cont.innerHTML = '<div class="empty-state">אין שיעורים. לחצי על "➕ שיעור".</div>';
+    cont.innerHTML = '<div class="empty-state">אין שיעורים. לחצי על "➕ שיעור" או בנה ב<a href="lesson_builder.html" style="color:var(--gold);">בונה השיעורים</a>.</div>';
     return;
   }
   cont.innerHTML = '';
   lessons.forEach((l,i) => {
     const row = document.createElement('div');
     row.className = 'lesson-row';
+    // שיעורים מהבונה יש להם topic ו-data, שיעורים ישנים יש להם url
+    const isBuilderLesson = l.topic !== undefined;
+    const displayName = l.topic || l.name || 'שיעור '+(i+1);
+    const statusBadge = isBuilderLesson
+      ? `<span style="font-size:.7rem;padding:2px 8px;border-radius:10px;background:${l.status==='ready'?'rgba(42,107,42,.3)':'rgba(212,168,67,.15)'};color:${l.status==='ready'?'#6ee7a0':'var(--gold)'};">${l.status==='ready'?'✅ מוכן':'✏️ טיוטה'}</span>`
+      : `<span style="font-size:.72rem;color:var(--muted);">${l.url||''}</span>`;
     row.innerHTML = `
-      <div class="lesson-num">${i+1}</div>
+      <div class="lesson-num">${l.num||i+1}</div>
       <div class="lesson-info">
-        <div class="lesson-name">${l.name}</div>
-        <div class="lesson-url">${l.url}</div>
+        <div class="lesson-name">${displayName}</div>
+        ${statusBadge}
         ${l.gameCode ? `<div style="font-size:.72rem;color:var(--gold);margin-top:3px;">🎮 משחק: ${l.gameCode}</div>` : ''}
       </div>
-      <button class="btn-sm" onclick="previewLesson('${l.url}')" style="margin-left:6px;">👁 תצוגה</button>
-      <button class="btn-del" onclick="deleteLesson('${l.id}')">✕</button>`;
+      ${!isBuilderLesson ? `<button class="btn-sm" onclick="previewLesson('${l.url}')" style="margin-left:6px;">👁 תצוגה</button>` : ''}
+      <button class="btn-del" onclick="deleteLesson('${l.id||i}')">✕</button>`;
     cont.appendChild(row);
   });
 }
