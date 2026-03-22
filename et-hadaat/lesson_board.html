@@ -190,7 +190,13 @@ function buildSlotHTML(slot){
     }
     inner=`<table class="sort-table-display"><thead><tr>${colsHtml}</tr></thead><tbody>${rows}</tbody></table>`;
   } else if(slot.type==='image'){
-    inner=`<img class="slot-image" src="${esc(slot.content||'')}" alt="תמונה">`;
+    // תמיכה בקישורי Google Drive
+    let src=esc(slot.content||'');
+    // המרה אוטומטית של קישור Drive
+    const m=(slot.content||'').match(/\/file\/d\/([^\/\?]+)/);
+    if(m) src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+    inner=`<img class="slot-image" src="${src}" alt="תמונה"
+      onerror="this.onerror=null;this.src='https://via.placeholder.com/600x400?text=לא+ניתן+לטעון+תמונה';">`;
   } else if(slot.type==='video'){
     const m=(slot.content||'').match(/(?:v=|youtu\.be\/)([^&\s]+)/);
     inner=m?`<iframe width="100%" height="360" src="https://www.youtube.com/embed/${m[1]}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`
