@@ -147,16 +147,16 @@ let answers={};
 
 const SECTION_LABELS={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום',enrichment:'⭐ העשרה'};
 const ITEM_TYPES={
-  entry_card:{label:'כרטיס כניסה',hasAnswer:true},
-  exit_card:{label:'כרטיס יציאה',hasAnswer:true},
-  open_q:{label:'שאלה פתוחה',hasAnswer:true},
-  question:{label:'שאלה',hasAnswer:true},
-  sources:{label:'קריאת מקורות',hasAnswer:false},
-  text:{label:'טקסט',hasAnswer:false},
-  image:{label:'תמונה',hasAnswer:false},
-  video:{label:'סרטון',hasAnswer:false},
-  mc_q:{label:'רב-ברירה',hasAnswer:true},
-  tf_q:{label:'נכון/לא נכון',hasAnswer:true},
+  entry:{label:'🚪 כרטיס כניסה',hasAnswer:true},
+  exit:{label:'🎫 כרטיס יציאה',hasAnswer:true},
+  open_q:{label:'❓ שאלה פתוחה',hasAnswer:true},
+  question:{label:'❓ שאלה',hasAnswer:true},
+  text:{label:'',hasAnswer:false},
+  sources:{label:'📜 קריאת מקורות',hasAnswer:false},
+  image:{label:'🖼️ תמונה',hasAnswer:false},
+  video:{label:'▶️ סרטון',hasAnswer:false},
+  mc_q:{label:'🔘 רב-ברירה',hasAnswer:true},
+  tf_q:{label:'✅ נכון/לא נכון',hasAnswer:true},
 };
 
 // ── INIT ──
@@ -199,7 +199,6 @@ function buildStations(){
 
 function renderCurrentStation(){
   const container=document.getElementById('stations-container');
-  // remove old
   container.querySelectorAll('.station-page').forEach(p=>p.remove());
 
   if(currentStation>=allStations.length){
@@ -207,14 +206,21 @@ function renderCurrentStation(){
   }
 
   const st=allStations[currentStation];
+  const prev=currentStation>0?allStations[currentStation-1]:null;
+
+  // תווית מעבר בין קרונות
+  const showTransition=prev&&prev.section!==st.section;
+  const sectionLabels={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום'};
+
   const page=document.createElement('div');
   page.className='station-page active';
   page.id='station-page-'+currentStation;
 
-  const sectionLabel=SECTION_LABELS[st.section]||'';
-  const stationNum=allStations.filter((s,i)=>i<=currentStation&&s.section===st.section).length;
-
-  page.innerHTML=`<div class="station-title">${sectionLabel} · תחנה ${st.si+1}</div>
+  page.innerHTML=`
+    ${showTransition?`<div style="text-align:center;padding:10px 0 16px;font-size:.85rem;font-weight:700;color:var(--gold);opacity:.7;letter-spacing:.05em;">
+      ${sectionLabels[st.section]||''}
+    </div>`:''}
+    <div class="station-title">${sectionLabels[st.section]||''} · תחנה ${st.si+1}</div>
     <div class="slots-wrap ${st.mode}" id="slots-${currentStation}"></div>`;
 
   container.appendChild(page);

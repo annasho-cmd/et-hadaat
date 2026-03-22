@@ -1079,17 +1079,27 @@ function buildStationHTML(st, si, section){
 
 function buildSlotHTML(slot, si, sli, section){
   const uid=`slot-${section}-${si}-${sli}`;
-  const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
-  const hasContent=slot.type&&slot.content;
-  return `<div class="slot-item ${activeRow&&activeRow.uid===uid?'active':''}" 
+  const bankItem=bankData.find(b=>b.id===slot?.type||b.type===slot?.type);
+  const isActive=activeRow&&activeRow.uid===uid;
+
+  // קוביה ריקה — מציג אפשרות כתיבה חופשית
+  if(!slot?.type){
+    return `<div class="slot-item ${isActive?'active':''}"
+      id="${uid}" onclick="selectSlot('${section}',${si},${sli})">
+      <span class="slot-num">${sli+1}</span>
+      <span class="slot-icon" style="opacity:.25;">✏️</span>
+      <span class="slot-empty">כתיבה חופשית / בחרי פריט</span>
+    </div>
+    <div class="slot-inline-editor" id="ed-${uid}" style="display:none;"></div>`;
+  }
+
+  const hasContent=slot.type&&(slot.content||slot.tableData);
+  return `<div class="slot-item ${isActive?'active':''}"
     id="${uid}" onclick="selectSlot('${section}',${si},${sli})">
     <span class="slot-num">${sli+1}</span>
-    ${slot.type
-      ?`<span class="slot-icon">${bankItem?.icon||'📄'}</span>
-        <span class="slot-type">${bankItem?.name||slot.type}</span>
-        ${hasContent?`<span style="font-size:.65rem;opacity:.55;">${trunc(slot.content,25)}</span>`:''}`
-      :`<span class="slot-icon" style="opacity:.2;">+</span>
-        <span class="slot-empty">בחרי פריט</span>`}
+    <span class="slot-icon">${bankItem?.icon||'📄'}</span>
+    <span class="slot-type">${bankItem?.name||slot.type}</span>
+    ${hasContent&&slot.content?`<span style="font-size:.65rem;opacity:.55;">${trunc(slot.content,25)}</span>`:''}
   </div>
   <div class="slot-inline-editor" id="ed-${uid}" style="display:none;"></div>`;
 }
@@ -1153,7 +1163,16 @@ function setSlot(section, si, sli, data){
 }
 
 function buildSlotEditor(slot, section, si, sli, uid){
-  if(!slot?.type)return `<div style="font-size:.75rem;opacity:.45;text-align:center;padding:6px;">בחרי פריט מבנק הפריטים ←</div>`;
+  // ── כתיבה חופשית (ללא פריט) ──
+  if(!slot?.type){
+    return `<div class="inline-editor-title">✏️ כתיבה חופשית</div>
+      <textarea class="inline-field" id="ef-${uid}" placeholder="כתבי שאלה, הנחיה או כל תוכן אחר...">${esc(slot?.content||'')}</textarea>
+      <div class="editor-btns">
+        <button class="btn btn-ghost btn-sm" onclick="switchToBank('${section}',${si},${sli},'${uid}')">📦 בחרי פריט מהבנק</button>
+        <button class="btn btn-gold btn-sm" onclick="saveFreeText('${section}',${si},${sli},'${uid}')">שמור ✓</button>
+      </div>`;
+  }
+
   const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
 
   // ── טבלת מיון ──
@@ -1228,6 +1247,22 @@ function convertDriveLink(inputId){
   if(m&&!val.includes('uc?export')){
     inp.value=`https://drive.google.com/uc?export=view&id=${m[1]}`;
   }
+}
+
+function saveFreeText(section, si, sli, uid){
+  const f=document.getElementById('ef-'+uid);
+  if(!f)return;
+  // שומר כ-type='text' עם content
+  setSlot(section,si,sli,{type:'text',content:f.value.trim()});
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+
+function switchToBank(section, si, sli, uid){
+  // פותח את הבנק ומאפשר בחירת פריט
+  switchSideTab('bank');
+  document.getElementById('bank-hint').textContent='בחרי פריט — יחליף את הכתיבה החופשית';
 }
 
 function saveSlotContent(section, si, sli, uid){
