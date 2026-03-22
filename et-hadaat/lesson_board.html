@@ -181,14 +181,14 @@ function buildSlotHTML(slot){
   if(slot.type==='sort_table'&&slot.tableData){
     const td=slot.tableData;
     const colsHtml=td.cols.map(c=>`<th>${esc(c.name)}</th>`).join('');
-    // מסדר פריטים לפי עמודות
-    const colItems=td.cols.map((_,ci)=>td.items.filter(it=>it.answer===ci));
-    const maxRows=Math.max(...colItems.map(c=>c.length),1);
-    let rows='';
-    for(let r=0;r<maxRows;r++){
-      rows+=`<tr>${colItems.map(col=>`<td style="padding:8px 12px;font-size:.9rem;">${col[r]?esc(col[r].text):''}</td>`).join('')}</tr>`;
+    // על הלוח — טבלה ריקה עם כותרות בלבד
+    const rows=Math.ceil((td.items?.length||8)/td.cols.length)||3;
+    let emptyRows='';
+    for(let r=0;r<rows;r++){
+      emptyRows+=`<tr>${td.cols.map(()=>`<td style="padding:12px;min-width:120px;height:44px;"></td>`).join('')}</tr>`;
     }
-    inner=`<table class="sort-table-display"><thead><tr>${colsHtml}</tr></thead><tbody>${rows}</tbody></table>`;
+    inner=`<div style="font-size:.78rem;opacity:.4;margin-bottom:8px;">התלמידים ממיינים בטאבלט שלהם</div>
+      <table class="sort-table-display"><thead><tr>${colsHtml}</tr></thead><tbody>${emptyRows}</tbody></table>`;
   } else if(slot.type==='image'){
     // תמיכה בקישורי Google Drive
     let src=esc(slot.content||'');
