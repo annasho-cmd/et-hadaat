@@ -676,9 +676,25 @@ function showExistingUnits(){
           <div class="li-name">${u.num?u.num+'. ':''}${u.name}</div>
           <div class="li-status">${u.lessons?Object.values(u.lessons).length:0} שיעורים</div>
         </div>
-        <div class="li-arrow">←</div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+            onclick="event.stopPropagation();openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})">✏️ ערכי</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
+            onclick="event.stopPropagation();deleteUnit('${u.id}','${u.name}')">🗑</button>
+        </div>
       </div>`).join('');
   });
+}
+
+async function deleteUnit(unitId, unitName){
+  if(!confirm('למחוק את היחידה "'+unitName+'"?\nכל השיעורים בתוכה יימחקו גם כן.'))return;
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
+  // עדכון זיכרון
+  if(teacherData.subjects[currentSubject.id]?.units){
+    delete teacherData.subjects[currentSubject.id].units[unitId];
+    currentSubject=teacherData.subjects[currentSubject.id];
+  }
+  showExistingUnits();
 }
 
 function openExistingUnit(unit){
