@@ -303,7 +303,7 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 <div class="screen active" id="screen-subject">
   <div class="topbar">
     <div class="topbar-title">📖 עת הדעת — בונה שיעורים</div>
-    <button class="btn-back" onclick="window.location.href='teacher_dashboard.html'">← לוח המורה</button>
+    <button class="btn-back" onclick="goToDashboard()">← לוח המורה</button>
   </div>
   <div class="main-wrap">
     <div class="card">
@@ -460,6 +460,7 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
       <span class="builder-lesson" id="b-lesson-label"></span>
     </div>
     <div class="builder-actions">
+      <button class="btn btn-sm" style="background:rgba(107,70,193,.25);border:1px solid rgba(107,70,193,.5);color:#c4b5fd;" onclick="openLessonBoard()">📺 הצג על לוח</button>
       <button class="btn btn-green btn-sm" onclick="saveLesson()">💾 שמור שיעור</button>
     </div>
   </div>
@@ -623,6 +624,22 @@ const ITEM_BANK=[
 
 // ── NAV ──
 function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+function goToDashboard(){
+  const base=window.location.href.split('?')[0];
+  window.location.href=base.replace('lesson_builder.html','teacher_dashboard.html');
+}
+
+function openLessonBoard(){
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  if(!lesson){alert('יש לפתוח שיעור תחילה');return;}
+  const base=window.location.href.split('?')[0].replace('lesson_builder.html','lesson_board.html');
+  const params=`subject=${currentSubject?.id}&unit=${currentUnit?.id}&lesson=${currentLessonIdx}&step=${currentStep}`;
+  const a=document.createElement('a');
+  a.href=base+'?'+params;
+  a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
 
 // ── INIT ──
 window.onload=function(){

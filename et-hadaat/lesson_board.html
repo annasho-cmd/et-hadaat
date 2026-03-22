@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>הצגה על לוח — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);
+  --border2:rgba(212,168,67,0.42);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+
+/* TOPBAR */
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.step-nav{display:flex;gap:8px;}
+.step-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;opacity:.5;}
+.step-btn.active{background:rgba(212,168,67,.15);border-color:var(--gold);color:var(--gold2);opacity:1;}
+.btn-ctrl{padding:6px 14px;border-radius:8px;border:none;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;}
+.btn-prev{background:none;border:1px solid var(--border2);color:var(--parch);}
+.btn-next{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;}
+
+/* MAIN */
+.main{padding:32px 48px;max-width:1100px;margin:0 auto;}
+
+/* SECTION LABEL */
+.section-label{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.35;margin-bottom:16px;}
+
+/* STATION DISPLAY */
+.station-display{display:flex;flex-direction:column;gap:20px;}
+.slot-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 28px;}
+.slot-type{font-size:.72rem;font-weight:700;color:var(--gold);opacity:.6;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;}
+.slot-content{font-size:1.05rem;line-height:1.8;direction:rtl;}
+.slot-image{max-width:100%;border-radius:10px;max-height:400px;object-fit:contain;}
+
+/* SORT TABLE DISPLAY */
+.sort-table-display{width:100%;border-collapse:collapse;}
+.sort-table-display th{background:rgba(212,168,67,.18);border:1px solid var(--border2);padding:10px 14px;font-size:.9rem;font-weight:700;color:var(--gold2);text-align:center;}
+.sort-table-display td{border:1px solid var(--border);padding:8px;vertical-align:top;min-height:44px;}
+
+/* LOADING */
+.loading{text-align:center;padding:80px 20px;opacity:.4;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:2rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="topbar-title" id="lesson-title">טוען...</div>
+  </div>
+  <div class="step-nav" id="step-nav"></div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-ctrl btn-prev" onclick="prevStation()">← קודם</button>
+    <button class="btn-ctrl btn-next" onclick="nextStation()">הבא ←</button>
+  </div>
+</div>
+
+<div class="main" id="main">
+  <div class="loading"><span class="spin">⏳</span><br>טוען שיעור...</div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+const params=new URLSearchParams(window.location.search);
+const subjectId=params.get('subject');
+const unitId=params.get('unit');
+const lessonIdx=parseInt(params.get('lesson')||'0');
+const initStep=parseInt(params.get('step')||'0');
+
+let lessonData=null;
+let allStations=[];
+let currentStation=0;
+
+const SECTION_LABELS={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום'};
+const STEP_SECTIONS=['intro','body','closing','enrichment'];
+
+window.onload=async function(){
+  const snap=await db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}`).once('value');
+  lessonData=snap.val();
+  if(!lessonData){document.getElementById('main').innerHTML='<div class="loading">שיעור לא נמצא</div>';return;}
+  document.getElementById('lesson-title').textContent=lessonData.topic||lessonData.name||'שיעור';
+  buildStations();
+  buildStepNav();
+  // התחל מהקרון שנבחר בבונה
+  const stepSection=STEP_SECTIONS[initStep]||'intro';
+  const firstInSection=allStations.findIndex(s=>s.section===stepSection);
+  currentStation=firstInSection>=0?firstInSection:0;
+  renderStation();
+};
+
+function buildStations(){
+  const d=lessonData.data||{};
+  allStations=[];
+  ['intro','stations','closing'].forEach((key,ki)=>{
+    const section=['intro','body','closing'][ki];
+    if(d[key]) d[key].forEach((st,si)=>{
+      const slots=(st.slots||[]).filter(s=>s.type&&(s.content||s.tableData));
+      if(slots.length) allStations.push({section,si,slots});
+    });
+  });
+}
+
+function buildStepNav(){
+  const nav=document.getElementById('step-nav');
+  const sections=['intro','body','closing'];
+  const labels=['🌅 פתיח','🚂 גוף','🌇 סיום'];
+  nav.innerHTML=sections.map((sec,i)=>`
+    <button class="step-btn ${allStations.some(s=>s.section===sec)?'':'disabled'}"
+      onclick="jumpToSection('${sec}')">${labels[i]}</button>`).join('');
+}
+
+function jumpToSection(section){
+  const idx=allStations.findIndex(s=>s.section===section);
+  if(idx>=0){currentStation=idx;renderStation();}
+}
+
+function renderStation(){
+  if(!allStations.length){
+    document.getElementById('main').innerHTML='<div class="loading">אין תחנות בשיעור</div>';
+    return;
+  }
+  const st=allStations[Math.min(currentStation,allStations.length-1)];
+  const main=document.getElementById('main');
+
+  // עדכן כפתורי nav
+  document.querySelectorAll('.step-btn').forEach(b=>{
+    b.classList.toggle('active',b.onclick?.toString().includes(st.section));
+  });
+
+  let html=`<div class="section-label">${SECTION_LABELS[st.section]||''} · תחנה ${st.si+1}</div>
+    <div class="station-display">`;
+
+  st.slots.forEach(slot=>{
+    html+=buildSlotHTML(slot);
+  });
+
+  html+='</div>';
+  main.innerHTML=html;
+}
+
+function buildSlotHTML(slot){
+  const LABELS={entry:'🚪 כרטיס כניסה',exit:'🎫 כרטיס יציאה',open_q:'❓ שאלה פתוחה',
+    sources:'📜 קריאת מקורות',image:'🖼️ תמונה',video:'▶️ סרטון',sort_table:'📊 טבלת מיון',
+    mc_q:'🔘 רב-ברירה',tf_q:'✅ נכון/לא נכון'};
+
+  let inner='';
+
+  if(slot.type==='sort_table'&&slot.tableData){
+    const td=slot.tableData;
+    const colsHtml=td.cols.map(c=>`<th>${esc(c.name)}</th>`).join('');
+    // מסדר פריטים לפי עמודות
+    const colItems=td.cols.map((_,ci)=>td.items.filter(it=>it.answer===ci));
+    const maxRows=Math.max(...colItems.map(c=>c.length),1);
+    let rows='';
+    for(let r=0;r<maxRows;r++){
+      rows+=`<tr>${colItems.map(col=>`<td style="padding:8px 12px;font-size:.9rem;">${col[r]?esc(col[r].text):''}</td>`).join('')}</tr>`;
+    }
+    inner=`<table class="sort-table-display"><thead><tr>${colsHtml}</tr></thead><tbody>${rows}</tbody></table>`;
+  } else if(slot.type==='image'){
+    inner=`<img class="slot-image" src="${esc(slot.content||'')}" alt="תמונה">`;
+  } else if(slot.type==='video'){
+    const m=(slot.content||'').match(/(?:v=|youtu\.be\/)([^&\s]+)/);
+    inner=m?`<iframe width="100%" height="360" src="https://www.youtube.com/embed/${m[1]}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`
+      :`<div style="opacity:.4;">${esc(slot.content||'')}</div>`;
+  } else if(slot.content){
+    inner=`<div class="slot-content">${esc(slot.content).replace(/\n/g,'<br>')}</div>`;
+  }
+
+  return `<div class="slot-card">
+    <div class="slot-type">${LABELS[slot.type]||slot.type}</div>
+    ${inner}
+  </div>`;
+}
+
+function nextStation(){
+  if(currentStation<allStations.length-1){currentStation++;renderStation();}
+}
+function prevStation(){
+  if(currentStation>0){currentStation--;renderStation();}
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
