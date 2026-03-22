@@ -688,19 +688,31 @@ function showExistingUnits(){
 
 function deleteUnitById(btn){
   const unitId=btn.dataset.uid;
-  const name=btn.closest('.lesson-list-item').querySelector('.li-name').textContent;
+  const name=btn.closest('.lesson-list-item').querySelector('.li-name').textContent.trim();
   deleteUnit(unitId, name);
 }
 
 async function deleteUnit(unitId, unitName){
   if(!confirm('למחוק את היחידה "'+unitName+'"?\nכל השיעורים בתוכה יימחקו גם כן.'))return;
   try{
-    await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
-    // עדכון זיכרון — בטוח
-    if(teacherData?.subjects?.[currentSubject.id]?.units){
+    if(unitId && unitId!=='undefined'){
+      // מחיקה רגילה לפי id
+      await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
+    } else {
+      // אין id — מחפשים לפי שם ומוחקים
+      const snap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
+      const units=snap.val()||{};
+      for(const [key,u] of Object.entries(units)){
+        if(u.name===unitName || !u.id){
+          await db.ref(`teacher/subjects/${currentSubject.id}/units/${key}`).remove();
+        }
+      }
+    }
+    // עדכון זיכרון
+    if(teacherData?.subjects?.[currentSubject.id]?.units && unitId && unitId!=='undefined'){
       delete teacherData.subjects[currentSubject.id].units[unitId];
     }
-    if(currentSubject?.units){
+    if(currentSubject?.units && unitId && unitId!=='undefined'){
       delete currentSubject.units[unitId];
     }
     showExistingUnits();
