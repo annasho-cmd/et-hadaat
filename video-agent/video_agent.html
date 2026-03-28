@@ -433,78 +433,84 @@ function normalizeTimeStr(t){
   return t;
 }
 
-function analyzeTranscripts(){
+async function analyzeTranscripts(){
   const p=currentProject;
   const topics=p.topics||[];
   const videos=(p.videos||[]).filter(v=>v.transcript);
   if(!videos.length){alert('אנא הוסיפי תמלולים תחילה');return;}
 
   const progEl=document.getElementById('analyze-progress');
-  if(progEl)progEl.innerHTML='<div class="loading"><div class="spinner"></div>מנתח...</div>';
+  if(progEl)progEl.innerHTML='<div class="loading"><div class="spinner"></div>מנתח עם AI — עשוי לקחת כחצי דקה...</div>';
 
-  const segments=[];
-  const foundTopics=new Set();
-
-  // Keywords per topic
-  const topicKW=topics.map(t=>({
-    topic:t,
-    keywords:t.split(/[\s,،\-–]+/).filter(w=>w.length>3).map(w=>w.toLowerCase())
-  }));
-
-  videos.forEach((v,vIdx)=>{
-    // Normalize transcript - handle both YouTube format and [MM:SS] format
+  // Build transcripts summary for AI
+  const transcriptsSummary = videos.map((v,i)=>{
     const normalized = normalizeTranscript(v.transcript);
-    const lines=normalized.split('\n').filter(Boolean);
-    const timeRe=/\[(\d{1,2}:\d{2})\]/;
-    const chunks=[];
-    let cur={start:'',end:'',text:'',count:0};
+    // Take up to 4000 chars per video to avoid token limit
+    const trimmed = normalized.length>4000 ? normalized.slice(0,4000)+'...' : normalized;
+    return `סרטון ${i+1} (${v.url}):\n${trimmed}`;
+  }).join('\n\n---\n\n');
 
-    lines.forEach((line,li)=>{
-      const tm=line.match(timeRe);
-      const text=line.replace(timeRe,'').trim();
-      if(tm){
-        const t=padTime(tm[1]);
-        if(!cur.start)cur.start=t;
-        cur.end=t;cur.text+=' '+text;cur.count++;
-        if(cur.count>=8||li===lines.length-1){
-          chunks.push({...cur});
-          cur={start:cur.end,end:cur.end,text:'',count:0};
-        }
-      }else{cur.text+=' '+text;}
+  const prompt = `אתה עוזר לעריכת וידאו חינוכי. יש לי ${videos.length} סרטוני יוטיוב עם תמלולים, ואני צריכה למצוא בהם קטעים לכל נושא.
+
+נושאי היחידה:
+${topics.map((t,i)=>`${i+1}. ${t}`).join('\n')}
+
+תמלולי הסרטונים:
+${transcriptsSummary}
+
+המשימה: לכל נושא — מצא את הקטע הרלוונטי ביותר בסרטונים. 
+
+ענה אך ורק ב-JSON תקני, ללא טקסט נוסף, בפורמט הבא:
+{
+  "segments": [
+    {"topic": "שם הנושא", "videoIndex": 0, "start": "MM:SS", "end": "MM:SS", "reason": "הסבר קצר מדוע קטע זה רלוונטי"}
+  ],
+  "missing": ["נושא שלא נמצא לו קטע"]
+}
+
+הערות:
+- videoIndex הוא מספר הסרטון (0 = ראשון)
+- start ו-end הם חותמות הזמן המדויקות מהתמלול בפורמט MM:SS
+- אם נושא לא נמצא באף סרטון — הוסף אותו ל-missing
+- כל נושא יופיע פעם אחת בלבד`;
+
+  try{
+    const res = await fetch('https://anthropic-proxy.anna-sho.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2000,
+        messages:[{role:'user',content:prompt}]
+      })
     });
+    const data = await res.json();
+    const text = data.content?.map(b=>b.text||'').join('')||'';
+    
+    // Parse JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if(!jsonMatch)throw new Error('תגובה לא תקינה מה-AI');
+    const result = JSON.parse(jsonMatch[0]);
+    
+    const segments = (result.segments||[]).map(s=>({
+      ...s,
+      videoUrl: (videos[s.videoIndex]||videos[0]).url,
+      relevance: 5
+    }));
+    const missing = result.missing||[];
+    const transitions = segments.slice(0,-1).map((s,i)=>({
+      between:`אחרי "${s.topic}", לפני "${segments[i+1].topic}"`,
+      text:genTransition(s.topic,segments[i+1].topic)
+    }));
 
-    topicKW.forEach(({topic,keywords})=>{
-      let best=null,bestScore=0;
-      chunks.forEach(chunk=>{
-        const lower=chunk.text.toLowerCase();
-        let score=keywords.reduce((acc,kw)=>acc+(lower.includes(kw)?1:0),0);
-        if(score>bestScore){bestScore=score;best=chunk;}
-      });
-      if(best&&bestScore>0){
-        foundTopics.add(topic);
-        segments.push({topic,videoUrl:v.url,videoIndex:vIdx,start:best.start||'00:00',end:best.end||'00:30',relevance:Math.min(5,bestScore+1)});
-      }
-    });
-  });
+    db.ref('video_agent/projects/'+p.id+'/segments').set(segments);
+    db.ref('video_agent/projects/'+p.id+'/transitions').set(transitions);
+    db.ref('video_agent/projects/'+p.id+'/missing').set(missing);
 
-  // Sort by topic order, remove duplicates
-  const seen=new Set(),unique=[];
-  segments.sort((a,b)=>topics.indexOf(a.topic)-topics.indexOf(b.topic))
-    .forEach(s=>{if(!seen.has(s.topic)){seen.add(s.topic);unique.push(s);}});
-
-  const missing=topics.filter(t=>!foundTopics.has(t));
-  const transitions=unique.slice(0,-1).map((s,i)=>({
-    between:`אחרי "${s.topic}", לפני "${unique[i+1].topic}"`,
-    text:genTransition(s.topic,unique[i+1].topic)
-  }));
-
-  db.ref('video_agent/projects/'+p.id+'/segments').set(unique);
-  db.ref('video_agent/projects/'+p.id+'/transitions').set(transitions);
-  db.ref('video_agent/projects/'+p.id+'/missing').set(missing);
-
-  setTimeout(()=>{
-    document.getElementById('analyze-content').innerHTML=renderAnalyzeTab({...currentProject,segments:unique,transitions,missing});
-  },300);
+    document.getElementById('analyze-content').innerHTML=renderAnalyzeTab({...currentProject,segments,transitions,missing});
+  }catch(e){
+    if(progEl)progEl.innerHTML=`<div style="color:var(--red);padding:12px;">שגיאה: ${e.message}</div>`;
+  }
 }
 
 function genTransition(from,to){
