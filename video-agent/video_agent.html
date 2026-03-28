@@ -292,7 +292,7 @@ async function fetchTranscript(i){
     let transcript='';
     for(const lang of['he','en','iw']){
       try{
-        const r=await fetch(`https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`);
+        const r=await fetch(`https://anthropic-proxy.anna-sho.workers.dev/youtube-transcript?v=${videoId}&lang=${lang}`);
         if(r.ok){
           const data=await r.json();
           if(data.events&&data.events.length>0){
