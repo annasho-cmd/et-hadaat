@@ -349,12 +349,23 @@ function renderAnalyzeTab(p){
     </tbody></table></div>`;
 
   if(transitions.length){
-    html+=`<div class="card"><div class="card-title">🔄 קטעי מעבר מוצעים</div>
-    ${transitions.map(t=>`
+    html+=`<div class="card"><div class="card-title">🔄 קטעי מעבר</div>
+    ${transitions.map((t,ti)=>`
       <div class="transition-card">
         <div class="transition-label">🔀 ${t.between}</div>
-        ${t.text?`<div style="font-size:.88rem;margin-bottom:6px;line-height:1.7;">"${t.text}"</div>`:''}
-        ${t.image?`<div style="font-size:.78rem;color:#bc8cff;background:rgba(188,140,255,.08);border-radius:4px;padding:5px 10px;">🖼 ${t.image}</div>`:''}
+        <div style="margin-bottom:8px;">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:3px;">משפט מעבר:</div>
+          <textarea id="trans-text-${ti}" rows="2" style="width:100%;background:#0d1117;border:1px solid rgba(188,140,255,.3);border-radius:4px;color:var(--text);font-family:Heebo,sans-serif;font-size:.85rem;padding:6px 10px;resize:vertical;">${t.text||''}</textarea>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:3px;">🖼 הצעת תמונה:</div>
+          <input id="trans-img-${ti}" value="${t.image||''}" style="width:100%;background:#0d1117;border:1px solid rgba(188,140,255,.3);border-radius:4px;color:#bc8cff;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 10px;"/>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="saveTransition(${ti})">💾 שמור</button>
+          <button class="btn btn-ghost btn-sm" onclick="genImagePrompt(${ti},'${t.image||t.text||''}')" style="color:#bc8cff;border-color:rgba(188,140,255,.3);">🎨 פרומפט לנאנו-בננה</button>
+        </div>
+        <div id="trans-prompt-${ti}" style="display:none;margin-top:8px;background:#0d1117;border:1px solid rgba(188,140,255,.3);border-radius:4px;padding:10px;font-size:.8rem;color:#bc8cff;line-height:1.7;white-space:pre-wrap;direction:ltr;"></div>
       </div>`).join('')}</div>`;
   }
 
@@ -516,6 +527,48 @@ ${transcriptsSummary}
   }catch(e){
     if(progEl)progEl.innerHTML=`<div style="color:var(--red);padding:12px;">שגיאה: ${e.message}</div>`;
   }
+}
+
+function saveTransition(ti){
+  const text=document.getElementById('trans-text-'+ti)?.value||'';
+  const image=document.getElementById('trans-img-'+ti)?.value||'';
+  const transitions=[...(currentProject.transitions||[])];
+  if(transitions[ti]){transitions[ti].text=text;transitions[ti].image=image;}
+  db.ref('video_agent/projects/'+currentProject.id+'/transitions').set(transitions);
+  const btn=event.target;btn.textContent='✓ נשמר';setTimeout(()=>btn.textContent='💾 שמור',1500);
+}
+
+async function genImagePrompt(ti, imageDesc){
+  const text=document.getElementById('trans-text-'+ti)?.value||'';
+  const img=document.getElementById('trans-img-'+ti)?.value||imageDesc||'';
+  const promptEl=document.getElementById('trans-prompt-'+ti);
+  if(!promptEl)return;
+  promptEl.style.display='block';
+  promptEl.textContent='⏳ מייצר פרומפט...';
+  const projectName=currentProject.name||'';
+  try{
+    const res=await fetch('https://anthropic-proxy.anna-sho.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:400,
+        messages:[{role:'user',content:`Create a detailed image generation prompt for Nano Banna (AI image generator) for an educational video about: "${projectName}".
+The transition text is: "${text}"
+The image concept is: "${img}"
+
+Write a concise English prompt (2-3 sentences) that describes:
+1. The visual content clearly
+2. The style: historical illustration, educational, suitable for middle school
+3. Colors and mood
+
+Start directly with the prompt, no preamble.`}]
+      })
+    });
+    const data=await res.json();
+    const result=data.content?.map(b=>b.text||'').join('')||'';
+    promptEl.textContent=result;
+    // Add copy button
+    promptEl.innerHTML=result+'<br><br><button onclick="navigator.clipboard.writeText(this.previousSibling.textContent.trim());this.textContent='✓ הועתק'" style="background:#312e81;color:#a5b4fc;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.75rem;margin-top:4px;">📋 העתק</button>';
+  }catch(e){promptEl.textContent='שגיאה: '+e.message;}
 }
 
 async function generateAITransitions(projectName, segments){
