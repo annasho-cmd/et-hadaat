@@ -284,6 +284,14 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .bank-cat-items.open{display:grid;}
 .bank-cube{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:7px;padding:7px 5px;text-align:center;cursor:pointer;transition:all .15s;}
 .bank-cube:hover{border-color:var(--gold);background:rgba(212,168,67,.08);transform:translateY(-1px);}
+.bank-tooltip{position:fixed;z-index:9999;background:#1a1408;border:1px solid var(--gold);border-radius:8px;padding:12px 14px;max-width:280px;font-size:.78rem;line-height:1.6;color:#fdf5e0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.6);direction:rtl;}
+.bank-tooltip-title{font-weight:700;color:var(--gold);margin-bottom:6px;font-size:.82rem;}
+.bank-tooltip-desc{color:#d4b06a;margin-bottom:8px;}
+.bank-tooltip-style{padding:3px 0;border-bottom:1px solid rgba(212,168,67,.15);}
+.bank-tooltip-style:last-child{border-bottom:none;}
+.bank-tooltip-style-name{font-weight:700;color:#fdf5e0;}
+.bank-tooltip-style-desc{color:#94826a;font-size:.73rem;}
+.bank-tooltip-used{margin-top:7px;font-size:.72rem;color:#64748b;}
 .bank-cube-icon{font-size:1rem;margin-bottom:2px;display:block;}
 .bank-cube-name{font-size:.65rem;font-weight:700;line-height:1.3;}
 
@@ -1463,7 +1471,9 @@ function renderBankAccordion(){
       </div>
       <div class="bank-cat-items" id="bci-${ci}">
         ${items.map(item=>`
-          <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')">
+          <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
+            onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
+            onmouseleave="hideBankTooltip()">
             <span class="bank-cube-icon">${item.icon||'📄'}</span>
             <div class="bank-cube-name">${item.name}</div>
           </div>`).join('')}
@@ -1502,14 +1512,50 @@ function switchSideTab(tab){
   document.getElementById('ai-input-row').style.display=tab==='ai'?'flex':'none';
 }
 
+function buildLessonContext(){
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const goals=document.getElementById('b-goals')?.value||lessonData?.goals||'';
+  // Collect all slots from lesson
+  const sections={intro:'פתיח',stations:'תחנות',closing:'סיום',enrichment:'העשרה'};
+  const slotsSummary=[];
+  ['intro','stations','closing','enrichment'].forEach(sec=>{
+    const rows=lessonData?.[sec]||[];
+    rows.forEach((row,ri)=>{
+      (row.slots||[]).forEach((slot,si)=>{
+        if(slot&&slot.type){
+          const bankItem=bankData.find(b=>(b.id||b.type)===slot.type);
+          const name=bankItem?.name||slot.type;
+          const content=slot.content||slot.text||'';
+          slotsSummary.push(`${sections[sec]} — ${name}${content?' ('+content.slice(0,40)+'...)':''}`);
+        }
+      });
+    });
+  });
+  // Bank items summary for recommendations
+  const bankSummary=bankData.map(b=>`${b.icon||''}${b.name}(${(b.usedIn||[]).join(',')})`).join(' | ');
+  return `אתה עוזר הוראה מקצועי ויצירתי. ענה תמיד בעברית, בצורה קצרה וממוקדת.
+
+פרטי השיעור:
+- מקצוע: ${currentSubject?.name||'היסטוריה'}
+- יחידה: ${currentUnit?.name||''}
+- שיעור: ${lesson?.topic||''}
+- מטרות: ${goals||'טרם הוגדרו'}
+
+מה שכבר בנוי בשיעור:
+${slotsSummary.length?slotsSummary.join('\n'):'טרם נוספו פריטים'}
+
+פריטים זמינים בבנק: ${bankSummary}
+
+כשאת ממליצה על פריט — ציין את שמו המדויק מהבנק וסגנון מומלץ.`;
+}
+
 async function sendAI(){
   const inp=document.getElementById('ai-input');
   const msg=inp.value.trim();if(!msg)return;
   inp.value='';
   addMsg('ai-messages',msg,'user');
   showThinking(true);
-  const lesson=currentUnit?.lessons?.[currentLessonIdx];
-  const sys=`אתה עוזר הוראה למורה שבונה שיעור היסטוריה. יחידה: ${currentUnit?.name||''}. שיעור: ${lesson?.topic||''}. ענה בעברית, קצר ומקצועי.`;
+  const sys=buildLessonContext();
   aiHistory.push({role:'user',content:msg});
   const reply=await callAI(sys,msg,aiHistory.slice(0,-1));
   aiHistory.push({role:'assistant',content:reply});
@@ -1532,24 +1578,64 @@ async function askGoalsAI(){
 
 async function askRowAI(uid,section,ri,si){
   switchSideTab('ai');
-  const lesson=currentUnit?.lessons?.[currentLessonIdx];
   const f=document.getElementById('ef-'+uid);
   const cur=f?.value||'';
   const row=getRow(section,ri,si);
-  const item=ITEM_BANK.find(b=>b.type===row?.type);
+  const itemId=row?.type;
+  const bankItem=bankData.find(b=>(b.id||b.type)===itemId);
+  const itemName=bankItem?.name||itemId||'';
+  const styles=(bankItem?.styles||[]).map(s=>s.name).join(', ');
   const sNames={intro:'פתיח',stations:'תחנה',closing:'סיום',enrichment:'העשרה'};
   const prompt=cur
-    ?`שפרי את הטקסט לפריט "${item?.name||''}" ב${sNames[section]||section}: "${cur}"`
-    :`הצעי תוכן לפריט "${item?.name||''}" ב${sNames[section]||section} בשיעור בנושא "${lesson?.topic||''}"`;
+    ?`שפרי את הטקסט לפריט "${itemName}" ב${sNames[section]||section}: "${cur}"`
+    :`הצעי תוכן לפריט "${itemName}" ב${sNames[section]||section}.${styles?` סגנונות אפשריים: ${styles}.`:''}`;
   addMsg('ai-messages',prompt,'user');
   showThinking(true);
-  const reply=await callAI('אתה עוזר הוראה. ענה בעברית, תוכן פדגוגי קצר.',prompt,[]);
+  const sys=buildLessonContext();
+  const reply=await callAI(sys,prompt,[]);
   showThinking(false);
   addMsg('ai-messages',reply,'assistant');
   addMsg('ai-messages','העתיקי את התשובה לשדה הפריט.','assistant');
 }
 
 function showThinking(v){document.getElementById('ai-thinking').style.display=v?'block':'none';}
+
+// ── Bank Tooltip ──────────────────────────────────────────────────────
+const USED_LABELS={intro:'פתיח',body:'גוף השיעור',closing:'סיום',enrichment:'העשרה'};
+function showBankTooltip(e, itemId){
+  const item=bankData.find(b=>(b.id||b.type)===itemId);
+  if(!item||!item.desc)return;
+  const tip=document.getElementById('bank-tooltip');
+  if(!tip)return;
+  const styles=(item.styles||[]).filter(s=>s.name&&s.desc);
+  const usedIn=(item.usedIn||[]).map(u=>USED_LABELS[u]||u).join(' · ');
+  tip.innerHTML=`
+    <div class="bank-tooltip-title">${item.icon||''} ${item.name}</div>
+    ${item.desc?`<div class="bank-tooltip-desc">${item.desc}</div>`:''}
+    ${styles.length?`<div style="margin-bottom:4px;font-size:.72rem;color:#64748b;font-weight:700;">סגנונות:</div>`:''}
+    ${styles.map(s=>`<div class="bank-tooltip-style">
+      <div class="bank-tooltip-style-name">${s.name}</div>
+      <div class="bank-tooltip-style-desc">${s.desc}</div>
+    </div>`).join('')}
+    ${usedIn?`<div class="bank-tooltip-used">מומלץ ל: ${usedIn}</div>`:''}
+  `;
+  tip.style.display='block';
+  positionTooltip(e,tip);
+}
+function positionTooltip(e,tip){
+  const x=e.clientX, y=e.clientY;
+  const tw=tip.offsetWidth||280, th=tip.offsetHeight||200;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let left=x+14, top=y-20;
+  if(left+tw>vw-10)left=x-tw-14;
+  if(top+th>vh-10)top=vh-th-10;
+  if(top<10)top=10;
+  tip.style.left=left+'px';tip.style.top=top+'px';
+}
+function hideBankTooltip(){
+  const tip=document.getElementById('bank-tooltip');
+  if(tip)tip.style.display='none';
+}
 
 // ── SAVE ──
 async function saveLesson(){
@@ -1733,5 +1819,6 @@ function saveEnrichTemplate(tid){
 function trunc(s,n){return s&&s.length>n?s.substr(0,n)+'...':s||'';}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>
+<div id="bank-tooltip" class="bank-tooltip" style="display:none;"></div>
 </body>
 </html>
