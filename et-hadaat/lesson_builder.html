@@ -634,8 +634,15 @@ const ITEM_BANK=[
 function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 function goToDashboard(){
-  const base=window.location.href.split('?')[0];
-  window.location.href=base.replace('lesson_builder.html','teacher_dashboard.html');
+  const href=window.location.href.split('?')[0].split('#')[0];
+  if(href.includes('lesson_builder.html')){
+    window.location.href=href.replace('lesson_builder.html','teacher_dashboard.html');
+  } else {
+    // fallback — go up one level and find dashboard
+    const parts=href.split('/');
+    parts[parts.length-1]='teacher_dashboard.html';
+    window.location.href=parts.join('/');
+  }
 }
 
 function openLessonBoard(){
@@ -713,7 +720,9 @@ function showExistingUnits(){
 
 function deleteUnitById(btn){
   const unitId=btn.dataset.uid;
-  const name=btn.closest('.lesson-list-item').querySelector('.li-name').textContent.trim();
+  const item=btn.closest('.lesson-list-item');
+  const nameEl=item?.querySelector('.li-name');
+  const name=nameEl?nameEl.textContent.trim():'יחידה זו';
   deleteUnit(unitId, name);
 }
 
@@ -740,6 +749,11 @@ async function deleteUnit(unitId, unitName){
     if(currentSubject?.units && unitId && unitId!=='undefined'){
       delete currentSubject.units[unitId];
     }
+    // Refresh from Firebase
+    const freshSnap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
+    currentSubject.units=freshSnap.val()||{};
+    if(teacherData?.subjects?.[currentSubject.id])
+      teacherData.subjects[currentSubject.id].units=currentSubject.units;
     showExistingUnits();
   }catch(e){
     alert('שגיאה במחיקה: '+e.message);
