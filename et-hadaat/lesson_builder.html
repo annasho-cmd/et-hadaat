@@ -1252,6 +1252,59 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── שאלות רב-ברירה ──
+  if(slot.type==='mc_q'){
+    const mc=slot.mcData||{question:'',options:['','','',''],correct:0};
+    const optHtml=mc.options.map((o,oi)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+        <input type="radio" name="mc-correct-${uid}" value="${oi}" ${mc.correct===oi?'checked':''}
+          onchange="updateMcCorrect('${section}',${si},${sli},${oi})"
+          style="width:16px;height:16px;cursor:pointer;" title="סמני כתשובה נכונה">
+        <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;"
+          placeholder="אפשרות ${oi+1}" value="${esc(o)}"
+          onchange="updateMcOption('${section}',${si},${sli},${oi},this.value)">
+      </div>`).join('');
+    return `<div class="inline-editor-title">🔘 שאלות רב-ברירה</div>
+      <div style="font-size:.72rem;color:var(--gold);opacity:.7;margin-bottom:8px;">⭕ סמני את כדור הרדיו ליד התשובה הנכונה</div>
+      <textarea class="inline-field" style="margin-bottom:8px;" placeholder="כתבי את השאלה..."
+        onchange="updateMcQuestion('${section}',${si},${sli},this.value)">${esc(mc.question)}</textarea>
+      ${optHtml}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-ghost btn-sm" onclick="askRowAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveMcData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
+  // ── שאלות נכון/לא נכון ──
+  if(slot.type==='tf_q'){
+    const tf=slot.tfData||{question:'',correct:true,isSurvey:false};
+    return `<div class="inline-editor-title">✅ נכון / לא נכון</div>
+      <textarea class="inline-field" style="margin-bottom:8px;" placeholder="כתבי טענה לבדיקה..."
+        onchange="updateTfQuestion('${section}',${si},${sli},this.value)">${esc(tf.question)}</textarea>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" ${tf.isSurvey?'checked':''} 
+            onchange="updateTfSurvey('${section}',${si},${sli},this.checked)"
+            style="width:15px;height:15px;">
+          <span>סקר (ללא תשובה נכונה)</span>
+        </label>
+      </div>
+      <div id="tf-correct-${uid}" style="${tf.isSurvey?'display:none':''}">
+        <div style="font-size:.78rem;opacity:.6;margin-bottom:5px;">התשובה הנכונה:</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="updateTfCorrect('${section}',${si},${sli},true,'${uid}')"
+            style="flex:1;padding:7px;border-radius:7px;border:2px solid ${tf.correct===true?'#22c55e':'var(--border)'};background:${tf.correct===true?'rgba(34,197,94,.15)':'transparent'};color:${tf.correct===true?'#22c55e':'var(--parch)'};cursor:pointer;font-weight:700;font-family:Heebo,sans-serif;">✅ נכון</button>
+          <button onclick="updateTfCorrect('${section}',${si},${sli},false,'${uid}')"
+            style="flex:1;padding:7px;border-radius:7px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};background:${tf.correct===false?'rgba(248,129,113,.15)':'transparent'};color:${tf.correct===false?'#f87171':'var(--parch)'};cursor:pointer;font-weight:700;font-family:Heebo,sans-serif;">❌ לא נכון</button>
+        </div>
+      </div>
+      <div class="editor-btns" style="margin-top:8px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveTfData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   const isUrl=slot.type==='video'||slot.type==='image';
   const field=isUrl
     ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;"
@@ -1270,6 +1323,66 @@ function buildSlotEditor(slot, section, si, sli, uid){
       <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
       <button class="btn btn-gold btn-sm" onclick="saveSlotContent('${section}',${si},${sli},'${uid}')">שמור ✓</button>
     </div>`;
+}
+
+// ── MC & TF EDITORS ──
+function updateMcQuestion(section,si,sli,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.mcData)slot.mcData={question:'',options:['','','',''],correct:0};
+  slot.mcData.question=val;
+}
+function updateMcOption(section,si,sli,oi,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.mcData)slot.mcData={question:'',options:['','','',''],correct:0};
+  slot.mcData.options[oi]=val;
+}
+function updateMcCorrect(section,si,sli,oi){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.mcData)slot.mcData={question:'',options:['','','',''],correct:0};
+  slot.mcData.correct=oi;
+}
+function saveMcData(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  // collect current values from DOM
+  const uid=section+'_'+si+'_'+sli;
+  const q=document.querySelector(`#editor-${uid} textarea`);
+  if(q)slot.mcData={...slot.mcData,question:q.value};
+  saveLesson();
+  flash('✓ נשמר');
+}
+function updateTfQuestion(section,si,sli,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.tfData)slot.tfData={question:'',correct:true,isSurvey:false};
+  slot.tfData.question=val;
+}
+function updateTfCorrect(section,si,sli,val,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.tfData)slot.tfData={question:'',correct:true,isSurvey:false};
+  slot.tfData.correct=val;
+  // re-render buttons
+  const container=document.getElementById('tf-correct-'+uid);
+  if(container){
+    const btns=container.querySelectorAll('button');
+    btns[0].style.borderColor=val===true?'#22c55e':'var(--border)';
+    btns[0].style.background=val===true?'rgba(34,197,94,.15)':'transparent';
+    btns[0].style.color=val===true?'#22c55e':'var(--parch)';
+    btns[1].style.borderColor=val===false?'#f87171':'var(--border)';
+    btns[1].style.background=val===false?'rgba(248,129,113,.15)':'transparent';
+    btns[1].style.color=val===false?'#f87171':'var(--parch)';
+  }
+}
+function updateTfSurvey(section,si,sli,val,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.tfData)slot.tfData={question:'',correct:true,isSurvey:false};
+  slot.tfData.isSurvey=val;
+  const correctDiv=document.getElementById('tf-correct-'+uid);
+  if(correctDiv)correctDiv.style.display=val?'none':'';
+}
+function saveTfData(section,si,sli){
+  saveLesson();flash('✓ נשמר');
+}
+function getSlot(section,si,sli){
+  return lessonData?.[section]?.[si]?.slots?.[sli]||null;
 }
 
 // ── TABLE SORT EDITOR ──

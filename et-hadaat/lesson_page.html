@@ -96,6 +96,10 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 @keyframes bounce{from{transform:scale(1)}to{transform:scale(1.1)}}
 .end-title{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;font-weight:700;color:var(--gold2);margin-bottom:8px;}
 .end-sub{font-size:.88rem;opacity:.55;margin-bottom:24px;}
+
+.mc-options{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.mc-option{width:100%;padding:10px 14px;border-radius:8px;border:2px solid var(--border2,#334155);background:transparent;color:var(--parch,#fdf5e0);font-family:Heebo,sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;text-align:right;transition:all .15s;}
+.mc-option:hover{border-color:var(--gold,#d4a843);background:rgba(212,168,67,.08);}
 </style>
 </head>
 <body>
@@ -234,6 +238,39 @@ function renderCurrentStation(){
   updateNav();
 }
 
+function chooseMC(stIdx,sli,chosen,correct){
+  const key=`${stIdx}-${sli}`;
+  answers[key]=String(chosen);
+  db.ref(`${dbPath}/stations/${stIdx}/${sli}`).set({answer:String(chosen),ts:Date.now()});
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){
+    saved.textContent=chosen===correct?'✅ נכון!':'❌ לא נכון';
+    saved.style.display='block';
+  }
+  // Update button styles
+  const container=document.getElementById(`mc-${stIdx}-${sli}`);
+  if(container){
+    container.querySelectorAll('.mc-option').forEach(btn=>{
+      const idx=parseInt(btn.dataset.idx);
+      if(idx===correct){btn.style.background='rgba(34,197,94,.2)';btn.style.borderColor='#22c55e';}
+      else if(idx===chosen){btn.style.background='rgba(248,129,113,.15)';btn.style.borderColor='#f87171';}
+      else btn.style.opacity='.5';
+      btn.style.pointerEvents='none';
+    });
+  }
+}
+
+function chooseTF(stIdx,sli,chosen,isSurvey,correct){
+  const key=`${stIdx}-${sli}`;
+  answers[key]=String(chosen);
+  db.ref(`${dbPath}/stations/${stIdx}/${sli}`).set({answer:String(chosen),ts:Date.now()});
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){
+    saved.textContent=isSurvey?'✓ תשובתך נשמרה':(chosen===correct?'✅ נכון!':'❌ לא נכון');
+    saved.style.display='block';
+  }
+}
+
 function buildSlotBlock(slot,stIdx,sli){
   const block=document.createElement('div');
   block.className='slot-block';
@@ -255,6 +292,58 @@ function buildSlotBlock(slot,stIdx,sli){
       :`<div style="opacity:.4;font-size:.85rem;">קישור וידאו: ${esc(slot.content||'')}</div>`;
   } else if(slot.content){
     html+=`<div class="source-text">${slot.content.replace(/\n/g,'<br>')}</div>`;
+  }
+
+  // ── רב-ברירה ──
+  if(slot.type==='mc_q'){
+    const mc=slot.mcData||{question:'',options:['','','',''],correct:0};
+    const answered=savedAnswer!=='';
+    const chosenIdx=answered?parseInt(savedAnswer):-1;
+    const optHtml=mc.options.map((o,oi)=>{
+      if(!o)return '';
+      let style='';
+      if(answered){
+        if(oi===mc.correct) style='background:rgba(34,197,94,.2);border-color:#22c55e;';
+        else if(oi===chosenIdx) style='background:rgba(248,129,113,.15);border-color:#f87171;';
+        else style='opacity:.5;';
+      }
+      return `<button class="mc-option" data-idx="${oi}" onclick="chooseMC(${stIdx},${sli},${oi},${mc.correct})"
+        style="${style}${answered?'pointer-events:none;':''}">${esc(o)}</button>`;
+    }).join('');
+    html+=`<div class="source-text">${esc(mc.question)}</div>
+      <div class="mc-options" id="mc-${stIdx}-${sli}">${optHtml}</div>
+      <div class="answer-saved" id="saved-${stIdx}-${sli}" style="${answered?'display:block':'display:none'}">
+        ${chosenIdx===mc.correct?'✅ נכון!':'❌ לא נכון. התשובה הנכונה: '+esc(mc.options[mc.correct]||'')}
+      </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
+  // ── נכון/לא נכון ──
+  if(slot.type==='tf_q'){
+    const tf=slot.tfData||{question:'',correct:true,isSurvey:false};
+    const answered=savedAnswer!=='';
+    const chosen=savedAnswer==='true'?true:savedAnswer==='false'?false:null;
+    const btnStyle=(val)=>{
+      let s='flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;font-family:Heebo,sans-serif;border:2px solid var(--border2);background:transparent;color:var(--parch);';
+      if(answered){
+        if(val===tf.correct) s+='border-color:#22c55e;background:rgba(34,197,94,.15);color:#22c55e;';
+        else if(val===chosen) s+='border-color:#f87171;background:rgba(248,129,113,.1);color:#f87171;';
+        else s+='opacity:.4;';
+        s+='pointer-events:none;';
+      }
+      return s;
+    };
+    html+=`<div class="source-text">${esc(tf.question)}</div>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button style="${btnStyle(true)}" onclick="chooseTF(${stIdx},${sli},true,${tf.isSurvey?'true':'false'},${tf.correct?'true':'false'})">✅ נכון</button>
+        <button style="${btnStyle(false)}" onclick="chooseTF(${stIdx},${sli},false,${tf.isSurvey?'true':'false'},${tf.correct?'true':'false'})">❌ לא נכון</button>
+      </div>
+      <div class="answer-saved" id="saved-${stIdx}-${sli}" style="${answered?'display:block':'display:none'}">
+        ${tf.isSurvey?'✓ תשובתך נשמרה':(chosen===tf.correct?'✅ נכון!':'❌ לא נכון')}
+      </div>`;
+    block.innerHTML=html;
+    return block;
   }
 
   if(typeInfo.hasAnswer){
