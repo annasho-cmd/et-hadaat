@@ -350,7 +350,12 @@ function renderAnalyzeTab(p){
 
   if(transitions.length){
     html+=`<div class="card"><div class="card-title">🔄 קטעי מעבר מוצעים</div>
-    ${transitions.map(t=>`<div class="transition-card"><div class="transition-label">🔀 ${t.between}</div><div style="font-size:.85rem;">${t.text}</div></div>`).join('')}</div>`;
+    ${transitions.map(t=>`
+      <div class="transition-card">
+        <div class="transition-label">🔀 ${t.between}</div>
+        ${t.text?`<div style="font-size:.88rem;margin-bottom:6px;line-height:1.7;">"${t.text}"</div>`:''}
+        ${t.image?`<div style="font-size:.78rem;color:#bc8cff;background:rgba(188,140,255,.08);border-radius:4px;padding:5px 10px;">🖼 ${t.image}</div>`:''}
+      </div>`).join('')}</div>`;
   }
 
   if(missing.length){
@@ -498,10 +503,10 @@ ${transcriptsSummary}
       relevance: 5
     }));
     const missing = result.missing||[];
-    const transitions = segments.slice(0,-1).map((s,i)=>({
-      between:`אחרי "${s.topic}", לפני "${segments[i+1].topic}"`,
-      text:genTransition(s.topic,segments[i+1].topic)
-    }));
+
+    // Generate AI transitions
+    if(progEl)progEl.innerHTML='<div class="loading"><div class="spinner"></div>מייצר קטעי מעבר...</div>';
+    const transitions = await generateAITransitions(p.name, segments);
 
     db.ref('video_agent/projects/'+p.id+'/segments').set(segments);
     db.ref('video_agent/projects/'+p.id+'/transitions').set(transitions);
@@ -513,14 +518,47 @@ ${transcriptsSummary}
   }
 }
 
-function genTransition(from,to){
-  const opts=[
-    `לאחר שלמדנו על "${from}", נעבור כעת ל"${to}".`,
-    `ראינו את "${from}". עכשיו נבחן את "${to}".`,
-    `"${from}" הוא רקע חשוב להבנת "${to}".`,
-    `מ"${from}" נעבור ל"${to}" — שלב חשוב נוסף בתקופה.`
-  ];
-  return opts[Math.floor(Math.random()*opts.length)];
+async function generateAITransitions(projectName, segments){
+  if(segments.length<2)return[];
+  const orderedTopics=segments.map((s,i)=>`${i+1}. ${s.topic}`).join('\n');
+  const prompt=`אתה עוזר להכנת סרטון חינוכי לכיתה ז' בנושא: "${projectName}".
+
+הסרטון מורכב מהקטעים הבאים לפי סדר:
+${orderedTopics}
+
+צור קטע מעבר בין כל שני קטעים עוקבים. כל מעבר צריך:
+1. משפט אחד קצר וסוחף שמחבר בין הקטעים ומושך את תשומת לב התלמידים
+2. הצעה לתמונה או מפה שתופיע על המסך בזמן המעבר
+
+ענה אך ורק ב-JSON תקני ללא טקסט נוסף:
+{
+  "transitions": [
+    {
+      "from": "שם קטע 1",
+      "to": "שם קטע 2", 
+      "text": "משפט המעבר",
+      "image": "הצעה לתמונה/מפה"
+    }
+  ]
+}`;
+  try{
+    const res=await fetch('https://anthropic-proxy.anna-sho.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('')||'';
+    const match=text.match(/\{[\s\S]*\}/);
+    if(!match)return segments.slice(0,-1).map((s,i)=>({between:`${s.topic} → ${segments[i+1].topic}`,text:'',image:''}));
+    const result=JSON.parse(match[0]);
+    return (result.transitions||[]).map(t=>({
+      between:`אחרי "${t.from}", לפני "${t.to}"`,
+      text:t.text||'',
+      image:t.image||''
+    }));
+  }catch(e){
+    return segments.slice(0,-1).map((s,i)=>({between:`${s.topic} → ${segments[i+1].topic}`,text:'',image:''}));
+  }
 }
 
 function renderSRTSection(p){
