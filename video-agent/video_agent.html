@@ -567,7 +567,15 @@ Start directly with the prompt, no preamble.`}]
     const result=data.content?.map(b=>b.text||'').join('')||'';
     promptEl.textContent=result;
     // Add copy button
-    promptEl.innerHTML=result+'<br><br><button onclick="navigator.clipboard.writeText(this.previousSibling.textContent.trim());this.textContent='✓ הועתק'" style="background:#312e81;color:#a5b4fc;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.75rem;margin-top:4px;">📋 העתק</button>';
+        const copyBtn=document.createElement('button');
+    copyBtn.textContent='📋 העתק';
+    copyBtn.style.cssText='background:#312e81;color:#a5b4fc;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.75rem;margin-top:8px;display:block;';
+    copyBtn.onclick=function(){navigator.clipboard.writeText(result);this.textContent='✓ הועתק';};
+    promptEl.innerHTML='';
+    const textNode=document.createTextNode(result);
+    promptEl.appendChild(textNode);
+    promptEl.appendChild(document.createElement('br'));
+    promptEl.appendChild(copyBtn);
   }catch(e){promptEl.textContent='שגיאה: '+e.message;}
 }
 
