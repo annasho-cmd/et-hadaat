@@ -273,6 +273,16 @@ select.modal-input option{background:#2c1a0e;}
           <div class="home-card-title">בנק פריטים</div>
           <div class="home-card-sub">פעילויות ומשחקים</div>
         </div>
+        <div class="home-card" onclick="openProfileScreen()">
+          <div class="home-card-icon">👤</div>
+          <div class="home-card-title">פרופיל אישי</div>
+          <div class="home-card-sub">פרטים אישיים וכיתות</div>
+        </div>
+        <div class="home-card" onclick="openReportsScreen()">
+          <div class="home-card-icon">📊</div>
+          <div class="home-card-title">דוחות</div>
+          <div class="home-card-sub">מעקב תלמידים וציונים</div>
+        </div>
       </div>
     </div>
 
@@ -1343,6 +1353,192 @@ function openGamesScreen() {
   showScreen('screen-games');
   loadGames();
 }
+
+// ── PROFILE ──────────────────────────────────────────────────────────
+const SUBJECTS_LIST=['היסטוריה','אזרחות','תנ"ך','ספרות','לשון','גיאוגרפיה','מדעים','מתמטיקה','אנגלית','ערבית','חינוך','אמנות','מוזיקה','חינוך גופני','אחר'];
+
+function openProfileScreen(){
+  updateBreadcrumb([{label:'פרופיל אישי'}]);
+  showScreen('screen-profile');
+  loadProfile();
+}
+
+function loadProfile(){
+  db.ref('teacher/profile').once('value',snap=>{
+    const p=snap.val()||{};
+    document.getElementById('prof-first').value=p.firstName||'';
+    document.getElementById('prof-last').value=p.lastName||'';
+    document.getElementById('prof-email').value=p.email||'';
+    document.getElementById('prof-partners').value=p.partners||'';
+    // subjects checkboxes
+    const subj=p.subjects||[];
+    document.querySelectorAll('.prof-subj-cb').forEach(cb=>{
+      cb.checked=subj.includes(cb.value);
+    });
+    // classes
+    renderProfileClasses(p.classes||[]);
+  });
+}
+
+function saveProfile(){
+  const subj=[];
+  document.querySelectorAll('.prof-subj-cb:checked').forEach(cb=>subj.push(cb.value));
+  const p={
+    firstName:document.getElementById('prof-first').value.trim(),
+    lastName:document.getElementById('prof-last').value.trim(),
+    email:document.getElementById('prof-email').value.trim(),
+    partners:document.getElementById('prof-partners').value.trim(),
+    subjects:subj,
+    classes:getProfileClasses()
+  };
+  db.ref('teacher/profile').set(p);
+  showToast('✓ הפרופיל נשמר');
+}
+
+function getProfileClasses(){
+  const rows=document.querySelectorAll('.prof-class-row');
+  const arr=[];
+  rows.forEach(r=>{
+    const subj=r.querySelector('.prof-class-subj')?.value||'';
+    const name=r.querySelector('.prof-class-name')?.value.trim()||'';
+    const code=r.querySelector('.prof-class-code')?.value.trim()||'';
+    if(name)arr.push({subj,name,code});
+  });
+  return arr;
+}
+
+function renderProfileClasses(classes){
+  const wrap=document.getElementById('prof-classes-wrap');
+  if(!wrap)return;
+  wrap.innerHTML=(classes||[]).map((c,i)=>profileClassRow(c,i)).join('');
+}
+
+function profileClassRow(c,i){
+  const opts=SUBJECTS_LIST.map(s=>`<option value="${s}" ${c?.subj===s?'selected':''}>${s}</option>`).join('');
+  return `<div class="prof-class-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+    <select class="prof-class-subj input-field" style="flex:1;">${opts}</select>
+    <input class="prof-class-name input-field" style="flex:1;" placeholder="שם כיתה (למשל: ח1)" value="${c?.name||''}">
+    <input class="prof-class-code input-field" style="flex:1;" placeholder="קוד Classroom" value="${c?.code||''}">
+    <button onclick="this.closest('.prof-class-row').remove()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem;">✕</button>
+  </div>`;
+}
+
+function addProfileClass(){
+  const wrap=document.getElementById('prof-classes-wrap');
+  const div=document.createElement('div');
+  div.innerHTML=profileClassRow({},Date.now());
+  wrap.appendChild(div.firstElementChild);
+}
+
+// ── REPORTS ──────────────────────────────────────────────────────────
+function openReportsScreen(){
+  updateBreadcrumb([{label:'דוחות'}]);
+  showScreen('screen-reports');
+}
+
+function showToast(msg){
+  let t=document.getElementById('toast-msg');
+  if(!t){t=document.createElement('div');t.id='toast-msg';t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1a3a1a;border:1px solid #3fb950;color:#6ee7a0;padding:10px 18px;border-radius:8px;font-size:.85rem;z-index:9999;';document.body.appendChild(t);}
+  t.textContent=msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',2500);
+}
 </script>
+  <!-- ══ PROFILE ══ -->
+  <div class="screen" id="screen-profile">
+    <div class="screen-hd">
+      <div class="screen-title">👤 פרופיל אישי</div>
+      <button class="btn-primary" onclick="saveProfile()">💾 שמור</button>
+    </div>
+    <div style="max-width:680px;margin:0 auto;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">פרטים אישיים</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label class="form-label">שם פרטי</label>
+            <input id="prof-first" class="input-field" placeholder="שם פרטי">
+          </div>
+          <div>
+            <label class="form-label">שם משפחה</label>
+            <input id="prof-last" class="input-field" placeholder="שם משפחה">
+          </div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="form-label">מייל ארגוני</label>
+          <input id="prof-email" class="input-field" placeholder="name@school.edu.il" type="email">
+        </div>
+        <div>
+          <label class="form-label">מורים שותפים</label>
+          <input id="prof-partners" class="input-field" placeholder="שמות מורים שותפים, מופרדים בפסיק">
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">מקצועות לימוד</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="היסטוריה"> היסטוריה</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אזרחות"> אזרחות</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="תנ"ך"> תנ"ך</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="ספרות"> ספרות</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="לשון"> לשון</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="גיאוגרפיה"> גיאוגרפיה</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="מדעים"> מדעים</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="מתמטיקה"> מתמטיקה</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אנגלית"> אנגלית</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="ערבית"> ערבית</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="חינוך"> חינוך</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אמנות"> אמנות</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="מוזיקה"> מוזיקה</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="חינוך גופני"> חינוך גופני</label>
+          <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אחר"> אחר</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>כיתות</span>
+          <button class="btn-primary" style="font-size:.75rem;padding:4px 12px;" onclick="addProfileClass()">➕ הוסף כיתה</button>
+        </div>
+        <div style="font-size:.75rem;opacity:.5;margin-bottom:10px;">מקצוע · שם כיתה · קוד Classroom</div>
+        <div id="prof-classes-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS ══ -->
+  <div class="screen" id="screen-reports">
+    <div class="screen-hd">
+      <div class="screen-title">📊 דוחות</div>
+    </div>
+    <div style="max-width:680px;margin:0 auto;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="home-card" onclick="alert('בקרוב — דוח אישי לשיעור')">
+          <div class="home-card-icon">📋</div>
+          <div class="home-card-title">דוח אישי לשיעור</div>
+          <div class="home-card-sub">תשובות תלמיד לפי שיעור</div>
+        </div>
+        <div class="home-card" onclick="alert('בקרוב — דוח כיתתי לשיעור')">
+          <div class="home-card-icon">📊</div>
+          <div class="home-card-title">דוח כיתתי לשיעור</div>
+          <div class="home-card-sub">סיכום כיתה לפי שיעור</div>
+        </div>
+        <div class="home-card" onclick="alert('בקרוב — כרטיס תלמיד')">
+          <div class="home-card-icon">🪪</div>
+          <div class="home-card-title">כרטיס תלמיד</div>
+          <div class="home-card-sub">היסטוריית למידה אישית</div>
+        </div>
+        <div class="home-card" onclick="alert('בקרוב — דוח ציונים')">
+          <div class="home-card-icon">🏅</div>
+          <div class="home-card-title">דוח ציונים</div>
+          <div class="home-card-sub">ציונים לפי כיתה ושיעור</div>
+        </div>
+        <div class="home-card" onclick="alert('בקרוב — דוח בונוסים')">
+          <div class="home-card-icon">🌟</div>
+          <div class="home-card-title">דוח בונוסים כיתתי</div>
+          <div class="home-card-sub">נקודות בונוס לפי כיתה</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

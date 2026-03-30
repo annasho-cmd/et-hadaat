@@ -185,8 +185,8 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
         <div style="font-size:.72rem;opacity:.35;font-style:italic;">המלצה בלבד — ניתן למשוך לכל קרון</div>
       </div>
       <div class="modal-section">
-        <div class="modal-section-title">הערות אישיות (אופציונלי)</div>
-        <textarea class="write-area" id="vm-notes" placeholder="הוסיפי הערות, רעיונות או דוגמאות מהניסיון שלך..."></textarea>
+        <div class="modal-section-title">תקציר הפריט</div>
+        <textarea class="write-area" id="vm-notes" placeholder="כתבי תקציר קצר על הפריט, מתי מומלץ להשתמש בו ודוגמאות מהניסיון..."></textarea>
         <div class="ai-strip">
           <input class="ai-input" id="vm-ai-input" placeholder="שאלי את עוזר ההוראה..." onkeydown="if(event.key==='Enter') askViewAI()">
           <button class="ai-btn" onclick="askViewAI()">🤖 שאלי</button>
@@ -197,7 +197,7 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('view-modal')">סגור</button>
-      <button class="btn-save" onclick="saveItemNotes()">💾 שמור הערות</button>
+      <button class="btn-save" onclick="saveItemNotes()">💾 שמור תקציר</button>
     </div>
   </div>
 </div>

@@ -660,14 +660,12 @@ const ITEM_BANK=[
 function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 function goToDashboard(){
-  const href=window.location.href.split('?')[0].split('#')[0];
-  if(href.includes('lesson_builder.html')){
-    window.location.href=href.replace('lesson_builder.html','teacher_dashboard.html');
-  } else {
-    // fallback — go up one level and find dashboard
-    const parts=href.split('/');
-    parts[parts.length-1]='teacher_dashboard.html';
-    window.location.href=parts.join('/');
+  try{
+    const href=window.location.href.split('?')[0].split('#')[0];
+    const base=href.substring(0,href.lastIndexOf('/')+1);
+    window.location.href=base+'teacher_dashboard.html';
+  }catch(e){
+    window.location.href='teacher_dashboard.html';
   }
 }
 
@@ -753,18 +751,21 @@ function deleteUnitById(btn){
 }
 
 async function deleteUnit(unitId, unitName){
-  if(!confirm('למחוק את היחידה "'+unitName+'"?\nכל השיעורים בתוכה יימחקו גם כן.'))return;
+  const lessonCount=0;
+  if(!confirm('למחוק את היחידה "'+unitName+'"?'))return;
   try{
-    if(unitId && unitId!=='undefined'){
-      // מחיקה רגילה לפי id
+    // Try by id first
+    if(unitId && unitId!=='undefined' && unitId!=='null'){
       await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
     } else {
-      // אין id — מחפשים לפי שם ומוחקים
+      // Search by name
       const snap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
       const units=snap.val()||{};
+      let deleted=false;
       for(const [key,u] of Object.entries(units)){
-        if(u.name===unitName || !u.id){
+        if(u.name===unitName||u.id===unitId||(!u.id&&!deleted)){
           await db.ref(`teacher/subjects/${currentSubject.id}/units/${key}`).remove();
+          deleted=true;
         }
       }
     }
