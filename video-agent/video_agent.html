@@ -363,7 +363,7 @@ function renderAnalyzeTab(p){
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" onclick="saveTransition(${ti})">💾 שמור</button>
-          <button class="btn btn-ghost btn-sm" onclick="genImagePrompt(${ti},'${t.image||t.text||''}')" style="color:#bc8cff;border-color:rgba(188,140,255,.3);">🎨 פרומפט לנאנו-בננה</button>
+          <button class="btn btn-ghost btn-sm" onclick="genImagePrompt(${ti})" style="color:#bc8cff;border-color:rgba(188,140,255,.3);">🎨 פרומפט לנאנו-בננה</button>
         </div>
         <div id="trans-prompt-${ti}" style="display:none;margin-top:8px;background:#0d1117;border:1px solid rgba(188,140,255,.3);border-radius:4px;padding:10px;font-size:.8rem;color:#bc8cff;line-height:1.7;white-space:pre-wrap;direction:ltr;"></div>
       </div>`).join('')}</div>`;
@@ -538,9 +538,9 @@ function saveTransition(ti){
   const btn=event.target;btn.textContent='✓ נשמר';setTimeout(()=>btn.textContent='💾 שמור',1500);
 }
 
-async function genImagePrompt(ti, imageDesc){
+async function genImagePrompt(ti){
   const text=document.getElementById('trans-text-'+ti)?.value||'';
-  const img=document.getElementById('trans-img-'+ti)?.value||imageDesc||'';
+  const img=document.getElementById('trans-img-'+ti)?.value||'';
   const promptEl=document.getElementById('trans-prompt-'+ti);
   if(!promptEl)return;
   promptEl.style.display='block';
