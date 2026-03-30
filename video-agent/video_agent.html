@@ -544,38 +544,69 @@ async function genImagePrompt(ti){
   const promptEl=document.getElementById('trans-prompt-'+ti);
   if(!promptEl)return;
   promptEl.style.display='block';
-  promptEl.textContent='⏳ מייצר פרומפט...';
+  promptEl.textContent='⏳ מייצר פרומפטים...';
   const projectName=currentProject.name||'';
   try{
     const res=await fetch('https://anthropic-proxy.anna-sho.workers.dev',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:400,
-        messages:[{role:'user',content:`Create a detailed image generation prompt for Nano Banna (AI image generator) for an educational video about: "${projectName}".
-The transition text is: "${text}"
-The image concept is: "${img}"
+        model:'claude-sonnet-4-20250514',max_tokens:600,
+        messages:[{role:'user',content:`אתה עוזר להכנת סרטון חינוכי לכיתה ז' בנושא: "${projectName}".
+משפט המעבר: "${text}"
+רעיון לתמונה: "${img}"
 
-Write a concise English prompt (2-3 sentences) that describes:
-1. The visual content clearly
-2. The style: historical illustration, educational, suitable for middle school
-3. Colors and mood
+צור שני פרומפטים לתמונה באנגלית לכלי AI ליצירת תמונות (כמו Nano Banna):
 
-Start directly with the prompt, no preamble.`}]
+1. פרומפט פשוט לתמונת מעבר (מסר אחד ברור, ללא טקסט בתמונה, 1-2 משפטים)
+2. פרומפט מפורט לתמונה עשירה (לפתיחת שיעור, 2-3 משפטים)
+
+ענה בפורמט הבא בדיוק:
+הסבר בעברית: [הסבר קצר מה כל פרומפט מייצג]
+
+פרומפט פשוט (מעבר):
+[הפרומפט באנגלית]
+
+פרומפט מפורט:
+[הפרומפט באנגלית]`}]
       })
     });
     const data=await res.json();
     const result=data.content?.map(b=>b.text||'').join('')||'';
-    promptEl.textContent=result;
-    // Add copy button
-        const copyBtn=document.createElement('button');
-    copyBtn.textContent='📋 העתק';
-    copyBtn.style.cssText='background:#312e81;color:#a5b4fc;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.75rem;margin-top:8px;display:block;';
-    copyBtn.onclick=function(){navigator.clipboard.writeText(result);this.textContent='✓ הועתק';};
+
+    // Build display
     promptEl.innerHTML='';
-    const textNode=document.createTextNode(result);
-    promptEl.appendChild(textNode);
-    promptEl.appendChild(document.createElement('br'));
-    promptEl.appendChild(copyBtn);
+    promptEl.style.direction='rtl';
+
+    // Parse and display sections
+    const lines=result.split('\n');
+    lines.forEach(line=>{
+      const div=document.createElement('div');
+      if(line.startsWith('פרומפט פשוט') || line.startsWith('פרומפט מפורט') || line.startsWith('הסבר בעברית')){
+        div.style.cssText='font-weight:700;color:#e3b341;margin-top:10px;margin-bottom:3px;font-size:.82rem;';
+      } else if(line.trim().length>0 && !line.startsWith('[')){
+        div.style.cssText='color:#c8d6ef;font-size:.8rem;line-height:1.6;direction:ltr;text-align:left;background:rgba(255,255,255,.04);border-radius:4px;padding:4px 8px;margin-bottom:4px;';
+        // Add copy button for English prompts
+        const isEnglish = /^[A-Z]/.test(line.trim());
+        if(isEnglish){
+          const wrap=document.createElement('div');
+          wrap.style.cssText='display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;';
+          const txt=document.createElement('div');
+          txt.style.cssText='flex:1;color:#c8d6ef;font-size:.8rem;line-height:1.6;direction:ltr;text-align:left;';
+          txt.textContent=line;
+          const btn=document.createElement('button');
+          btn.textContent='📋';
+          btn.title='העתק פרומפט';
+          btn.style.cssText='background:#312e81;color:#a5b4fc;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:.75rem;flex-shrink:0;';
+          btn.onclick=function(){navigator.clipboard.writeText(line.trim());this.textContent='✓';setTimeout(()=>this.textContent='📋',1500);};
+          wrap.appendChild(txt);
+          wrap.appendChild(btn);
+          promptEl.appendChild(wrap);
+          return;
+        }
+      }
+      div.textContent=line;
+      promptEl.appendChild(div);
+    });
   }catch(e){promptEl.textContent='שגיאה: '+e.message;}
 }
 
