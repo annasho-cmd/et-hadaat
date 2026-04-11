@@ -586,6 +586,8 @@ async function startLiveLesson(groupId, lessonId, lessonIdx){
   const lesson=(unit?.lessons||[])[lessonIdx];
   if(!lesson)return;
   currentLiveLesson={groupId,lessonId,lessonIdx};
+  // כבה משחק פעיל אם קיים
+  await db.ref('teacher/liveGame').set({active:false});
   await db.ref('teacher/liveLesson').set({
     active:true,
     groupId,lessonId,lessonIdx,

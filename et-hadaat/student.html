@@ -293,6 +293,16 @@ body::before{
   animation:slideUp .4s ease;
 }
 #game-banner.active{display:flex;}
+#lesson-banner{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:101;
+  background:linear-gradient(135deg,#166534,#15803d);
+  padding:16px 20px;
+  flex-direction:column;align-items:center;gap:10px;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.4);
+  animation:slideUp .4s ease;
+}
+#lesson-banner.active{display:flex;}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .game-banner-title{
   font-size:1rem;font-weight:800;color:#fff;
@@ -471,6 +481,14 @@ body::before{
     🎮 המורה הפעילה משחק!<span class="game-banner-pulse">🔔</span>
   </div>
   <button class="btn-join-game" onclick="joinLiveGame()">הצטרף/י למשחק ←</button>
+</div>
+
+<!-- ══ LIVE LESSON BANNER ══ -->
+<div id="lesson-banner">
+  <div class="game-banner-title">
+    📖 <span id="lesson-banner-title">המורה פתחה שיעור!</span><span class="game-banner-pulse">🔔</span>
+  </div>
+  <button class="btn-join-game" style="background:#fff;color:#166534;" onclick="joinLiveLesson()">כנס/י לשיעור ←</button>
 </div>
 
 <script>
@@ -676,7 +694,7 @@ function enterApp(isTeacher) {
     showView('view-home');
   }
   // מאחר את ה-listener כדי שלא יקפוץ הבאנר מיד
-  setTimeout(()=>startGameListener(), 1500);
+  setTimeout(()=>{ startGameListener(); startLessonListener(); }, 1500);
 }
 
 // ── LOAD SUBJECTS ──
@@ -884,6 +902,36 @@ function startGameListener() {
       banner.classList.remove('active');
     }
   });
+}
+
+let liveLessonData = null;
+
+function startLessonListener() {
+  db.ref('teacher/liveLesson').on('value', snap => {
+    const data = snap.val();
+    const banner = document.getElementById('lesson-banner');
+    // Only show if active and matches this student's group
+    if (data && data.active && data.groupId) {
+      const myGroupId = groupData ? groupData.id : null;
+      if (myGroupId && data.groupId === myGroupId) {
+        liveLessonData = data;
+        document.getElementById('lesson-banner-title').textContent =
+          'המורה מנהלת שיעור: ' + (data.topic || 'שיעור חי');
+        banner.classList.add('active');
+        return;
+      }
+    }
+    liveLessonData = null;
+    banner.classList.remove('active');
+  });
+}
+
+function joinLiveLesson() {
+  if (!liveLessonData) return;
+  const base = window.location.href.split('/').slice(0, -1).join('/');
+  const name = encodeURIComponent(studentName);
+  const cls = encodeURIComponent(classCode);
+  window.location.href = `${base}/live_lesson.html?subject=${liveLessonData.subjectId}&unit=${liveLessonData.unitId}&lesson=${liveLessonData.lessonIdx}&group=${liveLessonData.groupId}&student=${name}&class=${cls}`;
 }
 
 function joinLiveGame() {
