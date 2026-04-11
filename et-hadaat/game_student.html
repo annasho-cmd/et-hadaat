@@ -265,10 +265,19 @@ async function joinGame() {
   }
 
   const savedCfg = localStorage.getItem('fbConfig');
-  if (!savedCfg) { showError('לא נמצאו הגדרות Firebase. פנה/י למורה.'); return; }
+  // Use hardcoded config as fallback if localStorage is empty
+  const DEFAULT_CFG = {
+    apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+    authDomain: "et-hadaat.firebaseapp.com",
+    databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+    projectId: "et-hadaat",
+    storageBucket: "et-hadaat.firebasestorage.app",
+    messagingSenderId: "141400405468",
+    appId: "1:141400405468:web:c1090c52477d14a159cb19"
+  };
 
   let cfg;
-  try { cfg = JSON.parse(savedCfg); } catch { showError('הגדרות Firebase פגומות'); return; }
+  try { cfg = savedCfg ? JSON.parse(savedCfg) : DEFAULT_CFG; } catch { cfg = DEFAULT_CFG; }
 
   try {
     const app = initializeApp(cfg, 'student_' + Date.now());

@@ -823,7 +823,12 @@ function openUnit(unit) {
         const params = `subject=${currentSubject.id}&unit=${unit.id}&lesson=${i}&student=${encodeURIComponent(studentName)}`;
         enterBtn = `<button class="btn-enter" onclick="enterBuilderLesson('${currentSubject.id}','${unit.id}',${i})">כנס/י לשיעור ←</button>`;
       } else {
-        enterBtn = `<button class="btn-enter" onclick="enterLesson('${lesson.url}')">כנס/י לשיעור ←</button>`;
+        // שיעור ישן — בדוק אם יש קוד משחק
+        if (lesson.url && lesson.url.includes('game_student') && lesson.gameCode) {
+          enterBtn = `<button class="btn-enter" onclick="enterGameLesson('${lesson.gameCode}')">כנס/י למשחק ←</button>`;
+        } else {
+          enterBtn = `<button class="btn-enter" onclick="enterLesson('${lesson.url}')">כנס/י לשיעור ←</button>`;
+        }
       }
     } else {
       enterBtn = '<span class="lc-arrow">🔒</span>';
@@ -853,6 +858,12 @@ function enterBuilderLesson(subjectId, unitId, lessonIdx) {
 }
 
 // ── ENTER LESSON ──
+function enterGameLesson(gameCode) {
+  const base = window.location.href.split('/').slice(0, -1).join('/');
+  const name = encodeURIComponent(studentName);
+  window.location.href = `${base}/game_student.html?code=${gameCode}&name=${name}`;
+}
+
 function enterLesson(url) {
   // In teacher mode — use special name that won't save
   const nameToPass = studentName === 'מורה' ? 'מורה' : studentName;
