@@ -227,23 +227,35 @@ body::before{
 
 /* ── HOME GRID ── */
 .home-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
   padding:20px 0;
 }
+@media(max-width:500px){.home-grid{grid-template-columns:repeat(2,1fr);}}
 .home-card{
-  background:var(--surface);border:1.5px solid var(--border);
-  border-radius:14px;padding:22px 16px;text-align:center;
+  background:rgba(44,26,14,0.7);
+  border:1.5px solid rgba(212,168,67,0.15);
+  border-radius:16px;padding:28px 16px 22px;text-align:center;
   cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+  min-height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;
 }
-.home-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-accent,var(--gold));}
-.home-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.home-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:var(--card-accent,var(--gold));
+  border-radius:16px 16px 0 0;
+}
+.home-card:hover{
+  border-color:var(--card-accent,var(--gold));
+  transform:translateY(-3px);
+  background:rgba(44,26,14,0.9);
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+}
 .home-card:active{transform:scale(.97);}
-.home-card-icon{font-size:2.2rem;margin-bottom:10px;}
-.home-card-title{font-size:.92rem;font-weight:700;color:var(--parch);margin-bottom:4px;}
-.home-card-sub{font-size:.72rem;opacity:.45;}
-.home-card.coming-soon{opacity:.55;cursor:default;}
-.home-card.coming-soon:hover{transform:none;border-color:var(--border);}
-.soon-badge{font-size:.65rem;background:rgba(212,168,67,.15);border:1px solid var(--border);border-radius:10px;padding:2px 8px;color:var(--gold);display:inline-block;margin-top:4px;}
+.home-card-icon{font-size:2.6rem;margin-bottom:12px;}
+.home-card-title{font-size:1rem;font-weight:700;color:var(--parch);margin-bottom:4px;}
+.home-card-sub{font-size:.72rem;opacity:.5;line-height:1.4;}
+.home-card.coming-soon{opacity:.5;cursor:default;}
+.home-card.coming-soon:hover{transform:none;border-color:rgba(212,168,67,0.15);box-shadow:none;}
+.soon-badge{font-size:.62rem;background:rgba(212,168,67,.12);border:1px solid var(--border);border-radius:10px;padding:2px 8px;color:var(--gold);display:inline-block;margin-top:6px;}
 
 /* ── AGENT SETUP ── */
 .agent-setup{padding:20px 0;}
@@ -363,21 +375,21 @@ body::before{
       <div class="welcome-title" id="welcome-title">שלום!</div>
       <div class="welcome-sub" id="welcome-sub">מה תרצה/י לעשות היום?</div>
       <div class="home-grid">
-        <div class="home-card" style="--card-accent:#7c3aed;" onclick="showView('view-agent')">
+        <div class="home-card" style="--card-accent:#a855f7;" onclick="showView('view-agent')">
           <div class="home-card-icon" id="home-agent-icon">🤖</div>
           <div class="home-card-title">הסוכן שלי</div>
-          <div class="home-card-sub">עוזר הלמידה האישי שלך</div>
+          <div class="home-card-sub">עוזר הלמידה האישי</div>
         </div>
-        <div class="home-card coming-soon" style="--card-accent:#1d4ed8;">
+        <div class="home-card" style="--card-accent:#f59e0b;" onclick="goToSubjects()">
+          <div class="home-card-icon">📚</div>
+          <div class="home-card-title">המקצועות שלי</div>
+          <div class="home-card-sub">יחידות ושיעורים</div>
+        </div>
+        <div class="home-card coming-soon" style="--card-accent:#3b82f6;">
           <div class="home-card-icon">👤</div>
           <div class="home-card-title">הפרופיל שלי</div>
           <div class="home-card-sub">פרטים אישיים</div>
           <div class="soon-badge">🔜 בקרוב</div>
-        </div>
-        <div class="home-card" style="--card-accent:var(--gold);" onclick="goToSubjects()">
-          <div class="home-card-icon">📚</div>
-          <div class="home-card-title">המקצועות שלי</div>
-          <div class="home-card-sub">יחידות ושיעורים</div>
         </div>
         <div class="home-card coming-soon" style="--card-accent:#f59e0b;">
           <div class="home-card-icon">⭐</div>
@@ -385,13 +397,13 @@ body::before{
           <div class="home-card-sub">נקודות והישגים</div>
           <div class="soon-badge">🔜 בקרוב</div>
         </div>
-        <div class="home-card coming-soon" style="--card-accent:#22863a;">
+        <div class="home-card coming-soon" style="--card-accent:#22c55e;">
           <div class="home-card-icon">🏆</div>
           <div class="home-card-title">לוח תוצאות</div>
           <div class="home-card-sub">דירוג הכיתה</div>
           <div class="soon-badge">🔜 בקרוב</div>
         </div>
-        <div class="home-card coming-soon" style="--card-accent:#8b2020;">
+        <div class="home-card coming-soon" style="--card-accent:#ef4444;">
           <div class="home-card-icon">📊</div>
           <div class="home-card-title">הציונים שלי</div>
           <div class="home-card-sub">ציונים והערכות</div>
@@ -515,6 +527,7 @@ let studentName = '';
 let currentSubject = null;
 let currentUnit = null;
 let liveGameCode = null;
+let liveLessonData = null;
 
 // ── INIT ──
 window.onload = function() {
@@ -888,6 +901,14 @@ function enterLesson(url) {
 function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // הסתר/הצג באנרים לפי הדף הנוכחי
+  const onLessons = id === 'view-lessons';
+  if (liveGameCode) {
+    document.getElementById('game-banner').classList.toggle('active', onLessons);
+  }
+  if (liveLessonData) {
+    document.getElementById('lesson-banner').classList.toggle('active', onLessons);
+  }
 }
 
 function updateBreadcrumb(items) {
@@ -907,35 +928,34 @@ function updateBreadcrumb(items) {
 function startGameListener() {
   db.ref('teacher/liveGame').on('value', snap => {
     const data = snap.val();
-    const banner = document.getElementById('game-banner');
-    // הצג רק אם המשחק שייך לקבוצה של התלמיד
     if (data && data.active && data.code) {
       const gameForMyGroup = !data.groupCode || data.groupCode === classCode;
       if (gameForMyGroup) {
         liveGameCode = data.code;
-        banner.classList.add('active');
+        // Show banner only if student is on lessons view
+        const onLessons = document.getElementById('view-lessons')?.classList.contains('active');
+        if (onLessons) document.getElementById('game-banner').classList.add('active');
         return;
       }
     }
     liveGameCode = null;
-    banner.classList.remove('active');
+    document.getElementById('game-banner').classList.remove('active');
   });
 }
-
-let liveLessonData = null;
 
 function startLessonListener() {
   db.ref('teacher/liveLesson').on('value', snap => {
     const data = snap.val();
     const banner = document.getElementById('lesson-banner');
-    // Only show if active and matches this student's group
     if (data && data.active && data.groupId) {
       const myGroupId = groupData ? groupData.id : null;
       if (myGroupId && data.groupId === myGroupId) {
         liveLessonData = data;
         document.getElementById('lesson-banner-title').textContent =
           'המורה מנהלת שיעור: ' + (data.topic || 'שיעור חי');
-        banner.classList.add('active');
+        // Show only if on lessons view
+        const onLessons = document.getElementById('view-lessons')?.classList.contains('active');
+        if (onLessons) banner.classList.add('active');
         return;
       }
     }
