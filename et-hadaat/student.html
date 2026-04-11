@@ -333,7 +333,7 @@ body::before{
   <div class="login-box">
     <div class="login-crest">📖</div>
     <div class="login-title">עת הדעת</div>
-    <div class="login-sub" id="login-sub">טוען...</div>
+    <div class="login-sub" id="login-sub">הכניסי את שמך כדי להיכנס</div>
     <div class="login-row">
       <input class="login-input" id="first-name" placeholder="שם פרטי" />
       <input class="login-input" id="last-name" placeholder="שם משפחה" />
@@ -518,49 +518,34 @@ let liveGameCode = null;
 
 // ── INIT ──
 window.onload = function() {
-  // Get class code from URL
-  const params = new URLSearchParams(window.location.search);
-  classCode = params.get('class') || '';
+  // No class code needed — student found by name search
+  document.getElementById('code-display').textContent = '';
+  document.getElementById('login-sub').textContent = 'הכניסי את שמך כדי להיכנס';
+  document.getElementById('first-name').focus();
 
-  if (!classCode) {
-    document.getElementById('login-sub').textContent = 'שגיאה: קוד קבוצה חסר. פנה/י למורה.';
-    document.getElementById('login-btn') && (document.getElementById('login-btn').disabled = true);
-    return;
+  // Check saved name in localStorage (any group)
+  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('et_hadaat_name_'));
+  if (allKeys.length > 0) {
+    const saved = localStorage.getItem(allKeys[0]);
+    if (saved) {
+      const parts = saved.split(' ');
+      document.getElementById('first-name').value = parts[0] || '';
+      document.getElementById('last-name').value = parts.slice(1).join(' ') || '';
+    }
   }
 
-  document.getElementById('code-display').textContent = 'קוד קבוצה: ' + classCode;
-  loadGroupData();
+  // Load teacher data once
+  db.ref('teacher').once('value', snap => {
+    teacherData = snap.val() || {};
+  });
 };
 
-function loadGroupData() {
-  document.getElementById('login-sub').textContent = 'טוען...';
-
-  // Load teacher data to find group
-  db.ref('teacher').once('value', snap => {
-    const data = snap.val() || {};
-    teacherData = data;
-
-    // Find group by code
-    const allGroups = data.groups ? Object.values(data.groups) : [];
-    groupData = allGroups.find(g => g.code === classCode);
-
-    if (!groupData) {
-      document.getElementById('login-sub').textContent = 'קוד קבוצה לא נמצא. פנה/י למורה.';
-      return;
-    }
-
-    document.getElementById('login-sub').textContent = 'ברוכים הבאים לקבוצת ' + groupData.name;
-    document.getElementById('first-name').focus();
-  }).catch(() => {
-    document.getElementById('login-sub').textContent = 'שגיאת חיבור. נסה/י שוב.';
-  });
-}
+function loadGroupData() {} // kept for compatibility
 
 // ── LOGIN ──
 function doLogin() {
   const first = document.getElementById('first-name').value.trim();
   const last  = document.getElementById('last-name').value.trim();
-  const err   = document.getElementById('login-err');
 
   if (!first || !last) {
     showErr('נא למלא שם פרטי ושם משפחה.');
@@ -569,39 +554,57 @@ function doLogin() {
 
   const fullName = first + ' ' + last;
 
-  // Check if group has a student list
-  // Students can be array or object — handle both
-  let studentList = [];
-  if (groupData.students) {
-    if (Array.isArray(groupData.students)) {
-      studentList = groupData.students.filter(s => s);
-    } else {
-      studentList = Object.keys(groupData.students).map(s => s.replace(/_/g,' '));
-    }
-  }
-  const normalize = s => s.replace(/_/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
-  const normalizedList = studentList.map(s => normalize(s));
-  const normalizedName = normalize(fullName);
-
-  if (studentList.length > 0) {
-    if (!normalizedList.includes(normalizedName)) {
-      showErr('שמך לא נמצא ברשימת הקבוצה. פנה/י למורה.');
-      return;
-    }
-  }
-
-  // Check teacher mode
+  // Teacher mode
   if (fullName === 'מורה' || fullName === 'מורה מורה') {
+    // Find first group for teacher preview
+    const allGroups = teacherData.groups ? Object.values(teacherData.groups) : [];
+    groupData = allGroups[0] || { id: 'teacher', code: 'teacher', name: 'מורה' };
+    classCode = groupData.code;
     studentName = 'מורה';
     localStorage.setItem('et_hadaat_name_' + classCode, fullName);
     enterApp(true);
     return;
   }
 
-  // All good — log in
+  // Search for student across all groups
+  if (!teacherData) {
+    showErr('טוען נתונים... נסה/י שוב.');
+    db.ref('teacher').once('value', snap => { teacherData = snap.val() || {}; });
+    return;
+  }
+
+  document.getElementById('login-sub').textContent = 'מחפש/ת...';
+  const normalize = s => s.replace(/_/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+  const normalizedName = normalize(fullName);
+
+  const allGroups = teacherData.groups ? Object.values(teacherData.groups) : [];
+  let foundGroup = null;
+
+  for (const group of allGroups) {
+    let studentList = [];
+    if (group.students) {
+      if (Array.isArray(group.students)) {
+        studentList = group.students.filter(s => s);
+      } else {
+        studentList = Object.keys(group.students).map(s => s.replace(/_/g,' '));
+      }
+    }
+    if (studentList.map(s => normalize(s)).includes(normalizedName)) {
+      foundGroup = group;
+      break;
+    }
+  }
+
+  if (!foundGroup) {
+    document.getElementById('login-sub').textContent = 'הכניסי את שמך כדי להיכנס';
+    showErr('שמך לא נמצא ברשימה. פנה/י למורה.');
+    return;
+  }
+
+  groupData = foundGroup;
+  classCode = foundGroup.code;
   studentName = fullName;
   localStorage.setItem('et_hadaat_name_' + classCode, fullName);
-
   enterApp(false);
 }
 
