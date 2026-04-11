@@ -894,13 +894,17 @@ function startGameListener() {
   db.ref('teacher/liveGame').on('value', snap => {
     const data = snap.val();
     const banner = document.getElementById('game-banner');
+    // הצג רק אם המשחק שייך לקבוצה של התלמיד
     if (data && data.active && data.code) {
-      liveGameCode = data.code;
-      banner.classList.add('active');
-    } else {
-      liveGameCode = null;
-      banner.classList.remove('active');
+      const gameForMyGroup = !data.groupCode || data.groupCode === classCode;
+      if (gameForMyGroup) {
+        liveGameCode = data.code;
+        banner.classList.add('active');
+        return;
+      }
     }
+    liveGameCode = null;
+    banner.classList.remove('active');
   });
 }
 

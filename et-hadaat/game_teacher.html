@@ -456,6 +456,10 @@ let gs = { state: 'lobby', currentQuestion: 0 };
 let studentsLive = {};
 let answersLive = {};
 
+// Read groupCode from URL param (passed from teacher_dashboard)
+const _urlParams = new URLSearchParams(window.location.search);
+const groupCode = _urlParams.get('group') || '';
+
 localStorage.setItem('gameCode', gameCode);
 
 // Auto-init with default config if not configured
@@ -816,8 +820,8 @@ async function startGame() {
     state: 'lobby', currentQuestion: 0, questions,
     students: studentsLive, answers: {}, startedAt: Date.now()
   });
-  // הודע ללוח התלמיד שמשחק פעיל
-  await set(ref(db, 'teacher/liveGame'), { active: true, code: gameCode });
+  // הודע ללוח התלמיד שמשחק פעיל — עם קוד קבוצה
+  await set(ref(db, 'teacher/liveGame'), { active: true, code: gameCode, groupCode: groupCode || '' });
   gs = { state: 'lobby', currentQuestion: 0 };
   setButtons({ start:false, open:true, end:true });
   renderQDots();

@@ -851,7 +851,7 @@ function renderUnitGroups() {
           🎮 ${gameOpen ? 'פתוח' : 'נעול'}
         </button>
         <button class="btn-watch" style="background:rgba(212,168,67,.2);"
-          onclick="launchGame('${l.gameCode}')">▶ הפעל</button>` : ''}
+          onclick="launchGame('${l.gameCode}','${group.code}')">▶ הפעל</button>` : ''}
       </div>`;
     }).join('');
     card.innerHTML = `
@@ -1309,9 +1309,9 @@ function loadGames() {
   });
 }
 
-function launchGame(gameCode) {
+function launchGame(gameCode, groupCode) {
   const base = window.location.href.replace('teacher_dashboard.html','');
-  const url = base + 'game_teacher.html?game=' + gameCode;
+  const url = base + 'game_teacher.html?game=' + gameCode + (groupCode ? '&group=' + groupCode : '');
   window.open(url, '_blank');
 }
 
