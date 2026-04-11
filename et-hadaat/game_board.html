@@ -71,6 +71,12 @@ function listenToGame() {
     }
   });
 
+  // Timer settings — synced from Firebase
+  onValue(ref(db, `games/${gameCode}/timerSeconds`), snap => {
+    const val = snap.val();
+    if (val !== null && val !== undefined) timerSecondsTotal = val;
+  });
+
   // Game state
   onValue(ref(db, `games/${gameCode}/state`), snap => {
     gameState = snap.val() || 'lobby';
@@ -91,9 +97,12 @@ function listenToGame() {
   });
 }
 
+let timerSecondsTotal = 60;
+
 // ── Preview countdown (10s before timer) ──
 function startPreviewCountdown() {
   if (gameState !== 'question') return;
+  if (timerSecondsTotal === 0) return; // no timer
   let secs = 10;
   const el = document.getElementById('preview-countdown');
   el.style.display = 'block';
@@ -112,7 +121,8 @@ function startPreviewCountdown() {
 
 // ── Timer ──
 function startTimer() {
-  timerSeconds = 60;
+  if (timerSecondsTotal === 0) return;
+  timerSeconds = timerSecondsTotal;
   const wrap = document.getElementById('timer-wrap');
   const bar = document.getElementById('timer-bar');
   const val = document.getElementById('timer-val');
@@ -121,7 +131,7 @@ function startTimer() {
   timerInterval = setInterval(() => {
     timerSeconds--;
     val.textContent = timerSeconds + 'ש';
-    bar.style.width = (timerSeconds / 60 * 100) + '%';
+    bar.style.width = (timerSeconds / timerSecondsTotal * 100) + '%';
     if (timerSeconds <= 10) bar.style.background = '#e53e3e';
     else if (timerSeconds <= 30) bar.style.background = '#ed8936';
     else bar.style.background = '#48bb78';

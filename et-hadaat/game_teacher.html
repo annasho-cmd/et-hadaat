@@ -244,6 +244,17 @@
             <div class="ctrl-btn-group" id="ctrlBtns">
               <button id="btnStart" class="btn-success btn-lg" onclick="startGame()">🚀 התחל משחק</button>
               <button id="btnBoardBtn" class="btn-primary btn-lg" style="background:#6b46c1;border-color:#553c9a;" onclick="openBoardWindow()">📺 הצג על לוח</button>
+              <div id="timerRow" style="display:none;align-items:center;gap:8px;margin-bottom:4px;">
+                <label style="font-size:0.82rem;color:var(--muted);">זמן לשאלה:</label>
+                <select id="timerSelect" style="padding:4px 8px;border-radius:6px;border:1px solid #cbd5e0;font-size:0.85rem;">
+                  <option value="0">ללא טיימר</option>
+                  <option value="30">30 שניות</option>
+                  <option value="60" selected>60 שניות</option>
+                  <option value="90">90 שניות</option>
+                  <option value="120">2 דקות</option>
+                </select>
+                <span id="teacherTimerDisplay" style="font-size:1.1rem;font-weight:700;color:#e53e3e;min-width:40px;"></span>
+              </div>
               <button id="btnOpen" class="btn-amber btn-lg hidden" onclick="openCurrentQuestion()">📖 פתח שאלה לתלמידים</button>
               <button id="btnReview" class="btn-primary btn-lg hidden" onclick="showReview()">📊 הצג תוצאות לכיתה</button>
               <button id="btnNext" class="btn-ghost btn-lg hidden" onclick="nextQuestion()">⏭ שאלה הבאה</button>
@@ -824,13 +835,44 @@ async function startGame() {
   await set(ref(db, 'teacher/liveGame'), { active: true, code: gameCode, groupCode: groupCode || '' });
   gs = { state: 'lobby', currentQuestion: 0 };
   setButtons({ start:false, open:true, end:true });
+  const timerRow = document.getElementById('timerRow');
+  if (timerRow) timerRow.style.display = 'flex';
   renderQDots();
   renderCurrentQBox();
 }
 
+let teacherTimerInterval = null;
+
 async function openCurrentQuestion() {
-  await update(ref(db, `games/${gameCode}`), { state: 'question', currentQuestion: gs.currentQuestion });
+  const timerSec = parseInt(document.getElementById('timerSelect')?.value || '0');
+  await update(ref(db, `games/${gameCode}`), {
+    state: 'question',
+    currentQuestion: gs.currentQuestion,
+    timerSeconds: timerSec,
+    timerStartedAt: timerSec > 0 ? Date.now() : 0
+  });
   setButtons({ open:false, review:true, end:true });
+
+  // Start countdown in teacher panel
+  if (teacherTimerInterval) clearInterval(teacherTimerInterval);
+  const display = document.getElementById('teacherTimerDisplay');
+  if (timerSec > 0 && display) {
+    let remaining = timerSec;
+    display.textContent = remaining + 'ש';
+    display.style.color = '#e53e3e';
+    teacherTimerInterval = setInterval(async () => {
+      remaining--;
+      display.textContent = remaining + 'ש';
+      if (remaining <= 0) {
+        clearInterval(teacherTimerInterval);
+        display.textContent = '';
+        // Auto-show results
+        await showReview();
+      }
+    }, 1000);
+  } else if (display) {
+    display.textContent = '';
+  }
 }
 
 async function showReview() {
