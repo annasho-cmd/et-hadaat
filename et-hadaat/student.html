@@ -549,6 +549,9 @@ window.onload = function() {
 
 function loadGroupData() {} // kept for compatibility
 
+// ── NORMALIZE ──
+const normalize = s => s.replace(/_/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+
 // ── LOGIN ──
 function doLogin() {
   const first = document.getElementById('first-name').value.trim();
@@ -563,7 +566,6 @@ function doLogin() {
 
   // Teacher mode
   if (fullName === 'מורה' || fullName === 'מורה מורה') {
-    // Find first group for teacher preview
     const allGroups = teacherData.groups ? Object.values(teacherData.groups) : [];
     groupData = allGroups[0] || { id: 'teacher', code: 'teacher', name: 'מורה' };
     classCode = groupData.code;
@@ -592,7 +594,6 @@ function doLogin() {
   }
 
   document.getElementById('login-sub').textContent = 'מחפש/ת...';
-  const normalize = s => s.replace(/_/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
   const normalizedName = normalize(fullName);
 
   const allGroups = teacherData.groups ? Object.values(teacherData.groups) : [];
