@@ -343,7 +343,16 @@ const DEFAULT_ITEMS=[
     gameFile:'dialogue_activity.html',
     usedIn:['body','enrichment']},
   {id:'newspaper', cat:1, icon:'📰', name:'עיתון',                 desc:'', styles:[], usedIn:['body','enrichment']},
-  {id:'stickies',  cat:1, icon:'🗒️', name:'פתקיות',               desc:'', styles:[], usedIn:['intro','closing']},
+  {id:'stickies', cat:1, icon:'🗒️', name:'פתקיות',
+    desc:'לוח שיתופי בזמן אמת. כל תלמיד כותב פתקית (טקסט + תמונה אופציונלי) ובוחר צבע. הפתקיות מופיעות על לוח משותף מוקרן לכיתה. המורה יכולה לתת נקודות בונוס על פתקית מצוינת.',
+    styles:[
+      {name:'הטרמה', desc:'בדיקת ידע קודם — כל תלמיד כותב מה הוא יודע על הנושא.'},
+      {name:'סיכום', desc:'כל תלמיד כותב מסקנה אחת מהשיעור.'},
+      {name:'סיעור מוחות', desc:'רעיונות חופשיים — כולם רואים את הלוח מתמלא.'},
+      {name:'יצירה', desc:'תלמיד מייצר תמונה ומעלה ללוח השיתופי.'},
+    ],
+    gameFile:'sticky_teacher.html',
+    usedIn:['intro','closing']},
   {id:'wordcloud', cat:1, icon:'☁️', name:'ענן מילים',
     desc:'כלי ויזואלי אינטראקטיבי בזמן אמת. המורה מזינה שאלה, התלמידים כותבים מילה אחת או שתיים, והענן נבנה על הלוח — גודל המילה לפי כמות התלמידים שכתבו אותה.',
     styles:[
