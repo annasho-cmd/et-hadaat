@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>איש השלג ⛄ — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--surface:rgba(44,26,14,0.88);
+  --border:rgba(212,168,67,0.22);
+  --blue:#3b82f6;--red:#ef4444;--green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:linear-gradient(160deg,#0a1628 0%,#0f0a04 60%,#0a1a0a 100%);
+  color:var(--parch);min-height:100vh;
+  display:flex;flex-direction:column;
+}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:rgba(15,8,2,.97);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);}
+.topbar-meta{font-size:.8rem;opacity:.55;}
+.btn-back{padding:5px 14px;background:none;border:1px solid var(--border);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;}
+
+/* ── SETUP SCREEN ── */
+#screen-setup{
+  flex:1;display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.setup-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  padding:32px;max-width:560px;width:100%;
+}
+.setup-title{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;font-weight:700;color:var(--gold2);margin-bottom:6px;}
+.setup-sub{font-size:.85rem;opacity:.55;margin-bottom:24px;}
+.form-row{margin-bottom:16px;}
+.form-label{display:block;font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.form-input{
+  width:100%;background:rgba(253,245,224,.07);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;color:var(--parch);font-family:'Heebo',sans-serif;
+  font-size:.95rem;outline:none;transition:border .2s;
+}
+.form-input:focus{border-color:var(--gold);}
+.level-btns{display:flex;gap:10px;}
+.level-btn{
+  flex:1;padding:12px;border-radius:10px;border:2px solid var(--border);
+  background:rgba(253,245,224,.05);color:var(--parch);cursor:pointer;
+  font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;text-align:center;
+  transition:all .2s;
+}
+.level-btn.selected{background:rgba(212,168,67,.2);border-color:var(--gold);color:var(--gold2);}
+.level-btn:hover:not(.selected){border-color:rgba(212,168,67,.4);}
+.level-desc{font-size:.72rem;opacity:.5;margin-top:4px;}
+.words-grid{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.word-input-row{display:flex;gap:8px;align-items:center;}
+.word-num{font-size:.78rem;color:var(--gold);opacity:.6;min-width:20px;text-align:center;}
+.btn-add-word{margin-top:8px;padding:7px 16px;background:rgba(212,168,67,.1);border:1px dashed var(--border);border-radius:7px;color:var(--gold);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;width:100%;}
+.btn-add-word:hover{background:rgba(212,168,67,.18);}
+.btn-remove{padding:3px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:5px;color:#fca5a5;cursor:pointer;font-size:.75rem;}
+.btn-start{
+  width:100%;margin-top:24px;padding:14px;
+  background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:var(--ink);border:none;border-radius:10px;
+  font-family:'Heebo',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;
+  transition:opacity .2s;
+}
+.btn-start:hover{opacity:.9;}
+.btn-start:disabled{opacity:.4;cursor:default;}
+.setup-err{color:#fca5a5;font-size:.82rem;margin-top:8px;min-height:18px;}
+
+/* ── GAME SCREEN ── */
+#screen-game{
+  flex:1;display:none;
+  flex-direction:column;padding:16px 20px;max-width:960px;margin:0 auto;width:100%;
+}
+.game-grid{
+  display:grid;grid-template-columns:260px 1fr;gap:20px;flex:1;
+}
+@media(max-width:640px){.game-grid{grid-template-columns:1fr;}}
+
+/* ── SNOWMAN PANEL ── */
+.snowman-panel{
+  background:rgba(10,22,40,0.9);border:1px solid rgba(100,150,255,.2);
+  border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;
+}
+.steps-remaining{
+  font-size:.78rem;color:#93c5fd;margin-bottom:8px;text-align:center;
+}
+.steps-bar{
+  width:100%;height:6px;background:rgba(255,255,255,.1);border-radius:3px;
+  margin-bottom:14px;overflow:hidden;
+}
+.steps-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#22c55e,#f59e0b);transition:width .4s;}
+.snowman-svg{width:200px;height:240px;}
+
+/* ── RIGHT PANEL ── */
+.right-panel{display:flex;flex-direction:column;gap:16px;}
+
+/* word display */
+.word-display{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;
+}
+.word-title{font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:12px;opacity:.7;text-transform:uppercase;}
+.word-blanks{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:flex-end;}
+.blank{
+  width:36px;height:44px;border-bottom:3px solid var(--gold);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:4px;font-size:1.4rem;font-weight:700;color:var(--parch);
+  font-family:'Frank Ruhl Libre',serif;transition:color .3s;
+}
+.blank.revealed{color:var(--gold2);}
+.blank.space{border-color:transparent;width:20px;}
+
+/* alphabet board */
+.alpha-panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;
+}
+.alpha-title{font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:10px;opacity:.7;text-transform:uppercase;}
+.alpha-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.alpha-btn{
+  width:38px;height:38px;border-radius:8px;border:1.5px solid var(--border);
+  background:rgba(253,245,224,.06);color:var(--parch);
+  font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;
+  cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;
+}
+.alpha-btn:hover:not(:disabled){border-color:var(--gold);background:rgba(212,168,67,.15);transform:translateY(-2px);}
+.alpha-btn:disabled{opacity:.25;cursor:default;transform:none;}
+.alpha-btn.correct{background:rgba(34,197,94,.2);border-color:#22c55e;color:#86efac;}
+.alpha-btn.wrong{background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5;}
+
+/* status bar */
+.status-bar{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+.status-word{font-size:.85rem;color:var(--gold);font-weight:700;}
+.status-err{font-size:.85rem;color:#fca5a5;}
+.status-score{font-size:.85rem;color:#86efac;}
+.wrong-letters{display:flex;gap:6px;flex-wrap:wrap;}
+.wrong-letter-badge{
+  padding:2px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);
+  border-radius:12px;font-size:.82rem;color:#fca5a5;font-family:'Frank Ruhl Libre',serif;
+}
+
+/* ── RESULT OVERLAY ── */
+.result-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+  z-index:200;align-items:center;justify-content:center;padding:20px;
+}
+.result-overlay.show{display:flex;}
+.result-box{
+  background:#1a0f05;border:1px solid var(--border);border-radius:18px;
+  padding:36px;max-width:440px;width:100%;text-align:center;
+}
+.result-emoji{font-size:4rem;margin-bottom:16px;}
+.result-title{font-family:'Frank Ruhl Libre',serif;font-size:1.6rem;font-weight:700;color:var(--gold2);margin-bottom:8px;}
+.result-word{font-size:1rem;opacity:.7;margin-bottom:20px;}
+.result-score{font-size:1.2rem;font-weight:700;color:#86efac;margin-bottom:24px;}
+.result-btns{display:flex;gap:10px;justify-content:center;}
+.btn-next{padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.95rem;font-weight:800;cursor:pointer;}
+.btn-again{padding:10px 20px;background:none;border:1px solid var(--border);color:var(--parch);border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;cursor:pointer;}
+
+/* ── WORD LIST INDICATOR ── */
+.word-list-bar{
+  display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;
+}
+.word-dot{width:10px;height:10px;border-radius:50%;background:rgba(212,168,67,.2);border:1px solid var(--border);}
+.word-dot.done{background:#22c55e;}
+.word-dot.current{background:var(--gold);}
+.word-dot.failed{background:#ef4444;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">⛄ איש השלג</div>
+  <div id="topbar-meta" class="topbar-meta"></div>
+  <button class="btn-back" onclick="history.back()">← חזרה</button>
+</div>
+
+<!-- ═══════════════════ SETUP SCREEN ═══════════════════ -->
+<div id="screen-setup">
+  <div class="setup-box">
+    <div class="setup-title">⛄ הגדרת המשחק</div>
+    <div class="setup-sub">הזינו את המילים לניחוש והגדרות המשחק</div>
+
+    <!-- שם פעילות -->
+    <div class="form-row">
+      <label class="form-label">שם הפעילות</label>
+      <input class="form-input" id="activity-name" placeholder="למשל: מושגים במסעי הצלב" />
+    </div>
+
+    <!-- רמה -->
+    <div class="form-row">
+      <label class="form-label">רמת קושי</label>
+      <div class="level-btns">
+        <div class="level-btn selected" id="lvl-a" onclick="selectLevel('a')">
+          רמה א — קלה
+          <div class="level-desc">6 שלבים</div>
+        </div>
+        <div class="level-btn" id="lvl-b" onclick="selectLevel('b')">
+          רמה ב — מאתגרת
+          <div class="level-desc">10 שלבים</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- מילים -->
+    <div class="form-row">
+      <label class="form-label">מילים / מושגים לניחוש <span style="opacity:.5;font-size:.7rem;">(4–10)</span></label>
+      <div class="words-grid" id="words-grid"></div>
+      <button class="btn-add-word" id="btn-add-word" onclick="addWordInput()">+ הוסיפי מילה</button>
+    </div>
+
+    <div class="setup-err" id="setup-err"></div>
+    <button class="btn-start" onclick="startGame()">🚀 התחילו לשחק!</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ GAME SCREEN ═══════════════════ -->
+<div id="screen-game">
+
+  <!-- word list progress dots -->
+  <div class="word-list-bar" id="word-list-bar"></div>
+
+  <div class="game-grid">
+
+    <!-- LEFT: Snowman -->
+    <div class="snowman-panel">
+      <div class="steps-remaining" id="steps-remaining">0 טעויות</div>
+      <div class="steps-bar"><div class="steps-bar-fill" id="steps-bar-fill" style="width:100%"></div></div>
+
+      <svg class="snowman-svg" viewBox="0 0 200 260" id="snowman-svg">
+        <!-- background sky -->
+        <defs>
+          <radialGradient id="snowGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#e8f4ff" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="#0a1628" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="200" height="260" fill="#0a1628" rx="12"/>
+        <ellipse cx="100" cy="250" rx="70" ry="8" fill="#1a2a3a" opacity=".5"/>
+
+        <!-- Snow ground -->
+        <ellipse cx="100" cy="248" rx="65" ry="10" fill="#d4eeff" opacity=".18"/>
+
+        <!-- === SNOWMAN PARTS (hidden by default) === -->
+        <!-- 1. Body (lower) -->
+        <ellipse id="part-body" cx="100" cy="190" rx="40" ry="38"
+          fill="white" stroke="#b8d4e8" stroke-width="1.5" opacity="0" />
+        <!-- 2. Torso (middle) -->
+        <ellipse id="part-torso" cx="100" cy="145" rx="30" ry="27"
+          fill="white" stroke="#b8d4e8" stroke-width="1.5" opacity="0"/>
+        <!-- 3. Head -->
+        <ellipse id="part-head" cx="100" cy="100" rx="26" ry="24"
+          fill="white" stroke="#b8d4e8" stroke-width="1.5" opacity="0"/>
+        <!-- 4. Left arm -->
+        <line id="part-arm-left" x1="70" y1="140" x2="40" y2="118"
+          stroke="#8b6914" stroke-width="4" stroke-linecap="round" opacity="0"/>
+        <line id="part-arm-left-b1" x1="40" y1="118" x2="28" y2="108"
+          stroke="#8b6914" stroke-width="3" stroke-linecap="round" opacity="0"/>
+        <line id="part-arm-left-b2" x1="40" y1="118" x2="32" y2="125"
+          stroke="#8b6914" stroke-width="3" stroke-linecap="round" opacity="0"/>
+        <!-- 5. Right arm -->
+        <line id="part-arm-right" x1="130" y1="140" x2="160" y2="118"
+          stroke="#8b6914" stroke-width="4" stroke-linecap="round" opacity="0"/>
+        <line id="part-arm-right-b1" x1="160" y1="118" x2="172" y2="108"
+          stroke="#8b6914" stroke-width="3" stroke-linecap="round" opacity="0"/>
+        <line id="part-arm-right-b2" x1="160" y1="118" x2="168" y2="125"
+          stroke="#8b6914" stroke-width="3" stroke-linecap="round" opacity="0"/>
+        <!-- Eyes (appear with head) -->
+        <circle id="part-eye-l" cx="92" cy="96" r="3" fill="#2d3748" opacity="0"/>
+        <circle id="part-eye-r" cx="108" cy="96" r="3" fill="#2d3748" opacity="0"/>
+        <!-- Mouth buttons (appear with head) -->
+        <circle id="part-mouth-1" cx="93" cy="107" r="2" fill="#2d3748" opacity="0"/>
+        <circle id="part-mouth-2" cx="100" cy="110" r="2" fill="#2d3748" opacity="0"/>
+        <circle id="part-mouth-3" cx="107" cy="107" r="2" fill="#2d3748" opacity="0"/>
+        <!-- Body buttons (appear with torso) -->
+        <circle id="part-btn-1" cx="100" cy="133" r="3" fill="#4a5568" opacity="0"/>
+        <circle id="part-btn-2" cx="100" cy="146" r="3" fill="#4a5568" opacity="0"/>
+        <circle id="part-btn-3" cx="100" cy="159" r="3" fill="#4a5568" opacity="0"/>
+
+        <!-- LEVEL B EXTRAS -->
+        <!-- 6. Carrot nose -->
+        <polygon id="part-nose" points="100,100 116,103 100,106"
+          fill="#f97316" opacity="0"/>
+        <!-- 7. Hat -->
+        <rect id="part-hat-brim" x="72" y="76" width="56" height="6"
+          fill="#1a202c" opacity="0" rx="2"/>
+        <rect id="part-hat-top" x="82" y="46" width="36" height="32"
+          fill="#1a202c" opacity="0" rx="3"/>
+        <rect id="part-hat-band" x="82" y="71" width="36" height="6"
+          fill="#d4a843" opacity="0"/>
+        <!-- 8. Scarf -->
+        <path id="part-scarf" d="M74,122 Q100,132 126,122 Q100,128 74,122Z"
+          fill="#ef4444" stroke="#b91c1c" stroke-width="1" opacity="0"/>
+        <path id="part-scarf-tail" d="M80,124 Q76,138 72,142"
+          fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round" opacity="0"/>
+        <!-- 9. Smile -->
+        <path id="part-smile" d="M88,108 Q100,118 112,108"
+          fill="none" stroke="#2d3748" stroke-width="2.5" stroke-linecap="round" opacity="0"/>
+      </svg>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-panel">
+
+      <!-- Status bar -->
+      <div class="status-bar">
+        <div>
+          <div class="status-word" id="status-word">מילה 1/4</div>
+          <div style="font-size:.72rem;opacity:.45;" id="status-hint"></div>
+        </div>
+        <div id="wrong-letters-wrap">
+          <div class="wrong-letters" id="wrong-letters"></div>
+        </div>
+        <div class="status-score" id="status-score">0 נק'</div>
+      </div>
+
+      <!-- Word blanks -->
+      <div class="word-display">
+        <div class="word-title">נחשו את המילה</div>
+        <div class="word-blanks" id="word-blanks"></div>
+      </div>
+
+      <!-- Alphabet -->
+      <div class="alpha-panel">
+        <div class="alpha-title">בחרו אות</div>
+        <div class="alpha-grid" id="alpha-grid"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RESULT OVERLAY ═══════════════════ -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-box">
+    <div class="result-emoji" id="result-emoji">⛄</div>
+    <div class="result-title" id="result-title">כל הכבוד!</div>
+    <div class="result-word" id="result-word">המילה: </div>
+    <div class="result-score" id="result-score">+10 נקודות</div>
+    <div class="result-btns">
+      <button class="btn-again" onclick="closeResult()">נסו שוב 🔄</button>
+      <button class="btn-next" id="btn-next-word" onclick="nextWord()">מילה הבאה ←</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── HEBREW ALPHABET ──
+const ALEPH_BET = ['א','ב','ג','ד','ה','ו','ז','ח','ט','י','כ','ל','מ','נ','ס','ע','פ','צ','ק','ר','ש','ת'];
+
+// ── LEVEL CONFIGS ──
+const LEVELS = {
+  a: {
+    maxErrors: 6,
+    parts: [
+      ['part-body'],
+      ['part-torso','part-btn-1','part-btn-2','part-btn-3'],
+      ['part-head','part-eye-l','part-eye-r','part-mouth-1','part-mouth-2','part-mouth-3'],
+      ['part-arm-left','part-arm-left-b1','part-arm-left-b2'],
+      ['part-arm-right','part-arm-right-b1','part-arm-right-b2'],
+    ],
+    labels: ['גוף תחתון','גוף עליון','ראש','יד שמאל','יד ימין']
+  },
+  b: {
+    maxErrors: 10,
+    parts: [
+      ['part-body'],
+      ['part-torso','part-btn-1','part-btn-2','part-btn-3'],
+      ['part-head','part-eye-l','part-eye-r'],
+      ['part-arm-left','part-arm-left-b1','part-arm-left-b2'],
+      ['part-arm-right','part-arm-right-b1','part-arm-right-b2'],
+      ['part-nose'],
+      ['part-hat-brim','part-hat-top','part-hat-band'],
+      ['part-scarf','part-scarf-tail'],
+      ['part-smile'],
+      ['part-mouth-1','part-mouth-2','part-mouth-3'],
+    ],
+    labels: ['גוף תחתון','גוף עליון','ראש','יד שמאל','יד ימין','אף גזר','כובע','צעיף','חיוך','כפתורי פה']
+  }
+};
+
+// ── STATE ──
+let words = [];
+let level = 'a';
+let currentWordIdx = 0;
+let currentWord = '';
+let guessedLetters = new Set();
+let wrongLetters = [];
+let errors = 0;
+let score = 0;
+let wordResults = []; // 'done','failed','current'
+
+// ── SETUP ──
+let wordCount = 0;
+function initSetup() {
+  // Add 4 word inputs by default
+  for (let i = 0; i < 4; i++) addWordInput();
+}
+
+function addWordInput() {
+  const grid = document.getElementById('words-grid');
+  if (wordCount >= 10) return;
+  wordCount++;
+  const row = document.createElement('div');
+  row.className = 'word-input-row';
+  row.id = 'word-row-' + wordCount;
+  row.innerHTML = `
+    <span class="word-num">${wordCount}</span>
+    <input class="form-input" style="flex:1;" placeholder="מילה ${wordCount}" id="word-${wordCount}" />
+    ${wordCount > 4 ? `<button class="btn-remove" onclick="removeWord(${wordCount})">✕</button>` : ''}
+  `;
+  grid.appendChild(row);
+  if (wordCount >= 10) document.getElementById('btn-add-word').style.display = 'none';
+}
+
+function removeWord(n) {
+  document.getElementById('word-row-' + n)?.remove();
+  wordCount--;
+  document.getElementById('btn-add-word').style.display = '';
+}
+
+function selectLevel(l) {
+  level = l;
+  document.getElementById('lvl-a').classList.toggle('selected', l === 'a');
+  document.getElementById('lvl-b').classList.toggle('selected', l === 'b');
+}
+
+function startGame() {
+  const name = document.getElementById('activity-name').value.trim();
+  // Collect words
+  const inputs = document.querySelectorAll('#words-grid .form-input');
+  words = [];
+  inputs.forEach(inp => {
+    const v = inp.value.trim();
+    if (v) words.push(v);
+  });
+
+  const err = document.getElementById('setup-err');
+  if (words.length < 4) { err.textContent = 'יש להזין לפחות 4 מילים.'; return; }
+  if (words.length > 10) { err.textContent = 'מקסימום 10 מילים.'; return; }
+  err.textContent = '';
+
+  document.getElementById('topbar-meta').textContent = (name || 'איש השלג') + ' | רמה ' + (level === 'a' ? 'א' : 'ב');
+
+  // Shuffle words
+  words = words.sort(() => Math.random() - .5);
+  wordResults = words.map(() => 'pending');
+
+  document.getElementById('screen-setup').style.display = 'none';
+  document.getElementById('screen-game').style.display = 'flex';
+
+  loadWord(0);
+}
+
+// ── GAME ──
+function loadWord(idx) {
+  currentWordIdx = idx;
+  currentWord = words[idx].toUpperCase().replace(/\s+/g, ' ');
+  guessedLetters = new Set();
+  wrongLetters = [];
+  errors = 0;
+  wordResults[idx] = 'current';
+
+  resetSnowman();
+  renderBlanks();
+  renderAlpha();
+  renderDots();
+  updateStatus();
+}
+
+function renderBlanks() {
+  const cont = document.getElementById('word-blanks');
+  cont.innerHTML = '';
+  [...currentWord].forEach(ch => {
+    const div = document.createElement('div');
+    if (ch === ' ') {
+      div.className = 'blank space';
+    } else {
+      div.className = 'blank';
+      div.id = 'blank-' + Math.random().toString(36).substr(2,6);
+      div.dataset.char = ch;
+      if (guessedLetters.has(ch)) {
+        div.textContent = ch;
+        div.classList.add('revealed');
+      }
+    }
+    cont.appendChild(div);
+  });
+}
+
+function renderAlpha() {
+  const grid = document.getElementById('alpha-grid');
+  grid.innerHTML = '';
+  ALEPH_BET.forEach(letter => {
+    const btn = document.createElement('button');
+    btn.className = 'alpha-btn';
+    btn.textContent = letter;
+    btn.id = 'alpha-' + letter;
+    const uppedWord = currentWord;
+    const letterForms = getLetterForms(letter);
+    const used = letterForms.some(f => guessedLetters.has(f));
+    if (used) {
+      btn.disabled = true;
+      btn.classList.add(letterForms.some(f => uppedWord.includes(f)) ? 'correct' : 'wrong');
+    } else {
+      btn.onclick = () => guessLetter(letter);
+    }
+    grid.appendChild(btn);
+  });
+}
+
+// Hebrew final letter forms mapping
+function getLetterForms(letter) {
+  const finals = {'כ':['כ','ך'],'מ':['מ','ם'],'נ':['נ','ן'],'פ':['פ','ף'],'צ':['צ','ץ']};
+  return finals[letter] ? finals[letter] : [letter];
+}
+
+function guessLetter(letter) {
+  const forms = getLetterForms(letter);
+  forms.forEach(f => guessedLetters.add(f));
+
+  const inWord = forms.some(f => currentWord.includes(f));
+
+  if (inWord) {
+    // Reveal blanks
+    document.querySelectorAll('.blank').forEach(b => {
+      if (forms.includes(b.dataset.char)) {
+        b.textContent = b.dataset.char;
+        b.classList.add('revealed');
+      }
+    });
+    // Mark alpha btn correct
+    const btn = document.getElementById('alpha-' + letter);
+    if (btn) { btn.disabled = true; btn.classList.add('correct'); }
+
+    // Check win
+    const allRevealed = [...document.querySelectorAll('.blank:not(.space)')].every(b => b.textContent);
+    if (allRevealed) {
+      const pts = Math.max(5, (LEVELS[level].maxErrors - errors) * 10);
+      score += pts;
+      wordResults[currentWordIdx] = 'done';
+      renderDots();
+      showResult(true, pts);
+    }
+  } else {
+    wrongLetters.push(letter);
+    errors++;
+    const btn = document.getElementById('alpha-' + letter);
+    if (btn) { btn.disabled = true; btn.classList.add('wrong'); }
+    revealSnowmanPart(errors - 1);
+    updateStatus();
+
+    if (errors >= LEVELS[level].maxErrors) {
+      wordResults[currentWordIdx] = 'failed';
+      renderDots();
+      showResult(false, 0);
+    }
+  }
+}
+
+function updateStatus() {
+  const cfg = LEVELS[level];
+  document.getElementById('steps-remaining').textContent =
+    `טעויות: ${errors} / ${cfg.maxErrors}`;
+  const pct = Math.max(0, (cfg.maxErrors - errors) / cfg.maxErrors * 100);
+  document.getElementById('steps-bar-fill').style.width = pct + '%';
+  document.getElementById('steps-bar-fill').style.background =
+    errors === 0 ? 'linear-gradient(90deg,#22c55e,#f59e0b)' :
+    errors < cfg.maxErrors / 2 ? 'linear-gradient(90deg,#f59e0b,#ef4444)' : '#ef4444';
+  document.getElementById('status-word').textContent =
+    `מילה ${currentWordIdx + 1} / ${words.length}`;
+  document.getElementById('status-score').textContent = score + ' נק\'';
+
+  // Wrong letters display
+  const cont = document.getElementById('wrong-letters');
+  cont.innerHTML = wrongLetters.map(l =>
+    `<span class="wrong-letter-badge">${l}</span>`).join('');
+}
+
+function renderDots() {
+  const bar = document.getElementById('word-list-bar');
+  bar.innerHTML = words.map((w, i) => {
+    const st = wordResults[i];
+    return `<div class="word-dot ${st === 'done' ? 'done' : st === 'failed' ? 'failed' : st === 'current' ? 'current' : ''}" title="${w}"></div>`;
+  }).join('');
+}
+
+// ── SNOWMAN SVG ──
+function resetSnowman() {
+  const allParts = [
+    'part-body','part-torso','part-head',
+    'part-arm-left','part-arm-left-b1','part-arm-left-b2',
+    'part-arm-right','part-arm-right-b1','part-arm-right-b2',
+    'part-eye-l','part-eye-r','part-mouth-1','part-mouth-2','part-mouth-3',
+    'part-btn-1','part-btn-2','part-btn-3',
+    'part-nose','part-hat-brim','part-hat-top','part-hat-band',
+    'part-scarf','part-scarf-tail','part-smile'
+  ];
+  allParts.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('opacity','0');
+  });
+}
+
+function revealSnowmanPart(errorIdx) {
+  const cfg = LEVELS[level];
+  if (errorIdx >= cfg.parts.length) return;
+  const parts = cfg.parts[errorIdx];
+  parts.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.setAttribute('opacity','1');
+      // Animate
+      el.style.transition = 'opacity 0.5s';
+    }
+  });
+}
+
+// ── RESULT ──
+function showResult(won, pts) {
+  const overlay = document.getElementById('result-overlay');
+  const hasNext = currentWordIdx < words.length - 1;
+
+  document.getElementById('result-emoji').textContent = won ? '🎉' : '❄️';
+  document.getElementById('result-title').textContent = won ? 'כל הכבוד! ניצחתם!' : 'אוי... הקור ניצח!';
+  document.getElementById('result-word').textContent = 'המילה הייתה: ' + currentWord;
+  document.getElementById('result-score').textContent = won ? `+${pts} נקודות! (סה"כ: ${score})` : 'לא נצברו נקודות';
+  document.getElementById('btn-next-word').style.display = hasNext ? '' : 'none';
+
+  // Show full snowman if lost
+  if (!won) {
+    LEVELS[level].parts.forEach((parts, i) => {
+      if (i >= errors) {
+        parts.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.setAttribute('opacity','0.3');
+        });
+      }
+    });
+  }
+
+  overlay.classList.add('show');
+}
+
+function closeResult() {
+  document.getElementById('result-overlay').classList.remove('show');
+  loadWord(currentWordIdx); // restart same word
+}
+
+function nextWord() {
+  document.getElementById('result-overlay').classList.remove('show');
+  const next = currentWordIdx + 1;
+  if (next < words.length) {
+    loadWord(next);
+  } else {
+    // Game over — all words done
+    showFinalScore();
+  }
+}
+
+function showFinalScore() {
+  const won = wordResults.filter(r => r === 'done').length;
+  const total = words.length;
+  document.getElementById('result-emoji').textContent = won === total ? '🏆' : won >= total / 2 ? '⭐' : '❄️';
+  document.getElementById('result-title').textContent = 'המשחק הסתיים!';
+  document.getElementById('result-word').textContent = `ניצחתם ${won} מתוך ${total} מילים`;
+  document.getElementById('result-score').textContent = `סה"כ ניקוד: ${score} נקודות`;
+  document.getElementById('btn-next-word').style.display = 'none';
+  document.querySelector('.btn-again').textContent = '🔄 שחקו שוב';
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+// ── INIT ──
+initSetup();
+
+// Read URL params (when opened from lesson)
+const urlP = new URLSearchParams(window.location.search);
+const urlWords = urlP.get('words');
+const urlLevel = urlP.get('level');
+const urlName = urlP.get('name');
+if (urlWords) {
+  const wArr = urlWords.split('|').filter(Boolean);
+  if (wArr.length >= 4) {
+    // Auto-fill and start
+    document.getElementById('activity-name').value = urlName || 'איש השלג';
+    if (urlLevel === 'b') selectLevel('b');
+    // Clear existing inputs and fill
+    document.getElementById('words-grid').innerHTML = '';
+    wordCount = 0;
+    wArr.slice(0, 10).forEach(w => {
+      addWordInput();
+      document.getElementById('word-' + wordCount).value = w;
+    });
+    startGame();
+  }
+}
+</script>
+</body>
+</html>
