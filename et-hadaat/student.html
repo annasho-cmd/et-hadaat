@@ -570,6 +570,17 @@ function doLogin() {
     return;
   }
 
+  // Test user — always allowed in, joins first available group
+  if (normalize(fullName) === normalize('אנה שוסטר')) {
+    const allGroups = teacherData.groups ? Object.values(teacherData.groups) : [];
+    groupData = allGroups[0] || { id: 'test', code: 'test', name: 'בדיקה' };
+    classCode = groupData.code;
+    studentName = fullName;
+    localStorage.setItem('et_hadaat_name_' + classCode, fullName);
+    enterApp(false);
+    return;
+  }
+
   // Search for student across all groups
   if (!teacherData) {
     showErr('טוען נתונים... נסה/י שוב.');
