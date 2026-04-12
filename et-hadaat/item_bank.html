@@ -344,7 +344,16 @@ const DEFAULT_ITEMS=[
     usedIn:['body','enrichment']},
   {id:'newspaper', cat:1, icon:'📰', name:'עיתון',                 desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'stickies',  cat:1, icon:'🗒️', name:'פתקיות',               desc:'', styles:[], usedIn:['intro','closing']},
-  {id:'wordcloud', cat:1, icon:'☁️', name:'ענן מילים',             desc:'', styles:[], usedIn:['intro','closing']},
+  {id:'wordcloud', cat:1, icon:'☁️', name:'ענן מילים',
+    desc:'כלי ויזואלי אינטראקטיבי בזמן אמת. המורה מזינה שאלה, התלמידים כותבים מילה אחת או שתיים, והענן נבנה על הלוח — גודל המילה לפי כמות התלמידים שכתבו אותה.',
+    styles:[
+      {name:'הטרמה', desc:'בדיקת ידע קודם או העלאת רעיונות ראשונים לנושא חדש.'},
+      {name:'סיכום ורפלקציה', desc:'מיפוי המושגים החשובים שנלמדו בשיעור.'},
+      {name:'ניתוח טקסט', desc:'זיהוי מילות מפתח מתוך מאמר או טקסט.'},
+      {name:'סיעור מוחות', desc:'כלי דינמי לסיעור מוחות קבוצתי.'},
+    ],
+    gameFile:'wordcloud_teacher.html',
+    usedIn:['intro','closing']},
   {id:'debate',    cat:1, icon:'🎤', name:'דיבייט',                desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'full_ans',  cat:1, icon:'📝', name:'כתיבת תשובה מלאה',     desc:'', styles:[], usedIn:['body','closing']},
   // ── קטגוריה 2: מדיה ──
