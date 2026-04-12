@@ -528,6 +528,7 @@ let currentSubject = null;
 let currentUnit = null;
 let liveGameCode = null;
 let liveLessonData = null;
+let isTestUser = false;
 
 // ── INIT ──
 window.onload = function() {
@@ -581,6 +582,7 @@ function doLogin() {
     groupData = allGroups[0] || { id: 'test', code: 'test', name: 'בדיקה' };
     classCode = groupData.code;
     studentName = fullName;
+    isTestUser = true;
     localStorage.setItem('et_hadaat_name_' + classCode, fullName);
     enterApp(false);
     return;
@@ -733,9 +735,9 @@ function loadSubjects() {
   // Find subjects that have units with this group assigned
   subjects.forEach(subj => {
     const units = subj.units ? Object.values(subj.units) : [];
-    const hasMyGroup = units.some(u =>
-      u.groups && Object.keys(u.groups).includes(groupData.id)
-    );
+    const hasMyGroup = isTestUser
+      ? units.length > 0  // test user sees all subjects with units
+      : units.some(u => u.groups && Object.keys(u.groups).includes(groupData.id));
     if (hasMyGroup) mySubjects.push(subj);
   });
 
@@ -751,7 +753,9 @@ function loadSubjects() {
 
   mySubjects.forEach(subj => {
     const units = subj.units ? Object.values(subj.units) : [];
-    const myUnits = units.filter(u => u.groups && Object.keys(u.groups).includes(groupData.id));
+    const myUnits = isTestUser
+      ? units
+      : units.filter(u => u.groups && Object.keys(u.groups).includes(groupData.id));
     const card = document.createElement('div');
     card.className = 'subject-card';
     card.style.setProperty('--card-color', subj.color || 'var(--gold)');
@@ -826,7 +830,7 @@ function openUnit(unit) {
   }
 
   lessons.forEach((lesson, i) => {
-    const state = groupStates[lesson.id] || 'locked';
+    const state = isTestUser ? 'open' : (groupStates[lesson.id] || 'locked');
     const isOpen = state === 'open';
     // שיעורי בונה יש להם topic ו-data; שיעורים ישנים יש להם url
     const isBuilderLesson = lesson.topic !== undefined;
