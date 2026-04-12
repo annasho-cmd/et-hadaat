@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>התמצאות בתנ"ך — שיעור 2: מראה מקום</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --parch:#f5e6c8;--parch2:#e8d4a8;
+  --ink:#2c1a0e;--brown:#6b3a1f;
+  --gold:#b8860b;--gold2:#d4a843;
+  --red:#8b1a1a;--green:#1a5c2a;
+  --shadow:rgba(44,26,14,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#1a0f05;min-height:100vh;overflow-x:hidden;}
+
+/* ── PAGES ── */
+.page{display:none;width:100%;min-height:100vh;animation:fadeIn .6s ease;}
+.page.active{display:flex;flex-direction:column;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── COVER ── */
+#page-cover{background:var(--ink);align-items:center;justify-content:center;position:relative;overflow:hidden;min-height:100vh;}
+#page-cover::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(180,120,30,.15) 0%,transparent 60%);}
+.cover-inner{position:relative;text-align:center;padding:60px 40px;max-width:700px;width:100%;}
+.unit-label{font-weight:300;font-size:.9rem;letter-spacing:.3em;color:var(--gold2);text-transform:uppercase;margin-bottom:16px;opacity:0;animation:fadeIn .8s ease .2s forwards;}
+.cover-icon{font-size:3.5rem;color:var(--gold);margin-bottom:20px;opacity:0;animation:fadeIn .8s ease .4s forwards;text-shadow:0 0 40px rgba(184,134,11,.5);}
+.cover-unit{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;color:var(--parch2);margin-bottom:8px;opacity:0;animation:fadeIn .8s ease .5s forwards;}
+.cover-title{font-family:'Frank Ruhl Libre',serif;font-size:3rem;font-weight:900;color:var(--parch);line-height:1.1;margin-bottom:10px;opacity:0;animation:fadeIn .8s ease .6s forwards;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
+.cover-sub{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;font-weight:700;color:var(--gold2);margin-bottom:40px;opacity:0;animation:fadeIn .8s ease .7s forwards;}
+.cover-divider{width:120px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:0 auto 30px;opacity:0;animation:fadeIn .8s ease .8s forwards;}
+.cover-student{font-size:.85rem;color:var(--parch2);opacity:.6;margin-bottom:28px;}
+
+/* ── CONTENT PAGES ── */
+.content-page{background:var(--parch);flex:1;display:flex;flex-direction:column;}
+.page-header{background:var(--ink);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+.page-header-title{font-family:'Frank Ruhl Libre',serif;color:var(--gold2);font-size:1rem;font-weight:700;}
+.page-num{font-size:.75rem;color:var(--parch2);opacity:.5;}
+.page-body{flex:1;padding:28px 24px;max-width:760px;margin:0 auto;width:100%;}
+
+/* ── VIDEO ── */
+.video-wrap{border-radius:12px;overflow:hidden;margin-bottom:22px;box-shadow:0 4px 20px var(--shadow);}
+.video-wrap iframe{width:100%;height:380px;border:none;display:block;}
+
+/* ── SECTION ── */
+.section-title{font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;font-weight:700;color:var(--brown);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--gold2);}
+.task-box{background:white;border:1px solid var(--parch2);border-radius:10px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px var(--shadow);}
+.step-label{font-size:.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.step-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:8px;}
+.step-textarea{width:100%;border:1.5px solid var(--parch2);border-radius:7px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:.92rem;color:var(--ink);resize:vertical;min-height:60px;outline:none;transition:border .2s;background:#fdfaf5;}
+.step-textarea:focus{border-color:var(--gold);}
+
+/* ── FEEDBACK ── */
+.feedback-box{margin-top:10px;padding:12px 14px;border-radius:8px;font-size:.85rem;line-height:1.6;display:none;}
+.feedback-box.success{background:#f0fdf4;border:1px solid #86efac;color:#166534;}
+.feedback-box.partial{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;}
+.feedback-box.error{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;}
+
+/* ── MISSION PAGE ── */
+.intro-box{background:linear-gradient(135deg,#f5f0e8,#ede3cc);border:1px solid var(--gold2);border-radius:12px;padding:18px 20px;margin-bottom:22px;border-right:4px solid var(--gold);}
+.intro-box p{font-size:.92rem;color:var(--ink);line-height:1.8;}
+.steps-reminder{display:flex;gap:10px;justify-content:center;margin:10px 0 18px;flex-wrap:wrap;}
+.step-badge{background:var(--ink);color:var(--gold2);padding:6px 14px;border-radius:20px;font-size:.78rem;font-weight:700;}
+
+/* ── MISSION CARDS ── */
+.mission-card{background:white;border:1px solid var(--parch2);border-radius:10px;padding:16px 18px;margin-bottom:12px;box-shadow:0 1px 4px var(--shadow);}
+.mission-num{display:inline-block;background:var(--ink);color:var(--gold2);width:26px;height:26px;border-radius:50%;text-align:center;line-height:26px;font-size:.78rem;font-weight:700;margin-left:8px;flex-shrink:0;}
+.mission-header{display:flex;align-items:center;margin-bottom:10px;}
+.mission-q{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;font-weight:700;color:var(--brown);}
+.refs-list{font-size:.8rem;color:var(--brown);opacity:.7;margin-bottom:10px;line-height:1.8;background:#fdfaf5;padding:8px 12px;border-radius:6px;border:1px solid var(--parch2);}
+
+/* ── CHECKBOXES ── */
+.check-options{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
+.check-opt{display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;border-radius:7px;border:1.5px solid var(--parch2);background:#fdfaf5;transition:all .15s;}
+.check-opt:hover{border-color:var(--gold);}
+.check-opt.selected{background:rgba(184,134,11,.1);border-color:var(--gold);}
+.check-opt input{display:none;}
+.check-dot{width:16px;height:16px;border-radius:4px;border:2px solid var(--parch2);background:white;flex-shrink:0;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.check-opt.selected .check-dot{background:var(--gold);border-color:var(--gold);}
+.check-label{font-size:.88rem;color:var(--ink);}
+
+/* ── ANSWER INPUT ── */
+.answer-input{width:100%;border:1.5px solid var(--parch2);border-radius:7px;padding:9px 12px;font-family:'Heebo',sans-serif;font-size:.9rem;color:var(--ink);outline:none;transition:border .2s;background:#fdfaf5;}
+.answer-input:focus{border-color:var(--gold);}
+
+/* Multiple answers */
+.multi-answers{display:flex;flex-direction:column;gap:6px;}
+.answer-row{display:flex;align-items:center;gap:8px;}
+.answer-row-num{font-size:.75rem;color:var(--gold);font-weight:700;min-width:16px;}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 24px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;transition:all .2s;}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#8b6310);color:white;}
+.btn-gold:hover{opacity:.9;}
+.btn-gold:disabled{opacity:.4;cursor:default;}
+.btn-check{background:var(--green);color:white;padding:8px 20px;font-size:.85rem;}
+.btn-next{background:linear-gradient(135deg,var(--gold),#8b6310);color:white;width:100%;padding:13px;font-size:1rem;margin-top:16px;}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;}
+
+/* ── PROGRESS ── */
+.progress-bar-wrap{height:4px;background:rgba(255,255,255,.1);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-bar-fill{height:100%;background:var(--gold2);transition:width .5s;}
+
+/* ── SAVE INDICATOR ── */
+#save-indicator{position:fixed;bottom:12px;left:12px;background:rgba(26,92,42,.9);color:white;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;z-index:9999;opacity:0;transition:opacity .5s;font-family:'Heebo',sans-serif;}
+
+/* ── COMPLETION ── */
+#page-done{background:var(--ink);align-items:center;justify-content:center;}
+.done-inner{text-align:center;padding:60px 40px;max-width:500px;}
+.done-icon{font-size:4rem;margin-bottom:20px;}
+.done-title{font-family:'Frank Ruhl Libre',serif;font-size:2rem;font-weight:700;color:var(--gold2);margin-bottom:12px;}
+.done-sub{font-size:.9rem;color:var(--parch2);opacity:.6;}
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+<div id="save-indicator">✓ נשמר</div>
+
+<!-- ══ COVER ══ -->
+<div class="page active" id="page-cover">
+  <div class="cover-inner">
+    <div class="unit-label">בינתחומי ח׳ — התמצאות בתנ״ך</div>
+    <div class="cover-icon">📖</div>
+    <div class="cover-unit">שיעור שני</div>
+    <div class="cover-title">מראה מקום בתנ"ך</div>
+    <div class="cover-sub">לומדים לאתר כל פסוק</div>
+    <div class="cover-divider"></div>
+    <div class="cover-student" id="cover-student">טוען...</div>
+    <button class="btn btn-gold" onclick="goToPage('page-video')" style="padding:13px 40px;font-size:1rem;">
+      כניסה לשיעור ✦
+    </button>
+  </div>
+</div>
+
+<!-- ══ PAGE 1 — VIDEO + STEPS ══ -->
+<div class="page content-page" id="page-video">
+  <div class="page-header">
+    <div class="page-header-title">📖 מראה מקום בתנ"ך</div>
+    <div class="page-num">חלק א׳ מתוך ב׳</div>
+  </div>
+  <div class="page-body">
+
+    <!-- Video -->
+    <div class="video-wrap">
+      <iframe src="https://drive.google.com/file/d/1_iNU3x_qkXV1MoREf2vaPLvDId9HrAaL/preview"
+        allow="autoplay" allowfullscreen></iframe>
+    </div>
+
+    <!-- Steps task -->
+    <div class="section-title">✍️ כיצד מאתרים מראה מקום בתנ"ך?</div>
+    <p style="font-size:.88rem;color:var(--brown);margin-bottom:14px;line-height:1.7;">
+      לאחר צפייה בסרטון — כתבו בשלושה שלבים כיצד מאתרים מראה מקום בתנ"ך:
+    </p>
+
+    <div class="task-box">
+      <div class="step-label">שלב 1</div>
+      <div class="step-title">מה עושים ראשון?</div>
+      <textarea class="step-textarea" id="step1" placeholder="כתבו כאן..." rows="2" oninput="debouncedSave()"></textarea>
+    </div>
+
+    <div class="task-box">
+      <div class="step-label">שלב 2</div>
+      <div class="step-title">מה עושים אחר כך?</div>
+      <textarea class="step-textarea" id="step2" placeholder="כתבו כאן..." rows="2" oninput="debouncedSave()"></textarea>
+    </div>
+
+    <div class="task-box">
+      <div class="step-label">שלב 3</div>
+      <div class="step-title">מה עושים לבסוף?</div>
+      <textarea class="step-textarea" id="step3" placeholder="כתבו כאן..." rows="2" oninput="debouncedSave()"></textarea>
+    </div>
+
+    <div class="feedback-box" id="steps-feedback"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-check" onclick="checkSteps()">🔍 בדקו את תשובתכם</button>
+      <button class="btn btn-gold" id="btn-to-p2" onclick="goToPage('page-practice')" disabled>
+        המשיכו לתרגול ←
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ PAGE 2 — PRACTICE ══ -->
+<div class="page content-page" id="page-practice">
+  <div class="page-header">
+    <div class="page-header-title">📖 מתרגלים חיפוש במראה מקום</div>
+    <div class="page-num">חלק ב׳ מתוך ב׳</div>
+  </div>
+  <div class="page-body">
+
+    <div class="intro-box">
+      <p>עכשיו כשאתם יודעים כיצד לאתר מראה מקום בתנ"ך — הגיע הזמן להתנסות!</p>
+      <p style="margin-top:6px;">בכל משימה תמצאו מראה מקום. עליכם לפתוח את התנ"ך, לאתר את הפסוק ולכתוב את התשובה.</p>
+    </div>
+    <div class="steps-reminder">
+      <span class="step-badge">📖 שם הספר</span>
+      <span style="color:var(--gold);font-weight:700;">←</span>
+      <span class="step-badge">פרק</span>
+      <span style="color:var(--gold);font-weight:700;">←</span>
+      <span class="step-badge">פסוק</span>
+    </div>
+
+    <!-- Mission 1 -->
+    <div class="mission-card">
+      <div class="mission-header">
+        <span class="mission-num">1</span>
+        <span class="mission-q">חפשו שמות נוספים לים המלח</span>
+      </div>
+      <div class="refs-list">
+        יהושע י"ב, 3 &nbsp;|&nbsp; זכריה י"ד, 8 &nbsp;|&nbsp; יחזקאל מ"ז, 18
+      </div>
+      <div class="check-options" id="m1-options">
+        <label class="check-opt" onclick="toggleCheck(this,'m1')"><span class="check-dot">✓</span><span class="check-label">ים המלות</span></label>
+        <label class="check-opt" onclick="toggleCheck(this,'m1')"><span class="check-dot">✓</span><span class="check-label">ים המוות</span></label>
+        <label class="check-opt" onclick="toggleCheck(this,'m1')"><span class="check-dot">✓</span><span class="check-label">ים הערבה</span></label>
+        <label class="check-opt" onclick="toggleCheck(this,'m1')"><span class="check-dot">✓</span><span class="check-label">ים האחרון</span></label>
+        <label class="check-opt" onclick="toggleCheck(this,'m1')"><span class="check-dot">✓</span><span class="check-label">הים הקדמוני</span></label>
+      </div>
+      <div style="font-size:.75rem;color:var(--brown);opacity:.6;margin-bottom:8px;">* בחרו שתי תשובות נכונות</div>
+      <div class="feedback-box" id="m1-feedback"></div>
+      <div class="btn-row"><button class="btn btn-check" onclick="checkM1()">🔍 בדקו</button></div>
+    </div>
+
+    <!-- Mission 2 -->
+    <div class="mission-card">
+      <div class="mission-header">
+        <span class="mission-num">2</span>
+        <span class="mission-q">היכן נקברה רחל אמנו?</span>
+      </div>
+      <div class="refs-list">בראשית ל"ה, 19</div>
+      <input class="answer-input" id="m2" placeholder="כתבו את התשובה..." oninput="debouncedSave()"/>
+      <div class="feedback-box" id="m2-feedback"></div>
+      <div class="btn-row"><button class="btn btn-check" onclick="checkM2()">🔍 בדקו</button></div>
+    </div>
+
+    <!-- Mission 3 -->
+    <div class="mission-card">
+      <div class="mission-header">
+        <span class="mission-num">3</span>
+        <span class="mission-q">אילו יישובים נזכרים בפסוקים הבאים?</span>
+      </div>
+      <div class="refs-list">
+        יחזקאל ג', 15 &nbsp;|&nbsp; תהילים קי"ח, 22 &nbsp;|&nbsp; הושע ב', 17 &nbsp;|&nbsp; ישעיהו מ"א, 27 &nbsp;|&nbsp; ישעיהו י', 30
+      </div>
+      <div class="multi-answers" id="m3-answers">
+        <div class="answer-row"><span class="answer-row-num">1.</span><input class="answer-input" id="m3-1" placeholder="יישוב ראשון..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">2.</span><input class="answer-input" id="m3-2" placeholder="יישוב שני..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">3.</span><input class="answer-input" id="m3-3" placeholder="יישוב שלישי..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">4.</span><input class="answer-input" id="m3-4" placeholder="יישוב רביעי..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">5.</span><input class="answer-input" id="m3-5" placeholder="יישוב חמישי..." oninput="debouncedSave()"/></div>
+      </div>
+      <div class="feedback-box" id="m3-feedback"></div>
+      <div class="btn-row"><button class="btn btn-check" onclick="checkM3()">🔍 בדקו</button></div>
+    </div>
+
+    <!-- Mission 4 -->
+    <div class="mission-card">
+      <div class="mission-header">
+        <span class="mission-num">4</span>
+        <span class="mission-q">אילו עצים נזכרים בפסוקים הבאים?</span>
+      </div>
+      <div class="refs-list">
+        בראשית כ"א, 33 &nbsp;|&nbsp; שמואל ב' י"ח, 9 &nbsp;|&nbsp; תהילים צ"ב, 13 &nbsp;|&nbsp; הושע ד', 13 &nbsp;|&nbsp; ויקרא י"ד, מ"ט
+      </div>
+      <div class="multi-answers">
+        <div class="answer-row"><span class="answer-row-num">1.</span><input class="answer-input" id="m4-1" placeholder="עץ ראשון..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">2.</span><input class="answer-input" id="m4-2" placeholder="עץ שני..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">3.</span><input class="answer-input" id="m4-3" placeholder="עץ שלישי..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">4.</span><input class="answer-input" id="m4-4" placeholder="עץ רביעי..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">5.</span><input class="answer-input" id="m4-5" placeholder="עץ חמישי..." oninput="debouncedSave()"/></div>
+      </div>
+      <div class="feedback-box" id="m4-feedback"></div>
+      <div class="btn-row"><button class="btn btn-check" onclick="checkM4()">🔍 בדקו</button></div>
+    </div>
+
+    <!-- Mission 5 -->
+    <div class="mission-card">
+      <div class="mission-header">
+        <span class="mission-num">5</span>
+        <span class="mission-q">על מי מדובר בפסוק?</span>
+      </div>
+      <div class="refs-list">
+        שמות א', 15 &nbsp;|&nbsp; שמות י"ז, 10 &nbsp;|&nbsp; שמות ט"ז, 20 &nbsp;|&nbsp; שופטים ז', 25 &nbsp;|&nbsp; שמואל א' י"ד, 1 &nbsp;|&nbsp; שמואל ב' א', 1
+      </div>
+      <div class="multi-answers">
+        <div class="answer-row"><span class="answer-row-num">1.</span><input class="answer-input" id="m5-1" placeholder="שם הדמות הראשונה..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">2.</span><input class="answer-input" id="m5-2" placeholder="שם הדמות השנייה..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">3.</span><input class="answer-input" id="m5-3" placeholder="שם הדמות השלישית..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">4.</span><input class="answer-input" id="m5-4" placeholder="שם הדמות הרביעית..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">5.</span><input class="answer-input" id="m5-5" placeholder="שם הדמות החמישית..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">6.</span><input class="answer-input" id="m5-6" placeholder="שם הדמות השישית..." oninput="debouncedSave()"/></div>
+      </div>
+      <div class="feedback-box" id="m5-feedback"></div>
+      <div class="btn-row"><button class="btn btn-check" onclick="checkM5()">🔍 בדקו</button></div>
+    </div>
+
+    <!-- Mission 6 -->
+    <div class="mission-card">
+      <div class="mission-header">
+        <span class="mission-num">6</span>
+        <span class="mission-q">אילו בעלי חיים נזכרים?</span>
+      </div>
+      <div class="refs-list">
+        בראשית מ"א, 2 &nbsp;|&nbsp; שמות כ', 13 &nbsp;|&nbsp; שמות ג', 1 &nbsp;|&nbsp; ישעיהו כ"ז, 1
+      </div>
+      <div class="multi-answers">
+        <div class="answer-row"><span class="answer-row-num">1.</span><input class="answer-input" id="m6-1" placeholder="בעל חיים ראשון..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">2.</span><input class="answer-input" id="m6-2" placeholder="בעל חיים שני..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">3.</span><input class="answer-input" id="m6-3" placeholder="בעל חיים שלישי..." oninput="debouncedSave()"/></div>
+        <div class="answer-row"><span class="answer-row-num">4.</span><input class="answer-input" id="m6-4" placeholder="בעל חיים רביעי..." oninput="debouncedSave()"/></div>
+      </div>
+      <div class="feedback-box" id="m6-feedback"></div>
+      <div class="btn-row"><button class="btn btn-check" onclick="checkM6()">🔍 בדקו</button></div>
+    </div>
+
+    <button class="btn btn-next" onclick="finishLesson()">סיום השיעור ✦</button>
+
+  </div>
+</div>
+
+<!-- ══ DONE ══ -->
+<div class="page" id="page-done">
+  <div class="done-inner">
+    <div class="done-icon">📖</div>
+    <div class="done-title" style="color:var(--gold2);">כל הכבוד!</div>
+    <p style="color:var(--parch2);opacity:.7;margin-top:10px;">סיימתם את שיעור מראה מקום בתנ"ך.</p>
+    <p style="color:var(--parch2);opacity:.5;font-size:.82rem;margin-top:6px;">התשובות שלכם נשמרו.</p>
+  </div>
+</div>
+
+<script>
+// ── FIREBASE ──
+const FB_CONFIG = {
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+try{firebase.initializeApp(FB_CONFIG);}catch(e){}
+const db = firebase.database();
+const LESSON = 'tanach_lesson2';
+
+// ── STATE ──
+const params = new URLSearchParams(window.location.search);
+let studentName = decodeURIComponent(params.get('student') || params.get('name') || '');
+let m1Selections = [];
+const PAGES = ['page-cover','page-video','page-practice','page-done'];
+let currentPage = 'page-cover';
+
+// ── INIT ──
+window.onload = function(){
+  if(!studentName){
+    const s = prompt('שמך:','');
+    studentName = (s||'').trim() || 'אנונימי';
+  }
+  document.getElementById('cover-student').textContent = 'שלום, ' + studentName + '!';
+  if(studentName === 'מורה') unlockAll();
+  loadSaved();
+  setInterval(autoSave, 30000);
+};
+
+// ── NAVIGATION ──
+function goToPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentPage = id;
+  window.scrollTo(0,0);
+  updateProgress();
+  saveProgress();
+}
+
+function updateProgress(){
+  const idx = PAGES.indexOf(currentPage);
+  const pct = Math.round((idx/(PAGES.length-1))*100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+// ── TEACHER MODE ──
+function unlockAll(){
+  document.getElementById('btn-to-p2').disabled = false;
+  const ind = document.createElement('div');
+  ind.style.cssText='position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#2c1a0e;border:1px solid var(--gold);color:var(--gold2);padding:6px 16px;border-radius:20px;font-size:.78rem;z-index:100;';
+  ind.textContent='✦ מצב מורה';
+  document.body.appendChild(ind);
+}
+
+// ── CHECK STEPS (AI) ──
+async function checkSteps(){
+  const s1 = document.getElementById('step1').value.trim();
+  const s2 = document.getElementById('step2').value.trim();
+  const s3 = document.getElementById('step3').value.trim();
+  if(!s1||!s2||!s3){showFeedback('steps-feedback','error','יש למלא את שלושת השלבים לפני הבדיקה.');return;}
+
+  showFeedback('steps-feedback','partial','⏳ בודק...');
+
+  const MEHAVON = `שלב 1: מצאו את שם הספר
+שלב 2: מצאו את הפרק (כתוב באותיות)
+שלב 3: מצאו את מספר הפסוק (כתוב באותיות או במספרים)`;
+
+  const prompt = `אתה מורה לתנ"ך. תלמיד כתב כיצד מאתרים מראה מקום בתנ"ך בשלושה שלבים.
+
+מחוון נכון:
+${MEHAVON}
+
+תשובת התלמיד:
+שלב 1: ${s1}
+שלב 2: ${s2}
+שלב 3: ${s3}
+
+בדוק האם התלמיד הבין את שלושת השלבים. ענה בעברית קצרה:
+- אם נכון: "✅ כל הכבוד! ..." (2 משפטים)
+- אם חסר/שגוי: "💡 כמעט! ..." ציין מה חסר בקצרה
+אל תתן את התשובה המלאה.`;
+
+  try{
+    const res = await fetch('https://anthropic-proxy.anna-sho.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,
+        messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const txt = data.content?.map(b=>b.text||'').join('')||'';
+    const isGood = txt.includes('✅');
+    showFeedback('steps-feedback', isGood?'success':'partial', txt);
+    if(isGood){
+      document.getElementById('btn-to-p2').disabled = false;
+      saveToFirebase('steps',{s1,s2,s3,passed:true});
+    }
+  }catch(e){
+    showFeedback('steps-feedback','error','שגיאת חיבור. נסו שוב.');
+  }
+}
+
+// ── CHECK MISSIONS ──
+function checkM1(){
+  const labels = Array.from(document.querySelectorAll('#m1-options .check-opt.selected'))
+    .map(el=>el.querySelector('.check-label').textContent);
+  const correct = ['ים הערבה','ים האחרון','הים הקדמוני'];
+  const selected2 = labels.filter(l=>correct.includes(l));
+  const wrong = labels.filter(l=>!correct.includes(l));
+  if(labels.length !== 2){showFeedback('m1-feedback','error','יש לבחור בדיוק שתי תשובות.');return;}
+  if(wrong.length>0){
+    showFeedback('m1-feedback','partial','💡 אחת מהתשובות אינה נכונה. חפשו שוב בפסוקים.');return;
+  }
+  if(selected2.length===2){
+    showFeedback('m1-feedback','success','✅ נכון מאוד! ים הערבה, ים האחרון והים הקדמוני הם שמות נוספים לים המלח.');
+    saveToFirebase('m1',{answers:labels,passed:true});
+  } else {
+    showFeedback('m1-feedback','partial','💡 כמעט! בדקו שוב את הפסוקים.');
+  }
+}
+
+function checkM2(){
+  const val = document.getElementById('m2').value.trim();
+  if(!val){showFeedback('m2-feedback','error','יש לכתוב תשובה.');return;}
+  const correct = ['בית לחם','בית-לחם'];
+  if(correct.some(c=>val.includes(c))){
+    showFeedback('m2-feedback','success','✅ נכון! רחל נקברה בבית לחם (אפרתה).');
+    saveToFirebase('m2',{answer:val,passed:true});
+  } else {
+    showFeedback('m2-feedback','partial','💡 לא מדויק. חפשו שוב בפסוק: "וַתָּמָת רָחֵל וַתִּקָּבֵר בְּדֶרֶךְ אֶפְרָתָה..."');
+  }
+}
+
+function checkM3(){
+  const answers = [1,2,3,4,5].map(i=>document.getElementById('m3-'+i).value.trim().replace(/['"]/g,''));
+  const correct = ['תל אביב','ראש פינה','פתח תקוה','ראשון לציון','בת גלים'];
+  const found = answers.filter(a=>a && correct.some(c=>c.includes(a)||a.includes(c.split(' ')[0])));
+  if(found.length>=4){
+    showFeedback('m3-feedback','success','✅ מצוין! מצאתם את הישובים הנזכרים בפסוקים.');
+    saveToFirebase('m3',{answers,passed:true});
+  } else if(found.length>=2){
+    showFeedback('m3-feedback','partial','💡 מצאתם חלק מהישובים. המשיכו לחפש בפסוקים שנותרו.');
+  } else {
+    showFeedback('m3-feedback','error','💡 חפשו שנית. שם הישוב מופיע בפסוק עצמו.');
+  }
+}
+
+function checkM4(){
+  const answers = [1,2,3,4,5].map(i=>document.getElementById('m4-'+i).value.trim());
+  const correct = ['אשל','אלה','תמר','אלון','לבנה','ארז'];
+  const found = answers.filter(a=>a && correct.some(c=>a.includes(c)||c.includes(a)));
+  if(found.length>=4){
+    showFeedback('m4-feedback','success','✅ כל הכבוד! מצאתם את העצים הנזכרים בתנ"ך.');
+    saveToFirebase('m4',{answers,passed:true});
+  } else if(found.length>=2){
+    showFeedback('m4-feedback','partial','💡 מצאתם חלק מהעצים. המשיכו לחפש.');
+  } else {
+    showFeedback('m4-feedback','error','💡 חפשו שוב — שם העץ מופיע בפסוק.');
+  }
+}
+
+function checkM5(){
+  const answers = [1,2,3,4,5,6].map(i=>document.getElementById('m5-'+i).value.trim());
+  const correct = ['פועה','שפרה','יהושע','אהרון','מרים','גדעון','שרי מדיין','עלי הכהן','דוד המלך'];
+  const found = answers.filter(a=>a && correct.some(c=>a.includes(c.split(' ')[0])||c.includes(a)));
+  if(found.length>=5){
+    showFeedback('m5-feedback','success','✅ נפלא! זיהיתם את הדמויות מהפסוקים.');
+    saveToFirebase('m5',{answers,passed:true});
+  } else if(found.length>=3){
+    showFeedback('m5-feedback','partial','💡 מצאתם חלק מהדמויות. חפשו בפסוקים שנותרו.');
+  } else {
+    showFeedback('m5-feedback','error','💡 חפשו שוב — שם הדמות מוזכר בפסוק.');
+  }
+}
+
+function checkM6(){
+  const answers = [1,2,3,4].map(i=>document.getElementById('m6-'+i).value.trim());
+  const correct = ['פרה','פרות','שור','חמור','צאן','לויתן','נחש','תנין'];
+  const found = answers.filter(a=>a && correct.some(c=>a.includes(c)||c.includes(a)));
+  if(found.length>=3){
+    showFeedback('m6-feedback','success','✅ כל הכבוד! מצאתם את בעלי החיים הנזכרים.');
+    saveToFirebase('m6',{answers,passed:true});
+  } else if(found.length>=2){
+    showFeedback('m6-feedback','partial','💡 מצאתם חלק. המשיכו לחפש.');
+  } else {
+    showFeedback('m6-feedback','error','💡 חפשו שוב בפסוקים.');
+  }
+}
+
+// ── CHECKBOX ──
+function toggleCheck(el, group){
+  const selected = document.querySelectorAll(`#m1-options .check-opt.selected`);
+  if(el.classList.contains('selected')){
+    el.classList.remove('selected');
+  } else {
+    if(selected.length >= 2) return;
+    el.classList.add('selected');
+  }
+  m1Selections = Array.from(document.querySelectorAll(`#m1-options .check-opt.selected`))
+    .map(e=>e.querySelector('.check-label').textContent);
+  debouncedSave();
+}
+
+// ── FEEDBACK ──
+function showFeedback(id, type, msg){
+  const el = document.getElementById(id);
+  el.className = 'feedback-box ' + type;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ── FINISH ──
+function finishLesson(){
+  saveToFirebase('completed',{done:true,at:new Date().toISOString()});
+  goToPage('page-done');
+}
+
+// ── FIREBASE SAVE ──
+function saveToFirebase(key, data){
+  if(!studentName||!db)return;
+  try{
+    db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/'+key).update({
+      ...data, savedAt: new Date().toISOString()
+    });
+    showSaveIndicator();
+  }catch(e){}
+}
+
+function saveProgress(){
+  saveToFirebase('progress',{page:currentPage});
+}
+
+let _saveT=null;
+function debouncedSave(){clearTimeout(_saveT);_saveT=setTimeout(autoSave,3000);}
+
+function autoSave(){
+  if(!studentName||!db)return;
+  const data={
+    step1:document.getElementById('step1')?.value||'',
+    step2:document.getElementById('step2')?.value||'',
+    step3:document.getElementById('step3')?.value||'',
+    m2:document.getElementById('m2')?.value||'',
+    page:currentPage,
+    m1sel:m1Selections,
+    autoSavedAt:new Date().toISOString()
+  };
+  [3,4,5,6].forEach(m=>{
+    const max={3:5,4:5,5:6,6:4}[m];
+    for(let i=1;i<=max;i++){
+      const el=document.getElementById('m'+m+'-'+i);
+      if(el)data['m'+m+'_'+i]=el.value;
+    }
+  });
+  db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/autosave').set(data);
+  showSaveIndicator();
+}
+
+function loadSaved(){
+  if(!studentName||!db)return;
+  db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/autosave').once('value',snap=>{
+    const d=snap.val();
+    if(!d)return;
+    const fill=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+    fill('step1',d.step1);fill('step2',d.step2);fill('step3',d.step3);
+    fill('m2',d.m2);
+    [3,4,5,6].forEach(m=>{
+      const max={3:5,4:5,5:6,6:4}[m];
+      for(let i=1;i<=max;i++) fill('m'+m+'-'+i,d['m'+m+'_'+i]);
+    });
+    if(d.m1sel && Array.isArray(d.m1sel)){
+      d.m1sel.forEach(label=>{
+        document.querySelectorAll('#m1-options .check-opt').forEach(opt=>{
+          if(opt.querySelector('.check-label').textContent===label) opt.classList.add('selected');
+        });
+      });
+      m1Selections=d.m1sel;
+    }
+    if(d.page && d.page !== 'page-cover') goToPage(d.page);
+  });
+  db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/steps').once('value',snap=>{
+    if(snap.val()?.passed) document.getElementById('btn-to-p2').disabled=false;
+  });
+}
+
+function showSaveIndicator(){
+  const ind=document.getElementById('save-indicator');
+  ind.style.opacity='1';
+  setTimeout(()=>ind.style.opacity='0',2000);
+}
+</script>
+</body>
+</html>
