@@ -1768,7 +1768,7 @@ function checkTeacherMode() {
             </select>
           </div>
           <div class="verify-cell">
-            <textarea class="verify-proof" id="v-proof-1" placeholder="העתיקו משפט קצר מהספר..." rows="2" oninput="checkProofLength(1)"></textarea>
+            <textarea class="verify-proof" id="v-proof-1" placeholder="העתיקו משפט קצר מהספר..." rows="2" oninput="checkProofLength(1);debouncedSave()"></textarea>
             <div class="scaffold-hint" id="scaffold-1"></div>
           </div>
         </div>
@@ -1783,7 +1783,7 @@ function checkTeacherMode() {
             </select>
           </div>
           <div class="verify-cell">
-            <textarea class="verify-proof" id="v-proof-2" placeholder="העתיקו משפט קצר מהספר..." rows="2" oninput="checkProofLength(2)"></textarea>
+            <textarea class="verify-proof" id="v-proof-2" placeholder="העתיקו משפט קצר מהספר..." rows="2" oninput="checkProofLength(2);debouncedSave()"></textarea>
             <div class="scaffold-hint" id="scaffold-2"></div>
           </div>
         </div>
@@ -1798,7 +1798,7 @@ function checkTeacherMode() {
             </select>
           </div>
           <div class="verify-cell">
-            <textarea class="verify-proof" id="v-proof-3" placeholder="העתיקו משפט קצר מהספר..." rows="2" oninput="checkProofLength(3)"></textarea>
+            <textarea class="verify-proof" id="v-proof-3" placeholder="העתיקו משפט קצר מהספר..." rows="2" oninput="checkProofLength(3);debouncedSave()"></textarea>
             <div class="scaffold-hint" id="scaffold-3"></div>
           </div>
         </div>
@@ -1814,7 +1814,7 @@ function checkTeacherMode() {
       </div>
       <div class="s3-question-block" style="margin-top:12px;">
         <div class="s3-q-label">הקושי שמצאתי בספר הוא:</div>
-        <textarea class="s3-textarea" id="s4-hidden" placeholder="תארו קושי מפתיע שמצאתם..." rows="3" oninput="checkHiddenAnswer()"></textarea>
+        <textarea class="s3-textarea" id="s4-hidden" placeholder="תארו קושי מפתיע שמצאתם..." rows="3" oninput="checkHiddenAnswer();debouncedSave()"></textarea>
         <div class="scaffold-hint" id="scaffold-hidden"></div>
       </div>
     </div>
@@ -1990,6 +1990,57 @@ function enterLesson3() {
   } catch(e) {}
   goToPage('page-cover');
   setTimeout(loadPreviousAnswers, 800);
+
+  // ── שמירה אוטומטית כל 30 שניות ──
+  setInterval(autoSaveAll, 30000);
+}
+
+function autoSaveAll() {
+  if (!studentName || !db) return;
+  try {
+    // שמור תחנה 3
+    const s3q1 = document.getElementById('s3-q1');
+    const s3q2 = document.getElementById('s3-q2');
+    const s3q3 = document.getElementById('s3-q3');
+    if (s3q1 || s3q2 || s3q3) {
+      db.ref(LESSON + '/students/' + studentName + '/stations/s3').update({
+        q1: s3q1?.value || '',
+        q2: s3q2?.value || '',
+        q3: s3q3?.value || '',
+        autoSavedAt: new Date().toISOString()
+      });
+    }
+    // שמור תחנה 4
+    const s4yn1 = document.getElementById('s4-yn1');
+    const s4yn2 = document.getElementById('s4-yn2');
+    const s4yn3 = document.getElementById('s4-yn3');
+    if (s4yn1 || s4yn2 || s4yn3) {
+      db.ref(LESSON + '/students/' + studentName + '/stations/s4').update({
+        'v-yn-1': document.getElementById('v-yn-1')?.value || '',
+        'v-yn-2': document.getElementById('v-yn-2')?.value || '',
+        'v-yn-3': document.getElementById('v-yn-3')?.value || '',
+        'v-proof-1': document.getElementById('v-proof-1')?.value || '',
+        'v-proof-2': document.getElementById('v-proof-2')?.value || '',
+        'v-proof-3': document.getElementById('v-proof-3')?.value || '',
+        autoSavedAt: new Date().toISOString()
+      });
+    }
+    // שמור תחנה 5 (יומן)
+    const j1 = document.getElementById('j-p1');
+    if (j1) {
+      const jData = {};
+      ['j-p1','j-p2','j-p3','j-p4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) jData[id] = el.value;
+      });
+      jData.autoSavedAt = new Date().toISOString();
+      db.ref(LESSON + '/students/' + studentName + '/stations/s5').update(jData);
+    }
+    // עדכן זמן שמירה אחרון
+    db.ref(LESSON + '/students/' + studentName + '/info').update({
+      lastAutoSave: new Date().toISOString()
+    });
+  } catch(e) {}
 }
 
 function saveToFirebase(station, data) {
@@ -2004,7 +2055,27 @@ function saveToFirebase(station, data) {
       currentStation: station,
       character: selectedChar || ''
     });
+    showSaveIndicator();
   } catch(e) {}
+}
+
+let _saveTimeout = null;
+function debouncedSave() {
+  clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(autoSaveAll, 3000);
+}
+
+function showSaveIndicator() {
+  let ind = document.getElementById('save-indicator');
+  if (!ind) {
+    ind = document.createElement('div');
+    ind.id = 'save-indicator';
+    ind.style.cssText = 'position:fixed;bottom:12px;left:12px;background:rgba(34,197,94,.9);color:white;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;z-index:9999;transition:opacity .5s;font-family:Heebo,sans-serif;';
+    document.body.appendChild(ind);
+  }
+  ind.textContent = '✓ נשמר';
+  ind.style.opacity = '1';
+  setTimeout(() => ind.style.opacity = '0', 2000);
 }
 
 // ===== CHARACTER DATA =====
