@@ -350,7 +350,7 @@ body::before{
       <input class="login-input" id="first-name" placeholder="שם פרטי" />
       <input class="login-input" id="last-name" placeholder="שם משפחה" />
     </div>
-    <button class="login-btn" onclick="doLogin()">כניסה ✦</button>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">כניסה ✦</button>
     <div class="login-err" id="login-err"></div>
     <div class="code-display" id="code-display"></div>
   </div>
@@ -531,16 +531,19 @@ let liveLessonData = null;
 
 // ── INIT ──
 window.onload = function() {
-  // No class code needed — student found by name search
   document.getElementById('code-display').textContent = '';
-  document.getElementById('login-sub').textContent = 'הכניסי את שמך כדי להיכנס';
+  document.getElementById('login-sub').textContent = 'טוען...';
+  document.getElementById('login-btn') && (document.getElementById('login-btn').disabled = true);
   document.getElementById('first-name').focus();
 
-  // No auto-fill — each student enters their own name
-
-  // Load teacher data once
+  // Load teacher data — enable login when ready
   db.ref('teacher').once('value', snap => {
     teacherData = snap.val() || {};
+    document.getElementById('login-sub').textContent = 'הכניסי את שמך כדי להיכנס';
+    const btn = document.getElementById('login-btn');
+    if (btn) btn.disabled = false;
+  }).catch(() => {
+    document.getElementById('login-sub').textContent = 'שגיאת חיבור. רעננו את הדף.';
   });
 };
 
