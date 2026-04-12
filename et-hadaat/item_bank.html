@@ -325,7 +325,15 @@ const DEFAULT_ITEMS=[
     ],
     usedIn:['closing']},
   // ── קטגוריה 1: כתיבה ויצירה ──
-  {id:'argue',     cat:1, icon:'🖊️', name:'כתיבה טיעונית',        desc:'', styles:[], usedIn:['body','closing','enrichment']},
+  {id:'argue', cat:1, icon:'🖊️', name:'כתיבה טיעונית',
+    desc:'תבנית מובנית לכתיבת פסקה טיעונית בשלושה חלקים: פתיחה, גוף וסיכום. המורה בוחרת את רמת ההנחיה בעת משיכה לשיעור.',
+    styles:[
+      {name:'תבנית עצמאית', desc:'כותרות בלבד — פתיחה, גוף, סיכום. לתלמידים מתקדמים שמכירים את המבנה.'},
+      {name:'תבנית מונחית', desc:'כותרות + תיאור תפקיד כל חלק + מילות קישור לחיצות. לתלמידים שלומדים את המבנה.'},
+      {name:'עם בנק מילים', desc:'כותרות בלבד + פאנל צדדי עם מילות קישור — התלמיד בוחר אם להיעזר. לתלמידים שצריכים תמיכה גמישה.'},
+    ],
+    gameFile:'argumentative_writing.html',
+    usedIn:['body','closing','enrichment']},
   {id:'dialogue',  cat:1, icon:'💬', name:'דו-שיח בין דמויות',    desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'newspaper', cat:1, icon:'📰', name:'עיתון',                 desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'stickies',  cat:1, icon:'🗒️', name:'פתקיות',               desc:'', styles:[], usedIn:['intro','closing']},
