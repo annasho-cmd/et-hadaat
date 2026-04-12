@@ -536,16 +536,7 @@ window.onload = function() {
   document.getElementById('login-sub').textContent = 'הכניסי את שמך כדי להיכנס';
   document.getElementById('first-name').focus();
 
-  // Check saved name in localStorage (any group)
-  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('et_hadaat_name_'));
-  if (allKeys.length > 0) {
-    const saved = localStorage.getItem(allKeys[0]);
-    if (saved) {
-      const parts = saved.split(' ');
-      document.getElementById('first-name').value = parts[0] || '';
-      document.getElementById('last-name').value = parts.slice(1).join(' ') || '';
-    }
-  }
+  // No auto-fill — each student enters their own name
 
   // Load teacher data once
   db.ref('teacher').once('value', snap => {
