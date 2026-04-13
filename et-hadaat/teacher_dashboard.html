@@ -915,9 +915,10 @@ function toggleLesson(groupId, lessonId) {
   unit.groups[groupId][lessonId] = newState;
   currentUnit = unit;
 
-  // שמירה ישירה לנתיב המדויק ב-Firebase — אמינה יותר משמירת כל העץ
-  const subFbKey = subj._fbKey || subj.id;
-  const unitFbKey = unit._fbKey || unit.id;
+  // שמירה ישירה לנתיב המדויק ב-Firebase
+  // תמיד לפי unit.id — כי saveTeacherData שומר לפי id
+  const subFbKey = subj.id;
+  const unitFbKey = unit.id || unit._fbKey;
   db.ref(`teacher/subjects/${subFbKey}/units/${unitFbKey}/groups/${groupId}/${lessonId}`)
     .set(newState);
 
@@ -1283,8 +1284,10 @@ function saveAssignment() {
   const gid = document.getElementById('m-assign-group').value;
   if (!gid) return;
   if (!currentUnit.groups) currentUnit.groups={};
-  currentUnit.groups[gid] = {};
-  saveTeacherData();
+  if (!currentUnit.groups[gid]) currentUnit.groups[gid] = {};
+  // שמירה ישירה לפי subject.id ו-unit.id
+  db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/groups/${gid}`)
+    .set(currentUnit.groups[gid]);
   closeModals();
   renderUnitGroups();
 }
