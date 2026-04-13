@@ -307,7 +307,10 @@ select.modal-input option{background:#2c1a0e;}
     <div class="screen" id="screen-unit">
       <div class="screen-hd">
         <div class="screen-title" id="unit-screen-title"></div>
-        <button class="btn-sm" onclick="openAssignGroup()">🔗 שייך קבוצה</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" onclick="openAddLesson()">➕ שיעור</button>
+          <button class="btn-sm" onclick="openAssignGroup()">🔗 שייך קבוצה</button>
+        </div>
       </div>
       <div class="unit-layout">
         <div class="panel">
@@ -622,9 +625,19 @@ function saveTeacherData() {
     db.ref('teacher/groups').set(
       groups.reduce((a,g) => { a[g.id]=g; return a; }, {})
     );
-    db.ref('teacher/subjects').set(
-      subjects.reduce((a,s) => { a[s.id]=s; return a; }, {})
-    );
+    // שמירת subjects — units נשמרות כאובייקט לפי ID (לא מערך)
+    const subjectsObj = subjects.reduce((a,s) => {
+      const unitsObj = (s.units||[]).reduce((ua,u) => {
+        const lessonsObj = (u.lessons||[]).reduce((la,l,li) => {
+          la[li] = l; return la;
+        }, {});
+        ua[u.id] = {...u, lessons: lessonsObj};
+        return ua;
+      }, {});
+      a[s.id] = {...s, units: unitsObj};
+      return a;
+    }, {});
+    db.ref('teacher/subjects').set(subjectsObj);
   } catch(e) { console.warn('Firebase save error', e); }
 }
 
