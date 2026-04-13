@@ -759,9 +759,19 @@ function loadSubjects() {
   subjects.forEach(subj => {
     const units = subj.units ? Object.values(subj.units) : [];
     const hasMyGroup = isTestUser
-      ? units.length > 0  // test user sees all subjects with units
+      ? units.some(u => Object.keys(u.groups||{}).length > 0)
       : units.some(u => u.groups && Object.keys(u.groups).includes(groupData.id));
-    if (hasMyGroup) mySubjects.push(subj);
+    if (hasMyGroup) {
+      // For test user — use first assigned group
+      if (isTestUser) {
+        units.forEach(u => {
+          const gids = Object.keys(u.groups||{});
+          if (gids.length > 0 && !groupData.id) groupData.id = gids[0];
+          if (gids.length > 0 && groupData.id === 'test') groupData.id = gids[0];
+        });
+      }
+      mySubjects.push(subj);
+    }
   });
 
   if (!mySubjects.length) {
@@ -777,7 +787,7 @@ function loadSubjects() {
   mySubjects.forEach(subj => {
     const units = subj.units ? Object.values(subj.units) : [];
     const myUnits = isTestUser
-      ? units
+      ? units.filter(u => Object.keys(u.groups||{}).length > 0)
       : units.filter(u => u.groups && Object.keys(u.groups).includes(groupData.id));
     const card = document.createElement('div');
     card.className = 'subject-card';
@@ -846,14 +856,17 @@ function openUnit(unit) {
   const list = document.getElementById('lessons-list');
   list.innerHTML = '';
 
-  if (!lessons.length) {
+  // רק שיעורים שנבנו (יש להם url או topic)
+  const builtLessons = lessons.filter(l => l.url || l.topic !== undefined);
+
+  if (!builtLessons.length) {
     list.innerHTML = '<div class="empty-state">אין שיעורים ביחידה זו עדיין.</div>';
     showView('view-lessons');
     return;
   }
 
-  lessons.forEach((lesson, i) => {
-    const state = isTestUser ? 'open' : (groupStates[lesson.id] || 'locked');
+  builtLessons.forEach((lesson, i) => {
+    const state = groupStates[lesson.id] || 'locked';
     const isOpen = state === 'open';
     // שיעורי בונה יש להם topic ו-data; שיעורים ישנים יש להם url
     const isBuilderLesson = lesson.topic !== undefined;
