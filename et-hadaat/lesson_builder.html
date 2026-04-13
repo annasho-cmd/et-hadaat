@@ -1671,9 +1671,15 @@ function buildItemEditor(item, section, si){
           style="padding:4px 10px;border-radius:6px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};background:${tf.correct===false?'rgba(248,129,113,.1)':'transparent'};color:${tf.correct===false?'#f87171':'var(--parch)'};cursor:pointer;font-size:.75rem;font-family:Heebo,sans-serif;font-weight:700;">❌ לא נכון</button>`:''}
       </div>`;
   }
-  // sort_table
+  // sort_table — פתח פופאפ בלחיצה
   if(item.type==='sort_table'){
-    return `<div style="font-size:.75rem;opacity:.5;">טבלת מיון — לחצי לעריכה מלאה</div>`;
+    const td=item.tableData;
+    const summary=td?`${td.cols.length} עמודות · ${td.items.length} פריטים`:'לחצי לעריכה';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="font-size:.78rem;opacity:.65;">📊 ${summary}</div>
+      <button onclick="openItemPopup('sort_table','${section}',${si},${JSON.stringify(td||null).replace(/"/g,'&quot;')})"
+        style="padding:4px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">✏️ ערכי</button>
+    </div>`;
   }
   // generic
   return `<textarea class="inline-field" style="font-size:.82rem;" placeholder="תוכן הפריט..."
@@ -1828,6 +1834,11 @@ function selectBankItem(typeOrId){
   if(window._bankTarget){
     const {section,si}=window._bankTarget;
     window._bankTarget=null;
+    // פתח פופאפ עריכה אם קיים
+    if(POPUP_EDITORS[typeOrId]){
+      openItemPopup(typeOrId, section, si, null);
+      return;
+    }
     const st=getStation(section,si);
     if(st){
       st.item={type:typeOrId,content:'',mcData:null,tfData:null,tableData:null};
@@ -2292,7 +2303,158 @@ function saveEnrichTemplate(tid){
 
 function trunc(s,n){return s&&s.length>n?s.substr(0,n)+'...':s||'';}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ══ ITEM EDITOR POPUP ══
+let _popupTarget = null; // {section, si, existingData}
+
+const POPUP_EDITORS = {
+  sort_table: {
+    title: '📊 טבלת מיון',
+    init: (data) => data || {cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}], items:[], orderMatters:false},
+    render: renderSortTablePopup,
+    collect: collectSortTablePopup
+  }
+};
+
+function openItemPopup(typeOrId, section, si, existingData) {
+  const editor = POPUP_EDITORS[typeOrId];
+  if (!editor) {
+    // No popup for this type — use old flow
+    if (window._bankTarget) {
+      window._bankTarget = null;
+      const st = getStation(section, si);
+      if (st) {
+        st.item = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+        renderLessonStructure();
+        reopenStation(section, si);
+        setSaveStatus('שינויים לא שמורים');
+      }
+    }
+    return;
+  }
+  _popupTarget = {typeOrId, section, si};
+  const data = editor.init(existingData);
+  document.getElementById('item-popup-title').textContent = editor.title;
+  document.getElementById('item-popup-body').innerHTML = editor.render(data);
+  const overlay = document.getElementById('item-popup-overlay');
+  overlay.style.display = 'flex';
+}
+
+function closeItemPopup() {
+  document.getElementById('item-popup-overlay').style.display = 'none';
+  _popupTarget = null;
+}
+
+function confirmItemPopup() {
+  if (!_popupTarget) return;
+  const {typeOrId, section, si} = _popupTarget;
+  const editor = POPUP_EDITORS[typeOrId];
+  if (!editor) return;
+  const data = editor.collect();
+  const st = getStation(section, si);
+  if (st) {
+    if (!st.item) st.item = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+    st.item.type = typeOrId;
+    st.item.tableData = data;
+    renderLessonStructure();
+    reopenStation(section, si);
+    setSaveStatus('שינויים לא שמורים');
+  }
+  closeItemPopup();
+}
+
+// ── SORT TABLE POPUP ──
+function renderSortTablePopup(data) {
+  window._popupSortData = JSON.parse(JSON.stringify(data));
+  const d = window._popupSortData;
+  return buildSortTablePopupHtml(d);
+}
+
+function buildSortTablePopupHtml(d) {
+  const colsHtml = d.cols.map((c, ci) => {
+    const colItems = d.items.filter(it => it.col === ci);
+    return `<div style="flex:1;min-width:200px;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.15);border-radius:10px;padding:12px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <input style="flex:1;background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.88rem;padding:6px 10px;font-weight:700;outline:none;"
+          placeholder="שם עמודה" value="${esc(c.name||'')}"
+          oninput="window._popupSortData.cols[${ci}].name=this.value">
+        <button onclick="removeSortCol(${ci})" style="padding:3px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>
+      </div>
+      ${colItems.map(it => {
+        const ii = d.items.indexOf(it);
+        return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px;">
+          <span style="min-width:18px;height:18px;background:rgba(212,168,67,.2);color:#d4a843;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;">${ii+1}</span>
+          <input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.1);border-radius:5px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.82rem;padding:4px 8px;outline:none;"
+            placeholder="פריט..." value="${esc(it.text||'')}"
+            oninput="window._popupSortData.items[${ii}].text=this.value">
+          <button onclick="removeSortItem(${ii})" style="padding:2px 6px;background:rgba(139,32,32,.15);border:none;border-radius:4px;color:#f87171;cursor:pointer;font-size:.7rem;">✕</button>
+        </div>`;
+      }).join('')}
+      <button onclick="addSortItem(${ci})" style="width:100%;padding:5px;background:rgba(212,168,67,.07);border:1px dashed rgba(212,168,67,.25);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;margin-top:4px;">+ הוסף פריט</button>
+    </div>`;
+  }).join('');
+
+  return `
+    <div style="margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;">
+        <input type="checkbox" ${d.orderMatters?'checked':''} onchange="window._popupSortData.orderMatters=this.checked"
+          style="width:16px;height:16px;cursor:pointer;">
+        סדר הפריטים בעמודה חשוב (התלמיד חייב לסדר בסדר הנכון)
+      </label>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;" id="sort-cols-wrap">
+      ${colsHtml}
+    </div>
+    <button onclick="addSortCol()" style="padding:7px 16px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:7px;color:#d4a843;font-size:.82rem;cursor:pointer;">+ הוסף עמודה</button>
+    <div style="margin-top:12px;font-size:.75rem;opacity:.45;">סה"כ ${d.items.length} פריטים ב-${d.cols.length} עמודות</div>`;
+}
+
+function refreshSortPopup() {
+  document.getElementById('item-popup-body').innerHTML = buildSortTablePopupHtml(window._popupSortData);
+}
+
+function addSortCol() {
+  window._popupSortData.cols.push({name:''});
+  refreshSortPopup();
+}
+
+function removeSortCol(ci) {
+  window._popupSortData.items = window._popupSortData.items.filter(it => it.col !== ci)
+    .map(it => ({...it, col: it.col > ci ? it.col-1 : it.col}));
+  window._popupSortData.cols.splice(ci, 1);
+  refreshSortPopup();
+}
+
+function addSortItem(ci) {
+  window._popupSortData.items.push({text:'', col:ci});
+  refreshSortPopup();
+}
+
+function removeSortItem(ii) {
+  window._popupSortData.items.splice(ii, 1);
+  refreshSortPopup();
+}
+
+function collectSortTablePopup() {
+  return JSON.parse(JSON.stringify(window._popupSortData));
+}
+
 </script>
 <div id="bank-tooltip" class="bank-tooltip" style="display:none;"></div>
+
+<!-- ══ ITEM EDITOR POPUP ══ -->
+<div id="item-popup-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#1a0e04;border:1px solid rgba(212,168,67,.4);border-radius:16px;padding:28px;max-width:680px;width:95%;max-height:90vh;overflow-y:auto;direction:rtl;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div id="item-popup-title" style="font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;font-weight:700;color:#f0c060;"></div>
+      <button onclick="closeItemPopup()" style="background:none;border:none;color:#fdf5e0;font-size:1.2rem;cursor:pointer;opacity:.5;">✕</button>
+    </div>
+    <div id="item-popup-body"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid rgba(212,168,67,.15);padding-top:16px;">
+      <button onclick="closeItemPopup()" style="padding:10px 22px;background:none;border:1px solid rgba(212,168,67,.3);border-radius:8px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.9rem;cursor:pointer;">ביטול</button>
+      <button onclick="confirmItemPopup()" style="padding:10px 22px;background:linear-gradient(135deg,#d4a843,#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">אשר ✓</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
