@@ -760,10 +760,19 @@ function renderUnits() {
       <div class="unit-icon">${unit.avatar||'📖'}</div>
       <div class="unit-name">${unit.num?unit.num+'. ':''}${unit.name}</div>
       <div class="unit-meta">${lCount} שיעורים · ${gCount} קבוצות משויכות</div>
-      <div class="unit-arrow">‹</div>`;
+      <div class="unit-arrow">‹</div>
+      <button class="btn-del" style="position:absolute;top:8px;left:8px;z-index:2;"
+        onclick="event.stopPropagation();deleteUnit('${unit.id}')">✕</button>`;
     card.onclick = () => openUnit(unit);
     grid.appendChild(card);
   });
+}
+
+function deleteUnit(unitId) {
+  if (!confirm('למחוק יחידה זו? כל השיעורים בה יימחקו.')) return;
+  currentSubject.units = (currentSubject.units||[]).filter(u => u.id !== unitId);
+  saveTeacherData();
+  renderUnits();
 }
 
 function openUnit(unit) {

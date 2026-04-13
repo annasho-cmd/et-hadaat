@@ -532,6 +532,28 @@ let isTestUser = false;
 
 // ── INIT ──
 window.onload = function() {
+  // Try to restore session (after coming back from a lesson)
+  const savedStudent = sessionStorage.getItem('et_hadaat_student');
+  const savedGroup   = sessionStorage.getItem('et_hadaat_group');
+  const savedClass   = sessionStorage.getItem('et_hadaat_class');
+  const savedTest    = sessionStorage.getItem('et_hadaat_is_test');
+
+  if (savedStudent && savedGroup) {
+    try {
+      studentName = savedStudent;
+      groupData   = JSON.parse(savedGroup);
+      classCode   = savedClass || groupData.code;
+      isTestUser  = savedTest === '1';
+      db.ref('teacher').once('value', snap => {
+        teacherData = snap.val() || {};
+        enterApp(studentName === 'מורה');
+      });
+      return;
+    } catch(e) {
+      sessionStorage.clear();
+    }
+  }
+
   document.getElementById('code-display').textContent = '';
   document.getElementById('login-sub').textContent = 'טוען...';
   document.getElementById('login-btn') && (document.getElementById('login-btn').disabled = true);
@@ -639,6 +661,7 @@ function doLogout() {
   studentName = '';
   currentSubject = null;
   currentUnit = null;
+  sessionStorage.clear();
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
   document.getElementById('first-name').value = '';
@@ -888,10 +911,13 @@ function enterGameLesson(gameCode) {
 }
 
 function enterLesson(url) {
-  // In teacher mode — use special name that won't save
   const nameToPass = studentName === 'מורה' ? 'מורה' : studentName;
+  // Save session so back button restores login
   sessionStorage.setItem('et_hadaat_student', nameToPass);
-  // Build full URL — lessons are in et-hadaat/et-hadaat/
+  sessionStorage.setItem('et_hadaat_group', JSON.stringify(groupData));
+  sessionStorage.setItem('et_hadaat_class', classCode);
+  sessionStorage.setItem('et_hadaat_is_test', isTestUser ? '1' : '0');
+  // Build full URL
   let fullUrl;
   if (url.startsWith('http')) {
     fullUrl = url;
@@ -899,11 +925,9 @@ function enterLesson(url) {
     const base = window.location.href.split('/').slice(0,3).join('/');
     fullUrl = base + '/et-hadaat/et-hadaat/' + url;
   }
-  // Pass student name in URL
   const sep = fullUrl.includes('?') ? '&' : '?';
-  // For game_student.html use 'name' param, for lessons use 'student'
   const nameParam = fullUrl.includes('game_student') ? 'name' : 'student';
-  fullUrl += sep + nameParam + '=' + encodeURIComponent(studentName);
+  fullUrl += sep + nameParam + '=' + encodeURIComponent(nameToPass);
   window.location.href = fullUrl;
 }
 
