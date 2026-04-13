@@ -667,13 +667,11 @@ const ITEM_BANK=[
 function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 function goToDashboard(){
-  try{
-    const href=window.location.href.split('?')[0].split('#')[0];
-    const base=href.substring(0,href.lastIndexOf('/')+1);
-    window.location.href=base+'teacher_dashboard.html';
-  }catch(e){
-    window.location.href='teacher_dashboard.html';
-  }
+  // נווט לדאשבורד באותה תיקייה
+  const href=window.location.href.split('?')[0].split('#')[0];
+  const base=href.substring(0,href.lastIndexOf('/')+1);
+  const target=base+'teacher_dashboard.html';
+  window.location.href=target;
 }
 
 function openLessonBoard(){
@@ -2113,6 +2111,14 @@ async function saveLesson(){
     });
   });
   lesson.data=lessonData;
+  // עדכון סטטוס: ready אם יש תוכן לפחות בתחנה אחת
+  const hasContent=[...lessonData.intro,...lessonData.stations,...lessonData.closing]
+    .some(st=>(st.freeText||'').trim()||st.item);
+  if(hasContent) lesson.status='ready';
+  // עדכון זיכרון
+  currentUnit.lessons[currentLessonIdx]=lesson;
+  if(teacherData?.subjects?.[currentSubject.id]?.units?.[currentUnit.id])
+    teacherData.subjects[currentSubject.id].units[currentUnit.id].lessons=currentUnit.lessons;
   await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons/${currentLessonIdx}`).set(lesson);
   setSaveStatus('saved');
   setTimeout(()=>setSaveStatus(''),3000);
