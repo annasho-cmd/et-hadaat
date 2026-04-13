@@ -478,7 +478,10 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
       </div>
     </div>
     <div class="card">
-      <div class="card-title">שיעורים</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div class="card-title" style="margin-bottom:0;">שיעורים</div>
+        <button class="btn btn-gold btn-sm" onclick="addNewLesson()">+ שיעור חדש</button>
+      </div>
       <div id="lessons-list"></div>
     </div>
   </div>
@@ -1033,7 +1036,7 @@ async function saveUnitSetup(){
       topic:inp.value.trim(),
       status:'draft',data:null
     }));
-  if(!lessons.length){alert('יש להזין נושא לפחות לשיעור אחד');return;}
+  // אפשר לשמור יחידה גם ללא שיעורים — ניתן להוסיף אח"כ
   currentUnit={
     id:currentUnit?.id||'unit_'+Date.now(),
     num,name,
@@ -1077,6 +1080,28 @@ function renderUnitOverview(){
           onclick="event.stopPropagation();deleteLesson(${i})">🗑</button>
       </div>
     </div>`).join('');
+}
+
+async function addNewLesson(){
+  const topic=prompt('נושא השיעור החדש:');
+  if(!topic||!topic.trim())return;
+  if(!currentUnit.lessons) currentUnit.lessons=[];
+  const idx=currentUnit.lessons.length;
+  const newLesson={
+    id:'lesson_'+(idx+1),
+    num:idx+1,
+    name:'שיעור '+(idx+1),
+    topic:topic.trim(),
+    status:'draft',
+    data:null
+  };
+  currentUnit.lessons.push(newLesson);
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons`).set(currentUnit.lessons);
+  if(teacherData?.subjects?.[currentSubject.id]?.units?.[currentUnit.id])
+    teacherData.subjects[currentSubject.id].units[currentUnit.id].lessons=currentUnit.lessons;
+  renderUnitOverview();
+  // פתח מיד את בונה השיעור החדש
+  openLessonBuilder(idx);
 }
 
 // ── SCREEN 5 ──
