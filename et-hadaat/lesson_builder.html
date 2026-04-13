@@ -760,17 +760,24 @@ function deleteUnitById(btn){
 async function deleteUnit(unitId, unitName){
   if(!confirm('למחוק את היחידה "'+unitName+'"?'))return;
   try{
-    // Try by id first — always prefer ID over name search
-    if(unitId && unitId!=='undefined' && unitId!=='null'){
-      await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
-    } else {
-      // Search by name — delete only the FIRST exact match and stop
-      const snap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
-      const units=snap.val()||{};
+    // תמיד מחפש את ה-key האמיתי ב-Firebase — כי לפעמים ה-key שונה מה-id
+    const snap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
+    const units=snap.val()||{};
+    let deleted=false;
+    for(const [key,u] of Object.entries(units)){
+      // התאמה לפי id או לפי Firebase key
+      if(key===unitId || u.id===unitId){
+        await db.ref(`teacher/subjects/${currentSubject.id}/units/${key}`).remove();
+        deleted=true;
+        break;
+      }
+    }
+    // אם לא מצא לפי id — מחק לפי שם (רק יחידה עם 0 שיעורים)
+    if(!deleted){
       for(const [key,u] of Object.entries(units)){
         if(u.name===unitName && (!u.lessons||Object.keys(u.lessons||{}).length===0)){
           await db.ref(`teacher/subjects/${currentSubject.id}/units/${key}`).remove();
-          break; // ← תיקון: עצור אחרי המחיקה הראשונה
+          break;
         }
       }
     }
