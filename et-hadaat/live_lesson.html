@@ -175,15 +175,42 @@ let focusInterval=null;
 
 // ── INIT ──
 window.onload=async function(){
-  // טען שיעור
-  const snap=await db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}`).once('value');
-  lessonData=snap.val();
-  if(!lessonData){document.getElementById('lesson-title').textContent='שיעור לא נמצא';return;}
-  document.getElementById('lesson-title').textContent=lessonData.topic||lessonData.name||'שיעור';
+  // טען מידע על השיעור הפעיל ממקורות מרובים
+  const [directSnap, liveSnap, gSnap] = await Promise.all([
+    db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}`).once('value'),
+    db.ref('teacher/liveLesson').once('value'),
+    db.ref(`teacher/groups/${groupId}`).once('value')
+  ]);
+
+  lessonData = directSnap.val();
+  const liveData = liveSnap.val() || {};
+
+  // אם לא נמצא בנתיב הישיר — סרוק את כל השיעורים ביחידה
+  if (!lessonData && subjectId && unitId) {
+    const allSnap = await db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons`).once('value');
+    const allLessons = allSnap.val();
+    if (allLessons) {
+      const vals = Object.values(allLessons);
+      // נסה לפי אינדקס, אחרת קח את הראשון
+      lessonData = (lessonIdx < vals.length ? vals[lessonIdx] : null) || vals[0] || null;
+    }
+  }
+
+  // גיבוי אחרון — השתמש בנתוני liveLesson לפחות לכותרת
+  if (!lessonData) {
+    if (liveData.topic) {
+      lessonData = { topic: liveData.topic, data: null };
+    } else {
+      document.getElementById('lesson-title').textContent = 'שיעור לא נמצא';
+      return;
+    }
+  }
+
+  document.getElementById('lesson-title').textContent =
+    lessonData.topic || lessonData.name || liveData.topic || 'שיעור';
 
   // טען קבוצה
-  const gSnap=await db.ref(`teacher/groups/${groupId}`).once('value');
-  groupData=gSnap.val();
+  groupData = gSnap.val();
   if(!groupData){return;}
   allStudents=groupData.students?Object.values(groupData.students):[];
   document.getElementById('total-count').textContent=allStudents.length;
