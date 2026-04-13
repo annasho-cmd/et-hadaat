@@ -219,7 +219,7 @@ select.modal-input option{background:#2c1a0e;}
 
 </style>
 </head>
-<body>
+<body onload="checkAutoLogin()">
 
 <!-- LOGIN -->
 <div id="screen-login">
@@ -669,9 +669,22 @@ function loadTeacherData(cb) {
 // ══════════════════════════════════════
 // LOGIN
 // ══════════════════════════════════════
+function checkAutoLogin() {
+  if (sessionStorage.getItem('teacher_logged_in') === 'yes') {
+    document.getElementById('screen-login').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    loadTeacherData(() => {
+      renderSubjects();
+      showScreen('screen-home');
+      updateBreadcrumb([]);
+    });
+  }
+}
+
 function doLogin() {
   const pw = document.getElementById('pw-input').value;
   if (pw === TEACHER_PASSWORD) {
+    sessionStorage.setItem('teacher_logged_in', 'yes');
     document.getElementById('screen-login').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     loadTeacherData(() => {
