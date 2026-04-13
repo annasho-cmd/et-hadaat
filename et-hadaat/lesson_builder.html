@@ -370,7 +370,11 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
       </div>
     </div>
     <div class="card" id="existing-units-card" style="display:none;">
-      <div class="card-title">יחידות קיימות</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div class="card-title" style="margin-bottom:0;">יחידות קיימות</div>
+        <button class="btn btn-ghost btn-sm" style="font-size:.75rem;color:#6ee7a0;border-color:rgba(34,197,94,.3);"
+          onclick="recoverUnitsFromFirebase()">🔄 שחזר מ-Firebase</button>
+      </div>
       <div id="existing-units-list"></div>
     </div>
   </div>
@@ -751,21 +755,19 @@ function deleteUnitById(btn){
 }
 
 async function deleteUnit(unitId, unitName){
-  const lessonCount=0;
   if(!confirm('למחוק את היחידה "'+unitName+'"?'))return;
   try{
-    // Try by id first
+    // Try by id first — always prefer ID over name search
     if(unitId && unitId!=='undefined' && unitId!=='null'){
       await db.ref(`teacher/subjects/${currentSubject.id}/units/${unitId}`).remove();
     } else {
-      // Search by name
+      // Search by name — delete only the FIRST exact match and stop
       const snap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
       const units=snap.val()||{};
-      let deleted=false;
       for(const [key,u] of Object.entries(units)){
-        if(u.name===unitName||u.id===unitId||(!u.id&&!deleted)){
+        if(u.name===unitName && (!u.lessons||Object.keys(u.lessons||{}).length===0)){
           await db.ref(`teacher/subjects/${currentSubject.id}/units/${key}`).remove();
-          deleted=true;
+          break; // ← תיקון: עצור אחרי המחיקה הראשונה
         }
       }
     }
@@ -784,6 +786,43 @@ async function deleteUnit(unitId, unitName){
     showExistingUnits();
   }catch(e){
     alert('שגיאה במחיקה: '+e.message);
+  }
+}
+
+async function recoverUnitsFromFirebase(){
+  const list=document.getElementById('existing-units-list');
+  list.innerHTML='<div class="empty-msg">🔍 קורא ישירות מ-Firebase...</div>';
+  try{
+    const snap=await db.ref(`teacher/subjects/${currentSubject.id}`).once('value');
+    const subjectData=snap.val();
+    if(!subjectData){
+      list.innerHTML='<div class="empty-msg">⚠️ המקצוע לא נמצא ב-Firebase.</div>';return;
+    }
+    const unitsObj=subjectData.units||{};
+    const units=Object.values(unitsObj);
+    if(!units.length){
+      list.innerHTML='<div class="empty-msg">אין יחידות ב-Firebase למקצוע זה.</div>';return;
+    }
+    teacherData.subjects[currentSubject.id].units=unitsObj;
+    currentSubject=teacherData.subjects[currentSubject.id];
+    list.innerHTML=`<div style="font-size:.75rem;color:#6ee7a0;margin-bottom:12px;padding:8px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;">
+      ✅ שוחזרו ${units.length} יחידות מ-Firebase
+    </div>`+units.map(u=>`
+      <div class="lesson-list-item" onclick='openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})'>
+        <div class="li-num">${u.avatar||'📖'}</div>
+        <div class="li-info">
+          <div class="li-name">${u.num?u.num+'. ':''}${u.name||'(ללא שם)'}</div>
+          <div class="li-status">${u.lessons?Object.values(u.lessons).length:0} שיעורים</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+            onclick="event.stopPropagation();openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})">✏️ ערכי</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
+            data-uid="${u.id}" onclick="event.stopPropagation();deleteUnitById(this)">🗑</button>
+        </div>
+      </div>`).join('');
+  }catch(e){
+    list.innerHTML='<div class="empty-msg">שגיאה: '+e.message+'</div>';
   }
 }
 
