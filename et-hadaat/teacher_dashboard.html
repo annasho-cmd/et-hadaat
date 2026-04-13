@@ -646,10 +646,12 @@ function loadTeacherData(cb) {
     const data = snap.val() || {};
     groups = data.groups ? Object.values(data.groups) : [];
     if (data.subjects) {
-      subjects = Object.values(data.subjects).map(s => ({
+      subjects = Object.entries(data.subjects).map(([sid, s]) => ({
         ...s,
-        units: s.units ? Object.values(s.units).map(u => ({
+        _fbKey: sid,
+        units: s.units ? Object.entries(s.units).map(([uid, u]) => ({
           ...u,
+          _fbKey: uid,
           lessons: u.lessons ? Object.values(u.lessons) : [],
           groups: u.groups || {}
         })) : []
@@ -900,16 +902,11 @@ function toggleLesson(groupId, lessonId) {
   unit.groups[groupId][lessonId] = newState;
   currentUnit = unit;
 
-  // Save ENTIRE subjects to Firebase (most reliable)
-  saveTeacherData();
-
-  // Update openLessons for student portal
-  const lesson = (unit.lessons||[]).find(l => l.id === lessonId);
-  const group = groups.find(g => g.id === groupId);
-  if (lesson && lesson.dbKey && group) {
-    db.ref('teacher/openLessons/' + group.code + '/' + lesson.dbKey)
-      .set(newState === 'open');
-  }
+  // שמירה ישירה לנתיב המדויק ב-Firebase — אמינה יותר משמירת כל העץ
+  const subFbKey = subj._fbKey || subj.id;
+  const unitFbKey = unit._fbKey || unit.id;
+  db.ref(`teacher/subjects/${subFbKey}/units/${unitFbKey}/groups/${groupId}/${lessonId}`)
+    .set(newState);
 
   renderUnitGroups();
 }
