@@ -742,6 +742,23 @@ function enterApp(isTeacher) {
   }
   // מאחר את ה-listener כדי שלא יקפוץ הבאנר מיד
   setTimeout(()=>{ startGameListener(); startLessonListener(); }, 1500);
+
+  // ── עדכון בזמן אמת של מצב שיעורים (פתוח/נעול) ──
+  db.ref('teacher/subjects').on('value', snap => {
+    if (!teacherData) return;
+    teacherData.subjects = snap.val() || {};
+    // אם התלמיד נמצא כרגע בתצוגת שיעורים — רענן אוטומטית
+    const lessonsView = document.getElementById('view-lessons');
+    const unitsView = document.getElementById('view-units');
+    if (lessonsView && lessonsView.classList.contains('active') && currentUnit) {
+      openUnit(currentUnit);
+    } else if (unitsView && unitsView.classList.contains('active') && currentSubject) {
+      const myUnits = currentSubject.units
+        ? Object.values(currentSubject.units).filter(u => u.groups && Object.keys(u.groups).includes(groupData.id))
+        : [];
+      openSubject(currentSubject, myUnits);
+    }
+  });
 }
 
 // ── LOAD SUBJECTS ──
