@@ -1289,8 +1289,9 @@ function saveAssignment() {
   const subj2 = subjects.find(s => s.id === currentSubject.id);
   const subFbKey2 = (subj2 && subj2._fbKey) || currentSubject.id;
   const unitFbKey2 = currentUnit._fbKey || currentUnit.id;
-  db.ref(`teacher/subjects/${subFbKey2}/units/${unitFbKey2}/groups/${gid}`)
-    .set(currentUnit.groups[gid]);
+  const path = `teacher/subjects/${subFbKey2}/units/${unitFbKey2}/groups/${gid}`;
+  console.log('saveAssignment path:', path, 'data:', currentUnit.groups[gid]);
+  db.ref(path).set(currentUnit.groups[gid]);
   closeModals();
   renderUnitGroups();
 }
