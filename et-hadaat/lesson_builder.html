@@ -546,6 +546,12 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
             <span style="font-size:.7rem;opacity:.4;flex:1;">3 תחנות</span>
             <div id="section-controls-intro" style="display:flex;gap:6px;align-items:center;"></div>
           </div>
+          <div style="padding:0 12px 4px;">
+            <textarea id="section-intro-introIntro"
+              style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;resize:vertical;min-height:44px;max-height:120px;outline:none;margin-bottom:8px;"
+              placeholder="הקדמה לקרון פתיח (אופציונלי)..."
+              oninput="lessonData.introIntro=this.value"></textarea>
+          </div>
           <div style="padding:0 12px 12px;">
             <div id="intro-rows"></div>
           </div>
@@ -561,6 +567,12 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
             <span style="font-size:.7rem;opacity:.4;flex:1;">4 תחנות</span>
             <div id="section-controls-stations" style="display:flex;gap:6px;align-items:center;"></div>
           </div>
+          <div style="padding:0 12px 4px;">
+            <textarea id="section-intro-bodyIntro"
+              style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;resize:vertical;min-height:44px;max-height:120px;outline:none;margin-bottom:8px;"
+              placeholder="הקדמה לקרון גוף השיעור (אופציונלי)..."
+              oninput="lessonData.bodyIntro=this.value"></textarea>
+          </div>
           <div style="padding:0 12px 12px;">
             <div id="stations-wrap"></div>
           </div>
@@ -575,6 +587,12 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
             <span style="font-size:.9rem;font-weight:700;">סיום</span>
             <span style="font-size:.7rem;opacity:.4;flex:1;">תחנה אחת</span>
             <div id="section-controls-closing" style="display:flex;gap:6px;align-items:center;"></div>
+          </div>
+          <div style="padding:0 12px 4px;">
+            <textarea id="section-intro-closingIntro"
+              style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;resize:vertical;min-height:44px;max-height:120px;outline:none;margin-bottom:8px;"
+              placeholder="הקדמה לקרון סיום (אופציונלי)..."
+              oninput="lessonData.closingIntro=this.value"></textarea>
           </div>
           <div style="padding:0 12px 12px;">
             <div id="close-rows"></div>
@@ -1128,11 +1146,24 @@ function openLessonBuilder(idx){
       newPage: st.newPage!==false
     };
   }
+  // מבנה תחנה חדש: {items:[],displayMode}
+  function newStation(){ return {items:[null,null,null], displayMode:'simultaneous'}; }
+  function migrateToNew(st){
+    if(Array.isArray(st.items)) return st; // already new format
+    // migrate old format
+    const item = st.item||null;
+    return {items:[item,null,null], displayMode:st.displayMode||'simultaneous'};
+  }
   lessonData={
     goals:saved.goals||'',
-    intro:(saved.intro||Array.from({length:3},()=>({}))).map(migrateStation),
-    stations:(saved.stations||Array.from({length:4},()=>({}))).map(migrateStation),
-    closing:[(saved.closing&&saved.closing[0]?migrateStation(saved.closing[0]):{})||{}],
+    introIntro: saved.introIntro||'',
+    bodyIntro: saved.bodyIntro||'',
+    closingIntro: saved.closingIntro||'',
+    enrichmentIntro: saved.enrichmentIntro||'',
+    intro:(saved.intro||Array.from({length:3},()=>({}))).map(migrateToNew),
+    stations:(saved.stations||Array.from({length:4},()=>({}))).map(migrateToNew),
+    closing:[(saved.closing&&saved.closing[0]?migrateToNew(saved.closing[0]):{items:[null,null,null],displayMode:'simultaneous'})],
+    enrichmentStations:(saved.enrichmentStations||Array.from({length:3},()=>({}))).map(migrateToNew),
     introSettings:saved.introSettings||{newPage:true,mode:'simultaneous'},
     stationsSettings:saved.stationsSettings||{newPage:true,mode:'simultaneous'},
     closingSettings:saved.closingSettings||{newPage:true,mode:'simultaneous'},
@@ -1186,12 +1217,44 @@ function saveTopicEdit(){
   setSaveStatus('שינויים לא שמורים');
 }
 
+// ── NEW STATION HELPERS ──
+function openBankForStationSlot(section, si, slotIdx){
+  window._bankTarget={section, si, slotIdx};
+  // switch to bank tab
+  const bankTab=document.querySelector('.side-tab[onclick*="bank"]');
+  if(bankTab) bankTab.click();
+}
+
+function removeStationSlotItem(section, si, slotIdx){
+  const arr = section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:
+              section==='enrichmentStations'?lessonData.enrichmentStations:lessonData.stations;
+  if(arr[si]){
+    if(!Array.isArray(arr[si].items)) arr[si].items=[arr[si].item||null,null,null];
+    arr[si].items[slotIdx]=null;
+    renderLessonStructure();
+    reopenStation(section, si);
+    setSaveStatus('שינויים לא שמורים');
+  }
+}
+
+function getStationArr(section){
+  if(section==='intro') return lessonData.intro;
+  if(section==='closing') return lessonData.closing;
+  if(section==='enrichmentStations') return lessonData.enrichmentStations;
+  return lessonData.stations;
+}
+
 function renderLessonStructure(){
   renderSectionStations('intro-rows', lessonData.intro, 'intro');
   renderSectionStations('stations-wrap', lessonData.stations, 'body');
   renderSectionStations('close-rows', lessonData.closing, 'closing');
   renderSectionControls();
   renderEnrichmentTemplates();
+  // fill intro fields
+  ['introIntro','bodyIntro','closingIntro','enrichmentIntro'].forEach(f=>{
+    const el=document.getElementById('section-intro-'+f);
+    if(el && !el._dirty) el.value=lessonData[f]||'';
+  });
 }
 
 function renderSimpleRows(containerId,rows,section){
@@ -1210,63 +1273,42 @@ function renderSectionStations(containerId, stations, section){
 
 function buildStationHTML(st, si, section){
   const isSim = st.displayMode !== 'sequential';
-  const hasAnswer = st.hasAnswer||false;
-  const item = st.item||null;
-  const bankItem = item?bankData.find(b=>(b.id||b.type)===item.type):null;
-  const charCount = (st.freeText||'').length;
-  const MAX_CHARS = 600;
+  const items = Array.isArray(st.items) ? st.items : [st.item||null, null, null];
+  const filledCount = items.filter(Boolean).length;
+
+  const itemsHtml = items.map((item, ii) => {
+    const bankItem = item ? bankData.find(b=>(b.id||b.type)===item.type) : null;
+    if(!item){
+      return `<div style="flex:1;min-height:64px;background:rgba(253,245,224,.02);border:1px dashed rgba(212,168,67,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;"
+        onclick="openBankForStationSlot('${section}',${si},${ii})" title="הוסף פריט מהבנק">
+        <span style="font-size:.78rem;opacity:.3;color:var(--gold);">+ פריט ${ii+1}</span>
+      </div>`;
+    }
+    return `<div style="flex:1;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.2);border-radius:8px;padding:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:.8rem;font-weight:700;color:var(--gold2);">${bankItem?.icon||'📄'} ${bankItem?.name||item.type}</span>
+        <button onclick="removeStationSlotItem('${section}',${si},${ii})"
+          style="padding:2px 7px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:4px;color:#f87171;cursor:pointer;font-size:.7rem;">✕</button>
+      </div>
+      <div>${buildItemEditor(item, section, si, ii)}</div>
+    </div>`;
+  }).join('');
 
   return `<div class="station-block" id="st-block-${section}-${si}">
     <div class="station-header" onclick="toggleStationNew('${section}',${si})">
       <div class="station-num">${si+1}</div>
-      <div class="station-label">תחנה ${si+1}</div>
+      <div class="station-label">תחנה ${si+1}${filledCount?' · '+filledCount+' פריטים':''}</div>
       <div class="station-display-toggle" onclick="event.stopPropagation()">
         <button class="disp-btn ${isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'simultaneous')">בו-זמנית</button>
         <button class="disp-btn ${!isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'sequential')">זה אחר זה</button>
       </div>
+      <button onclick="event.stopPropagation();askStationAI('${section}',${si})"
+        style="padding:3px 10px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:var(--gold);font-size:.72rem;cursor:pointer;font-family:Heebo,sans-serif;">🤖 עוזר</button>
       <span id="stch-${section}-${si}" style="opacity:.4;font-size:.7rem;margin-right:4px;">▼</span>
     </div>
     <div class="station-slots" id="st-slots-${section}-${si}">
-      <div class="station-body" style="width:100%;">
-        <textarea class="station-free-text"
-          id="ft-${section}-${si}"
-          placeholder="כתבי הנחיה, שאלה, טקסט או הסבר לתלמידים..."
-          maxlength="${MAX_CHARS}"
-          oninput="updateFreeText('${section}',${si},this.value)"
-        >${esc(st.freeText||'')}</textarea>
-        <div class="station-char-count" id="cc-${section}-${si}">${charCount}/${MAX_CHARS} תווים</div>
-        <div class="station-actions">
-          <button class="station-action-btn ${hasAnswer?'on':''}"
-            onclick="toggleAnswerBox('${section}',${si})"
-            title="פתח מלבן כתיבה לתשובת התלמיד">
-            📝 ${hasAnswer?'הסר מלבן תשובה':'הוסף מלבן תשובה'}
-          </button>
-          <button class="station-action-btn"
-            onclick="openBankForStation('${section}',${si})"
-            title="בחר פריט ייחודי מהבנק">
-            📦 ${item?'החלף פריט':'פריט מהבנק'}
-          </button>
-          <button class="station-action-btn"
-            onclick="askStationAI('${section}',${si})"
-            title="עוזר הוראה">
-            🤖 עוזר
-          </button>
-        </div>
-        ${hasAnswer?`
-        <div class="station-answer-box" id="ans-box-${section}-${si}">
-          <div class="station-answer-label">📝 מלבן תשובה — התלמיד יכתוב כאן</div>
-          <div style="font-size:.72rem;opacity:.4;font-style:italic;">יוצג לתלמיד כשדה כתיבה פתוח</div>
-        </div>`:''}
-        ${item?`
-        <div class="station-item-box" id="item-box-${section}-${si}">
-          <div class="station-item-header">
-            <span class="station-item-name">${bankItem?.icon||'📄'} ${bankItem?.name||item.type}</span>
-            <button class="station-item-remove" onclick="removeStationItem('${section}',${si})">✕ הסר</button>
-          </div>
-          <div id="item-editor-${section}-${si}">
-            ${buildItemEditor(item, section, si)}
-          </div>
-        </div>`:''}
+      <div style="display:flex;gap:8px;padding:10px;width:100%;">
+        ${itemsHtml}
       </div>
     </div>
   </div>`;
@@ -1832,18 +1874,24 @@ async function askSlotAI(uid, section, si, sli){
 function selectBankItem(typeOrId){
   // If bank was opened for a station (new mode)
   if(window._bankTarget){
-    const {section,si}=window._bankTarget;
-    window._bankTarget=null;
-    // פתח פופאפ עריכה אם קיים
-    if(POPUP_EDITORS[typeOrId]){
-      openItemPopup(typeOrId, section, si, null);
-      return;
-    }
-    const st=getStation(section,si);
-    if(st){
-      st.item={type:typeOrId,content:'',mcData:null,tfData:null,tableData:null};
+    const {section, si, slotIdx} = window._bankTarget;
+    window._bankTarget = null;
+    const newItem = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+    const arr = getStationArr(section);
+    if(arr && arr[si]){
+      if(!Array.isArray(arr[si].items)) arr[si].items = [arr[si].item||null, null, null];
+      const idx = slotIdx !== undefined ? slotIdx : arr[si].items.findIndex(x=>!x);
+      const finalIdx = idx >= 0 ? idx : 0;
+      // פתח פופאפ אם קיים
+      if(POPUP_EDITORS[typeOrId]){
+        // save slot target for popup confirm
+        window._popupSlotTarget = {section, si, slotIdx: finalIdx};
+        openItemPopup(typeOrId, section, si, null);
+        return;
+      }
+      arr[si].items[finalIdx] = newItem;
       renderLessonStructure();
-      reopenStation(section,si);
+      reopenStation(section, si);
       setSaveStatus('שינויים לא שמורים');
       document.getElementById('bank-hint').textContent='פריט נוסף לתחנה ✓';
     }
@@ -2351,11 +2399,17 @@ function confirmItemPopup() {
   const editor = POPUP_EDITORS[typeOrId];
   if (!editor) return;
   const data = editor.collect();
-  const st = getStation(section, si);
-  if (st) {
-    if (!st.item) st.item = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
-    st.item.type = typeOrId;
-    st.item.tableData = data;
+  const arr = getStationArr(section);
+  if (arr && arr[si]) {
+    if(!Array.isArray(arr[si].items)) arr[si].items = [arr[si].item||null, null, null];
+    const slotIdx = window._popupSlotTarget ? window._popupSlotTarget.slotIdx : 
+                    arr[si].items.findIndex(x=>x&&x.type===typeOrId);
+    const finalIdx = slotIdx >= 0 ? slotIdx : arr[si].items.findIndex(x=>!x);
+    const idx = finalIdx >= 0 ? finalIdx : 0;
+    if(!arr[si].items[idx]) arr[si].items[idx] = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+    arr[si].items[idx].type = typeOrId;
+    arr[si].items[idx].tableData = data;
+    window._popupSlotTarget = null;
     renderLessonStructure();
     reopenStation(section, si);
     setSaveStatus('שינויים לא שמורים');
