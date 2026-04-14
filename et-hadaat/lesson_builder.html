@@ -1223,6 +1223,14 @@ function openBankForStationSlot(section, si, slotIdx){
   // switch to bank tab
   const bankTab=document.querySelector('.side-tab[onclick*="bank"]');
   if(bankTab) bankTab.click();
+  // פתח את כל קטגוריות הבנק אוטומטית כדי שהפריטים יהיו לחיצים
+  setTimeout(()=>{
+    document.querySelectorAll('.bank-cat-items').forEach(el=>el.classList.add('open'));
+    document.querySelectorAll('.bank-cat-chevron').forEach(el=>el.classList.add('open'));
+    document.querySelectorAll('.bank-cat-header').forEach(h=>h.classList.add('open'));
+    const hint=document.getElementById('bank-hint');
+    if(hint) hint.textContent='בחרי פריט להוספה לתחנה ←';
+  }, 50);
 }
 
 function removeStationSlotItem(section, si, slotIdx){
