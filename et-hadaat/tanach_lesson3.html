@@ -686,7 +686,7 @@ function loadSaved(){
       const oq=document.getElementById('open-q');if(oq&&a.openQ)oq.value=a.openQ;
       const cn=document.getElementById('chosen-name');if(cn&&a.chosenName)cn.value=a.chosenName;
       const cw=document.getElementById('chosen-why');if(cw&&a.chosenWhy)cw.value=a.chosenWhy;
-      if(a.page&&a.page!=='page-cover')goTo(a.page);
+      if(a.page&&a.page!=='page-cover'&&a.page!=='page-done')goTo(a.page);
     }
   });
 }
