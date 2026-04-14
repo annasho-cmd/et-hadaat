@@ -305,7 +305,14 @@ const DEFAULT_ITEMS=[
     ],
     gameFile:'snowman_game.html',
     usedIn:['body','enrichment']},
-  {id:'sources',   cat:0, icon:'📜', name:'קריאת מקורות',         desc:'', styles:[], usedIn:['intro','body']},
+  {id:'sources', cat:0, icon:'📜', name:'קריאת מקורות',
+    desc:'הצגת מקור ראשוני (טקסט או תמונה) עם שאלות מלוות. הטקסט מוצג עם שורות ממוספרות בצד שמאל, השאלות בצד ימין — התלמיד יכול לגלול בשאלות בזמן שהמקור נשאר קבוע. תמיכה בהדגשת טקסט.',
+    styles:[
+      {name:'טקסט + שאלות', desc:'העלאת טקסט (עד 15 שורות) עם שאלות מלוות. הטקסט ממוספר אוטומטית.'},
+      {name:'תמונת מקור + שאלות', desc:'העלאת תמונה של מקור ראשוני עם שאלות מלוות.'},
+      {name:'הפניה לספר הלימוד', desc:'הפניה לעמודים ספציפיים בספר + שאלות. המורה מציינת עמודים ונושא.'},
+    ],
+    usedIn:['intro','body']},
   {id:'entry', cat:0, icon:'🚪', name:'כרטיס כניסה',
     desc:'כלי הערכה מעצבת קצר המוגש בתחילת השיעור. מטרתו לבדוק מוכנות, לוודא הבנה של חומר קודם או לעורר סקרנות לקראת הנושא החדש. זהו "כרטיס המעבר" של התלמיד מההפסקה אל הלמידה הפעילה.',
     styles:[
@@ -366,8 +373,22 @@ const DEFAULT_ITEMS=[
   {id:'debate',    cat:1, icon:'🎤', name:'דיבייט',                desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'full_ans',  cat:1, icon:'📝', name:'כתיבת תשובה מלאה',     desc:'', styles:[], usedIn:['body','closing']},
   // ── קטגוריה 2: מדיה ──
-  {id:'video',     cat:2, icon:'▶️', name:'סרטונים',               desc:'', styles:[], usedIn:['intro','body']},
-  {id:'image',     cat:2, icon:'🖼️', name:'תמונות',                desc:'', styles:[], usedIn:['intro','body','enrichment']},
+  {id:'video', cat:2, icon:'▶️', name:'סרטונים',
+    desc:'הצגת סרטון יוטיוב או Google Drive. המורה יכולה להגדיר נקודת התחלה וסוף. הסרטון מוצג עם אפשרות להשהיה ושליטה מלאה.',
+    styles:[
+      {name:'סרטון מלא', desc:'הצגת הסרטון מהתחלה עד הסוף.'},
+      {name:'קטע נבחר', desc:'המורה מגדירה נקודת התחלה וסוף (דקות:שניות).'},
+    ],
+    usedIn:['intro','body']},
+  {id:'image', cat:2, icon:'🖼️', name:'תמונות',
+    desc:'הצגת תמונה מהמחשב (דרך Cloudinary) או מקישור ישיר. אפשר להוסיף כיתוב ושאלה נלווית.',
+    cloudinary:{cloudName:'da6mdtjhh', uploadPreset:'w8rzehkl'},
+    styles:[
+      {name:'תמונה בלבד', desc:'הצגת תמונה ללא שאלה נלווית.'},
+      {name:'תמונה + שאלה', desc:'תמונה עם שאלה מלווה — התלמיד כותב תשובה.'},
+      {name:'תמונה + כיתוב', desc:'תמונה עם כיתוב הסבר מהמורה.'},
+    ],
+    usedIn:['intro','body','enrichment']},
   // ── קטגוריה 3: משחקי ידע ותחרות ──
   {id:'escape',    cat:3, icon:'🔐', name:'חדר בריחה',             desc:'', styles:[], usedIn:['body','enrichment']},
   {id:'trivia',    cat:3, icon:'🎯', name:'טריוויה — סגנונות שונים',desc:'', styles:[], usedIn:['body','enrichment']},
