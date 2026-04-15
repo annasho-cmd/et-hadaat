@@ -161,6 +161,7 @@ const ITEM_TYPES={
   video:{label:'▶️ סרטון',hasAnswer:false},
   mc_q:{label:'🔘 רב-ברירה',hasAnswer:true},
   tf_q:{label:'✅ נכון/לא נכון',hasAnswer:true},
+  fill_table:{label:'📋 טבלת מילוי',hasAnswer:false},
 };
 
 // ── INIT ──
@@ -281,6 +282,10 @@ function buildSlotBlock(slot,stIdx,sli){
 
   if(slot.type==='sort_table'){
     return buildSortTable(slot, stIdx, sli);
+  }
+
+  if(slot.type==='fill_table'){
+    return buildFillTable(slot, stIdx, sli);
   }
 
   if(slot.type==='image'){
@@ -413,6 +418,76 @@ function buildSortTable(slot, stIdx, sli){
   block.dataset.tableId=id;
   block.dataset.cols=td.cols.length;
   return block;
+}
+
+
+function buildFillTable(slot, stIdx, sli){
+  const block=document.createElement('div');
+  block.className='slot-block';
+  const td=slot.tableData;
+  if(!td||!td.cols||!td.rows){
+    block.innerHTML='<div style="opacity:.4;font-size:.85rem;">טבלת המילוי אינה מוגדרת</div>';
+    return block;
+  }
+
+  const tableId='ft-'+stIdx+'-'+sli;
+  const savedRaw=answers[stIdx+'-'+sli]||'';
+  let savedCells={};
+  try{ if(savedRaw) savedCells=JSON.parse(savedRaw); }catch(e){}
+
+  const theadHtml='<tr><th style="padding:7px 10px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.78rem;border:1px solid rgba(212,168,67,.2);width:32px;">#</th>'+
+    td.cols.map(c=>'<th style="padding:7px 10px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.78rem;border:1px solid rgba(212,168,67,.2);">'+esc(c.name||'')+'</th>').join('')+'</tr>';
+
+  const tbodyHtml=td.rows.map((row,ri)=>{
+    const cellsHtml=td.cols.map((col,ci)=>{
+      const key=ri+'-'+ci;
+      const val=row.cells[ci]||'';
+      if(col.editable){
+        const saved=savedCells[key]||'';
+        return '<td style="padding:5px;border:1px solid rgba(212,168,67,.15);">'+
+          '<textarea rows="2" id="'+tableId+'-'+ri+'-'+ci+'"'+
+          ' style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:6px 8px;outline:none;resize:vertical;min-height:48px;direction:rtl;"'+
+          ' placeholder="כתוב/כתבי כאן..."'+
+          ' oninput="saveFillTableCell(''+tableId+'','+stIdx+','+sli+')">'+esc(saved)+'</textarea>'+
+          '</td>';
+      }
+      return '<td style="padding:8px 10px;border:1px solid rgba(212,168,67,.15);font-size:.85rem;line-height:1.6;direction:rtl;vertical-align:top;">'+val.replace(/\n/g,'<br>')+'</td>';
+    }).join('');
+    return '<tr><td style="padding:5px 8px;border:1px solid rgba(212,168,67,.15);text-align:center;opacity:.45;font-size:.75rem;">'+(ri+1)+'</td>'+cellsHtml+'</tr>';
+  }).join('');
+
+  block.innerHTML=
+    '<div class="slot-type-label">📋 טבלת מילוי</div>'+
+    '<div style="overflow-x:auto;">'+
+      '<table style="width:100%;border-collapse:collapse;" id="'+tableId+'">'+
+        '<thead>'+theadHtml+'</thead>'+
+        '<tbody>'+tbodyHtml+'</tbody>'+
+      '</table>'+
+    '</div>'+
+    '<div style="margin-top:8px;display:flex;align-items:center;gap:10px;">'+
+      '<button class="btn-submit" onclick="saveFillTableCell(''+tableId+'','+stIdx+','+sli+',true)">שמור ✓</button>'+
+      '<span class="answer-saved" id="saved-'+stIdx+'-'+sli+'">✅ נשמר</span>'+
+    '</div>';
+  return block;
+}
+
+function saveFillTableCell(tableId, stIdx, sli, showMsg){
+  const cells={};
+  document.querySelectorAll('[id^="'+tableId+'-"]').forEach(el=>{
+    const parts=el.id.replace(tableId+'-','').split('-');
+    if(parts.length===2) cells[parts[0]+'-'+parts[1]]=el.value;
+  });
+  const val=JSON.stringify(cells);
+  answers[stIdx+'-'+sli]=val;
+  if(studentName&&classCode){
+    db.ref('studentAnswers/'+classCode+'/'+studentName+'/lesson_'+lessonIdx+'/station_'+stIdx+'_'+sli).set({
+      answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
+    });
+  }
+  if(showMsg){
+    const saved=document.getElementById('saved-'+stIdx+'-'+sli);
+    if(saved){saved.style.display='block';setTimeout(()=>saved.style.display='none',2000);}
+  }
 }
 
 // ── DRAG & DROP ──
