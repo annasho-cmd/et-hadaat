@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דוח שיעור 3 — שמות התנ"ך</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208; --brown:#6b3a1f;
+  --gold:#d4a843; --gold2:#f0c060;
+  --parch:#fdf5e0; --parch2:#f5e8c0;
+  --green:#2a6b2a; --red:#8b2020;
+  --surface:rgba(44,26,14,0.06);
+  --border:rgba(107,58,31,0.15);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:var(--parch);
+  color:var(--ink);
+  min-height:100vh;
+}
+
+/* ── HEADER ── */
+.page-header{
+  background:linear-gradient(135deg,#1c1208 0%,#3d1f0a 100%);
+  color:var(--parch);
+  padding:28px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:20px;
+}
+.header-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.6rem;font-weight:900;color:var(--gold2);
+}
+.header-sub{font-size:.85rem;opacity:.6;margin-top:3px;}
+.header-meta{font-size:.8rem;opacity:.5;margin-top:5px;}
+
+.btn-refresh{
+  padding:10px 20px;
+  background:var(--gold);color:var(--ink);
+  border:none;border-radius:8px;
+  font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;
+  cursor:pointer;transition:opacity .2s;white-space:nowrap;
+}
+.btn-refresh:hover{opacity:.85;}
+.btn-print{
+  padding:10px 20px;
+  background:var(--green);color:white;
+  border:none;border-radius:8px;
+  font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;
+  cursor:pointer;transition:opacity .2s;white-space:nowrap;
+}
+.btn-print:hover{opacity:.85;}
+.header-btns{display:flex;gap:10px;flex-shrink:0;}
+
+/* ── STATS BAR ── */
+.stats-bar{
+  background:white;
+  border-bottom:1px solid var(--border);
+  padding:16px 40px;
+  display:flex;gap:32px;align-items:center;
+  flex-wrap:wrap;
+}
+.stat{text-align:center;}
+.stat-num{font-family:'Frank Ruhl Libre',serif;font-size:1.8rem;font-weight:900;color:var(--brown);}
+.stat-label{font-size:.72rem;color:#777;margin-top:2px;}
+
+/* ── CONTENT ── */
+.content{padding:32px 40px;max-width:1100px;margin:0 auto;}
+
+/* ── STUDENT CARD ── */
+.student-card{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:14px;
+  margin-bottom:28px;
+  overflow:hidden;
+  box-shadow:0 2px 10px rgba(107,58,31,.07);
+  page-break-inside:avoid;
+}
+.student-header{
+  background:linear-gradient(135deg,#2c1a0e,#4a2510);
+  color:var(--parch);
+  padding:14px 22px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.student-name{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.15rem;font-weight:700;color:var(--gold2);
+}
+.student-time{font-size:.75rem;opacity:.5;margin-top:2px;}
+.score-badge{
+  background:var(--gold);color:var(--ink);
+  padding:4px 14px;border-radius:20px;
+  font-size:.82rem;font-weight:700;
+}
+
+.sections{padding:20px 22px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+
+.section{background:var(--surface);border-radius:10px;padding:14px;}
+.section-title{
+  font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--brown);margin-bottom:12px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+
+/* חידות */
+.riddle-row{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:6px;font-size:.84rem;
+}
+.riddle-num{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--ink);color:var(--gold2);
+  font-size:.7rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.riddle-ans.solved{color:var(--green);font-weight:700;}
+.riddle-ans.unsolved{color:#aaa;font-style:italic;}
+
+/* שמות התנ"ך */
+.name-row{margin-bottom:8px;font-size:.82rem;}
+.name-label{font-weight:700;color:var(--brown);font-size:.75rem;}
+.name-explain{color:#444;margin-top:2px;line-height:1.4;}
+.name-explain.empty{color:#bbb;font-style:italic;}
+
+/* שאלה פתוחה + יצירתי */
+.open-q-text{font-size:.84rem;color:#333;line-height:1.5;}
+.open-q-text.empty{color:#bbb;font-style:italic;}
+.creative-chosen{font-size:.9rem;font-weight:700;color:var(--brown);margin-bottom:4px;}
+.creative-why{font-size:.82rem;color:#444;line-height:1.4;}
+
+/* ── LOADING / EMPTY ── */
+.loading-wrap{
+  text-align:center;padding:80px 40px;
+  font-size:1.1rem;color:#999;
+}
+.loading-spinner{font-size:2rem;display:block;margin-bottom:12px;animation:spin 1.2s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.empty-wrap{
+  text-align:center;padding:60px 40px;
+  font-size:1rem;color:#aaa;
+}
+
+/* ── PRINT ── */
+@media print{
+  .page-header .header-btns{display:none;}
+  .stats-bar{break-inside:avoid;}
+  .student-card{break-inside:avoid;margin-bottom:20px;}
+  body{background:white;}
+  .content{padding:16px;}
+}
+
+/* ── NO DATA ── */
+.no-answer{color:#ccc;font-style:italic;font-size:.8rem;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <div class="header-title">📜 דוח שיעור 3 — שמות התנ"ך</div>
+    <div class="header-sub">בינתחומי ח׳ — עת הדעת</div>
+    <div class="header-meta" id="report-time">טוען...</div>
+  </div>
+  <div class="header-btns">
+    <button class="btn-refresh" onclick="loadReport()">🔄 רענן</button>
+    <button class="btn-print" onclick="window.print()">🖨️ הדפס / שמור PDF</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat"><div class="stat-num" id="stat-students">—</div><div class="stat-label">תלמידים</div></div>
+  <div class="stat"><div class="stat-num" id="stat-completed">—</div><div class="stat-label">השלימו את כל החידות</div></div>
+  <div class="stat"><div class="stat-num" id="stat-creative">—</div><div class="stat-label">שלחו עבודה יצירתית</div></div>
+  <div class="stat"><div class="stat-num" id="stat-avg">—</div><div class="stat-label">ממוצע חידות</div></div>
+</div>
+
+<div class="content" id="content">
+  <div class="loading-wrap">
+    <span class="loading-spinner">⏳</span>
+    טוען נתוני תלמידים...
+  </div>
+</div>
+
+<script>
+const FB = {
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+try{firebase.initializeApp(FB);}catch(e){}
+const db = firebase.database();
+
+const NAMES_LIST = ['מקרא','ספר הספרים','כתבי הקודש','כ"ד ספרים','הברית הישנה','תורת אלוהים','ספר הברית','ספר תורת משה'];
+const RIDDLES_ANSWERS = ['מקרא','ספר הספרים','כתבי הקודש','כד ספרים','הברית הישנה','תורת אלוהים','ספר הברית','ספר תורת משה'];
+
+function loadReport(){
+  document.getElementById('content').innerHTML = `
+    <div class="loading-wrap">
+      <span class="loading-spinner">⏳</span>
+      טוען נתוני תלמידים...
+    </div>`;
+
+  db.ref('tanach_lesson3/students').once('value', snap => {
+    const data = snap.val();
+    const now = new Date().toLocaleString('he-IL');
+    document.getElementById('report-time').textContent = 'עודכן: ' + now;
+
+    if(!data){
+      document.getElementById('content').innerHTML = `
+        <div class="empty-wrap">אין נתונים עדיין — התלמידים טרם נכנסו לשיעור.</div>`;
+      return;
+    }
+
+    const students = Object.entries(data).map(([key, val]) => ({
+      name: key.replace(/_/g,' '),
+      key,
+      ...val
+    })).sort((a,b) => a.name.localeCompare(b.name, 'he'));
+
+    // ── stats ──
+    const total = students.length;
+    const completed = students.filter(s => {
+      const r = s.riddles || {};
+      return Object.keys(r).length === 8;
+    }).length;
+    const creative = students.filter(s => s.autosave && s.autosave.chosenName).length;
+    const avgRiddles = total
+      ? (students.reduce((sum,s)=>sum+Object.keys(s.riddles||{}).length,0)/total).toFixed(1)
+      : '—';
+
+    document.getElementById('stat-students').textContent = total;
+    document.getElementById('stat-completed').textContent = completed;
+    document.getElementById('stat-creative').textContent = creative;
+    document.getElementById('stat-avg').textContent = avgRiddles;
+
+    // ── render cards ──
+    const content = document.getElementById('content');
+    content.innerHTML = '';
+
+    students.forEach(s => {
+      const riddles = s.riddles || {};
+      const auto = s.autosave || {};
+      const solvedCount = Object.keys(riddles).length;
+      const lastTime = s.progress?.at
+        ? new Date(s.progress.at).toLocaleString('he-IL')
+        : (auto.at ? new Date(auto.at).toLocaleString('he-IL') : '—');
+
+      // ── חידות ──
+      const riddlesHtml = RIDDLES_ANSWERS.map((ans,i) => {
+        const key = 'r'+(i+1);
+        const given = riddles[key];
+        const solved = !!given;
+        return `<div class="riddle-row">
+          <div class="riddle-num">${i+1}</div>
+          <div class="riddle-ans ${solved?'solved':'unsolved'}">
+            ${solved ? given.answer : 'לא פתר/ה'}
+          </div>
+        </div>`;
+      }).join('');
+
+      // ── שמות התנ"ך ──
+      const namesHtml = NAMES_LIST.map((name,i) => {
+        const explain = auto.expls?.['n'+i] || '';
+        return `<div class="name-row">
+          <div class="name-label">${name}</div>
+          <div class="name-explain ${explain?'':'empty'}">${explain || 'לא מולא'}</div>
+        </div>`;
+      }).join('');
+
+      // ── שאלה פתוחה + יצירתי ──
+      const openQ = auto.openQ || '';
+      const chosenName = auto.chosenName || '';
+      const chosenWhy = auto.chosenWhy || '';
+
+      const card = document.createElement('div');
+      card.className = 'student-card';
+      card.innerHTML = `
+        <div class="student-header">
+          <div>
+            <div class="student-name">👤 ${s.name}</div>
+            <div class="student-time">פעילות אחרונה: ${lastTime}</div>
+          </div>
+          <div class="score-badge">חידות: ${solvedCount}/8</div>
+        </div>
+        <div class="sections">
+          <div class="section">
+            <div class="section-title">🔍 חלק א׳ — חידות בציורים</div>
+            ${riddlesHtml}
+          </div>
+          <div class="section">
+            <div class="section-title">📖 חלק ב׳ — שמות התנ"ך</div>
+            ${namesHtml}
+            <div style="margin-top:12px;">
+              <div class="name-label">שאלה פתוחה — השם המתאים ביותר</div>
+              <div class="open-q-text ${openQ?'':'empty'}">${openQ || 'לא נענה'}</div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">🎨 חלק ג׳ — עבודה יצירתית</div>
+            <div class="name-label">השם שנבחר</div>
+            <div class="creative-chosen ${chosenName?'':'empty'}">${chosenName || 'לא מולא'}</div>
+            <div class="name-label" style="margin-top:10px;">הסבר</div>
+            <div class="creative-why ${chosenWhy?'':'empty'}">${chosenWhy || 'לא מולא'}</div>
+          </div>
+        </div>`;
+      content.appendChild(card);
+    });
+  }).catch(err => {
+    document.getElementById('content').innerHTML = `
+      <div class="empty-wrap">שגיאה בטעינת הנתונים. נסי לרענן.</div>`;
+    console.error(err);
+  });
+}
+
+window.onload = loadReport;
+</script>
+</body>
+</html>
