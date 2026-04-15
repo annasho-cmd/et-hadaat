@@ -13,9 +13,9 @@
   --parch:#fdf5e0;--surface:rgba(44,26,14,0.88);
   --border:rgba(212,168,67,0.18);--border2:rgba(212,168,67,0.38);
   --green:#1a5c2a;--red:#8b2020;
-  --cat1:#1a2e1a;--cat2:#1a1a2e;--cat3:#2e1a0d;--cat4:#2e0d2e;--cat5:#0d2e2e;
+  --cat1:#1a2e1a;--cat2:#1a1a2e;--cat3:#2e1a0d;--cat4:#2e0d2e;--cat5:#0d2e2e;--cat6:#2e2a0d;
   --cat1b:rgba(42,110,42,.35);--cat2b:rgba(42,42,180,.3);
-  --cat3b:rgba(180,90,20,.3);--cat4b:rgba(140,20,140,.3);--cat5b:rgba(20,140,140,.3);
+  --cat3b:rgba(180,90,20,.3);--cat4b:rgba(140,20,140,.3);--cat5b:rgba(20,140,140,.3);--cat6b:rgba(212,168,67,.4);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
@@ -73,6 +73,8 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 .cat-4:hover{border-color:#c4b5fd;}
 .cat-5{background:var(--cat5);border-color:var(--cat5b);}
 .cat-5:hover{border-color:#67e8f9;}
+.cat-6{background:var(--cat6);border-color:var(--cat6b);}
+.cat-6:hover{border-color:#f0c060;}
 
 /* MODAL OVERLAY */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;}
@@ -229,6 +231,7 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
           <option value="2">🎬 מדיה</option>
           <option value="3">🎮 משחקי ידע ותחרות</option>
           <option value="4">🔍 גילוי מיון והתאמה</option>
+          <option value="5">🌟 קרון העשרה</option>
         </select>
       </div>
       <div class="form-row">
@@ -262,6 +265,7 @@ const CATS=[
   {id:'media',     icon:'🎬', name:'מדיה',           cls:'cat-3'},
   {id:'games',     icon:'🎮', name:'משחקי ידע ותחרות',cls:'cat-4'},
   {id:'discovery', icon:'🔍', name:'גילוי מיון והתאמה',cls:'cat-5'},
+  {id:'enrichment',icon:'🌟', name:'קרון העשרה',     cls:'cat-6'},
 ];
 
 // ── DEFAULT ITEMS ──
@@ -638,6 +642,24 @@ const DEFAULT_ITEMS=[
       {name:'גלה פרטים', desc:'התלמיד מוצא פרטים נסתרים בתמונה.'},
     ],
     usedIn:['body','enrichment']},
+  // ── קטגוריה 5: קרון העשרה ──
+  {id:'enrich_pairs', cat:5, icon:'🔗', name:'תבנית א׳ — צמדים',
+    desc:'המורה מזינה 10 צמדים (מושג ↔ הגדרה או תמונה). מהתוכן הזה האפליקציה מייצרת את כל המשחקים בתבנית. המורה בוחרת אילו משחקים לפתוח לתלמידים (כולם או חלק).',
+    styles:[
+      {name:'מושג + הגדרה', desc:'טקסט משני הצדדים.'},
+      {name:'מושג + תמונה', desc:'מושג בטקסט, תמונה בצד השני.'},
+      {name:'תמונה + תמונה', desc:'שתי תמונות קשורות.'},
+    ],
+    enrichGames:['מתיחת קו','משחק זיכרון','כרטיסיות','בינגו','תשבץ','תפזורת','כתב סתרים','גלה את המושג'],
+    usedIn:['enrichment']},
+  {id:'enrich_questions', cat:5, icon:'❓', name:'תבנית ב׳ — שאלה + תשובות',
+    desc:'המורה מזינה 10 שאלות עם תשובות (2-4 אפשרויות, תשובה נכונה מסומנת). מהתוכן הזה האפליקציה מייצרת את כל המשחקים בתבנית. המורה בוחרת אילו משחקים לפתוח לתלמידים.',
+    styles:[
+      {name:'2 תשובות', desc:'שאלה עם 2 אפשרויות — קל יותר.'},
+      {name:'4 תשובות', desc:'שאלה עם 4 אפשרויות — מאתגר יותר.'},
+    ],
+    enrichGames:['טריוויה','ג\'פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','פאזל','זום תמונה','גלה את התמונה'],
+    usedIn:['enrichment']},
 ];
 
 let bankItems=[];
