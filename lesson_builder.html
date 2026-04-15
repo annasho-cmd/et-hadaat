@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>בונה שיעור — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);
+  --border:rgba(212,168,67,0.18);
+  --border2:rgba(212,168,67,0.38);
+  --green:#22863a;
+  --intro-c:#0d2e1a;--body-c:#0d1e2e;
+/* ── ENRICHMENT TEMPLATES ── */
+.enrich-template{background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.25);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.enrich-template-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.enrich-template-icon{font-size:1.2rem;}
+.enrich-template-title{font-size:.9rem;font-weight:700;color:#c4b5fd;flex:1;}
+.enrich-template-sub{font-size:.72rem;opacity:.45;}
+.enrich-template-body{display:none;padding:0 14px 14px;}
+.enrich-template-body.open{display:block;}
+.enrich-pairs-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
+.enrich-pair-row{display:flex;gap:8px;align-items:center;}
+.enrich-pair-num{min-width:22px;height:22px;border-radius:5px;background:rgba(109,40,217,.2);color:#c4b5fd;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;}
+.enrich-pair-input{flex:1;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;padding:6px 10px;outline:none;}
+.enrich-pair-input:focus{border-color:#a78bfa;}
+.enrich-pair-input::placeholder{opacity:.3;}
+.enrich-add-btn{padding:5px 12px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.3);border-radius:6px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:.78rem;cursor:pointer;margin-bottom:12px;}
+.enrich-add-btn:hover{background:rgba(109,40,217,.25);}
+.enrich-games-title{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.4;margin-bottom:8px;}
+.enrich-games-list{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;}
+.enrich-game-chip{padding:5px 12px;border-radius:20px;font-size:.78rem;font-weight:600;border:1px solid rgba(109,40,217,.3);background:rgba(109,40,217,.08);color:#c4b5fd;cursor:pointer;transition:all .15s;font-family:'Heebo',sans-serif;}
+.enrich-game-chip:hover{background:rgba(109,40,217,.2);}
+.enrich-game-chip.selected{background:#4c1d95;border-color:#7c3aed;color:#ede9fe;}
+.enrich-save-btn{width:100%;padding:9px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:white;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;}
+.enrich-save-btn:hover{opacity:.9;}
+.enrich-saved-games{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.enrich-saved-chip{padding:4px 10px;border-radius:14px;font-size:.75rem;background:#4c1d95;color:#ede9fe;border:1px solid #7c3aed;}
+
+/* editable topic */
+.topic-edit-wrap{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.topic-edit-input{flex:1;background:none;border:none;border-bottom:1.5px solid var(--border);color:var(--gold2);font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;outline:none;padding:2px 4px;}
+.topic-edit-input:focus{border-bottom-color:var(--gold);}
+.topic-edit-btn{padding:4px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;}
+
+  --close-c:#2e0d0d;--enrich-c:#1a0d2e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direction:rtl;min-height:100vh;}
+
+.screen{display:none;flex-direction:column;min-height:100vh;}
+.screen.active{display:flex;}
+
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.btn-back{padding:5px 14px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;transition:all .18s;}
+.btn-back:hover{background:rgba(212,168,67,.1);}
+
+.main-wrap{flex:1;padding:28px 24px;max-width:700px;margin:0 auto;width:100%;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
+.card-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:18px;}
+.section-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.45;margin-bottom:10px;}
+
+.input-field{width:100%;padding:10px 14px;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;transition:border .18s;}
+.input-field:focus{border-color:var(--gold);}
+.input-field::placeholder{opacity:.35;}
+.input-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+.input-label{font-size:.85rem;font-weight:600;margin-bottom:6px;display:block;}
+
+.btn{padding:10px 22px;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .18s;}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);}
+.btn-gold:hover{opacity:.9;}
+.btn-ghost{background:none;border:1.5px solid var(--border2);color:var(--parch);}
+.btn-ghost:hover{background:rgba(253,245,224,.06);}
+.btn-green{background:#1a5c2a;color:#a3f0b5;border:1px solid #2a7a3a;}
+.btn-green:hover{background:#226e34;}
+.btn-sm{padding:6px 14px;font-size:.8rem;}
+.btn-row{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+.subject-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+.subject-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;}
+.subject-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.subject-card .sc-icon{font-size:2rem;margin-bottom:8px;}
+.subject-card .sc-name{font-size:.9rem;font-weight:700;}
+
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
+.choice-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;}
+.choice-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.choice-card .ch-icon{font-size:2.2rem;margin-bottom:10px;}
+.choice-card .ch-title{font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;}
+.choice-card .ch-sub{font-size:.78rem;opacity:.5;}
+
+.avatar-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;}
+.avatar-opt{width:56px;height:56px;border-radius:50%;font-size:1.8rem;display:flex;align-items:center;justify-content:center;background:rgba(253,245,224,.06);border:2px solid var(--border);cursor:pointer;transition:all .18s;}
+.avatar-opt:hover,.avatar-opt.selected{border-color:var(--gold);background:rgba(212,168,67,.15);}
+
+.lesson-setup-list{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.lesson-setup-row{display:flex;align-items:center;gap:10px;background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+.ls-num{min-width:26px;height:26px;border-radius:6px;background:rgba(212,168,67,.2);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;flex-shrink:0;}
+.ls-input{flex:1;background:none;border:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;}
+.ls-input::placeholder{opacity:.3;}
+
+/* ── SETUP (screen 3) ── */
+#screen-unit-setup{flex-direction:column;}
+.setup-body{display:block;overflow-y:auto;flex:1;padding:20px 24px;max-width:680px;margin:0 auto;width:100%;}
+.setup-side{background:rgba(44,26,14,.6);border:1px solid var(--border2);border-radius:14px;margin-top:16px;display:flex;flex-direction:column;}
+.setup-side-header{padding:14px 18px;border-bottom:1px solid var(--border);}
+.setup-side-title{font-size:.88rem;font-weight:700;color:var(--gold2);margin-bottom:3px;}
+.setup-side-sub{font-size:.74rem;opacity:.4;}
+.setup-ai-body{padding:14px 18px;}
+.setup-ai-input-row{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border);}
+.setup-ai-input{flex:1;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;}
+.setup-ai-input:focus{border-color:var(--gold);}
+.setup-ai-send{padding:7px 14px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:7px;cursor:pointer;font-size:.9rem;}
+.setup-side-header{padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.setup-side-title{font-size:.85rem;font-weight:700;color:var(--gold2);margin-bottom:4px;}
+.setup-side-sub{font-size:.74rem;opacity:.4;}
+.setup-ai-body{flex:1;overflow-y:auto;padding:14px;}
+.quick-btns{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.quick-btn{padding:9px 14px;background:rgba(212,168,67,.08);border:1px solid var(--border2);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;text-align:right;transition:all .18s;}
+.quick-btn:hover{background:rgba(212,168,67,.16);border-color:var(--gold);}
+.setup-ai-input-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;}
+.setup-ai-input{flex:1;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;}
+.setup-ai-input:focus{border-color:var(--gold);}
+.setup-ai-send{padding:7px 12px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:7px;cursor:pointer;font-size:.9rem;}
+
+/* book titles textarea */
+.book-titles-wrap{margin-bottom:12px;}
+.book-titles-label{font-size:.72rem;font-weight:700;opacity:.45;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;display:block;}
+.book-titles-input{width:100%;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.8rem;padding:8px 10px;resize:vertical;min-height:70px;outline:none;}
+.book-titles-input:focus{border-color:var(--gold);}
+.book-titles-input::placeholder{opacity:.3;line-height:1.6;}
+
+/* unit goal */
+.unit-goal-wrap{background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.15);border-radius:8px;padding:10px;margin-bottom:10px;}
+.unit-goal-label{font-size:.72rem;font-weight:700;color:var(--gold);opacity:.7;margin-bottom:5px;display:block;}
+.unit-goal-text{font-size:.82rem;line-height:1.55;opacity:.85;font-style:italic;}
+.unit-goal-empty{font-size:.78rem;opacity:.3;font-style:italic;}
+
+/* ai apply btn */
+.ai-apply-btn{padding:4px 10px;background:rgba(212,168,67,.12);border:1px solid var(--border2);border-radius:6px;color:var(--gold);font-family:'Heebo',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;margin-top:6px;display:inline-block;}
+.ai-apply-btn:hover{background:rgba(212,168,67,.22);}
+
+.unit-header{background:linear-gradient(135deg,rgba(44,26,14,.9),rgba(30,15,5,.95));border:1px solid var(--border2);border-radius:14px;padding:22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+.unit-avatar{font-size:3rem;}
+.unit-info-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
+.unit-info-sub{font-size:.8rem;opacity:.5;margin-top:3px;}
+
+.lesson-list-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:10px;cursor:pointer;transition:all .18s;}
+.lesson-list-item:hover{border-color:var(--gold);transform:translateX(-3px);}
+.li-num{min-width:34px;height:34px;border-radius:8px;background:rgba(212,168,67,.15);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;}
+.li-info{flex:1;}
+.li-name{font-size:.92rem;font-weight:700;}
+.li-status{font-size:.74rem;margin-top:3px;opacity:.5;}
+.li-arrow{opacity:.4;font-size:1.1rem;}
+
+/* BUILDER */
+#screen-builder{flex-direction:column;height:100vh;}
+.builder-topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;}
+.builder-meta{display:flex;align-items:center;gap:8px;font-size:.82rem;flex-wrap:wrap;}
+.builder-unit{color:var(--gold);font-weight:700;}
+.builder-lesson{opacity:.55;}
+.builder-actions{display:flex;gap:8px;}
+.builder-body{display:grid;grid-template-columns:1fr 280px;flex:1;min-height:0;overflow:hidden;}
+
+.lesson-panel{overflow-y:auto;padding:18px;}
+.lesson-meta-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.lesson-topic{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:10px;}
+.goals-area{width:100%;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:10px;resize:vertical;min-height:70px;outline:none;}
+.goals-area:focus{border-color:var(--gold);}
+.goals-area::placeholder{opacity:.3;}
+
+.section-block{border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid transparent;}
+.section-block.intro{background:var(--intro-c);border-color:rgba(42,110,66,.4);}
+.section-block.body-sec{background:var(--body-c);border-color:rgba(29,78,216,.25);}
+.section-block.closing{background:var(--close-c);border-color:rgba(139,32,32,.35);}
+.section-block.enrichment{background:var(--enrich-c);border-color:rgba(109,40,217,.3);}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;user-select:none;}
+.section-header-left{display:flex;align-items:center;gap:8px;}
+.section-icon{font-size:1rem;}
+.section-name{font-size:.88rem;font-weight:700;}
+.section-count{font-size:.7rem;opacity:.4;}
+.section-chevron{opacity:.4;font-size:.75rem;transition:transform .2s;}
+.section-body{display:none;padding:0 12px 12px;}
+.section-body.open{display:block;}
+
+.row-item{display:flex;align-items:center;gap:10px;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.1);border-radius:8px;padding:8px 12px;margin-bottom:7px;cursor:pointer;transition:all .15s;min-height:42px;}
+.row-item:hover{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.row-item.active{border-color:var(--gold2);background:rgba(212,168,67,.1);}
+.row-num{min-width:22px;height:22px;border-radius:5px;background:rgba(212,168,67,.15);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;}
+.row-content{flex:1;font-size:.82rem;}
+.row-empty{opacity:.3;font-style:italic;}
+.row-type-badge{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(212,168,67,.15);color:var(--gold);flex-shrink:0;}
+.row-text{font-size:.78rem;opacity:.65;margin-right:6px;}
+
+/* ── STATION NEW LAYOUT ── */
+.station-block{background:rgba(253,245,224,.03);border:1px solid rgba(212,168,67,.08);border-radius:10px;margin-bottom:10px;}
+.station-header{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;}
+.station-num{min-width:26px;height:26px;border-radius:6px;background:rgba(29,78,216,.3);color:#93c5fd;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0;}
+.station-label{font-size:.85rem;font-weight:600;flex:1;}
+.station-display-toggle{display:flex;gap:4px;flex-shrink:0;}
+.disp-btn{padding:2px 8px;font-size:.65rem;font-weight:700;border-radius:10px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .15s;background:rgba(253,245,224,.06);color:var(--parch);opacity:.5;}
+.disp-btn.on{background:rgba(212,168,67,.2);color:var(--gold2);opacity:1;border:1px solid rgba(212,168,67,.3);}
+.station-slots{display:none;padding:8px 10px 10px;gap:8px;flex-direction:row;}
+.station-slots.open{display:flex;}
+.slot-item{flex:1;min-width:0;background:rgba(253,245,224,.03);border:1px solid rgba(212,168,67,.1);border-radius:8px;padding:8px;cursor:pointer;transition:all .15s;text-align:center;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;}
+.slot-item:hover{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.slot-item.active{border-color:var(--gold2);background:rgba(212,168,67,.1);}
+.slot-num{font-size:.65rem;font-weight:800;color:var(--gold);opacity:.6;position:absolute;top:4px;right:6px;}
+.slot-type{font-size:.75rem;font-weight:700;}
+.slot-empty{font-size:.72rem;opacity:.3;font-style:italic;}
+.slot-icon{font-size:1.2rem;}
+.slot-inline-editor{margin-top:6px;padding:8px;background:rgba(10,5,2,.7);border:1px solid var(--border2);border-radius:8px;}
+
+.aud-toggle{display:flex;gap:4px;flex-shrink:0;}
+.aud-btn{padding:2px 8px;font-size:.65rem;font-weight:700;border-radius:10px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .15s;}
+.aud-all{background:rgba(34,134,58,.15);color:#6ee7a0;}
+.aud-diff{background:rgba(168,85,247,.15);color:#c4b5fd;}
+.aud-all.on{background:#1a5c2a;color:#a3f0b5;}
+.aud-diff.on{background:#4c1d95;color:#ddd6fe;}
+
+.inline-editor{background:rgba(10,5,2,.7);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-top:4px;margin-bottom:6px;}
+.inline-editor-title{font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;opacity:.75;}
+.inline-field{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:8px 12px;outline:none;margin-bottom:8px;resize:vertical;min-height:60px;}
+.inline-field:focus{border-color:var(--gold);}
+.inline-field::placeholder{opacity:.3;}
+.editor-btns{display:flex;gap:6px;justify-content:flex-end;}
+
+.side-panel{border-right:1px solid var(--border);background:rgba(8,4,1,.7);display:flex;flex-direction:column;overflow:hidden;}
+.side-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.side-tab{flex:1;padding:11px 6px;text-align:center;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;border-bottom:2px solid transparent;color:var(--parch);opacity:.4;}
+.side-tab.active{opacity:1;border-bottom-color:var(--gold);color:var(--gold2);}
+.side-tab-body{flex:1;overflow-y:auto;padding:14px;}
+
+.ai-messages{display:flex;flex-direction:column;gap:9px;margin-bottom:10px;}
+.ai-msg{border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;}
+.ai-msg.assistant{background:rgba(212,168,67,.09);border:1px solid rgba(212,168,67,.15);}
+.ai-msg.user{background:rgba(29,78,216,.14);border:1px solid rgba(29,78,216,.2);margin-right:16px;}
+.ai-thinking{font-size:.75rem;opacity:.4;font-style:italic;padding:4px 0;}
+.ai-input-row{display:flex;gap:8px;flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);}
+.ai-input{flex:1;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:8px 12px;outline:none;resize:none;}
+.ai-input:focus{border-color:var(--gold);}
+.ai-send{padding:8px 14px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;cursor:pointer;font-size:1rem;}
+.ai-send:hover{opacity:.9;}
+
+.bank-section-title{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.35;margin:12px 0 7px;}
+.bank-hint{font-size:.76rem;opacity:.32;text-align:center;padding:8px 0;font-style:italic;line-height:1.5;}
+
+/* ── SECTION CONTROLS ── */
+.sec-ctrl-btn{padding:3px 10px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.68rem;font-weight:700;cursor:pointer;opacity:.5;transition:all .15s;}
+.sec-ctrl-btn:hover{opacity:.8;}
+.sec-ctrl-btn.on{opacity:1;border-color:var(--gold);background:rgba(212,168,67,.15);color:var(--gold2);}
+
+/* ── NEW STATION LAYOUT ── */
+.station-body{padding:10px 12px 12px;}
+.station-free-text{width:100%;background:rgba(253,245,224,.05);border:1.5px solid rgba(212,168,67,.15);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:10px 12px;outline:none;resize:vertical;min-height:80px;line-height:1.6;}
+.station-free-text:focus{border-color:rgba(212,168,67,.4);}
+.station-free-text::placeholder{opacity:.25;font-style:italic;}
+.station-char-count{font-size:.65rem;opacity:.3;text-align:left;margin-top:3px;margin-bottom:8px;}
+.station-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.station-action-btn{padding:5px 12px;border-radius:14px;border:1px solid var(--border2);background:transparent;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;opacity:.6;}
+.station-action-btn:hover{opacity:1;border-color:var(--gold);color:var(--gold);}
+.station-action-btn.on{opacity:1;border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);}
+.station-answer-box{margin-top:8px;background:rgba(29,78,216,.06);border:1px dashed rgba(29,78,216,.3);border-radius:8px;padding:10px 12px;}
+.station-answer-label{font-size:.72rem;color:#93c5fd;font-weight:700;margin-bottom:4px;opacity:.7;}
+.station-item-box{margin-top:8px;background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.2);border-radius:8px;padding:10px 12px;}
+.station-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.station-item-name{font-size:.78rem;font-weight:700;color:var(--gold);}
+.station-item-remove{background:none;border:none;color:#f87171;cursor:pointer;font-size:.75rem;opacity:.6;}
+.station-item-remove:hover{opacity:1;}
+
+/* ── STEP NAV ── */
+.step-nav{display:flex;align-items:center;justify-content:center;gap:0;padding:10px 20px;background:rgba(10,5,2,.8);border-bottom:1px solid var(--border);flex-shrink:0;}
+.step-item{display:flex;align-items:center;}
+.step-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid transparent;background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;opacity:.4;}
+.step-btn:hover{opacity:.65;}
+.step-btn.active{background:rgba(212,168,67,.12);border-color:var(--border2);color:var(--gold2);opacity:1;}
+.step-btn.done{opacity:.6;color:#6ee7a0;}
+.step-sep{width:20px;height:1px;background:var(--border);flex-shrink:0;margin:0 2px;}
+
+/* ── STEP PANELS ── */
+.step-panel{display:none;padding:16px;}
+.step-panel.active{display:block;}
+
+/* ── STEP FOOTER ── */
+.step-footer{border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,5,2,.9);flex-shrink:0;}
+
+/* ── BANK ACCORDION ── */
+.bank-cat-section{margin-bottom:4px;}
+.bank-cat-header{display:flex;align-items:center;gap:7px;padding:8px 10px;cursor:pointer;border-radius:8px;border:1px solid transparent;transition:all .15s;}
+.bank-cat-header:hover{background:rgba(212,168,67,.07);border-color:var(--border);}
+.bank-cat-header.open{background:rgba(212,168,67,.05);border-color:var(--border);}
+.bank-cat-icon{font-size:.9rem;}
+.bank-cat-name{font-size:.78rem;font-weight:700;flex:1;}
+.bank-cat-count{font-size:.65rem;opacity:.35;}
+.bank-cat-chevron{font-size:.6rem;opacity:.4;transition:transform .18s;}
+.bank-cat-chevron.open{transform:rotate(180deg);}
+.bank-cat-items{display:none;padding:6px 4px 8px;grid-template-columns:1fr 1fr;gap:5px;}
+.bank-cat-items.open{display:grid;}
+.bank-cube{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:7px;padding:7px 5px;text-align:center;cursor:pointer;transition:all .15s;}
+.bank-cube:hover{border-color:var(--gold);background:rgba(212,168,67,.08);transform:translateY(-1px);}
+.bank-tooltip{position:fixed;z-index:9999;background:#1a1408;border:1px solid var(--gold);border-radius:8px;padding:12px 14px;max-width:280px;font-size:.78rem;line-height:1.6;color:#fdf5e0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.6);direction:rtl;}
+.bank-tooltip-title{font-weight:700;color:var(--gold);margin-bottom:6px;font-size:.82rem;}
+.bank-tooltip-desc{color:#d4b06a;margin-bottom:8px;}
+.bank-tooltip-style{padding:3px 0;border-bottom:1px solid rgba(212,168,67,.15);}
+.bank-tooltip-style:last-child{border-bottom:none;}
+.bank-tooltip-style-name{font-weight:700;color:#fdf5e0;}
+.bank-tooltip-style-desc{color:#94826a;font-size:.73rem;}
+.bank-tooltip-used{margin-top:7px;font-size:.72rem;color:#64748b;}
+.bank-cube-icon{font-size:1rem;margin-bottom:2px;display:block;}
+.bank-cube-name{font-size:.65rem;font-weight:700;line-height:1.3;}
+
+.save-bar{border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,5,2,.9);flex-shrink:0;}
+.save-status{font-size:.78rem;opacity:.4;}
+.save-status.saved{color:#6ee7a0;opacity:1;}
+
+.loading-msg{text-align:center;padding:60px 20px;opacity:.4;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:1.5rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty-msg{text-align:center;padding:40px 20px;opacity:.32;font-size:.88rem;}
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: בחירת מקצוע -->
+<div class="screen active" id="screen-subject">
+  <div class="topbar">
+    <div class="topbar-title">📖 עת הדעת — בונה שיעורים</div>
+    <button class="btn-back" onclick="goToDashboard()">← לוח המורה</button>
+  </div>
+  <div class="main-wrap">
+    <div class="card">
+      <div class="card-title">בחרי מקצוע</div>
+      <div class="subject-grid" id="subject-grid">
+        <div class="loading-msg"><span class="spin">⏳</span><br>טוען...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2: יחידה חדשה / קיימת -->
+<div class="screen" id="screen-unit-choice">
+  <div class="topbar">
+    <button class="btn-back" onclick="goTo('screen-subject')">← מקצועות</button>
+    <div class="topbar-title" id="uc-subject-name"></div>
+    <div></div>
+  </div>
+  <div class="main-wrap">
+    <div class="card">
+      <div class="card-title">מה תרצי לעשות?</div>
+      <div class="choice-grid">
+        <div class="choice-card" onclick="startNewUnit()">
+          <div class="ch-icon">✨</div>
+          <div class="ch-title">יחידה חדשה</div>
+          <div class="ch-sub">צרי יחידת לימוד מאפס</div>
+        </div>
+        <div class="choice-card" onclick="showExistingUnits()">
+          <div class="ch-icon">📂</div>
+          <div class="ch-title">יחידה קיימת</div>
+          <div class="ch-sub">ערכי יחידה שכבר יצרת</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="existing-units-card" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div class="card-title" style="margin-bottom:0;">יחידות קיימות</div>
+        <button class="btn btn-ghost btn-sm" style="font-size:.75rem;color:#6ee7a0;border-color:rgba(34,197,94,.3);"
+          onclick="recoverUnitsFromFirebase()">🔄 שחזר מ-Firebase</button>
+      </div>
+      <div id="existing-units-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: הגדרת יחידה -->
+<div class="screen" id="screen-unit-setup">
+  <div class="topbar">
+    <button class="btn-back" onclick="goTo('screen-unit-choice')">← בחירה</button>
+    <div class="topbar-title">הגדרת יחידה</div>
+    <button class="btn btn-gold btn-sm" onclick="saveUnitSetup()">המשך לתכנון ←</button>
+  </div>
+
+  <div class="setup-body">
+
+    <div class="card">
+      <div class="card-title">פרטי היחידה</div>
+      <div class="section-label">מספר ושם</div>
+      <div class="input-row">
+        <input class="input-field" id="unit-num" type="number" min="1" max="99"
+          placeholder="מס׳" style="width:70px;text-align:center;">
+        <input class="input-field" id="unit-name" placeholder="שם היחידה" style="flex:1;"
+          oninput="onUnitNameChange()">
+      </div>
+      <input type="hidden" id="unit-avatar-theme" value="">
+    </div>
+
+    <div class="card">
+      <div class="card-title">אווטאר מלווה</div>
+      <div class="section-label">בחרי דמות שתלווה את התלמידים</div>
+      <div class="avatar-grid" id="avatar-grid"></div>
+      <input type="hidden" id="selected-avatar" value="">
+    </div>
+
+    <div class="card">
+      <div class="card-title">שיעורים ביחידה</div>
+      <div class="input-row" style="margin-bottom:14px;">
+        <span style="font-size:.85rem;font-weight:600;white-space:nowrap;">מספר שיעורים:</span>
+        <input class="input-field" id="lesson-count" type="number" min="1" max="20"
+          value="5" style="width:80px;text-align:center;" oninput="buildLessonSetup()">
+      </div>
+      <div class="lesson-setup-list" id="lesson-setup-list"></div>
+    </div>
+
+    <!-- עוזר הוראה -->
+    <div class="setup-side">
+      <div class="setup-side-header">
+        <div class="setup-side-title">🤖 עוזר הוראה — שלב 1</div>
+        <div class="setup-side-sub">לחצי על כפתור או שאלי בחופשיות</div>
+      </div>
+      <div class="setup-ai-body">
+        <div class="unit-goal-wrap" id="unit-goal-wrap">
+          <span class="unit-goal-label">🎯 מטרת-על ליחידה</span>
+          <div id="unit-goal-display" class="unit-goal-empty">עוד לא הוגדרה — לחצי על "הצע מטרת-על"</div>
+          <input type="hidden" id="unit-goal-value" value="">
+        </div>
+        <div class="book-titles-wrap">
+          <span class="book-titles-label">📖 כותרות מספר הלימוד (אופציונלי)</span>
+          <textarea class="book-titles-input" id="book-titles-input"
+            placeholder="הדביקי כותרות מספר הלימוד..."></textarea>
+        </div>
+        <div class="quick-btns">
+          <button class="quick-btn" onclick="quickSetupAI('goal')">🎯 הצע מטרת-על ליחידה</button>
+          <button class="quick-btn" onclick="quickSetupAI('all')">✨ הצע הכל ביחד</button>
+          <button class="quick-btn" onclick="quickSetupAI('topics')">📋 הצע נושאי שיעורים</button>
+          <button class="quick-btn" onclick="quickSetupAI('avatars')">🎭 הצע אוואטרים לתקופה</button>
+        </div>
+        <div id="setup-ai-msgs" class="ai-messages">
+          <div class="ai-msg assistant">שלום! הזיני שם יחידה ואעזור לך לתכנן אותה.</div>
+        </div>
+        <div id="setup-ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
+      </div>
+      <div class="setup-ai-input-row">
+        <input class="setup-ai-input" id="setup-ai-input" placeholder="שאלי בחופשיות..."
+          onkeydown="if(event.key==='Enter') sendSetupAI()">
+        <button class="setup-ai-send" onclick="sendSetupAI()">↑</button>
+      </div>
+    </div>
+
+    <div class="btn-row" style="padding-bottom:40px;">
+      <button class="btn btn-ghost" onclick="goTo('screen-unit-choice')">ביטול</button>
+      <button class="btn btn-gold" onclick="saveUnitSetup()">המשך לתכנון ←</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- SCREEN 4: סקירת יחידה -->
+<div class="screen" id="screen-unit-overview">
+  <div class="topbar">
+    <button class="btn-back" onclick="goTo('screen-unit-choice')">← מקצוע</button>
+    <div class="topbar-title" id="ov-unit-title">סקירת יחידה</div>
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-unit-setup')">✏️ ערכי</button>
+  </div>
+  <div class="main-wrap">
+    <div class="unit-header">
+      <div class="unit-avatar" id="ov-avatar">📖</div>
+      <div>
+        <div class="unit-info-title" id="ov-unit-name">שם היחידה</div>
+        <div class="unit-info-sub" id="ov-unit-meta"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div class="card-title" style="margin-bottom:0;">שיעורים</div>
+        <button class="btn btn-gold btn-sm" onclick="addNewLesson()">+ שיעור חדש</button>
+      </div>
+      <div id="lessons-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 5: בונה שיעור -->
+<div class="screen" id="screen-builder">
+
+  <!-- topbar -->
+  <div class="builder-topbar">
+    <button class="btn-back" onclick="goTo('screen-unit-overview')">← חזרה</button>
+    <div class="builder-meta">
+      <span class="builder-unit" id="b-unit-name"></span>
+      <span class="builder-lesson" id="b-lesson-label"></span>
+    </div>
+    <div class="builder-actions">
+      <button class="btn btn-sm" style="background:rgba(107,70,193,.25);border:1px solid rgba(107,70,193,.5);color:#c4b5fd;" onclick="openLessonBoard()">📺 הצג על לוח</button>
+      <button class="btn btn-green btn-sm" onclick="saveLesson()">💾 שמור שיעור</button>
+    </div>
+  </div>
+
+  <!-- step navigation -->
+  <div class="step-nav">
+    <div class="step-item">
+      <button class="step-btn active" id="step-btn-0" onclick="goToStep(0)">🌅 פתיח</button>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step-item">
+      <button class="step-btn" id="step-btn-1" onclick="goToStep(1)">🚂 גוף השיעור</button>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step-item">
+      <button class="step-btn" id="step-btn-2" onclick="goToStep(2)">🌇 סיום</button>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step-item">
+      <button class="step-btn" id="step-btn-3" onclick="goToStep(3)">⭐ העשרה</button>
+    </div>
+  </div>
+
+  <div class="builder-body">
+    <!-- RIGHT: lesson content -->
+    <div class="lesson-panel">
+
+      <!-- meta (always visible) -->
+      <div class="lesson-meta-card" style="margin-bottom:14px;">
+        <div class="topic-edit-wrap">
+          <input class="topic-edit-input" id="b-topic-input" placeholder="נושא השיעור...">
+          <button class="topic-edit-btn" onclick="saveTopicEdit()">✓ שמור</button>
+        </div>
+        <div class="section-label">מטרות השיעור</div>
+        <textarea class="goals-area" id="b-goals" placeholder="רשמי את מטרות השיעור..."></textarea>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
+      </div>
+
+      <!-- STEP 0: פתיח -->
+      <div class="step-panel active" id="step-panel-0">
+        <div class="section-block intro" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>🌅</span>
+            <span style="font-size:.9rem;font-weight:700;">פתיח</span>
+            <span style="font-size:.7rem;opacity:.4;flex:1;">3 תחנות</span>
+            <div id="section-controls-intro" style="display:flex;gap:6px;align-items:center;"></div>
+          </div>
+          <div style="padding:0 12px 4px;">
+            <textarea id="section-intro-introIntro"
+              style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;resize:vertical;min-height:44px;max-height:120px;outline:none;margin-bottom:8px;"
+              placeholder="הקדמה לקרון פתיח (אופציונלי)..."
+              oninput="lessonData.introIntro=this.value"></textarea>
+          </div>
+          <div style="padding:0 12px 12px;">
+            <div id="intro-rows"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: גוף השיעור -->
+      <div class="step-panel" id="step-panel-1">
+        <div class="section-block body-sec" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>🚂</span>
+            <span style="font-size:.9rem;font-weight:700;">גוף השיעור</span>
+            <span style="font-size:.7rem;opacity:.4;flex:1;">4 תחנות</span>
+            <div id="section-controls-stations" style="display:flex;gap:6px;align-items:center;"></div>
+          </div>
+          <div style="padding:0 12px 4px;">
+            <textarea id="section-intro-bodyIntro"
+              style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;resize:vertical;min-height:44px;max-height:120px;outline:none;margin-bottom:8px;"
+              placeholder="הקדמה לקרון גוף השיעור (אופציונלי)..."
+              oninput="lessonData.bodyIntro=this.value"></textarea>
+          </div>
+          <div style="padding:0 12px 12px;">
+            <div id="stations-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: סיום -->
+      <div class="step-panel" id="step-panel-2">
+        <div class="section-block closing" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>🌇</span>
+            <span style="font-size:.9rem;font-weight:700;">סיום</span>
+            <span style="font-size:.7rem;opacity:.4;flex:1;">תחנה אחת</span>
+            <div id="section-controls-closing" style="display:flex;gap:6px;align-items:center;"></div>
+          </div>
+          <div style="padding:0 12px 4px;">
+            <textarea id="section-intro-closingIntro"
+              style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;resize:vertical;min-height:44px;max-height:120px;outline:none;margin-bottom:8px;"
+              placeholder="הקדמה לקרון סיום (אופציונלי)..."
+              oninput="lessonData.closingIntro=this.value"></textarea>
+          </div>
+          <div style="padding:0 12px 12px;">
+            <div id="close-rows"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: העשרה -->
+      <div class="step-panel" id="step-panel-3">
+        <div class="section-block enrichment" style="border-radius:12px;overflow:hidden;">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;">
+            <span>⭐</span>
+            <span style="font-size:.9rem;font-weight:700;">העשרה</span>
+            <span style="font-size:.7rem;opacity:.4;">4 תבניות</span>
+          </div>
+          <div style="padding:0 12px 12px;">
+            <div id="enrich-templates"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+
+    <!-- LEFT: side panel -->
+    <div class="side-panel">
+      <div class="side-tabs">
+        <div class="side-tab active" onclick="switchSideTab('bank')" id="tab-bank">📦 בנק פריטים</div>
+        <div class="side-tab" onclick="switchSideTab('ai')" id="tab-ai">🤖 עוזר הוראה</div>
+      </div>
+
+      <!-- bank tab -->
+      <div class="side-tab-body" id="panel-bank">
+        <div class="bank-hint" id="bank-hint">לחצי על שורה בשיעור, ואז בחרי פריט</div>
+        <div id="bank-accordion"></div>
+      </div>
+
+      <!-- ai tab -->
+      <div class="side-tab-body" id="panel-ai" style="display:none;">
+        <div class="ai-messages" id="ai-messages">
+          <div class="ai-msg assistant">שלום! לחצי על שורה בשיעור כדי שאעזור לך למלא אותה, או שאלי אותי כל שאלה.</div>
+        </div>
+        <div id="ai-thinking" class="ai-thinking" style="display:none;">חושב...</div>
+      </div>
+      <div class="ai-input-row" id="ai-input-row" style="display:none;">
+        <textarea class="ai-input" id="ai-input" rows="2"
+          placeholder="כתבי הודעה..."
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI();}"></textarea>
+        <button class="ai-send" onclick="sendAI()">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- step footer -->
+  <div class="step-footer">
+    <button class="btn btn-ghost btn-sm" id="btn-prev" onclick="prevStep()" style="visibility:hidden;">← קודם</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="save-status" id="save-status">לא נשמר</span>
+      <button class="btn btn-ghost btn-sm" onclick="goTo('screen-unit-overview')">← ליחידה</button>
+      <button class="btn btn-ghost btn-sm" onclick="saveLesson()">💾 שמור</button>
+    </div>
+    <button class="btn btn-gold btn-sm" id="btn-next" onclick="nextStep()">המשך הבא ←</button>
+  </div>
+
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+let currentSubject=null,currentUnit=null,currentLessonIdx=null,lessonData={},activeRow=null,teacherData=null;
+const AVATARS=['🦁','🦊','🐉','🦅','🦋','🌟','🏺','⚔️','🗺️','📜','🌙','🔭'];
+const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
+let aiHistory=[];
+
+const ITEM_BANK=[
+  {type:'entry_card', icon:'🚪',name:'כרטיס כניסה',  desc:'שאלה שמפעילה ידע קודם'},
+  {type:'exit_card',  icon:'🎫',name:'כרטיס יציאה',  desc:'שאלה מסכמת לסוף שיעור'},
+  {type:'text',       icon:'📄',name:'טקסט / מקור',  desc:'קטע קריאה או מקור ראשוני'},
+  {type:'image',      icon:'🖼️',name:'תמונה',         desc:'תמונה, מפה או מסמך חזותי'},
+  {type:'video',      icon:'▶️',name:'סרטון',         desc:'קישור YouTube'},
+  {type:'question',   icon:'❓',name:'שאלה',          desc:'שאלה פתוחה או סגורה'},
+  {type:'drag_drop',  icon:'🔀',name:'סדר כרונולוגי',desc:'פעילות גרירה לפי סדר'},
+  {type:'discussion', icon:'💬',name:'דיון',          desc:'שאלה לדיון כיתתי'},
+  {type:'summary',    icon:'📝',name:'סיכום',         desc:'ממלאים בסוף תחנה'},
+];
+
+// ── NAV ──
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+function goToDashboard(){
+  // נווט לדאשבורד באותה תיקייה
+  const href=window.location.href.split('?')[0].split('#')[0];
+  const base=href.substring(0,href.lastIndexOf('/')+1);
+  const target=base+'teacher_dashboard.html';
+  window.location.href=target;
+}
+
+function openLessonBoard(){
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  if(!lesson){alert('יש לפתוח שיעור תחילה');return;}
+  const base=window.location.href.split('?')[0].replace('lesson_builder.html','lesson_board.html');
+  const params=`subject=${currentSubject?.id}&unit=${currentUnit?.id}&lesson=${currentLessonIdx}&step=${currentStep}`;
+  const a=document.createElement('a');
+  a.href=base+'?'+params;
+  a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ── INIT ──
+window.onload=function(){
+  db.ref('teacher').once('value',snap=>{
+    teacherData=snap.val()||{};
+    renderSubjects();
+  });
+  renderAvatars();
+  buildLessonSetup();
+  renderBankItems();
+};
+
+// ── SCREEN 1 ──
+function renderSubjects(){
+  const grid=document.getElementById('subject-grid');
+  const subjects=teacherData.subjects?Object.values(teacherData.subjects):[];
+  if(!subjects.length){grid.innerHTML='<div class="empty-msg">אין מקצועות. צרי מקצוע בלוח המורה.</div>';return;}
+  grid.innerHTML=subjects.map(s=>`<div class="subject-card" onclick="selectSubject('${s.id}')"><div class="sc-icon">${s.icon||'📚'}</div><div class="sc-name">${s.name}</div></div>`).join('');
+}
+
+function selectSubject(id){
+  const subjects=teacherData.subjects?Object.values(teacherData.subjects):[];
+  currentSubject=subjects.find(s=>s.id===id);
+  if(!currentSubject)return;
+  document.getElementById('uc-subject-name').textContent=currentSubject.name;
+  document.getElementById('existing-units-card').style.display='none';
+  goTo('screen-unit-choice');
+}
+
+// ── SCREEN 2 ──
+function showExistingUnits(){
+  const card=document.getElementById('existing-units-card');
+  const list=document.getElementById('existing-units-list');
+  list.innerHTML='<div class="empty-msg">טוען...</div>';
+  card.style.display='block';
+  // קריאה טרייה מ-Firebase
+  db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value',snap=>{
+    const units=snap.val()?Object.values(snap.val()):[];
+    // עדכון currentSubject בזיכרון
+    if(!teacherData.subjects[currentSubject.id]) teacherData.subjects[currentSubject.id]=currentSubject;
+    teacherData.subjects[currentSubject.id].units=snap.val()||{};
+    currentSubject=teacherData.subjects[currentSubject.id];
+    if(!units.length){
+      list.innerHTML='<div class="empty-msg">אין יחידות קיימות.</div>';
+      return;
+    }
+    list.innerHTML=units.map((u,idx)=>`
+      <div class="lesson-list-item" onclick='openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})'>
+        <div class="li-num">${u.avatar||'📖'}</div>
+        <div class="li-info">
+          <div class="li-name">${u.num?u.num+'. ':''}${u.name}</div>
+          <div class="li-status">${u.lessons?Object.values(u.lessons).length:0} שיעורים</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+            onclick="event.stopPropagation();openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})">✏️ ערכי</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
+            data-uid="${u.id}" onclick="event.stopPropagation();deleteUnitById(this)">🗑</button>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function deleteUnitById(btn){
+  const unitId=btn.dataset.uid;
+  const item=btn.closest('.lesson-list-item');
+  const nameEl=item?.querySelector('.li-name');
+  const name=nameEl?nameEl.textContent.trim():'יחידה זו';
+  deleteUnit(unitId, name);
+}
+
+async function deleteUnit(unitId, unitName){
+  if(!confirm('למחוק את היחידה "'+unitName+'"?'))return;
+  try{
+    // תמיד מחפש את ה-key האמיתי ב-Firebase — כי לפעמים ה-key שונה מה-id
+    const snap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
+    const units=snap.val()||{};
+    let deleted=false;
+    for(const [key,u] of Object.entries(units)){
+      // התאמה לפי id או לפי Firebase key
+      if(key===unitId || u.id===unitId){
+        await db.ref(`teacher/subjects/${currentSubject.id}/units/${key}`).remove();
+        deleted=true;
+        break;
+      }
+    }
+    // אם לא מצא לפי id — מחק לפי שם (רק יחידה עם 0 שיעורים)
+    if(!deleted){
+      for(const [key,u] of Object.entries(units)){
+        if(u.name===unitName && (!u.lessons||Object.keys(u.lessons||{}).length===0)){
+          await db.ref(`teacher/subjects/${currentSubject.id}/units/${key}`).remove();
+          break;
+        }
+      }
+    }
+    // עדכון זיכרון
+    if(teacherData?.subjects?.[currentSubject.id]?.units && unitId && unitId!=='undefined'){
+      delete teacherData.subjects[currentSubject.id].units[unitId];
+    }
+    if(currentSubject?.units && unitId && unitId!=='undefined'){
+      delete currentSubject.units[unitId];
+    }
+    // Refresh from Firebase
+    const freshSnap=await db.ref(`teacher/subjects/${currentSubject.id}/units`).once('value');
+    currentSubject.units=freshSnap.val()||{};
+    if(teacherData?.subjects?.[currentSubject.id])
+      teacherData.subjects[currentSubject.id].units=currentSubject.units;
+    showExistingUnits();
+  }catch(e){
+    alert('שגיאה במחיקה: '+e.message);
+  }
+}
+
+async function recoverUnitsFromFirebase(){
+  const list=document.getElementById('existing-units-list');
+  list.innerHTML='<div class="empty-msg">🔍 קורא ישירות מ-Firebase...</div>';
+  try{
+    const snap=await db.ref(`teacher/subjects/${currentSubject.id}`).once('value');
+    const subjectData=snap.val();
+    if(!subjectData){
+      list.innerHTML='<div class="empty-msg">⚠️ המקצוע לא נמצא ב-Firebase.</div>';return;
+    }
+    const unitsObj=subjectData.units||{};
+    const units=Object.values(unitsObj);
+    if(!units.length){
+      list.innerHTML='<div class="empty-msg">אין יחידות ב-Firebase למקצוע זה.</div>';return;
+    }
+    teacherData.subjects[currentSubject.id].units=unitsObj;
+    currentSubject=teacherData.subjects[currentSubject.id];
+    list.innerHTML=`<div style="font-size:.75rem;color:#6ee7a0;margin-bottom:12px;padding:8px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;">
+      ✅ שוחזרו ${units.length} יחידות מ-Firebase
+    </div>`+units.map(u=>`
+      <div class="lesson-list-item" onclick='openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})'>
+        <div class="li-num">${u.avatar||'📖'}</div>
+        <div class="li-info">
+          <div class="li-name">${u.num?u.num+'. ':''}${u.name||'(ללא שם)'}</div>
+          <div class="li-status">${u.lessons?Object.values(u.lessons).length:0} שיעורים</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+            onclick="event.stopPropagation();openExistingUnit(${JSON.stringify(u).replace(/'/g,"&#39;")})">✏️ ערכי</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
+            data-uid="${u.id}" onclick="event.stopPropagation();deleteUnitById(this)">🗑</button>
+        </div>
+      </div>`).join('');
+  }catch(e){
+    list.innerHTML='<div class="empty-msg">שגיאה: '+e.message+'</div>';
+  }
+}
+
+function openExistingUnit(unit){
+  currentUnit=unit;
+  // Firebase מחזיר lessons כ-object — נמיר למערך
+  if(currentUnit.lessons && !Array.isArray(currentUnit.lessons)){
+    currentUnit.lessons=Object.values(currentUnit.lessons);
+  }
+  if(!currentUnit.lessons) currentUnit.lessons=[];
+  renderUnitOverview();
+  goTo('screen-unit-overview');
+}
+
+// ── SCREEN 3 ──
+function startNewUnit(){
+  const units=currentSubject.units?Object.values(currentSubject.units):[];
+  document.getElementById('unit-num').value=units.length+1;
+  document.getElementById('unit-name').value='';
+  document.getElementById('selected-avatar').value=AVATARS[0];
+  document.getElementById('lesson-count').value=5;
+  document.getElementById('unit-goal-value').value='';
+  document.getElementById('unit-goal-display').textContent='עוד לא הוגדרה — לחצי על "הצע מטרת-על"';
+  document.getElementById('unit-goal-display').className='unit-goal-empty';
+  document.getElementById('book-titles-input').value='';
+  // reset AI chat
+  const msgs=document.getElementById('setup-ai-msgs');
+  msgs.innerHTML='<div class="ai-msg assistant">שלום! אני עוזר ההוראה שלך לשלב תכנון היחידה.<br><br>תוכלי להדביק כותרות מספר הלימוד ואנסח לך מטרת-על + מבנה שיעורים, או שאוכל להציע מתוך הידע שלי.</div>';
+  renderAvatars();
+  buildLessonSetup();
+  goTo('screen-unit-setup');
+}
+
+function renderAvatars(){
+  const grid=document.getElementById('avatar-grid');
+  if(!grid)return;
+  const sel=document.getElementById('selected-avatar')?.value||AVATARS[0];
+  grid.innerHTML=AVATARS.map(a=>`<div class="avatar-opt ${a===sel?'selected':''}" onclick="selectAvatar('${a}')">${a}</div>`).join('');
+}
+
+function selectAvatar(a){document.getElementById('selected-avatar').value=a;renderAvatars();}
+
+function buildLessonSetup(){
+  const n=parseInt(document.getElementById('lesson-count')?.value)||5;
+  const list=document.getElementById('lesson-setup-list');
+  if(!list)return;
+  const existing=Array.from(list.querySelectorAll('.ls-input')).map(i=>i.value);
+  list.innerHTML=Array.from({length:n},(_,i)=>`<div class="lesson-setup-row"><div class="ls-num">${i+1}</div><input class="ls-input" placeholder="נושא שיעור ${i+1}..." value="${existing[i]||''}"></div>`).join('');
+}
+
+function onUnitNameChange(){
+  // reset avatar theme suggestion when name changes
+  document.getElementById('unit-avatar-theme').value='';
+}
+
+async function quickSetupAI(type){
+  const unitName=document.getElementById('unit-name').value.trim();
+  const lessonCount=document.getElementById('lesson-count').value||'5';
+  const bookTitles=document.getElementById('book-titles-input').value.trim();
+  const unitGoal=document.getElementById('unit-goal-value').value.trim();
+
+  if(!unitName&&type!=='avatars'){
+    addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;
+  }
+
+  let prompt='';
+  const bookCtx=bookTitles?`\nכותרות ספר הלימוד:\n${bookTitles}`:'';
+  const goalCtx=unitGoal?`\nמטרת-על קיימת: ${unitGoal}`:'';
+
+  const goalInstructions=`מטרת-על היא הרמה הכוללנית ביותר — היא מתארת חזון חינוכי לטווח רחוק, לא ביצוע ספציפי.
+היא משתמשת בפעלים כמו: "לטפח", "לבסס", "לחנך ל", "להעמיק זיקה", "לפתח תודעה".
+היא אינה נמדדת במבחן — היא מכוונת את הדרך.
+דוגמאות לניסוח נכון:
+- "לטפח זיקה חיה ומשמעותית למורשת ישראל"
+- "לבסס תודעה היסטורית כחלק מרצף תרבותי רב-דורי"
+- "לחנך לאחריות אזרחית ולהבנת הקשר בין עבר להווה"
+דוגמאות לניסוח שגוי (אלה מטרות שיעור, לא מטרת-על):
+- "בסיום היחידה התלמיד יוכל לתאר..."
+- "התלמיד יזהה את..."`;
+
+  if(type==='goal'){
+    prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}
+${goalInstructions}
+נסחי מטרת-על אחת ליחידה זו. כתבי משפט אחד בלבד.`;
+
+  } else if(type==='topics'){
+    prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}${goalCtx}
+הצעי ${lessonCount} נושאי שיעורים מסודרים לפי רצף לוגי.
+כתבי רשימה ממוספרת בלבד, כל נושא בשורה אחת.`;
+
+  } else if(type==='all'){
+    prompt=`אני מורה בונה יחידת לימוד בנושא: "${unitName}".${bookCtx}
+אנא עזרי לי עם:
+1. מטרת-על ליחידה — משפט אחד בלבד לפי ההנחיות הבאות:
+${goalInstructions}
+2. ${lessonCount} נושאי שיעורים מסודרים לפי רצף לוגי (רשימה ממוספרת)
+הפרידי בין החלקים בכותרות ברורות.`;
+
+  } else if(type==='avatars'){
+    if(!unitName){addMsg('setup-ai-msgs','יש להזין שם יחידה תחילה','assistant');return;}
+    prompt=`יחידת לימוד בנושא: "${unitName}". הצעי 4 אמוג׳י מתאימים כאוואטרים לתקופה/נושא. כתבי רק 4 אמוג׳י עם שם קצר לכל אחד.`;
+  }
+
+  addMsg('setup-ai-msgs',prompt,'user');
+  document.getElementById('setup-ai-thinking').style.display='block';
+
+  const sys=`אתה עוזר הוראה מקצועי לתכנון יחידות לימוד.
+ענה בעברית, קצר וממוקד. אל תוסיף הסברים מיותרים.`;
+
+  const reply=await callAI(sys,prompt,[]);
+  document.getElementById('setup-ai-thinking').style.display='none';
+  addMsg('setup-ai-msgs',reply,'assistant');
+
+  // הצע כפתור "החל הצעה" אחרי תשובה על goal או all
+  if(type==='goal'||type==='all'){
+    addApplyBtn(reply, type);
+  }
+  if(type==='avatars') document.getElementById('unit-avatar-theme').value=unitName;
+}
+
+function addApplyBtn(aiReply, type){
+  const msgs=document.getElementById('setup-ai-msgs');
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;';
+
+  if(type==='goal'||type==='all'){
+    const btn1=document.createElement('button');
+    btn1.className='ai-apply-btn';
+    btn1.textContent='✓ החל מטרת-על';
+    btn1.onclick=()=>{
+      const lines=aiReply.split('\n').filter(l=>l.trim());
+      // מחפש שורה עם פעלי מטרת-על
+      const goalVerbs=['לטפח','לבסס','לחנך','להעמיק','לפתח','לעודד','לחזק','לטפח'];
+      let goalLine=lines.find(l=>goalVerbs.some(v=>l.includes(v)));
+      if(!goalLine) goalLine=lines.find(l=>l.includes('מטרת-על')||l.includes('מטרת על'));
+      if(!goalLine) goalLine=lines[0];
+      const clean=goalLine.replace(/^\d+[\.\)]\s*/,'').replace(/^מטרת-על[:：]\s*/i,'').replace(/^\*+\s*/,'').trim();
+      document.getElementById('unit-goal-value').value=clean;
+      document.getElementById('unit-goal-display').textContent=clean;
+      document.getElementById('unit-goal-display').className='unit-goal-text';
+      addMsg('setup-ai-msgs','✅ מטרת-העל הוחלה','assistant');
+      wrap.remove();
+    };
+    wrap.appendChild(btn1);
+  }
+
+  if(type==='all'){
+    const btn2=document.createElement('button');
+    btn2.className='ai-apply-btn';
+    btn2.textContent='✓ החל נושאי שיעורים';
+    btn2.onclick=()=>{
+      // מחלץ שורות ממוספרות
+      const lines=aiReply.split('\n')
+        .filter(l=>/^\d+[\.\)]\s+/.test(l.trim()))
+        .map(l=>l.replace(/^\d+[\.\)]\s+/,'').trim())
+        .filter(Boolean);
+      if(!lines.length){addMsg('setup-ai-msgs','לא מצאתי נושאים ממוספרים בתשובה','assistant');return;}
+      document.getElementById('lesson-count').value=lines.length;
+      buildLessonSetup();
+      setTimeout(()=>{
+        const inputs=document.querySelectorAll('.ls-input');
+        lines.forEach((t,i)=>{if(inputs[i])inputs[i].value=t;});
+        addMsg('setup-ai-msgs','✅ נושאי השיעורים הוחלו','assistant');
+      },100);
+      wrap.remove();
+    };
+    wrap.appendChild(btn2);
+  }
+
+  msgs.appendChild(wrap);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+async function sendSetupAI(){
+  const inp=document.getElementById('setup-ai-input');
+  const msg=inp.value.trim();if(!msg)return;
+  inp.value='';
+  addMsg('setup-ai-msgs',msg,'user');
+  document.getElementById('setup-ai-thinking').style.display='block';
+  const unitName=document.getElementById('unit-name').value.trim();
+  const unitGoal=document.getElementById('unit-goal-value').value.trim();
+  const bookTitles=document.getElementById('book-titles-input').value.trim();
+  const sys=`אתה עוזר הוראה לתכנון יחידות לימוד.
+יחידה: "${unitName||'לא הוגדר'}"${unitGoal?'\nמטרת-על: '+unitGoal:''}${bookTitles?'\nכותרות ספר:\n'+bookTitles.substring(0,300):''}
+ענה בעברית, קצר ומקצועי.`;
+  const reply=await callAI(sys,msg,[]);
+  document.getElementById('setup-ai-thinking').style.display='none';
+  addMsg('setup-ai-msgs',reply,'assistant');
+}
+
+function addMsg(containerId,text,role){
+  const el=document.getElementById(containerId);
+  const d=document.createElement('div');d.className='ai-msg '+role;d.textContent=text;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+
+async function saveUnitSetup(){
+  const name=document.getElementById('unit-name').value.trim();
+  if(!name){alert('יש להזין שם ליחידה');return;}
+  const num=document.getElementById('unit-num').value.trim();
+  const inputs=document.querySelectorAll('.ls-input');
+  // שמירה רק של שיעורים עם נושא
+  const lessons=Array.from(inputs)
+    .filter(inp=>inp.value.trim())
+    .map((inp,i)=>({
+      id:'lesson_'+(i+1),num:i+1,
+      name:'שיעור '+(i+1),
+      topic:inp.value.trim(),
+      status:'draft',data:null
+    }));
+  // אפשר לשמור יחידה גם ללא שיעורים — ניתן להוסיף אח"כ
+  currentUnit={
+    id:currentUnit?.id||'unit_'+Date.now(),
+    num,name,
+    avatar:document.getElementById('selected-avatar').value||AVATARS[0],
+    avatarTheme:document.getElementById('unit-avatar-theme').value||'',
+    unitGoal:document.getElementById('unit-goal-value').value.trim()||'',
+    lessons
+  };
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}`).set(currentUnit);
+  if(!teacherData.subjects) teacherData.subjects={};
+  if(!teacherData.subjects[currentSubject.id]) teacherData.subjects[currentSubject.id]=currentSubject;
+  if(!teacherData.subjects[currentSubject.id].units) teacherData.subjects[currentSubject.id].units={};
+  teacherData.subjects[currentSubject.id].units[currentUnit.id]=currentUnit;
+  currentSubject=teacherData.subjects[currentSubject.id];
+  renderUnitOverview();
+  goTo('screen-unit-overview');
+}
+
+// ── SCREEN 4 ──
+function renderUnitOverview(){
+  document.getElementById('ov-unit-title').textContent=currentUnit.name;
+  document.getElementById('ov-avatar').textContent=currentUnit.avatar||'📖';
+  document.getElementById('ov-unit-name').textContent=(currentUnit.num?currentUnit.num+'. ':'')+currentUnit.name;
+  document.getElementById('ov-unit-meta').textContent=(currentUnit.lessons?.length||0)+' שיעורים';
+  const list=document.getElementById('lessons-list');
+  const lessons=currentUnit.lessons||[];
+  if(!lessons.length){list.innerHTML='<div class="empty-msg">אין שיעורים</div>';return;}
+  list.innerHTML=lessons.map((l,i)=>`
+    <div class="lesson-list-item" onclick="openLessonBuilder(${i})">
+      <div class="li-num">${l.num||i+1}</div>
+      <div class="li-info">
+        <div class="li-name">${l.topic||l.name}</div>
+        <div class="li-status">${l.status==='ready'?'✅ מוכן':'✏️ טיוטה'}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+          onclick="event.stopPropagation();previewLesson(${i})">👁 תצוגה</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 10px;"
+          onclick="event.stopPropagation();openLessonBuilder(${i})">✏️ ערכי</button>
+        <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;"
+          onclick="event.stopPropagation();deleteLesson(${i})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addNewLesson(){
+  const topic=prompt('נושא השיעור החדש:');
+  if(!topic||!topic.trim())return;
+  if(!currentUnit.lessons) currentUnit.lessons=[];
+  const idx=currentUnit.lessons.length;
+  const newLesson={
+    id:'lesson_'+(idx+1),
+    num:idx+1,
+    name:'שיעור '+(idx+1),
+    topic:topic.trim(),
+    status:'draft',
+    data:null
+  };
+  currentUnit.lessons.push(newLesson);
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons`).set(currentUnit.lessons);
+  if(teacherData?.subjects?.[currentSubject.id]?.units?.[currentUnit.id])
+    teacherData.subjects[currentSubject.id].units[currentUnit.id].lessons=currentUnit.lessons;
+  renderUnitOverview();
+  // פתח מיד את בונה השיעור החדש
+  openLessonBuilder(idx);
+}
+
+// ── SCREEN 5 ──
+function openLessonBuilder(idx){
+  currentLessonIdx=idx;
+  const lesson=currentUnit.lessons[idx];
+  const saved=lesson.data||{};
+  // Migrate old slot-based stations to new freeText format
+  function migrateStation(st){
+    if(st.freeText!==undefined) return st; // already new format
+    // Convert old slots to freeText
+    const text=(st.slots||[]).map(s=>s?.content||'').filter(Boolean).join('\n');
+    const hasItem=(st.slots||[]).find(s=>s?.type&&s.type!==null);
+    return {
+      freeText: text,
+      hasAnswer: false,
+      item: hasItem?{type:hasItem.type,content:hasItem.content||'',tableData:hasItem.tableData||null,mcData:hasItem.mcData||null,tfData:hasItem.tfData||null}:null,
+      displayMode: st.displayMode||'simultaneous',
+      newPage: st.newPage!==false
+    };
+  }
+  // מבנה תחנה חדש: {items:[],displayMode}
+  function newStation(){ return {items:[null,null,null], displayMode:'simultaneous'}; }
+  function migrateToNew(st){
+    if(Array.isArray(st.items)) return st; // already new format
+    // migrate old format
+    const item = st.item||null;
+    return {items:[item,null,null], displayMode:st.displayMode||'simultaneous'};
+  }
+  lessonData={
+    goals:saved.goals||'',
+    introIntro: saved.introIntro||'',
+    bodyIntro: saved.bodyIntro||'',
+    closingIntro: saved.closingIntro||'',
+    enrichmentIntro: saved.enrichmentIntro||'',
+    intro:(saved.intro||Array.from({length:3},()=>({}))).map(migrateToNew),
+    stations:(saved.stations||Array.from({length:4},()=>({}))).map(migrateToNew),
+    closing:[(saved.closing&&saved.closing[0]?migrateToNew(saved.closing[0]):{items:[null,null,null],displayMode:'simultaneous'})],
+    enrichmentStations:(saved.enrichmentStations||Array.from({length:3},()=>({}))).map(migrateToNew),
+    introSettings:saved.introSettings||{newPage:true,mode:'simultaneous'},
+    stationsSettings:saved.stationsSettings||{newPage:true,mode:'simultaneous'},
+    closingSettings:saved.closingSettings||{newPage:true,mode:'simultaneous'},
+    enrichment:saved.enrichment||{
+      pairs:[],selectedGames:[],
+      qa:[],qaSelectedGames:[],
+      sequence:[],seqSelectedGames:[],
+      categories:[],catSelectedGames:[]
+    }
+  };
+  document.getElementById('b-unit-name').textContent=currentUnit.name;
+  document.getElementById('b-lesson-label').textContent=' · שיעור '+(lesson.num||idx+1)+'/'+currentUnit.lessons.length;
+  document.getElementById('b-topic-input').value=lesson.topic||lesson.name;
+  document.getElementById('b-goals').value=lessonData.goals;
+  activeRow=null;
+  aiHistory=[];
+  currentStep=0;
+  renderLessonStructure();
+  // load bank from Firebase then render accordion
+  loadBankFromFirebase(()=>renderBankAccordion());
+  goToStep(0);
+  setSaveStatus('');
+  goTo('screen-builder');
+}
+
+function previewLesson(idx){
+  const lesson=currentUnit.lessons[idx];
+  if(!lesson){alert('יש לשמור את השיעור תחילה');return;}
+  const base=window.location.href.split('?')[0].replace('lesson_builder.html','lesson_page.html');
+  const params=`subject=${currentSubject.id}&unit=${currentUnit.id}&lesson=${idx}&student=תצוגה+מקדימה&preview=1`;
+  const a=document.createElement('a');
+  a.href=base+'?'+params;
+  a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+async function deleteLesson(idx){
+  if(!confirm('למחוק את השיעור "'+currentUnit.lessons[idx].topic+'"?'))return;
+  currentUnit.lessons.splice(idx,1);
+  currentUnit.lessons.forEach((l,i)=>{l.num=i+1;});
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons`).set(currentUnit.lessons);
+  renderUnitOverview();
+}
+
+function saveTopicEdit(){
+  const val=document.getElementById('b-topic-input').value.trim();
+  if(!val)return;
+  currentUnit.lessons[currentLessonIdx].topic=val;
+  document.getElementById('b-lesson-label').textContent=
+    ' · שיעור '+(currentUnit.lessons[currentLessonIdx].num||currentLessonIdx+1)+'/'+currentUnit.lessons.length;
+  setSaveStatus('שינויים לא שמורים');
+}
+
+// ── NEW STATION HELPERS ──
+function openBankForStationSlot(section, si, slotIdx){
+  window._bankTarget={section, si, slotIdx};
+  // switch to bank tab
+  const bankTab=document.querySelector('.side-tab[onclick*="bank"]');
+  if(bankTab) bankTab.click();
+  // פתח את כל קטגוריות הבנק אוטומטית כדי שהפריטים יהיו לחיצים
+  setTimeout(()=>{
+    document.querySelectorAll('.bank-cat-items').forEach(el=>el.classList.add('open'));
+    document.querySelectorAll('.bank-cat-chevron').forEach(el=>el.classList.add('open'));
+    document.querySelectorAll('.bank-cat-header').forEach(h=>h.classList.add('open'));
+    const hint=document.getElementById('bank-hint');
+    if(hint){
+      hint.textContent='✨ עכשיו לחצי על פריט להוספה לתחנה';
+      hint.style.cssText='background:rgba(212,168,67,.18);border:1.5px solid var(--gold);border-radius:8px;padding:8px 12px;color:var(--gold2);font-weight:700;font-size:.82rem;text-align:center;';
+    }
+    // הבלט את פריטי הבנק
+    document.querySelectorAll('.bank-cube').forEach(el=>{
+      el.style.border='1px solid rgba(212,168,67,.5)';
+      el.style.cursor='pointer';
+    });
+  }, 50);
+}
+
+function clearBankHighlight(){
+  const hint=document.getElementById('bank-hint');
+  if(hint){
+    hint.textContent='לחצי על שורה בשיעור, ואז בחרי פריט';
+    hint.style.cssText='';
+  }
+  document.querySelectorAll('.bank-cube').forEach(el=>{
+    el.style.border='';
+  });
+}
+
+function removeStationSlotItem(section, si, slotIdx){
+  const arr = section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:
+              section==='enrichmentStations'?lessonData.enrichmentStations:lessonData.stations;
+  if(arr[si]){
+    if(!Array.isArray(arr[si].items)) arr[si].items=[arr[si].item||null,null,null];
+    arr[si].items[slotIdx]=null;
+    renderLessonStructure();
+    reopenStation(section, si);
+    setSaveStatus('שינויים לא שמורים');
+  }
+}
+
+function getStationArr(section){
+  if(section==='intro') return lessonData.intro;
+  if(section==='closing') return lessonData.closing;
+  if(section==='enrichmentStations') return lessonData.enrichmentStations;
+  return lessonData.stations;
+}
+
+function renderLessonStructure(){
+  renderSectionStations('intro-rows', lessonData.intro, 'intro');
+  renderSectionStations('stations-wrap', lessonData.stations, 'body');
+  renderSectionStations('close-rows', lessonData.closing, 'closing');
+  renderSectionControls();
+  renderEnrichmentTemplates();
+  // fill intro fields
+  ['introIntro','bodyIntro','closingIntro','enrichmentIntro'].forEach(f=>{
+    const el=document.getElementById('section-intro-'+f);
+    if(el && !el._dirty) el.value=lessonData[f]||'';
+  });
+}
+
+function renderSimpleRows(containerId,rows,section){
+  // legacy fallback — redirect to new renderer
+  renderSectionStations(containerId, lessonData[section==='closing'?'closing':section==='intro'?'intro':'stations'], section==='closing'?'closing':section==='intro'?'intro':'body');
+}
+
+function renderSectionStations(containerId, stations, section){
+  const c=document.getElementById(containerId);
+  if(!c)return;
+  c.innerHTML=stations.map((st,si)=>buildStationHTML(st,si,section)).join('');
+  // open first station
+  const firstSlots=document.getElementById(`st-slots-${section}-0`);
+  if(firstSlots){firstSlots.classList.add('open');}
+}
+
+function buildStationHTML(st, si, section){
+  const isSim = st.displayMode !== 'sequential';
+  const items = Array.isArray(st.items) ? st.items : [st.item||null, null, null];
+  const filledCount = items.filter(Boolean).length;
+
+  const itemsHtml = items.map((item, ii) => {
+    const bankItem = item ? bankData.find(b=>(b.id||b.type)===item.type) : null;
+    if(!item){
+      return `<div style="flex:1;min-height:64px;background:rgba(253,245,224,.02);border:1px dashed rgba(212,168,67,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;"
+        onclick="openBankForStationSlot('${section}',${si},${ii})" title="הוסף פריט מהבנק">
+        <span style="font-size:.78rem;opacity:.3;color:var(--gold);">+ פריט ${ii+1}</span>
+      </div>`;
+    }
+    return `<div style="flex:1;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.2);border-radius:8px;padding:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:.8rem;font-weight:700;color:var(--gold2);">${bankItem?.icon||'📄'} ${bankItem?.name||item.type}</span>
+        <button onclick="removeStationSlotItem('${section}',${si},${ii})"
+          style="padding:2px 7px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:4px;color:#f87171;cursor:pointer;font-size:.7rem;">✕</button>
+      </div>
+      <div>${buildItemEditor(item, section, si, ii)}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="station-block" id="st-block-${section}-${si}">
+    <div class="station-header" onclick="toggleStationNew('${section}',${si})">
+      <div class="station-num">${si+1}</div>
+      <div class="station-label">תחנה ${si+1}${filledCount?' · '+filledCount+' פריטים':''}</div>
+      <div class="station-display-toggle" onclick="event.stopPropagation()">
+        <button class="disp-btn ${isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'simultaneous')">בו-זמנית</button>
+        <button class="disp-btn ${!isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'sequential')">זה אחר זה</button>
+      </div>
+      <button onclick="event.stopPropagation();askStationAI('${section}',${si})"
+        style="padding:3px 10px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:var(--gold);font-size:.72rem;cursor:pointer;font-family:Heebo,sans-serif;">🤖 עוזר</button>
+      <span id="stch-${section}-${si}" style="opacity:.4;font-size:.7rem;margin-right:4px;">▼</span>
+    </div>
+    <div class="station-slots" id="st-slots-${section}-${si}">
+      <div style="display:flex;gap:8px;padding:10px;width:100%;">
+        ${itemsHtml}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildSlotHTML(slot, si, sli, section){
+  const uid=`slot-${section}-${si}-${sli}`;
+  const bankItem=bankData.find(b=>b.id===slot?.type||b.type===slot?.type);
+  const isActive=activeRow&&activeRow.uid===uid;
+
+  // קוביה ריקה — מציג אפשרות כתיבה חופשית
+  if(!slot?.type){
+    return `<div class="slot-item ${isActive?'active':''}"
+      id="${uid}" onclick="selectSlot('${section}',${si},${sli})">
+      <span class="slot-num">${sli+1}</span>
+      <span class="slot-icon" style="opacity:.25;">✏️</span>
+      <span class="slot-empty">כתיבה חופשית / בחרי פריט</span>
+    </div>
+    <div class="slot-inline-editor" id="ed-${uid}" style="display:none;"></div>`;
+  }
+
+  const hasContent=slot.type&&(slot.content||slot.tableData);
+  return `<div class="slot-item ${isActive?'active':''}"
+    id="${uid}" onclick="selectSlot('${section}',${si},${sli})">
+    <span class="slot-num">${sli+1}</span>
+    <span class="slot-icon">${bankItem?.icon||'📄'}</span>
+    <span class="slot-type">${bankItem?.name||slot.type}</span>
+    ${hasContent&&slot.content?`<span style="font-size:.65rem;opacity:.55;">${trunc(slot.content,25)}</span>`:''}
+  </div>
+  <div class="slot-inline-editor" id="ed-${uid}" style="display:none;"></div>`;
+}
+
+function toggleStationNew(section, si){
+  const el=document.getElementById(`st-slots-${section}-${si}`);
+  const ch=document.getElementById(`stch-${section}-${si}`);
+  const open=el.classList.toggle('open');
+  if(ch)ch.textContent=open?'▲':'▼';
+}
+
+function setDisplayMode(section, si, mode){
+  const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
+  arr[si].displayMode=mode;
+  renderLessonStructure();
+  // reopen this station
+  setTimeout(()=>{
+    const el=document.getElementById(`st-slots-${section}-${si}`);
+    if(el)el.classList.add('open');
+  },30);
+  setSaveStatus('שינויים לא שמורים');
+}
+
+// ── SLOT SELECTION ──
+function selectSlot(section, si, sli){
+  const uid=`slot-${section}-${si}-${sli}`;
+  // close previous
+  if(activeRow){
+    const pEl=document.getElementById(activeRow.uid);
+    if(pEl)pEl.classList.remove('active');
+    const pEd=document.getElementById('ed-'+activeRow.uid);
+    if(pEd)pEd.style.display='none';
+  }
+  activeRow={section,si,sli,uid};
+  const el=document.getElementById(uid);
+  if(el)el.classList.add('active');
+  const slot=getSlot(section,si,sli);
+  const edEl=document.getElementById('ed-'+uid);
+  if(edEl){edEl.style.display='block';edEl.innerHTML=buildSlotEditor(slot,section,si,sli,uid);}
+  switchSideTab('bank');
+  const bankItem=bankData.find(b=>b.id===slot?.type||b.type===slot?.type);
+  document.getElementById('bank-hint').textContent=
+    slot?.type?`נוכחי: ${bankItem?.name||slot.type} — בחרי פריט להחלפה`:'בחרי פריט מהבנק';
+}
+
+function getSlot(section, si, sli){
+  const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
+  return arr[si]?.slots[sli];
+}
+
+function setSlot(section, si, sli, data){
+  const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
+  if(arr[si]&&arr[si].slots[sli]){
+    // tableData צריך merge עמוק ולא spread שטוח
+    if(data.tableData){
+      arr[si].slots[sli].tableData=data.tableData;
+    } else {
+      arr[si].slots[sli]={...arr[si].slots[sli],...data};
+    }
+  }
+}
+
+function buildSlotEditor(slot, section, si, sli, uid){
+  // ── כתיבה חופשית (ללא פריט) ──
+  if(!slot?.type){
+    return `<div class="inline-editor-title">✏️ כתיבה חופשית</div>
+      <textarea class="inline-field" id="ef-${uid}" placeholder="כתבי שאלה, הנחיה או כל תוכן אחר...">${esc(slot?.content||'')}</textarea>
+      <div class="editor-btns">
+        <button class="btn btn-ghost btn-sm" onclick="switchToBank('${section}',${si},${sli},'${uid}')">📦 בחרי פריט מהבנק</button>
+        <button class="btn btn-gold btn-sm" onclick="saveFreeText('${section}',${si},${sli},'${uid}')">שמור ✓</button>
+      </div>`;
+  }
+
+  const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
+
+  // ── טבלת מיון ──
+  if(slot.type==='sort_table'){
+    const td=slot.tableData||{cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}],items:[]};
+    
+    const colsHtml=td.cols.map((c,ci)=>{
+      const colItems=td.items.filter(it=>it.answer===ci);
+      return `<div style="flex:1;min-width:0;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:8px;padding:8px;">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;">
+          <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-weight:700;"
+            placeholder="שם קטגוריה" value="${esc(c.name||'')}"
+            onchange="updateTableCol('${section}',${si},${sli},${ci},this.value)">
+          <button onclick="removeTableCol('${section}',${si},${sli},${ci})"
+            style="padding:2px 6px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:4px;color:#f87171;cursor:pointer;font-size:.72rem;">✕</button>
+        </div>
+        ${colItems.map((item)=>{
+          const ii=td.items.indexOf(item);
+          return `<div style="display:flex;align-items:center;gap:3px;margin-bottom:4px;">
+            <input class="inline-field" style="flex:1;min-height:0;padding:3px 6px;font-size:.78rem;"
+              placeholder="פריט" value="${esc(item.text||'')}"
+              onchange="updateTableItem('${section}',${si},${sli},${ii},'text',this.value)">
+            <button onclick="removeTableItem('${section}',${si},${sli},${ii})"
+              style="padding:1px 5px;background:rgba(139,32,32,.15);border:1px solid rgba(139,32,32,.25);border-radius:3px;color:#f87171;cursor:pointer;font-size:.7rem;">✕</button>
+          </div>`;
+        }).join('')}
+        <button onclick="addTableItemToCol('${section}',${si},${sli},${ci})"
+          style="width:100%;padding:4px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:5px;color:var(--gold);font-size:.72rem;cursor:pointer;margin-top:4px;">+ הוסף פריט</button>
+      </div>`;
+    }).join('');
+
+    return `<div class="inline-editor-title">📊 טבלת מיון</div>
+      <div style="font-size:.72rem;opacity:.45;margin-bottom:8px;">הגדירי קטגוריות והוסיפי פריטים לכל עמודה</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;overflow-x:auto;">
+        ${colsHtml}
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="addTableCol('${section}',${si},${sli})"
+          style="padding:5px 12px;background:rgba(212,168,67,.1);border:1px solid var(--border2);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;">+ הוסף עמודה</button>
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveTableData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
+  // ── שאלות רב-ברירה ──
+  if(slot.type==='mc_q'){
+    const mc=slot.mcData||{question:'',options:['','','',''],correct:0};
+    const optHtml=mc.options.map((o,oi)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+        <input type="radio" name="mc-correct-${uid}" value="${oi}" ${mc.correct===oi?'checked':''}
+          onchange="updateMcCorrect('${section}',${si},${sli},${oi})"
+          style="width:16px;height:16px;cursor:pointer;" title="סמני כתשובה נכונה">
+        <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;"
+          placeholder="אפשרות ${oi+1}" value="${esc(o)}"
+          onchange="updateMcOption('${section}',${si},${sli},${oi},this.value)">
+      </div>`).join('');
+    return `<div class="inline-editor-title">🔘 שאלות רב-ברירה</div>
+      <div style="font-size:.72rem;color:var(--gold);opacity:.7;margin-bottom:8px;">⭕ סמני את כדור הרדיו ליד התשובה הנכונה</div>
+      <textarea class="inline-field" style="margin-bottom:8px;" placeholder="כתבי את השאלה..."
+        onchange="updateMcQuestion('${section}',${si},${sli},this.value)">${esc(mc.question)}</textarea>
+      ${optHtml}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-ghost btn-sm" onclick="askRowAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveMcData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
+  // ── שאלות נכון/לא נכון ──
+  if(slot.type==='tf_q'){
+    const tf=slot.tfData||{question:'',correct:true,isSurvey:false};
+    return `<div class="inline-editor-title">✅ נכון / לא נכון</div>
+      <textarea class="inline-field" style="margin-bottom:8px;" placeholder="כתבי טענה לבדיקה..."
+        onchange="updateTfQuestion('${section}',${si},${sli},this.value)">${esc(tf.question)}</textarea>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" ${tf.isSurvey?'checked':''} 
+            onchange="updateTfSurvey('${section}',${si},${sli},this.checked)"
+            style="width:15px;height:15px;">
+          <span>סקר (ללא תשובה נכונה)</span>
+        </label>
+      </div>
+      <div id="tf-correct-${uid}" style="${tf.isSurvey?'display:none':''}">
+        <div style="font-size:.78rem;opacity:.6;margin-bottom:5px;">התשובה הנכונה:</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="updateTfCorrect('${section}',${si},${sli},true,'${uid}')"
+            style="flex:1;padding:7px;border-radius:7px;border:2px solid ${tf.correct===true?'#22c55e':'var(--border)'};background:${tf.correct===true?'rgba(34,197,94,.15)':'transparent'};color:${tf.correct===true?'#22c55e':'var(--parch)'};cursor:pointer;font-weight:700;font-family:Heebo,sans-serif;">✅ נכון</button>
+          <button onclick="updateTfCorrect('${section}',${si},${sli},false,'${uid}')"
+            style="flex:1;padding:7px;border-radius:7px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};background:${tf.correct===false?'rgba(248,129,113,.15)':'transparent'};color:${tf.correct===false?'#f87171':'var(--parch)'};cursor:pointer;font-weight:700;font-family:Heebo,sans-serif;">❌ לא נכון</button>
+        </div>
+      </div>
+      <div class="editor-btns" style="margin-top:8px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveTfData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
+  const isUrl=slot.type==='video'||slot.type==='image';
+  const field=isUrl
+    ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;"
+        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה או Google Drive...'}"
+        value="${esc(slot.content||'')}" oninput="convertDriveLink('ef-${uid}')">
+      ${slot.type==='image'?`<div style="font-size:.7rem;opacity:.4;margin-top:4px;line-height:1.5;">
+        💡 Google Drive: שיתוף ← "כל מי שיש לו קישור" ← העתיקי את ה-ID מהקישור והכניסי:<br>
+        <span style="font-family:monospace;opacity:.6;">https://drive.google.com/uc?export=view&id=<b>ID</b></span>
+      </div>`:''}
+      ${slot.type==='image'&&slot.content?`<img src="${esc(slot.content)}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:8px;object-fit:contain;" onerror="this.style.display='none'">`:''}` 
+    :`<textarea class="inline-field" id="ef-${uid}" placeholder="הכניסי תוכן...">${esc(slot.content||'')}</textarea>`;
+  return `<div class="inline-editor-title">${bankItem?.icon||''} ${bankItem?.name||slot.type}</div>
+    ${field}
+    <div class="editor-btns">
+      <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+      <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+      <button class="btn btn-gold btn-sm" onclick="saveSlotContent('${section}',${si},${sli},'${uid}')">שמור ✓</button>
+    </div>`;
+}
+
+// ── MC & TF EDITORS ──
+function updateMcQuestion(section,si,sli,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.mcData)slot.mcData={question:'',options:['','','',''],correct:0};
+  slot.mcData.question=val;
+}
+function updateMcOption(section,si,sli,oi,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.mcData)slot.mcData={question:'',options:['','','',''],correct:0};
+  slot.mcData.options[oi]=val;
+}
+function updateMcCorrect(section,si,sli,oi){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.mcData)slot.mcData={question:'',options:['','','',''],correct:0};
+  slot.mcData.correct=oi;
+}
+function saveMcData(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  // collect current values from DOM
+  const uid=section+'_'+si+'_'+sli;
+  const q=document.querySelector(`#editor-${uid} textarea`);
+  if(q)slot.mcData={...slot.mcData,question:q.value};
+  saveLesson();
+  flash('✓ נשמר');
+}
+function updateTfQuestion(section,si,sli,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.tfData)slot.tfData={question:'',correct:true,isSurvey:false};
+  slot.tfData.question=val;
+}
+function updateTfCorrect(section,si,sli,val,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.tfData)slot.tfData={question:'',correct:true,isSurvey:false};
+  slot.tfData.correct=val;
+  // re-render buttons
+  const container=document.getElementById('tf-correct-'+uid);
+  if(container){
+    const btns=container.querySelectorAll('button');
+    btns[0].style.borderColor=val===true?'#22c55e':'var(--border)';
+    btns[0].style.background=val===true?'rgba(34,197,94,.15)':'transparent';
+    btns[0].style.color=val===true?'#22c55e':'var(--parch)';
+    btns[1].style.borderColor=val===false?'#f87171':'var(--border)';
+    btns[1].style.background=val===false?'rgba(248,129,113,.15)':'transparent';
+    btns[1].style.color=val===false?'#f87171':'var(--parch)';
+  }
+}
+function updateTfSurvey(section,si,sli,val,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.tfData)slot.tfData={question:'',correct:true,isSurvey:false};
+  slot.tfData.isSurvey=val;
+  const correctDiv=document.getElementById('tf-correct-'+uid);
+  if(correctDiv)correctDiv.style.display=val?'none':'';
+}
+function saveTfData(section,si,sli){
+  saveLesson();flash('✓ נשמר');
+}
+function getSlot(section,si,sli){
+  return lessonData?.[section]?.[si]?.slots?.[sli]||null;
+}
+
+// ── NEW STATION HELPERS ──
+function renderSectionControls(){
+  ['intro','stations','closing'].forEach(sec=>{
+    const el=document.getElementById(`section-controls-${sec}`);
+    if(!el)return;
+    const key=sec+'Settings';
+    const settings=lessonData[key]||{newPage:true,mode:'simultaneous'};
+    el.innerHTML=`
+      <button class="sec-ctrl-btn ${settings.newPage!==false?'on':''}"
+        onclick="toggleSectionSetting('${sec}','newPage')"
+        title="האם הקרון נפתח בדף חדש">
+        📄 דף חדש
+      </button>
+      <button class="sec-ctrl-btn ${settings.mode==='simultaneous'?'on':''}"
+        onclick="setSectionMode('${sec}','simultaneous')">בו-זמנית</button>
+      <button class="sec-ctrl-btn ${settings.mode==='sequential'?'on':''}"
+        onclick="setSectionMode('${sec}','sequential')">זה אחר זה</button>
+    `;
+  });
+}
+function toggleSectionSetting(sec,key){
+  if(!lessonData[sec+'Settings'])lessonData[sec+'Settings']={newPage:true,mode:'simultaneous'};
+  lessonData[sec+'Settings'][key]=!lessonData[sec+'Settings'][key];
+  renderSectionControls();
+  setSaveStatus('שינויים לא שמורים');
+}
+function setSectionMode(sec,mode){
+  if(!lessonData[sec+'Settings'])lessonData[sec+'Settings']={newPage:true,mode:'simultaneous'};
+  lessonData[sec+'Settings'].mode=mode;
+  renderSectionControls();
+  setSaveStatus('שינויים לא שמורים');
+}
+
+function getStation(section,si){
+  const arr=section==='intro'?lessonData.intro:section==='closing'?lessonData.closing:lessonData.stations;
+  return arr?.[si]||null;
+}
+function updateFreeText(section,si,val){
+  const st=getStation(section,si);
+  if(!st)return;
+  st.freeText=val;
+  const cc=document.getElementById(`cc-${section}-${si}`);
+  if(cc)cc.textContent=val.length+'/600 תווים';
+  setSaveStatus('שינויים לא שמורים');
+}
+function toggleAnswerBox(section,si){
+  const st=getStation(section,si);
+  if(!st)return;
+  st.hasAnswer=!st.hasAnswer;
+  renderLessonStructure();
+  reopenStation(section,si);
+  setSaveStatus('שינויים לא שמורים');
+}
+function openBankForStation(section,si){
+  // store target station for bank selection
+  window._bankTarget={section,si};
+  switchSideTab('bank');
+  document.getElementById('bank-hint').textContent='בחרי פריט להוספה לתחנה';
+}
+function removeStationItem(section,si){
+  const st=getStation(section,si);
+  if(!st)return;
+  st.item=null;
+  renderLessonStructure();
+  reopenStation(section,si);
+  setSaveStatus('שינויים לא שמורים');
+}
+function reopenStation(section,si){
+  setTimeout(()=>{
+    const el=document.getElementById(`st-slots-${section}-${si}`);
+    if(el)el.classList.add('open');
+    const ch=document.getElementById(`stch-${section}-${si}`);
+    if(ch)ch.textContent='▲';
+  },30);
+}
+function askStationAI(section,si){
+  const st=getStation(section,si);
+  const sNames={intro:'פתיח',body:'גוף',closing:'סיום'};
+  const cur=st?.freeText||'';
+  const prompt=cur
+    ?`שפרי או הרחיבי את הטקסט הבא לתחנה ב${sNames[section]||section}: "${cur}"`
+    :`הצעי תוכן לתחנה ${si+1} ב${sNames[section]||section} בשיעור זה`;
+  switchSideTab('ai');
+  addMsg('ai-messages',prompt,'user');
+  showThinking(true);
+  const sys=buildLessonContext();
+  callAI(sys,prompt,[]).then(reply=>{
+    showThinking(false);
+    addMsg('ai-messages',reply,'assistant');
+    addMsg('ai-messages','העתיקי את הטקסט לשדה התחנה.','assistant');
+  });
+}
+function buildItemEditor(item, section, si){
+  if(!item||!item.type)return '';
+  const uid=`item-${section}-${si}`;
+  // mc_q
+  if(item.type==='mc_q'){
+    const mc=item.mcData||{question:'',options:['','','',''],correct:0};
+    const optHtml=mc.options.map((o,oi)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <input type="radio" name="mc-${uid}" value="${oi}" ${mc.correct===oi?'checked':''}
+          onchange="updateStationItemMC('${section}',${si},'correct',${oi})" style="cursor:pointer;">
+        <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.82rem;"
+          placeholder="אפשרות ${oi+1}" value="${esc(o)}"
+          onchange="updateStationItemMC('${section}',${si},'option',${oi},this.value)">
+      </div>`).join('');
+    return `<div style="font-size:.7rem;color:var(--gold);margin-bottom:6px;opacity:.7;">⭕ סמני את התשובה הנכונה</div>
+      <textarea class="inline-field" style="margin-bottom:6px;font-size:.82rem;" placeholder="כתבי את השאלה..."
+        onchange="updateStationItemMC('${section}',${si},'question',null,this.value)">${esc(mc.question)}</textarea>
+      ${optHtml}`;
+  }
+  // tf_q
+  if(item.type==='tf_q'){
+    const tf=item.tfData||{question:'',correct:true,isSurvey:false};
+    return `<textarea class="inline-field" style="margin-bottom:6px;font-size:.82rem;" placeholder="כתבי טענה..."
+      onchange="updateStationItemTF('${section}',${si},'question',this.value)">${esc(tf.question)}</textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <label style="font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:4px;">
+          <input type="checkbox" ${tf.isSurvey?'checked':''} onchange="updateStationItemTF('${section}',${si},'isSurvey',this.checked)"> סקר
+        </label>
+        ${!tf.isSurvey?`<button onclick="updateStationItemTF('${section}',${si},'correct',true)"
+          style="padding:4px 10px;border-radius:6px;border:2px solid ${tf.correct===true?'#22c55e':'var(--border)'};background:${tf.correct===true?'rgba(34,197,94,.15)':'transparent'};color:${tf.correct===true?'#22c55e':'var(--parch)'};cursor:pointer;font-size:.75rem;font-family:Heebo,sans-serif;font-weight:700;">✅ נכון</button>
+        <button onclick="updateStationItemTF('${section}',${si},'correct',false)"
+          style="padding:4px 10px;border-radius:6px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};background:${tf.correct===false?'rgba(248,129,113,.1)':'transparent'};color:${tf.correct===false?'#f87171':'var(--parch)'};cursor:pointer;font-size:.75rem;font-family:Heebo,sans-serif;font-weight:700;">❌ לא נכון</button>`:''}
+      </div>`;
+  }
+  // sort_table — פתח פופאפ בלחיצה
+  if(item.type==='sort_table'){
+    const td=item.tableData;
+    const summary=td?`${td.cols.length} עמודות · ${td.items.length} פריטים`:'לחצי לעריכה';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="font-size:.78rem;opacity:.65;">📊 ${summary}</div>
+      <button onclick="openItemPopup('sort_table','${section}',${si},${JSON.stringify(td||null).replace(/"/g,'&quot;')})"
+        style="padding:4px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">✏️ ערכי</button>
+    </div>`;
+  }
+  // generic
+  return `<textarea class="inline-field" style="font-size:.82rem;" placeholder="תוכן הפריט..."
+    onchange="updateStationItemContent('${section}',${si},this.value)">${esc(item.content||'')}</textarea>`;
+}
+function updateStationItemMC(section,si,field,idx,val){
+  const st=getStation(section,si);if(!st||!st.item)return;
+  if(!st.item.mcData)st.item.mcData={question:'',options:['','','',''],correct:0};
+  if(field==='question')st.item.mcData.question=val;
+  else if(field==='option')st.item.mcData.options[idx]=val;
+  else if(field==='correct')st.item.mcData.correct=idx;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateStationItemTF(section,si,field,val){
+  const st=getStation(section,si);if(!st||!st.item)return;
+  if(!st.item.tfData)st.item.tfData={question:'',correct:true,isSurvey:false};
+  st.item.tfData[field]=val;
+  renderLessonStructure();reopenStation(section,si);
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateStationItemContent(section,si,val){
+  const st=getStation(section,si);if(!st||!st.item)return;
+  st.item.content=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+
+// ── TABLE SORT EDITOR ──
+function convertDriveLink(inputId){
+  const inp=document.getElementById(inputId);
+  if(!inp)return;
+  const val=inp.value.trim();
+  // המרת קישור Drive רגיל לקישור תמונה ישיר
+  const m=val.match(/\/file\/d\/([^\/\?]+)/);
+  if(m&&!val.includes('uc?export')){
+    inp.value=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+  }
+}
+
+function saveFreeText(section, si, sli, uid){
+  const f=document.getElementById('ef-'+uid);
+  if(!f)return;
+  // שומר כ-type='text' עם content
+  setSlot(section,si,sli,{type:'text',content:f.value.trim()});
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+
+function switchToBank(section, si, sli, uid){
+  // פותח את הבנק ומאפשר בחירת פריט
+  switchSideTab('bank');
+  document.getElementById('bank-hint').textContent='בחרי פריט — יחליף את הכתיבה החופשית';
+}
+
+function saveSlotContent(section, si, sli, uid){
+  const f=document.getElementById('ef-'+uid);
+  if(!f)return;
+  setSlot(section,si,sli,{content:f.value.trim()});
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+
+function getTableData(section,si,sli){
+  const slot=getSlot(section,si,sli);
+  return slot?.tableData||{cols:[{name:'עמודה 1'},{name:'עמודה 2'},{name:'עמודה 3'}],items:[]};
+}
+function setTableData(section,si,sli,td){
+  setSlot(section,si,sli,{tableData:td});
+}
+function saveTableData(section,si,sli){
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function addTableCol(section,si,sli){
+  const td=getTableData(section,si,sli);
+  td.cols.push({name:'עמודה '+(td.cols.length+1)});
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function removeTableCol(section,si,sli,ci){
+  const td=getTableData(section,si,sli);
+  if(td.cols.length<=1)return;
+  td.cols.splice(ci,1);
+  td.items=td.items.map(it=>({...it,answer:Math.min(it.answer,td.cols.length-1)}));
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function addTableItemToCol(section,si,sli,ci){
+  const td=getTableData(section,si,sli);
+  td.items.push({text:'',answer:ci});
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+
+function addTableItem(section,si,sli){
+  const td=getTableData(section,si,sli);
+  td.items.push({text:'',answer:0});
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function removeTableItem(section,si,sli,ii){
+  const td=getTableData(section,si,sli);
+  td.items.splice(ii,1);
+  setTableData(section,si,sli,td);
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
+}
+function updateTableCol(section,si,sli,ci,val){
+  const td=getTableData(section,si,sli);
+  if(td.cols[ci])td.cols[ci].name=val;
+  setTableData(section,si,sli,td);
+}
+function updateTableItem(section,si,sli,ii,field,val){
+  const td=getTableData(section,si,sli);
+  if(td.items[ii])td.items[ii][field]=val;
+  setTableData(section,si,sli,td);
+}
+
+function clearSlot(section, si, sli, uid){
+  setSlot(section,si,sli,{type:null,content:''});
+  activeRow=null;
+  renderLessonStructure();
+}
+
+async function askSlotAI(uid, section, si, sli){
+  switchSideTab('ai');
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const slot=getSlot(section,si,sli);
+  const bankItem=bankData.find(b=>b.id===slot?.type||b.type===slot?.type);
+  const f=document.getElementById('ef-'+uid);
+  const cur=f?.value||'';
+  const sNames={intro:'פתיח',body:'גוף השיעור',closing:'סיום'};
+  const prompt=cur
+    ?`שפרי את הטקסט לפריט "${bankItem?.name||''}" ב${sNames[section]||section}: "${cur}"`
+    :`הצעי תוכן לפריט "${bankItem?.name||''}" ב${sNames[section]||section} בשיעור: "${lesson?.topic||''}"`;
+  addMsg('ai-messages',prompt,'user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה. ענה בעברית, תוכן פדגוגי קצר.',prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+}
+
+// ── BANK ITEM SELECTION (updated for slots) ──
+function selectBankItem(typeOrId){
+  // If bank was opened for a station (new mode)
+  if(window._bankTarget){
+    const {section, si, slotIdx} = window._bankTarget;
+    window._bankTarget = null;
+    const newItem = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+    const arr = getStationArr(section);
+    if(arr && arr[si]){
+      if(!Array.isArray(arr[si].items)) arr[si].items = [arr[si].item||null, null, null];
+      const idx = slotIdx !== undefined ? slotIdx : arr[si].items.findIndex(x=>!x);
+      const finalIdx = idx >= 0 ? idx : 0;
+      // פתח פופאפ אם קיים
+      if(POPUP_EDITORS[typeOrId]){
+        // save slot target for popup confirm
+        window._popupSlotTarget = {section, si, slotIdx: finalIdx};
+        openItemPopup(typeOrId, section, si, null);
+        return;
+      }
+      arr[si].items[finalIdx] = newItem;
+      renderLessonStructure();
+      reopenStation(section, si);
+      setSaveStatus('שינויים לא שמורים');
+      clearBankHighlight();
+      document.getElementById('bank-hint').textContent='✓ פריט נוסף לתחנה!';
+    }
+    return;
+  }
+  // Legacy slot-based selection
+
+  if(!activeRow){document.getElementById('bank-hint').textContent='לחצי תחילה על שורה בשיעור';return;}
+  const{section,si,sli}=activeRow;
+  const bankItem=bankData.find(b=>b.id===typeOrId||b.type===typeOrId);
+  const type=bankItem?.type||typeOrId;
+  setSlot(section,si,sli,{type:bankItem?.id||typeOrId});
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),40);
+}
+
+// legacy selectors — kept for compatibility
+function selectRow(section,ri,si){ selectSlot(section,si||0,ri); }
+function getRow(section,ri,si){ return getSlot(section,si||0,ri); }
+function setRow(section,ri,si,data){ setSlot(section,si||0,ri,data); }
+function saveRowContent(section,ri,si,uid){ saveSlotContent(section,si||0,ri,uid); }
+function clearRowItem(section,ri,si,uid){ clearSlot(section,si||0,ri,uid); }
+function setAud(ri,si,aud){
+  const arr=lessonData.stations;
+  if(arr[si]&&arr[si].slots[ri]) arr[si].slots[ri].audience=aud;
+  renderLessonStructure();
+}
+
+function rowId(section,ri,si){return `slot-${section}-${si||0}-${ri}`;}
+
+function toggleSection(bodyId,header){
+  const body=document.getElementById(bodyId);
+  const chevron=header.querySelector('.section-chevron');
+  const wasOpen=body.classList.contains('open');
+  body.classList.toggle('open',!wasOpen);
+  if(chevron){chevron.textContent=wasOpen?'▼':'▲';chevron.classList.toggle('open',!wasOpen);}
+}
+
+// ── STEP NAVIGATION ──
+let currentStep=0;
+const STEPS=['intro','body','closing','enrichment'];
+const STEP_LABELS=['🌅 פתיח','🚂 גוף','🌇 סיום','⭐ העשרה'];
+
+function goToStep(step){
+  currentStep=step;
+  document.querySelectorAll('.step-panel').forEach((p,i)=>p.classList.toggle('active',i===step));
+  document.querySelectorAll('.step-btn').forEach((b,i)=>{
+    b.classList.remove('active','done');
+    if(i===step)b.classList.add('active');
+    else if(i<step)b.classList.add('done');
+  });
+  document.getElementById('btn-prev').style.visibility=step===0?'hidden':'visible';
+  document.getElementById('btn-next').textContent=step===3?'✅ סיום ←':'הבא ←';
+  activeRow=null;
+}
+
+function nextStep(){
+  if(currentStep<3)goToStep(currentStep+1);
+  else{saveLesson();goTo('screen-unit-overview');}
+}
+
+function prevStep(){if(currentStep>0)goToStep(currentStep-1);}
+
+// ── BANK (accordion) ──
+const BANK_CATS=[
+  {id:'questions',icon:'📝',name:'שאלות ומשימות'},
+  {id:'writing',  icon:'✍️',name:'כתיבה ויצירה'},
+  {id:'media',    icon:'🎬',name:'מדיה'},
+  {id:'games',    icon:'🎮',name:'משחקי ידע'},
+  {id:'discovery',icon:'🔍',name:'גילוי מיון והתאמה'},
+];
+
+let bankData=[];
+
+function loadBankFromFirebase(cb){
+  firebase.database().ref('teacher/itemBank').once('value',snap=>{
+    bankData=snap.val()?Object.values(snap.val()):ITEM_BANK.map(i=>({...i,cat:ITEM_BANK.indexOf(i)}));
+    cb&&cb();
+  });
+}
+
+function renderBankAccordion(){
+  const acc=document.getElementById('bank-accordion');
+  if(!acc)return;
+  acc.innerHTML=BANK_CATS.map((cat,ci)=>{
+    const items=bankData.filter(it=>it.cat===ci);
+    if(!items.length)return '';
+    return `<div class="bank-cat-section">
+      <div class="bank-cat-header" onclick="toggleBankCat(${ci},this)">
+        <span class="bank-cat-icon">${cat.icon}</span>
+        <span class="bank-cat-name">${cat.name}</span>
+        <span class="bank-cat-count">(${items.length})</span>
+        <span class="bank-cat-chevron" id="bch-${ci}">▼</span>
+      </div>
+      <div class="bank-cat-items" id="bci-${ci}">
+        ${items.map(item=>`
+          <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
+            onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
+            onmouseleave="hideBankTooltip()">
+            <span class="bank-cube-icon">${item.icon||'📄'}</span>
+            <div class="bank-cube-name">${item.name}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleBankCat(ci,header){
+  const items=document.getElementById('bci-'+ci);
+  const chevron=document.getElementById('bch-'+ci);
+  const open=items.classList.toggle('open');
+  header.classList.toggle('open',open);
+  if(chevron)chevron.classList.toggle('open',open);
+}
+
+function renderBankItems(){renderBankAccordion();}
+
+// ── AI ──
+async function callAI(sys,msg,hist){
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:sys,
+        messages:[...hist,{role:'user',content:msg}]})});
+    const d=await r.json();
+    const text=d.content?.[0]?.text||'לא קיבלתי תשובה';
+    return text;
+  }catch(e){return 'שגיאה בחיבור לעוזר.';}
+}
+
+function switchSideTab(tab){
+  document.getElementById('tab-ai').classList.toggle('active',tab==='ai');
+  document.getElementById('tab-bank').classList.toggle('active',tab==='bank');
+  document.getElementById('panel-ai').style.display=tab==='ai'?'block':'none';
+  document.getElementById('panel-bank').style.display=tab==='bank'?'block':'none';
+  document.getElementById('ai-input-row').style.display=tab==='ai'?'flex':'none';
+}
+
+function buildLessonContext(){
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const goals=document.getElementById('b-goals')?.value||lessonData?.goals||'';
+  // Collect station content
+  const sections={intro:'פתיח',stations:'גוף',closing:'סיום'};
+  const slotsSummary=[];
+  ['intro','stations','closing'].forEach(sec=>{
+    const arr=sec==='intro'?lessonData.intro:sec==='closing'?lessonData.closing:lessonData.stations;
+    (arr||[]).forEach((st,si)=>{
+      const ftEl=document.getElementById(`ft-${sec}-${si}`);
+      const text=ftEl?ftEl.value:(st.freeText||'');
+      const item=st.item;
+      const bankItem=item?bankData.find(b=>(b.id||b.type)===item.type):null;
+      let desc=`${sections[sec]} תחנה ${si+1}`;
+      if(text)desc+=`: "${text.slice(0,50)}${text.length>50?'...':''}"`;
+      if(bankItem)desc+=` + פריט: ${bankItem.name}`;
+      if(st.hasAnswer)desc+=' + מלבן תשובה';
+      slotsSummary.push(desc);
+    });
+  });
+  // Bank items summary for recommendations
+  const bankSummary=bankData.map(b=>`${b.icon||''}${b.name}(${(b.usedIn||[]).join(',')})`).join(' | ');
+  return `אתה עוזר הוראה מקצועי ויצירתי. ענה תמיד בעברית, בצורה קצרה וממוקדת.
+
+פרטי השיעור:
+- מקצוע: ${currentSubject?.name||'היסטוריה'}
+- יחידה: ${currentUnit?.name||''}
+- שיעור: ${lesson?.topic||''}
+- מטרות: ${goals||'טרם הוגדרו'}
+
+מה שכבר בנוי בשיעור:
+${slotsSummary.length?slotsSummary.join('\n'):'טרם נוספו פריטים'}
+
+פריטים זמינים בבנק: ${bankSummary}
+
+כשאת ממליצה על פריט — ציין את שמו המדויק מהבנק וסגנון מומלץ.`;
+}
+
+async function sendAI(){
+  const inp=document.getElementById('ai-input');
+  const msg=inp.value.trim();if(!msg)return;
+  inp.value='';
+  addMsg('ai-messages',msg,'user');
+  showThinking(true);
+  const sys=buildLessonContext();
+  aiHistory.push({role:'user',content:msg});
+  const reply=await callAI(sys,msg,aiHistory.slice(0,-1));
+  aiHistory.push({role:'assistant',content:reply});
+  if(aiHistory.length>16)aiHistory=aiHistory.slice(-16);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+}
+
+async function askGoalsAI(){
+  switchSideTab('ai');
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const prompt=`נסחי 3-4 מטרות שיעור ברורות לשיעור בנושא: "${lesson?.topic||''}". כתבי כרשימה.`;
+  addMsg('ai-messages',prompt,'user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה. כתוב מטרות שיעור בעברית.',prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  addMsg('ai-messages','העתיקי את המטרות לשדה למעלה אם מתאים לך.','assistant');
+}
+
+async function askRowAI(uid,section,ri,si){
+  switchSideTab('ai');
+  const f=document.getElementById('ef-'+uid);
+  const cur=f?.value||'';
+  const row=getRow(section,ri,si);
+  const itemId=row?.type;
+  const bankItem=bankData.find(b=>(b.id||b.type)===itemId);
+  const itemName=bankItem?.name||itemId||'';
+  const styles=(bankItem?.styles||[]).map(s=>s.name).join(', ');
+  const sNames={intro:'פתיח',stations:'תחנה',closing:'סיום',enrichment:'העשרה'};
+  const prompt=cur
+    ?`שפרי את הטקסט לפריט "${itemName}" ב${sNames[section]||section}: "${cur}"`
+    :`הצעי תוכן לפריט "${itemName}" ב${sNames[section]||section}.${styles?` סגנונות אפשריים: ${styles}.`:''}`;
+  addMsg('ai-messages',prompt,'user');
+  showThinking(true);
+  const sys=buildLessonContext();
+  const reply=await callAI(sys,prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  addMsg('ai-messages','העתיקי את התשובה לשדה הפריט.','assistant');
+}
+
+function showThinking(v){document.getElementById('ai-thinking').style.display=v?'block':'none';}
+
+// ── Bank Tooltip ──────────────────────────────────────────────────────
+const USED_LABELS={intro:'פתיח',body:'גוף השיעור',closing:'סיום',enrichment:'העשרה'};
+function showBankTooltip(e, itemId){
+  const item=bankData.find(b=>(b.id||b.type)===itemId);
+  if(!item||!item.desc)return;
+  const tip=document.getElementById('bank-tooltip');
+  if(!tip)return;
+  const styles=(item.styles||[]).filter(s=>s.name&&s.desc);
+  const usedIn=(item.usedIn||[]).map(u=>USED_LABELS[u]||u).join(' · ');
+  tip.innerHTML=`
+    <div class="bank-tooltip-title">${item.icon||''} ${item.name}</div>
+    ${item.desc?`<div class="bank-tooltip-desc">${item.desc}</div>`:''}
+    ${styles.length?`<div style="margin-bottom:4px;font-size:.72rem;color:#64748b;font-weight:700;">סגנונות:</div>`:''}
+    ${styles.map(s=>`<div class="bank-tooltip-style">
+      <div class="bank-tooltip-style-name">${s.name}</div>
+      <div class="bank-tooltip-style-desc">${s.desc}</div>
+    </div>`).join('')}
+    ${usedIn?`<div class="bank-tooltip-used">מומלץ ל: ${usedIn}</div>`:''}
+  `;
+  tip.style.display='block';
+  positionTooltip(e,tip);
+}
+function positionTooltip(e,tip){
+  const x=e.clientX, y=e.clientY;
+  const tw=tip.offsetWidth||280, th=tip.offsetHeight||200;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let left=x+14, top=y-20;
+  if(left+tw>vw-10)left=x-tw-14;
+  if(top+th>vh-10)top=vh-th-10;
+  if(top<10)top=10;
+  tip.style.left=left+'px';tip.style.top=top+'px';
+}
+function hideBankTooltip(){
+  const tip=document.getElementById('bank-tooltip');
+  if(tip)tip.style.display='none';
+}
+
+// ── SAVE ──
+async function saveLesson(){
+  lessonData.goals=document.getElementById('b-goals').value;
+  const lesson=currentUnit.lessons[currentLessonIdx];
+  // שמירת נושא מעודכן
+  lesson.topic=document.getElementById('b-topic-input').value.trim()||lesson.topic;
+  // Collect freeText from DOM before saving
+  ['intro','stations','closing'].forEach(sec=>{
+    const arr=sec==='intro'?lessonData.intro:sec==='closing'?lessonData.closing:lessonData.stations;
+    (arr||[]).forEach((st,si)=>{
+      const ftEl=document.getElementById(`ft-${sec}-${si}`);
+      if(ftEl)st.freeText=ftEl.value;
+    });
+  });
+  lesson.data=lessonData;
+  // עדכון סטטוס: ready אם יש תוכן לפחות בתחנה אחת
+  const hasContent=[...lessonData.intro,...lessonData.stations,...lessonData.closing]
+    .some(st=>(st.freeText||'').trim()||st.item);
+  if(hasContent) lesson.status='ready';
+  // עדכון זיכרון
+  currentUnit.lessons[currentLessonIdx]=lesson;
+  if(teacherData?.subjects?.[currentSubject.id]?.units?.[currentUnit.id])
+    teacherData.subjects[currentSubject.id].units[currentUnit.id].lessons=currentUnit.lessons;
+  await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}/lessons/${currentLessonIdx}`).set(lesson);
+  setSaveStatus('saved');
+  setTimeout(()=>setSaveStatus(''),3000);
+}
+
+function setSaveStatus(s){
+  const el=document.getElementById('save-status');
+  if(!el)return;
+  if(s==='saved'){el.textContent='✅ נשמר';el.className='save-status saved';}
+  else if(s===''){el.textContent='שמור';el.className='save-status';}
+  else{el.textContent=s;el.className='save-status';}
+}
+
+// ── ENRICHMENT TEMPLATES ──
+const ENRICH_TEMPLATES=[
+  {
+    id:'pairs',icon:'🔗',title:'תבנית א׳ — צמדים',
+    sub:'מושג ↔ הגדרה / מילה ↔ תמונה',
+    colA:'מושג / מילה',colB:'הגדרה / תמונה',
+    games:['מתיחת קו','משחק זיכרון','כרטיסיות','בינגו','תשבץ','תפזורת','כתב סתרים','גלה את המושג']
+  },
+  {
+    id:'qa',icon:'❓',title:'תבנית ב׳ — שאלה + תשובות',
+    sub:'שאלה עם תשובה נכונה ומסיחים (+ תמונה אופציונלית)',
+    colA:'שאלה',colB:'תשובה נכונה',hasDistractors:true,hasImage:true,
+    games:['טריוויה','מי רוצה להיות מיליונר','ג׳פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','גלה את התמונה','זום תמונה','פאזל']
+  },
+  {
+    id:'sequence',icon:'📅',title:'תבנית ג׳ — רצף ומבנה',
+    sub:'רשימת אירועים / משפטים לפי סדר',
+    colA:'אירוע / משפט',colB:'',
+    games:['ציר זמן','רצף אירועים','קלוז','השלמת משפטים','אירוע היסטורי']
+  },
+  {
+    id:'categories',icon:'🗂️',title:'תבנית ד׳ — קטגוריות וקשרים',
+    sub:'מיון לקטגוריות / מציאת קשר בין פריטים',
+    isCategories:true,
+    games:['מה קשור?','מה הקשר?','מיון וגרירה']
+  }
+];
+
+function renderEnrichmentTemplates(){
+  const wrap=document.getElementById('enrich-templates');
+  if(!wrap)return;
+  const enr=lessonData.enrichment||{};
+  wrap.innerHTML=ENRICH_TEMPLATES.map(t=>buildTemplateHTML(t,enr)).join('');
+}
+
+function buildTemplateHTML(t,enr){
+  const data=enr[t.id]||[];
+  const selectedGames=enr[t.id+'SelectedGames']||[];
+  const isOpen=data.length>0||selectedGames.length>0;
+
+  let inputsHTML='';
+  if(t.isCategories){
+    const cats=enr[t.id+'Cats']||[{name:'',items:''},{name:'',items:''}];
+    inputsHTML=`
+      <div style="font-size:.78rem;opacity:.5;margin-bottom:8px;">הגדירי קטגוריות ומילים:</div>
+      ${cats.map((c,ci)=>`
+        <div style="margin-bottom:10px;">
+          <input class="enrich-pair-input" style="margin-bottom:5px;" placeholder="שם קטגוריה ${ci+1}"
+            value="${esc(c.name||'')}" onchange="updateCat(${ci},'name',this.value)">
+          <input class="enrich-pair-input" placeholder="מילים (מופרדות בפסיק)"
+            value="${esc(c.items||'')}" onchange="updateCat(${ci},'items',this.value)">
+        </div>`).join('')}
+      <button class="enrich-add-btn" onclick="addCategory()">+ הוסף קטגוריה</button>`;
+  } else {
+    const rows=data.length?data:Array.from({length:5},()=>({a:'',b:'',img:''}));
+    inputsHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr${t.hasImage?' 80px':''};gap:6px;margin-bottom:6px;">
+        <div style="font-size:.7rem;opacity:.4;font-weight:700;">${t.colA}</div>
+        <div style="font-size:.7rem;opacity:.4;font-weight:700;">${t.colB||'—'}</div>
+        ${t.hasImage?'<div style="font-size:.7rem;opacity:.4;font-weight:700;">תמונה</div>':''}
+      </div>
+      <div class="enrich-pairs-list" id="pairs-${t.id}">
+        ${rows.map((r,ri)=>`
+          <div class="enrich-pair-row">
+            <div class="enrich-pair-num">${ri+1}</div>
+            <input class="enrich-pair-input" placeholder="${t.colA}..." value="${esc(r.a||'')}"
+              onchange="updateEnrichRow('${t.id}',${ri},'a',this.value)">
+            ${t.colB?`<input class="enrich-pair-input" placeholder="${t.colB}..." value="${esc(r.b||'')}"
+              onchange="updateEnrichRow('${t.id}',${ri},'b',this.value)">`:''}
+            ${t.hasImage?`<input class="enrich-pair-input" placeholder="URL תמונה" value="${esc(r.img||'')}"
+              onchange="updateEnrichRow('${t.id}',${ri},'img',this.value)" style="font-size:.72rem;">`:''}
+          </div>`).join('')}
+      </div>
+      ${t.hasDistractors?`
+        <div style="font-size:.72rem;opacity:.4;margin:8px 0 4px;">מסיחים (3 לכל שאלה — אופציונלי):</div>
+        <div style="font-size:.75rem;opacity:.55;margin-bottom:8px;">הזיני מסיחים מופרדים בפסיקים לאחר התשובה הנכונה בעמודה ב׳</div>`:''}
+      <button class="enrich-add-btn" onclick="addEnrichRow('${t.id}')">+ הוסף שורה</button>`;
+  }
+
+  const gamesHTML=`
+    <div class="enrich-games-title">בחרי משחקים לתלמידים:</div>
+    <div class="enrich-games-list">
+      ${t.games.map(g=>`<button class="enrich-game-chip ${selectedGames.includes(g)?'selected':''}"
+        onclick="toggleGame('${t.id}','${g}',this)">${g}</button>`).join('')}
+    </div>
+    ${selectedGames.length?`<div class="enrich-saved-games">${selectedGames.map(g=>`<span class="enrich-saved-chip">✓ ${g}</span>`).join('')}</div>`:''}
+    <button class="enrich-save-btn" onclick="saveEnrichTemplate('${t.id}')">💾 שמור תבנית</button>`;
+
+  return `<div class="enrich-template">
+    <div class="enrich-template-header" onclick="toggleEnrichTemplate('et-${t.id}',this)">
+      <span class="enrich-template-icon">${t.icon}</span>
+      <div>
+        <div class="enrich-template-title">${t.title}</div>
+        <div class="enrich-template-sub">${t.sub}</div>
+      </div>
+      <span style="opacity:.4;font-size:.75rem;" id="etch-${t.id}">${isOpen?'▲':'▼'}</span>
+    </div>
+    <div class="enrich-template-body${isOpen?' open':''}" id="et-${t.id}">
+      ${inputsHTML}
+      <div style="height:1px;background:rgba(109,40,217,.2);margin:12px 0;"></div>
+      ${gamesHTML}
+    </div>
+  </div>`;
+}
+
+function toggleEnrichTemplate(bodyId,header){
+  const body=document.getElementById(bodyId);
+  const id=bodyId.replace('et-','');
+  const ch=document.getElementById('etch-'+id);
+  const open=body.classList.toggle('open');
+  if(ch)ch.textContent=open?'▲':'▼';
+}
+
+function updateEnrichRow(tid,ri,field,val){
+  if(!lessonData.enrichment[tid]) lessonData.enrichment[tid]=[];
+  if(!lessonData.enrichment[tid][ri]) lessonData.enrichment[tid][ri]={a:'',b:'',img:''};
+  lessonData.enrichment[tid][ri][field]=val;
+}
+
+function addEnrichRow(tid){
+  if(!lessonData.enrichment[tid]) lessonData.enrichment[tid]=[];
+  lessonData.enrichment[tid].push({a:'',b:'',img:''});
+  renderEnrichmentTemplates();
+  // reopen this template
+  const body=document.getElementById('et-'+tid);
+  if(body){body.classList.add('open');const ch=document.getElementById('etch-'+tid);if(ch)ch.textContent='▲';}
+}
+
+function updateCat(ci,field,val){
+  if(!lessonData.enrichment.categoriesCats) lessonData.enrichment.categoriesCats=[];
+  if(!lessonData.enrichment.categoriesCats[ci]) lessonData.enrichment.categoriesCats[ci]={name:'',items:''};
+  lessonData.enrichment.categoriesCats[ci][field]=val;
+}
+
+function addCategory(){
+  if(!lessonData.enrichment.categoriesCats) lessonData.enrichment.categoriesCats=[];
+  lessonData.enrichment.categoriesCats.push({name:'',items:''});
+  renderEnrichmentTemplates();
+  const body=document.getElementById('et-categories');
+  if(body){body.classList.add('open');const ch=document.getElementById('etch-categories');if(ch)ch.textContent='▲';}
+}
+
+function toggleGame(tid,game,btn){
+  if(!lessonData.enrichment[tid+'SelectedGames']) lessonData.enrichment[tid+'SelectedGames']=[];
+  const arr=lessonData.enrichment[tid+'SelectedGames'];
+  const idx=arr.indexOf(game);
+  if(idx>=0){arr.splice(idx,1);btn.classList.remove('selected');}
+  else{arr.push(game);btn.classList.add('selected');}
+  setSaveStatus('שינויים לא שמורים');
+}
+
+function saveEnrichTemplate(tid){
+  setSaveStatus('שינויים לא שמורים');
+  // visual feedback
+  const btn=document.querySelector(`[onclick="saveEnrichTemplate('${tid}')"]`);
+  if(btn){btn.textContent='✅ נשמר';setTimeout(()=>{btn.textContent='💾 שמור תבנית';},2000);}
+}
+
+function trunc(s,n){return s&&s.length>n?s.substr(0,n)+'...':s||'';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ══ ITEM EDITOR POPUP ══
+let _popupTarget = null; // {section, si, existingData}
+
+const POPUP_EDITORS = {
+  sort_table: {
+    title: '📊 טבלת מיון',
+    init: (data) => data || {cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}], items:[], orderMatters:false},
+    render: renderSortTablePopup,
+    collect: collectSortTablePopup
+  }
+};
+
+function openItemPopup(typeOrId, section, si, existingData) {
+  const editor = POPUP_EDITORS[typeOrId];
+  if (!editor) {
+    // No popup for this type — use old flow
+    if (window._bankTarget) {
+      window._bankTarget = null;
+      const st = getStation(section, si);
+      if (st) {
+        st.item = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+        renderLessonStructure();
+        reopenStation(section, si);
+        setSaveStatus('שינויים לא שמורים');
+      }
+    }
+    return;
+  }
+  _popupTarget = {typeOrId, section, si};
+  const data = editor.init(existingData);
+  document.getElementById('item-popup-title').textContent = editor.title;
+  document.getElementById('item-popup-body').innerHTML = editor.render(data);
+  const overlay = document.getElementById('item-popup-overlay');
+  overlay.style.display = 'flex';
+}
+
+function closeItemPopup() {
+  document.getElementById('item-popup-overlay').style.display = 'none';
+  _popupTarget = null;
+}
+
+function confirmItemPopup() {
+  if (!_popupTarget) return;
+  const {typeOrId, section, si} = _popupTarget;
+  const editor = POPUP_EDITORS[typeOrId];
+  if (!editor) return;
+  const data = editor.collect();
+  const arr = getStationArr(section);
+  if (arr && arr[si]) {
+    if(!Array.isArray(arr[si].items)) arr[si].items = [arr[si].item||null, null, null];
+    const slotIdx = window._popupSlotTarget ? window._popupSlotTarget.slotIdx : 
+                    arr[si].items.findIndex(x=>x&&x.type===typeOrId);
+    const finalIdx = slotIdx >= 0 ? slotIdx : arr[si].items.findIndex(x=>!x);
+    const idx = finalIdx >= 0 ? finalIdx : 0;
+    if(!arr[si].items[idx]) arr[si].items[idx] = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+    arr[si].items[idx].type = typeOrId;
+    arr[si].items[idx].tableData = data;
+    window._popupSlotTarget = null;
+    renderLessonStructure();
+    reopenStation(section, si);
+    setSaveStatus('שינויים לא שמורים');
+  }
+  closeItemPopup();
+}
+
+// ── SORT TABLE POPUP ──
+function renderSortTablePopup(data) {
+  window._popupSortData = JSON.parse(JSON.stringify(data));
+  const d = window._popupSortData;
+  return buildSortTablePopupHtml(d);
+}
+
+function buildSortTablePopupHtml(d) {
+  const colsHtml = d.cols.map((c, ci) => {
+    const colItems = d.items.filter(it => it.col === ci);
+    return `<div style="flex:1;min-width:200px;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.15);border-radius:10px;padding:12px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <input style="flex:1;background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.88rem;padding:6px 10px;font-weight:700;outline:none;"
+          placeholder="שם עמודה" value="${esc(c.name||'')}"
+          oninput="window._popupSortData.cols[${ci}].name=this.value">
+        <button onclick="removeSortCol(${ci})" style="padding:3px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>
+      </div>
+      ${colItems.map(it => {
+        const ii = d.items.indexOf(it);
+        return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px;">
+          <span style="min-width:18px;height:18px;background:rgba(212,168,67,.2);color:#d4a843;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;">${ii+1}</span>
+          <input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.1);border-radius:5px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.82rem;padding:4px 8px;outline:none;"
+            placeholder="פריט..." value="${esc(it.text||'')}"
+            oninput="window._popupSortData.items[${ii}].text=this.value">
+          <button onclick="removeSortItem(${ii})" style="padding:2px 6px;background:rgba(139,32,32,.15);border:none;border-radius:4px;color:#f87171;cursor:pointer;font-size:.7rem;">✕</button>
+        </div>`;
+      }).join('')}
+      <button onclick="addSortItem(${ci})" style="width:100%;padding:5px;background:rgba(212,168,67,.07);border:1px dashed rgba(212,168,67,.25);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;margin-top:4px;">+ הוסף פריט</button>
+    </div>`;
+  }).join('');
+
+  return `
+    <div style="margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;">
+        <input type="checkbox" ${d.orderMatters?'checked':''} onchange="window._popupSortData.orderMatters=this.checked"
+          style="width:16px;height:16px;cursor:pointer;">
+        סדר הפריטים בעמודה חשוב (התלמיד חייב לסדר בסדר הנכון)
+      </label>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;" id="sort-cols-wrap">
+      ${colsHtml}
+    </div>
+    <button onclick="addSortCol()" style="padding:7px 16px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:7px;color:#d4a843;font-size:.82rem;cursor:pointer;">+ הוסף עמודה</button>
+    <div style="margin-top:12px;font-size:.75rem;opacity:.45;">סה"כ ${d.items.length} פריטים ב-${d.cols.length} עמודות</div>`;
+}
+
+function refreshSortPopup() {
+  document.getElementById('item-popup-body').innerHTML = buildSortTablePopupHtml(window._popupSortData);
+}
+
+function addSortCol() {
+  window._popupSortData.cols.push({name:''});
+  refreshSortPopup();
+}
+
+function removeSortCol(ci) {
+  window._popupSortData.items = window._popupSortData.items.filter(it => it.col !== ci)
+    .map(it => ({...it, col: it.col > ci ? it.col-1 : it.col}));
+  window._popupSortData.cols.splice(ci, 1);
+  refreshSortPopup();
+}
+
+function addSortItem(ci) {
+  window._popupSortData.items.push({text:'', col:ci});
+  refreshSortPopup();
+}
+
+function removeSortItem(ii) {
+  window._popupSortData.items.splice(ii, 1);
+  refreshSortPopup();
+}
+
+function collectSortTablePopup() {
+  return JSON.parse(JSON.stringify(window._popupSortData));
+}
+
+</script>
+<div id="bank-tooltip" class="bank-tooltip" style="display:none;"></div>
+
+<!-- ══ ITEM EDITOR POPUP ══ -->
+<div id="item-popup-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#1a0e04;border:1px solid rgba(212,168,67,.4);border-radius:16px;padding:28px;max-width:680px;width:95%;max-height:90vh;overflow-y:auto;direction:rtl;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div id="item-popup-title" style="font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;font-weight:700;color:#f0c060;"></div>
+      <button onclick="closeItemPopup()" style="background:none;border:none;color:#fdf5e0;font-size:1.2rem;cursor:pointer;opacity:.5;">✕</button>
+    </div>
+    <div id="item-popup-body"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid rgba(212,168,67,.15);padding-top:16px;">
+      <button onclick="closeItemPopup()" style="padding:10px 22px;background:none;border:1px solid rgba(212,168,67,.3);border-radius:8px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.9rem;cursor:pointer;">ביטול</button>
+      <button onclick="confirmItemPopup()" style="padding:10px 22px;background:linear-gradient(135deg,#d4a843,#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">אשר ✓</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
