@@ -123,6 +123,10 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
   <div class="end-title">סיימת את השיעור!</div>
   <div class="end-sub" id="end-sub">כל הכבוד על העבודה היום</div>
   <button class="btn-nav btn-next" onclick="goBack()">← חזרה ליחידה</button>
+  <button class="btn-nav" id="btn-enrichment" onclick="openEnrichment()"
+    style="display:none;margin-top:12px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:white;border:none;padding:14px 28px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;">
+    🌟 קרון העשרה ←
+  </button>
 </div>
 
 <div class="nav-footer" id="nav-footer" style="display:none;">
@@ -581,9 +585,33 @@ function showEndScreen(){
   document.getElementById('nav-footer').style.display='none';
   document.getElementById('progress-fill').style.width='100%';
   document.getElementById('end-sub').textContent=`${lessonData.topic||'השיעור'} הושלם בהצלחה 🎉`;
+  // סמן סיום שיעור ב-Firebase
+  if(studentName&&classCode){
+    db.ref(`studentProgress/${classCode}/${studentName.replace(/ /g,'_')}/lesson_${lessonIdx}`).set({
+      completed:true, completedAt:Date.now(), topic:lessonData.topic||''
+    });
+    // סמן זמינות לקרון העשרה
+    db.ref(`enrichmentAvailable/${classCode}/${studentName.replace(/ /g,'_')}`).set({
+      available:true, lessonIdx, at:Date.now()
+    });
+  }
+  // הצג כפתור קרון העשרה אם יש תוכן
+  const enr=lessonData.enrichment||{};
+  const hasEnrich=(enr.pairsSelectedGames&&enr.pairsSelectedGames.length)||(enr.qaSelectedGames&&enr.qaSelectedGames.length);
+  if(hasEnrich){
+    document.getElementById('btn-enrichment').style.display='block';
+  }
 }
 
 function goBack(){history.back();}
+
+function openEnrichment(){
+  const params=new URLSearchParams({
+    subject:subjectId, unit:unitId, lesson:lessonIdx,
+    student:encodeURIComponent(studentName), class:classCode
+  });
+  window.location.href='enrichment_station.html?'+params.toString();
+}
 
 function showError(msg){
   document.getElementById('loading-screen').innerHTML=`<div style="text-align:center;opacity:.5;padding:40px;">${msg}</div>`;

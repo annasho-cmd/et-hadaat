@@ -2222,19 +2222,7 @@ const ENRICH_TEMPLATES=[
     id:'qa',icon:'❓',title:'תבנית ב׳ — שאלה + תשובות',
     sub:'שאלה עם תשובה נכונה ומסיחים (+ תמונה אופציונלית)',
     colA:'שאלה',colB:'תשובה נכונה',hasDistractors:true,hasImage:true,
-    games:['טריוויה','מי רוצה להיות מיליונר','ג׳פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','גלה את התמונה','זום תמונה','פאזל']
-  },
-  {
-    id:'sequence',icon:'📅',title:'תבנית ג׳ — רצף ומבנה',
-    sub:'רשימת אירועים / משפטים לפי סדר',
-    colA:'אירוע / משפט',colB:'',
-    games:['ציר זמן','רצף אירועים','קלוז','השלמת משפטים','אירוע היסטורי']
-  },
-  {
-    id:'categories',icon:'🗂️',title:'תבנית ד׳ — קטגוריות וקשרים',
-    sub:'מיון לקטגוריות / מציאת קשר בין פריטים',
-    isCategories:true,
-    games:['מה קשור?','מה הקשר?','מיון וגרירה']
+    games:['טריוויה','ג׳פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','גלה את התמונה','זום תמונה','פאזל']
   }
 ];
 
@@ -2291,6 +2279,9 @@ function buildTemplateHTML(t,enr){
 
   const gamesHTML=`
     <div class="enrich-games-title">בחרי משחקים לתלמידים:</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+      <button class="enrich-add-btn" style="margin:0;" onclick="selectAllGames('${t.id}')">✅ בחר הכל</button>
+    </div>
     <div class="enrich-games-list">
       ${t.games.map(g=>`<button class="enrich-game-chip ${selectedGames.includes(g)?'selected':''}"
         onclick="toggleGame('${t.id}','${g}',this)">${g}</button>`).join('')}
@@ -2359,6 +2350,17 @@ function toggleGame(tid,game,btn){
   if(idx>=0){arr.splice(idx,1);btn.classList.remove('selected');}
   else{arr.push(game);btn.classList.add('selected');}
   setSaveStatus('שינויים לא שמורים');
+}
+
+function selectAllGames(tid){
+  const t=ENRICH_TEMPLATES.find(t=>t.id===tid);
+  if(!t)return;
+  if(!lessonData.enrichment[tid+'SelectedGames']) lessonData.enrichment[tid+'SelectedGames']=[];
+  lessonData.enrichment[tid+'SelectedGames']=[...t.games];
+  setSaveStatus('שינויים לא שמורים');
+  renderEnrichmentTemplates();
+  const body=document.getElementById('et-'+tid);
+  if(body){body.classList.add('open');const ch=document.getElementById('etch-'+tid);if(ch)ch.textContent='▲';}
 }
 
 function saveEnrichTemplate(tid){
