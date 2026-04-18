@@ -1470,8 +1470,303 @@ function addProfileClass(){
 // ── REPORTS ──────────────────────────────────────────────────────────
 function openReportsScreen(){
   updateBreadcrumb([{label:'דוחות'}]);
+  renderReportGroups();
   showScreen('screen-reports');
 }
+
+function renderReportGroups(){
+  const wrap=document.getElementById('report-groups-list');
+  if(!wrap)return;
+  if(!groups.length){wrap.innerHTML='<div style="opacity:.5;font-size:.85rem;">אין קבוצות לימוד. צרי קבוצה תחילה.</div>';return;}
+  wrap.innerHTML=groups.map(g=>`
+    <button onclick="selectReportGroup('${g.id}')" id="rg-${g.id}"
+      style="padding:8px 18px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:8px;color:var(--parch);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;transition:all .18s;">
+      👥 ${g.name} <span style="opacity:.5;font-size:.75rem;">(${(g.students||[]).length} תלמידים)</span>
+    </button>`).join('');
+}
+
+let reportGroupId=null;
+let studentProfiles={};
+
+function selectReportGroup(gid){
+  reportGroupId=gid;
+  // עיצוב כפתור נבחר
+  document.querySelectorAll('[id^="rg-"]').forEach(b=>{b.style.background='rgba(212,168,67,.08)';b.style.borderColor='var(--border)';});
+  const btn=document.getElementById('rg-'+gid);
+  if(btn){btn.style.background='rgba(212,168,67,.2)';btn.style.borderColor='var(--gold)';}
+  document.getElementById('report-submenu').style.display='block';
+  // טען פרופילים
+  db.ref('teacher/studentProfiles/'+gid).once('value',snap=>{
+    studentProfiles=snap.val()||{};
+    showReportTab('profiles');
+  });
+}
+
+function showReportTab(tab){
+  ['profiles','lessons','grades'].forEach(t=>{
+    document.getElementById('report-tab-'+t).style.display=t===tab?'block':'none';
+    const btn=document.getElementById('rtab-'+t);
+    if(btn){btn.style.background=t===tab?'linear-gradient(135deg,var(--gold),#b8860b)':'rgba(212,168,67,.15)';btn.style.color=t===tab?'var(--ink)':'var(--gold)';}
+  });
+  if(tab==='profiles') renderProfilesTable();
+  if(tab==='lessons') renderLessonsReport();
+  if(tab==='grades') renderGradesReport();
+}
+
+// ── פרופיל תלמידים ──
+const TRAITS=[
+  {id:'langSupport', label:'🌱 תמיכה בשפה', desc:'עולה חדש / דובר שפה אחרת'},
+  {id:'extraSupport', label:'🤝 תמיכה נוספת', desc:'שילוב / צרכים מיוחדים'},
+  {id:'advanced',    label:'⭐ הרחבה',        desc:'מצטיין / מחוננות'},
+  {id:'amitRead',    label:'📖 הבנת הנקרא',   desc:'מבדק עמית', isSelect:true},
+  {id:'amitWrite',   label:'✍️ הבעה בכתב',    desc:'מבדק עמית', isSelect:true},
+];
+const AMIT_LEVELS=['—','נמוכה מהבסיסית','בסיסית','תקינה','מתקדמת'];
+
+function renderProfilesTable(){
+  const group=groups.find(g=>g.id===reportGroupId);
+  if(!group){return;}
+  const students=group.students||[];
+  if(!students.length){
+    document.getElementById('profiles-table').innerHTML='<div style="opacity:.5;font-size:.85rem;">אין תלמידים בקבוצה זו.</div>';
+    return;
+  }
+  const theadCols=TRAITS.map(t=>`<th style="padding:8px;font-size:.72rem;font-weight:700;color:var(--gold);text-align:center;white-space:nowrap;">${t.label}</th>`).join('');
+  const rows=students.map(name=>{
+    const key=name.replace(/[\s.#$/\[\]]/g,'_');
+    const prof=studentProfiles[key]||{};
+    const cols=TRAITS.map(t=>{
+      if(t.isSelect){
+        const val=prof[t.id]||'—';
+        return `<td style="padding:6px;text-align:center;">
+          <select id="prof-${key}-${t.id}" style="background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:5px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.75rem;padding:3px 6px;outline:none;">
+            ${AMIT_LEVELS.map(l=>`<option value="${l}" ${val===l?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </td>`;
+      }
+      const checked=prof[t.id]?'checked':'';
+      return `<td style="padding:6px;text-align:center;">
+        <input type="checkbox" id="prof-${key}-${t.id}" ${checked}
+          style="width:16px;height:16px;cursor:pointer;accent-color:var(--gold);">
+      </td>`;
+    }).join('');
+    return `<tr>
+      <td style="padding:8px 12px;font-size:.85rem;font-weight:600;white-space:nowrap;">${name}</td>
+      <td style="padding:6px 10px;">
+        <textarea id="prof-${key}-note" rows="1"
+          style="width:100%;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:5px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.75rem;padding:3px 7px;resize:none;outline:none;"
+          placeholder="הערה...">${prof.note||''}</textarea>
+      </td>
+      ${cols}
+    </tr>`;
+  }).join('');
+
+  document.getElementById('profiles-table').innerHTML=`
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:8px 12px;font-size:.72rem;font-weight:700;color:var(--gold);text-align:right;">שם תלמיד/ה</th>
+            <th style="padding:8px;font-size:.72rem;font-weight:700;color:var(--gold);">📝 הערה</th>
+            ${theadCols}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function saveAllProfiles(){
+  const group=groups.find(g=>g.id===reportGroupId);
+  if(!group)return;
+  const students=group.students||[];
+  const profiles={};
+  students.forEach(name=>{
+    const key=name.replace(/[\s.#$/\[\]]/g,'_');
+    const prof={};
+    TRAITS.forEach(t=>{
+      const el=document.getElementById('prof-'+key+'-'+t.id);
+      if(!el)return;
+      prof[t.id]=t.isSelect?el.value:el.checked;
+    });
+    const noteEl=document.getElementById('prof-'+key+'-note');
+    if(noteEl)prof.note=noteEl.value;
+    profiles[key]=prof;
+  });
+  studentProfiles=profiles;
+  db.ref('teacher/studentProfiles/'+reportGroupId).set(profiles);
+  showToast('פרופילי התלמידים נשמרו ✓');
+}
+
+// ── דוח שיעורים ──
+function renderLessonsReport(){
+  if(!currentSubject){
+    document.getElementById('report-lessons-list').innerHTML='<div style="opacity:.5;font-size:.85rem;">נא לבחור מקצוע ויחידה תחילה מהדשבורד.</div>';
+    return;
+  }
+  const subject=subjects.find(s=>s.id===currentSubject.id)||currentSubject;
+  const units=subject.units||[];
+  const list=document.getElementById('report-lessons-list');
+  list.innerHTML='';
+  units.forEach(unit=>{
+    const lessons=unit.lessons||[];
+    const myLessons=lessons.filter(l=>unit.groups&&unit.groups[reportGroupId]);
+    if(!myLessons.length)return;
+    myLessons.forEach((lesson,i)=>{
+      if(!lesson.url&&lesson.topic===undefined)return;
+      const name=lesson.topic||lesson.name||'שיעור '+(i+1);
+      const btn=document.createElement('button');
+      btn.style.cssText='padding:10px 16px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:8px;color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.85rem;text-align:right;transition:all .18s;';
+      btn.textContent='📋 '+name;
+      btn.onclick=()=>loadLessonReport(lesson,i,unit.id,name);
+      list.appendChild(btn);
+    });
+  });
+  if(!list.children.length){
+    list.innerHTML='<div style="opacity:.5;font-size:.85rem;">אין שיעורים משויכים לקבוצה זו.</div>';
+  }
+}
+
+function loadLessonReport(lesson,lessonIdx,unitId,lessonName){
+  const content=document.getElementById('report-lesson-content');
+  content.innerHTML='<div style="opacity:.5;padding:20px;">טוען...</div>';
+  const group=groups.find(g=>g.id===reportGroupId);
+  const students=group?.students||[];
+
+  db.ref('studentAnswers/'+group.code).once('value',snap=>{
+    const allAnswers=snap.val()||{};
+    const lessonKey='lesson_'+lessonIdx;
+    // טען תשובות דוגמא
+    db.ref('teacherAnswers/'+currentSubject.id+'/'+unitId+'/lesson_'+lessonIdx).once('value',snapT=>{
+      const modelAnswers=snapT.val()||{};
+      renderLessonReportContent(content,students,allAnswers,lessonKey,modelAnswers,lessonName);
+    });
+  });
+}
+
+function renderLessonReportContent(wrap,students,allAnswers,lessonKey,modelAnswers,lessonName){
+  const group=groups.find(g=>g.id===reportGroupId);
+  const completed=students.filter(s=>{
+    const key=s.replace(/ /g,'_');
+    return allAnswers[key]&&allAnswers[key][lessonKey];
+  }).length;
+
+  let html=`<div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>📋 ${lessonName}</span>
+      <span style="font-size:.8rem;opacity:.6;">${completed}/${students.length} השלימו</span>
+    </div>`;
+
+  // תשובות דוגמא
+  const modelKeys=Object.keys(modelAnswers);
+  if(modelKeys.length){
+    html+=`<div style="background:rgba(42,107,42,.1);border:1px solid rgba(42,107,42,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:.72rem;font-weight:700;color:#6ee7a0;margin-bottom:6px;">💡 תשובות דוגמא שלך</div>`;
+    modelKeys.forEach(k=>{
+      if(modelAnswers[k]?.answer){
+        html+=`<div style="font-size:.78rem;opacity:.7;margin-bottom:4px;"><strong>${k}:</strong> ${esc(modelAnswers[k].answer)}</div>`;
+      }
+    });
+    html+='</div>';
+  }
+
+  // תשובות תלמידים
+  students.forEach(name=>{
+    const key=name.replace(/ /g,'_');
+    const prof=studentProfiles[key]||{};
+    const studentLessonData=allAnswers[key]?.[lessonKey]||{};
+    const hasAnswers=Object.keys(studentLessonData).length>0;
+    const traits=[];
+    if(prof.langSupport)traits.push('🌱');
+    if(prof.extraSupport)traits.push('🤝');
+    if(prof.advanced)traits.push('⭐');
+
+    html+=`<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
+      <div style="background:rgba(44,26,14,.6);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-weight:700;font-size:.88rem;">${name} ${traits.join(' ')}</div>
+        <span style="font-size:.75rem;padding:2px 8px;border-radius:10px;background:${hasAnswers?'rgba(42,107,42,.3)':'rgba(139,32,32,.3)'};color:${hasAnswers?'#6ee7a0':'#f87171'};">
+          ${hasAnswers?'✓ ענה/תה':'לא השלים/ה'}
+        </span>
+      </div>`;
+    if(hasAnswers){
+      html+='<div style="padding:10px 14px;">';
+      Object.entries(studentLessonData).forEach(([k,v])=>{
+        if(v?.answer){
+          const model=modelAnswers[k]?.answer;
+          html+=`<div style="margin-bottom:8px;">
+            <div style="font-size:.7rem;opacity:.45;margin-bottom:2px;">${k}</div>
+            <div style="font-size:.82rem;line-height:1.5;">${esc(v.answer)}</div>
+            ${model?`<div style="font-size:.75rem;color:#6ee7a0;margin-top:3px;opacity:.7;">💡 דוגמא: ${esc(model)}</div>`:''}
+          </div>`;
+        }
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+// ── דוח ציונים ──
+function renderGradesReport(){
+  const group=groups.find(g=>g.id===reportGroupId);
+  if(!group){return;}
+  const students=group.students||[];
+  const subject=subjects.find(s=>s.id===currentSubject?.id);
+  if(!subject){
+    document.getElementById('report-grades-content').innerHTML='<div style="opacity:.5;font-size:.85rem;">נא לבחור מקצוע תחילה.</div>';
+    return;
+  }
+
+  // אסוף שיעורים
+  const allLessons=[];
+  (subject.units||[]).forEach(unit=>{
+    if(!unit.groups?.[reportGroupId])return;
+    (unit.lessons||[]).forEach((l,i)=>{
+      if(l.topic!==undefined||l.url) allLessons.push({name:l.topic||l.name||'שיעור '+(i+1),idx:i});
+    });
+  });
+
+  db.ref('studentAnswers/'+group.code).once('value',snap=>{
+    const allAnswers=snap.val()||{};
+    const theadCols=allLessons.map(l=>`<th style="padding:7px 10px;font-size:.72rem;color:var(--gold);text-align:center;white-space:nowrap;">${l.name}</th>`).join('');
+    const rows=students.map(name=>{
+      const key=name.replace(/ /g,'_');
+      const prof=studentProfiles[key]||{};
+      const traits=[];
+      if(prof.langSupport)traits.push('🌱');
+      if(prof.extraSupport)traits.push('🤝');
+      if(prof.advanced)traits.push('⭐');
+      const cols=allLessons.map(l=>{
+        const lessonKey='lesson_'+l.idx;
+        const hasData=allAnswers[key]&&allAnswers[key][lessonKey]&&Object.keys(allAnswers[key][lessonKey]).length>0;
+        return `<td style="padding:7px;text-align:center;font-size:.85rem;">
+          ${hasData?'<span style="color:#6ee7a0;">✓</span>':'<span style="color:#f87171;opacity:.5;">—</span>'}
+        </td>`;
+      }).join('');
+      return `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:8px 12px;font-size:.85rem;white-space:nowrap;">${name} ${traits.join('')}</td>
+        ${cols}
+      </tr>`;
+    }).join('');
+
+    document.getElementById('report-grades-content').innerHTML=`
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:8px 12px;font-size:.72rem;color:var(--gold);text-align:right;">תלמיד/ה</th>
+            ${theadCols}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="margin-top:10px;font-size:.72rem;opacity:.4;">✓ = השלים/ה את השיעור · — = לא השלים/ה</div>`;
+  });
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+
 
 function showToast(msg){
   let t=document.getElementById('toast-msg');
@@ -1546,33 +1841,48 @@ function showToast(msg){
     <div class="screen-hd">
       <div class="screen-title">📊 דוחות</div>
     </div>
-    <div style="max-width:680px;margin:0 auto;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div class="home-card" onclick="alert('בקרוב — דוח אישי לשיעור')">
-          <div class="home-card-icon">📋</div>
-          <div class="home-card-title">דוח אישי לשיעור</div>
-          <div class="home-card-sub">תשובות תלמיד לפי שיעור</div>
+
+    <!-- בחירת קבוצה -->
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-title">בחירת קבוצת לימוד</div>
+      <div id="report-groups-list" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+    </div>
+
+    <!-- תת-תפריט -->
+    <div id="report-submenu" style="display:none;margin-bottom:18px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="showReportTab('profiles')" id="rtab-profiles">👤 פרופיל תלמידים</button>
+        <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);" onclick="showReportTab('lessons')" id="rtab-lessons">📋 דוח שיעורים</button>
+        <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);" onclick="showReportTab('grades')" id="rtab-grades">🏅 דוח ציונים</button>
+      </div>
+    </div>
+
+    <!-- TAB: פרופיל תלמידים -->
+    <div id="report-tab-profiles" style="display:none;">
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>👤 פרופיל תלמידים</span>
+          <button class="btn-primary" onclick="saveAllProfiles()">💾 שמור הכל</button>
         </div>
-        <div class="home-card" onclick="alert('בקרוב — דוח כיתתי לשיעור')">
-          <div class="home-card-icon">📊</div>
-          <div class="home-card-title">דוח כיתתי לשיעור</div>
-          <div class="home-card-sub">סיכום כיתה לפי שיעור</div>
-        </div>
-        <div class="home-card" onclick="alert('בקרוב — כרטיס תלמיד')">
-          <div class="home-card-icon">🪪</div>
-          <div class="home-card-title">כרטיס תלמיד</div>
-          <div class="home-card-sub">היסטוריית למידה אישית</div>
-        </div>
-        <div class="home-card" onclick="alert('בקרוב — דוח ציונים')">
-          <div class="home-card-icon">🏅</div>
-          <div class="home-card-title">דוח ציונים</div>
-          <div class="home-card-sub">ציונים לפי כיתה ושיעור</div>
-        </div>
-        <div class="home-card" onclick="alert('בקרוב — דוח בונוסים')">
-          <div class="home-card-icon">🌟</div>
-          <div class="home-card-title">דוח בונוסים כיתתי</div>
-          <div class="home-card-sub">נקודות בונוס לפי כיתה</div>
-        </div>
+        <div style="font-size:.75rem;opacity:.5;margin-bottom:14px;">הגדרת מאפיינים אישיים — מידע זה גלוי למורה בלבד</div>
+        <div id="profiles-table"></div>
+      </div>
+    </div>
+
+    <!-- TAB: דוח שיעורים -->
+    <div id="report-tab-lessons" style="display:none;">
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">בחר שיעור לדוח</div>
+        <div id="report-lessons-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+      <div id="report-lesson-content"></div>
+    </div>
+
+    <!-- TAB: דוח ציונים -->
+    <div id="report-tab-grades" style="display:none;">
+      <div class="card">
+        <div class="card-title">🏅 סיכום ביצועים לפי שיעור</div>
+        <div id="report-grades-content" style="overflow-x:auto;"></div>
       </div>
     </div>
   </div>
