@@ -129,7 +129,7 @@ function loadReport(){
     }
 
     const students=Object.entries(data)
-      .map(([name,val])=>({name,..val}))
+      .map(([name,val])=>({name,...val}))
       .sort((a,b)=>a.name.localeCompare(b.name,'he'));
 
     const total=students.length;
