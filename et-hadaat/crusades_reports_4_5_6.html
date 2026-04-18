@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דוחות מסעי הצלב — שיעורים 4-6</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--brown:#6b3a1f;
+  --gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--border:rgba(107,58,31,.15);
+  --green:#2a6b2a;--red:#8b2020;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--parch);color:var(--ink);min-height:100vh;}
+
+.page-header{background:linear-gradient(135deg,#1c1208,#3d1f0a);color:var(--parch);padding:22px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.header-title{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;font-weight:900;color:var(--gold2);}
+.header-sub{font-size:.8rem;opacity:.6;margin-top:3px;}
+.header-meta{font-size:.72rem;opacity:.4;margin-top:3px;}
+.header-btns{display:flex;gap:8px;flex-shrink:0;}
+.btn{padding:8px 16px;border:none;border-radius:7px;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;}
+.btn-gold{background:var(--gold);color:var(--ink);}
+.btn-green{background:var(--green);color:#fff;}
+
+/* TABS */
+.tabs{display:flex;gap:0;background:#fff;border-bottom:2px solid var(--border);padding:0 32px;}
+.tab{padding:12px 20px;font-size:.88rem;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:#888;transition:all .2s;}
+.tab.active{color:var(--brown);border-bottom-color:var(--gold);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* STATS */
+.stats-bar{background:#fff;border-bottom:1px solid var(--border);padding:12px 32px;display:flex;gap:24px;flex-wrap:wrap;}
+.stat{text-align:center;}
+.stat-num{font-family:'Frank Ruhl Libre',serif;font-size:1.6rem;font-weight:900;color:var(--brown);}
+.stat-label{font-size:.68rem;color:#888;}
+
+/* CONTENT */
+.content{padding:24px 32px;max-width:1100px;margin:0 auto;}
+
+/* STUDENT CARD */
+.student-card{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 8px rgba(107,58,31,.07);page-break-inside:avoid;}
+.student-header{background:linear-gradient(135deg,#2c1a0e,#4a2510);color:var(--parch);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;}
+.student-name{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.student-meta{font-size:.75rem;opacity:.55;margin-top:2px;}
+.badges{display:flex;gap:5px;flex-wrap:wrap;}
+.badge{padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;}
+.badge.done{background:var(--green);color:#fff;}
+.badge.partial{background:rgba(212,168,67,.3);color:var(--brown);}
+.badge.empty{background:rgba(100,100,100,.12);color:#999;}
+
+.sections{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:14px 18px;}
+.sections.two-col{grid-template-columns:1fr 1fr;}
+.sections.one-col{grid-template-columns:1fr;}
+.section{background:rgba(253,245,224,.5);border-radius:8px;padding:11px;}
+.section-title{font-size:.67rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brown);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.q-label{font-size:.7rem;font-weight:700;color:var(--brown);margin-bottom:2px;margin-top:7px;}
+.q-answer{font-size:.8rem;color:#333;line-height:1.5;}
+.q-answer.empty{color:#bbb;font-style:italic;}
+
+/* SUMMARY SCORE */
+.score-circle{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;font-weight:900;font-size:1rem;font-family:'Frank Ruhl Libre',serif;flex-shrink:0;}
+.score-100{background:#dcfce7;color:#166534;}
+.score-75{background:#fef9c3;color:#854d0e;}
+.score-50{background:#fef3c7;color:#92400e;}
+.score-low{background:#fee2e2;color:#991b1b;}
+
+.loading-wrap{text-align:center;padding:50px;color:#aaa;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:1.3rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media print{.tabs,.header-btns{display:none;}.tab-content{display:block!important;}.student-card{break-inside:avoid;}}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <div class="header-title">⚔️ דוחות מסעי הצלב — שיעורים 4, 5, 6</div>
+    <div class="header-sub">היסטוריה ח׳3</div>
+    <div class="header-meta" id="report-time">טוען...</div>
+  </div>
+  <div class="header-btns">
+    <button class="btn btn-gold" onclick="loadAll()">🔄 רענן</button>
+    <button class="btn btn-green" onclick="window.print()">🖨️ הדפס</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('t4',this)">שיעור 4 — כיבוש ירושלים</div>
+  <div class="tab" onclick="switchTab('t5',this)">שיעור 5 — היהודים במסעות</div>
+  <div class="tab" onclick="switchTab('t6',this)">שיעור 6 — סיכום</div>
+</div>
+
+<!-- ═══ LESSON 4 ═══ -->
+<div class="tab-content active" id="t4">
+  <div class="stats-bar" id="stats4"></div>
+  <div class="content" id="content4"><div class="loading-wrap"><span class="spin">⏳</span><br>טוען...</div></div>
+</div>
+
+<!-- ═══ LESSON 5 ═══ -->
+<div class="tab-content" id="t5">
+  <div class="stats-bar" id="stats5"></div>
+  <div class="content" id="content5"><div class="loading-wrap"><span class="spin">⏳</span><br>טוען...</div></div>
+</div>
+
+<!-- ═══ LESSON 6 SUMMARY ═══ -->
+<div class="tab-content" id="t6">
+  <div class="stats-bar" id="stats6"></div>
+  <div class="content" id="content6"><div class="loading-wrap"><span class="spin">⏳</span><br>טוען...</div></div>
+</div>
+
+<script>
+const FB={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+try{firebase.initializeApp(FB);}catch(e){}
+const db=firebase.database();
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function ans(v){return v?`<div class="q-answer">${esc(v)}</div>`:`<div class="q-answer empty">לא נענה</div>`;}
+
+function switchTab(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+function statsHtml(stats){
+  return stats.map(s=>`<div class="stat"><div class="stat-num">${s.n}</div><div class="stat-label">${s.l}</div></div>`).join('');
+}
+
+// ════ LESSON 4 ════
+function loadLesson4(){
+  db.ref('lesson4/students').once('value',snap=>{
+    const data=snap.val();
+    if(!data){document.getElementById('content4').innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">אין נתונים.</div>';return;}
+    const students=Object.entries(data).map(([name,v])=>({name,...v})).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+    const total=students.length;
+    const doneS1=students.filter(s=>s.stations?.s1?.ideas).length;
+    const doneS2=students.filter(s=>s.stations?.s2?.solution).length;
+    const doneS3=students.filter(s=>s.stations?.s3a?.q1).length;
+    document.getElementById('stats4').innerHTML=statsHtml([
+      {n:total,l:'תלמידים'},{n:doneS1,l:'תחנה 1'},{n:doneS2,l:'תחנה 2'},{n:doneS3,l:'תחנה 3'}
+    ]);
+    const content=document.getElementById('content4');
+    content.innerHTML='';
+    students.forEach(s=>{
+      const st=s.stations||{};
+      const s1=st.s1||{}, s2=st.s2||{}, s3a=st.s3a||{}, s3b=st.s3b||{};
+      const card=document.createElement('div');
+      card.className='student-card';
+      card.innerHTML=`
+        <div class="student-header">
+          <div>
+            <div class="student-name">👤 ${s.name}</div>
+            <div class="student-meta">${s1.character?'דמות: '+s1.character:''}</div>
+          </div>
+          <div class="badges">
+            <span class="badge ${s1.ideas?'done':'empty'}">ת׳1 ${s1.ideas?'✓':'ריק'}</span>
+            <span class="badge ${s2.solution?'done':'empty'}">ת׳2 ${s2.solution?'✓':'ריק'}</span>
+            <span class="badge ${s3a.q1?'done':'empty'}">ת׳3 ${s3a.q1?'✓':'ריק'}</span>
+          </div>
+        </div>
+        <div class="sections">
+          <div class="section">
+            <div class="section-title">🏰 תחנה 1 — כיבוש ירושלים</div>
+            <div class="q-label">💡 רעיונות לפיתרון המצור</div>
+            ${ans(s1.ideas)}
+            <div class="q-label">⭐ בונוס</div>
+            ${ans(s1.bonus)}
+          </div>
+          <div class="section">
+            <div class="section-title">📖 תחנה 2 — הפתרון ההיסטורי</div>
+            <div class="q-label">הפתרון מהספר</div>
+            ${ans(s2.solution)}
+            <div class="q-label">השוואה</div>
+            ${ans(s2.compare)}
+          </div>
+          <div class="section">
+            <div class="section-title">📜 תחנה 3 — ניתוח מקורות</div>
+            <div class="q-label">שאלה 1 — מה קרה לתושבים?</div>
+            ${ans(s3a.q1)}
+            <div class="q-label">שאלה 2 — סתירה: מטרה דתית מול מעשים</div>
+            ${ans(s3a.q2)}
+            <div class="q-label">פרט חדש מהסרטון</div>
+            ${ans(s3b.videoQ)}
+            <div class="q-label">השוואת כיבושים</div>
+            ${ans(s3b.compare)}
+          </div>
+        </div>`;
+      content.appendChild(card);
+    });
+  });
+}
+
+// ════ LESSON 5 ════
+function loadLesson5(){
+  db.ref('lesson5/students').once('value',snap=>{
+    const data=snap.val();
+    if(!data){document.getElementById('content5').innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">אין נתונים.</div>';return;}
+    const students=Object.entries(data).map(([name,v])=>({name,...v})).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+    const total=students.length;
+    const doneS1=students.filter(s=>s.stations?.s1?.mapRoute).length;
+    const doneS2=students.filter(s=>s.stations?.s2).length;
+    const doneS3=students.filter(s=>s.stations?.s3?.hypothesis).length;
+    const doneS4b=students.filter(s=>s.stations?.s4b?.finalReflection).length;
+    document.getElementById('stats5').innerHTML=statsHtml([
+      {n:total,l:'תלמידים'},{n:doneS1,l:'תחנה 1'},{n:doneS2,l:'תחנה 2'},{n:doneS3,l:'תחנה 3'},{n:doneS4b,l:'מסר לדורות'}
+    ]);
+    const content=document.getElementById('content5');
+    content.innerHTML='';
+    students.forEach(s=>{
+      const st=s.stations||{};
+      const s1=st.s1||{}, s2=st.s2||{}, s3=st.s3||{}, s4=st.s4||{}, s4b=st.s4b||{};
+      const card=document.createElement('div');
+      card.className='student-card';
+      card.innerHTML=`
+        <div class="student-header">
+          <div><div class="student-name">👤 ${s.name}</div></div>
+          <div class="badges">
+            <span class="badge ${s1.mapRoute?'done':'empty'}">ת׳1 ${s1.mapRoute?'✓':'ריק'}</span>
+            <span class="badge ${s2.gezeraChoice?'done':'empty'}">ת׳2 ${s2.gezeraChoice?'✓':'ריק'}</span>
+            <span class="badge ${s3.hypothesis?'done':'empty'}">ת׳3 ${s3.hypothesis?'✓':'ריק'}</span>
+            <span class="badge ${s4b.finalReflection?'done':'empty'}">מסר ${s4b.finalReflection?'✓':'ריק'}</span>
+          </div>
+        </div>
+        <div class="sections">
+          <div class="section">
+            <div class="section-title">🗺 תחנה 1 — מסלול ומפה</div>
+            <div class="q-label">מסעי הצלב — ציר זמן</div>
+            ${ans(s1.mapRoute)}
+            <div class="q-label">קהילות יהודיות בדרך</div>
+            ${ans(s1.communities)}
+            <div class="q-label">תחזית — מה יקרה ליהודים?</div>
+            ${ans(s1.prediction)}
+          </div>
+          <div class="section">
+            <div class="section-title">📜 תחנה 2 — גזרות</div>
+            <div class="q-label">הגזרה שנבחרה</div>
+            <div class="q-answer">${s2.gezeraChoice||'לא נבחר'}</div>
+            <div class="q-label">דוגמאות</div>
+            ${ans(s2.examples)}
+            <div class="q-label">תחזית</div>
+            ${ans(s2.prediction)}
+          </div>
+          <div class="section">
+            <div class="section-title">🔍 תחנה 3 — ניתוח תעודה</div>
+            <div class="q-label">השערות</div>
+            ${ans(s3.hypothesis)}
+            <div class="q-label">ניתוח 1</div>
+            ${ans(s3.logic1)}
+            <div class="q-label">ניתוח 2</div>
+            ${ans(s3.logic2)}
+            <div class="q-label">מניע חדש שגילה</div>
+            ${ans(s3.newMotive)}
+          </div>
+        </div>
+        <div class="sections two-col" style="padding-top:0;">
+          <div class="section">
+            <div class="section-title">⚔️ תחנה 4 — כוחות הגנה</div>
+            <div class="q-label">הסבר לבחירה</div>
+            ${ans(s4.dragExplain)}
+            <div class="q-label">אימות מהמקורות</div>
+            ${ans(s4.verify)}
+            <div class="q-label">חקר עצמאי</div>
+            ${ans(s4.inquiry)}
+          </div>
+          <div class="section">
+            <div class="section-title">✡️ תחנה 4ב — מסר לדורות</div>
+            <div class="q-label">הגנת יורק</div>
+            ${ans(s4b.yorkDefense)}
+            <div class="q-label">שאלת ירושלים</div>
+            ${ans(s4b.jerusalemQ)}
+            <div class="q-label">קידוש השם — מטרה</div>
+            ${ans(s4b.kiddushGoal)}
+            <div class="q-label">🌟 מסר לדורות</div>
+            ${ans(s4b.finalReflection)}
+          </div>
+        </div>`;
+      content.appendChild(card);
+    });
+  });
+}
+
+// ════ LESSON 6 SUMMARY ════
+function loadLesson6(){
+  db.ref('lesson_summary_crusades/students').once('value',snap=>{
+    const data=snap.val();
+    if(!data){document.getElementById('content6').innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">אין נתונים.</div>';return;}
+    const students=Object.entries(data).map(([name,v])=>({name,...v})).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+    const total=students.length;
+    const doneS1=students.filter(s=>s.stations?.s1?.completed).length;
+    const doneS2=students.filter(s=>s.stations?.s2?.completed).length;
+    const avg=doneS1?Math.round(students.filter(s=>s.stations?.s1?.score).reduce((sum,s)=>sum+(s.stations.s1.score||0),0)/Math.max(1,students.filter(s=>s.stations?.s1?.score).length)):0;
+    document.getElementById('stats6').innerHTML=statsHtml([
+      {n:total,l:'תלמידים'},{n:doneS1,l:'ציר הזמן'},{n:doneS2,l:'כתיבת סיכום'},{n:avg+'%',l:'ממוצע ציר הזמן'}
+    ]);
+    const content=document.getElementById('content6');
+    content.innerHTML='';
+    students.forEach(s=>{
+      const st=s.stations||{};
+      const s1=st.s1||{}, s2=st.s2||{};
+      const score=s1.score||0;
+      let scoreClass='score-low';
+      if(score===100) scoreClass='score-100';
+      else if(score>=75) scoreClass='score-75';
+      else if(score>=50) scoreClass='score-50';
+      const card=document.createElement('div');
+      card.className='student-card';
+      card.innerHTML=`
+        <div class="student-header">
+          <div><div class="student-name">👤 ${s.name}</div></div>
+          <div class="badges">
+            <span class="badge ${s1.completed?'done':'empty'}">ציר זמן ${s1.completed?'✓':'ריק'}</span>
+            <span class="badge ${s2.completed?'done':'empty'}">סיכום ${s2.completed?'✓':'ריק'}</span>
+          </div>
+        </div>
+        <div class="sections two-col" style="align-items:start;">
+          <div class="section">
+            <div class="section-title">📅 תחנה 1 — ציר זמן</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+              <div class="score-circle ${scoreClass}">${s1.score!=null?s1.score+'%':'—'}</div>
+              <div style="font-size:.82rem;color:#555;">${s1.correct!=null?`${s1.correct} נכונות מתוך ${s1.score!=null?Math.round(s1.score/100*10):'-'} אירועים`:''}</div>
+            </div>
+            <div style="font-size:.75rem;color:#aaa;">${s1.completedAt?'הושלם: '+new Date(s1.completedAt).toLocaleString('he-IL'):''}</div>
+          </div>
+          <div class="section">
+            <div class="section-title">✍️ תחנה 2 — כתיבת סיכום</div>
+            <div class="q-label">חלק א — גורמים לכישלון</div>
+            ${ans(s2.partA)}
+            <div class="q-label">חלק ב — השפעות על יהודים</div>
+            ${ans(s2.partB)}
+            <div class="q-label">חלק ג — לקח היסטורי</div>
+            ${ans(s2.partC)}
+            ${s2.graded?`<div style="margin-top:8px;font-size:.75rem;color:var(--green);">✓ נבדק</div>`:''}
+          </div>
+        </div>`;
+      content.appendChild(card);
+    });
+  });
+}
+
+function loadAll(){
+  document.getElementById('report-time').textContent='עודכן: '+new Date().toLocaleString('he-IL');
+  loadLesson4();
+  loadLesson5();
+  loadLesson6();
+}
+
+window.onload=loadAll;
+</script>
+</body>
+</html>
