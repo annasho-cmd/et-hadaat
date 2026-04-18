@@ -545,8 +545,17 @@ function checkSortTable(tableId, stIdx, sli){
 }
 
 function saveAnswer(stIdx,sli,uid){
-  const val=document.getElementById(uid)?.value.trim();
+  const el=document.getElementById(uid);
+  const val=el?.value.trim();
   if(!val)return;
+  // בדיקת 3 מילים לפחות
+  const words=val.split(/\s+/).filter(w=>w.length>0);
+  if(words.length<3){
+    el.style.borderColor='#f87171';
+    showValidationMsg('יש לכתוב לפחות 3 מילים לפני השמירה.');
+    return;
+  }
+  el.style.borderColor='';
   answers[`${stIdx}-${sli}`]=val;
   if(studentName&&classCode){
     db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
@@ -555,6 +564,19 @@ function saveAnswer(stIdx,sli,uid){
   }
   const savedEl=document.getElementById(`saved-${stIdx}-${sli}`);
   if(savedEl){savedEl.style.display='block';setTimeout(()=>savedEl.style.display='none',2500);}
+}
+
+function showValidationMsg(msg){
+  let el=document.getElementById('validation-msg');
+  if(!el){
+    el=document.createElement('div');
+    el.id='validation-msg';
+    el.style.cssText='position:fixed;bottom:80px;right:16px;background:#dc2626;color:white;padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:280px;text-align:right;direction:rtl;';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
 }
 
 function updateNav(){
@@ -566,6 +588,28 @@ function updateNav(){
 }
 
 function nextStation(){
+  // בדיקה שכל שאלות החובה בתחנה הנוכחית נשמרו
+  const st=allStations[currentStation];
+  const items=Array.isArray(st.items)?st.items:[st.item||null];
+  let hasUnsaved=false;
+  items.forEach((item,sli)=>{
+    if(!item)return;
+    const typeInfo=ITEM_TYPES[item.type]||{};
+    if(!typeInfo.hasAnswer)return;
+    const uid=`ans-${currentStation}-${sli}`;
+    const el=document.getElementById(uid);
+    if(!el)return;
+    const saved=answers[`${currentStation}-${sli}`];
+    const words=(el.value||'').trim().split(/\s+/).filter(w=>w.length>0);
+    if(words.length<3&&!saved){
+      el.style.borderColor='#f87171';
+      hasUnsaved=true;
+    }
+  });
+  if(hasUnsaved){
+    showValidationMsg('יש לענות על כל השאלות (לפחות 3 מילים) לפני המעבר לתחנה הבאה.');
+    return;
+  }
   if(currentStation>=allStations.length-1){showEndScreen();return;}
   currentStation++;
   renderCurrentStation();
