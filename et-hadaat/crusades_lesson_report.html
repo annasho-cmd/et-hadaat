@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דוח שיעור — מסעי הצלב ח׳3</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--brown:#6b3a1f;
+  --gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--parch2:#f5e8c0;
+  --green:#2a6b2a;--red:#8b2020;
+  --border:rgba(107,58,31,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--parch);color:var(--ink);min-height:100vh;}
+
+.page-header{
+  background:linear-gradient(135deg,#1c1208,#3d1f0a);
+  color:var(--parch);padding:24px 36px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.header-title{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;font-weight:900;color:var(--gold2);}
+.header-sub{font-size:.82rem;opacity:.6;margin-top:3px;}
+.header-meta{font-size:.75rem;opacity:.45;margin-top:4px;}
+.header-btns{display:flex;gap:10px;flex-shrink:0;}
+.btn-refresh{padding:9px 18px;background:var(--gold);color:var(--ink);border:none;border-radius:7px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;}
+.btn-print{padding:9px 18px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;}
+
+.stats-bar{background:#fff;border-bottom:1px solid var(--border);padding:14px 36px;display:flex;gap:28px;flex-wrap:wrap;}
+.stat{text-align:center;}
+.stat-num{font-family:'Frank Ruhl Libre',serif;font-size:1.7rem;font-weight:900;color:var(--brown);}
+.stat-label{font-size:.7rem;color:#888;margin-top:1px;}
+
+.content{padding:28px 36px;max-width:1100px;margin:0 auto;}
+
+.student-card{
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  margin-bottom:24px;overflow:hidden;
+  box-shadow:0 2px 8px rgba(107,58,31,.07);
+  page-break-inside:avoid;
+}
+.student-header{
+  background:linear-gradient(135deg,#2c1a0e,#4a2510);
+  color:var(--parch);padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.student-name{font-family:'Frank Ruhl Libre',serif;font-size:1.05rem;font-weight:700;color:var(--gold2);}
+.student-char{font-size:.78rem;opacity:.6;margin-top:2px;}
+.badges{display:flex;gap:6px;flex-wrap:wrap;}
+.badge{padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:700;}
+.badge.done{background:var(--green);color:#fff;}
+.badge.partial{background:rgba(212,168,67,.3);color:var(--brown);}
+.badge.empty{background:rgba(100,100,100,.15);color:#888;}
+
+.sections{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:16px 20px;}
+.section{background:rgba(253,245,224,.5);border-radius:8px;padding:12px;}
+.section-title{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brown);margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);}
+.q-label{font-size:.72rem;font-weight:700;color:var(--brown);margin-bottom:3px;margin-top:8px;}
+.q-answer{font-size:.82rem;color:#333;line-height:1.5;}
+.q-answer.empty{color:#bbb;font-style:italic;}
+
+.loading-wrap{text-align:center;padding:60px;color:#aaa;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:1.5rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* character color coding */
+.char-knight{border-top:3px solid #2563eb;}
+.char-noble{border-top:3px solid #9333ea;}
+.char-peasant{border-top:3px solid #16a34a;}
+.char-priest{border-top:3px solid #dc2626;}
+.char-merchant{border-top:3px solid #d97706;}
+
+@media print{
+  .page-header .header-btns{display:none;}
+  .student-card{page-break-inside:avoid;margin-bottom:16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <div class="header-title">⚔️ דוח שיעור — מסעי הצלב</div>
+    <div class="header-sub">היסטוריה ח׳3 — שיעור 3: הדרך לירושלים</div>
+    <div class="header-meta" id="report-time">טוען...</div>
+  </div>
+  <div class="header-btns">
+    <button class="btn-refresh" onclick="loadReport()">🔄 רענן</button>
+    <button class="btn-print" onclick="window.print()">🖨️ הדפס / PDF</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="stat-total">—</div><div class="stat-label">תלמידים</div></div>
+  <div class="stat"><div class="stat-num" id="stat-s3">—</div><div class="stat-label">השלימו תחנה 3</div></div>
+  <div class="stat"><div class="stat-num" id="stat-s4">—</div><div class="stat-label">השלימו תחנה 4</div></div>
+  <div class="stat"><div class="stat-num" id="stat-s5">—</div><div class="stat-label">כתבו יומן</div></div>
+</div>
+
+<div class="content" id="content">
+  <div class="loading-wrap"><span class="spin">⏳</span><br>טוען נתוני תלמידים...</div>
+</div>
+
+<script>
+const FB={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+try{firebase.initializeApp(FB);}catch(e){}
+const db=firebase.database();
+
+const CHARS={
+  knight:{name:'אביר',icon:'⚔️',cls:'char-knight'},
+  noble:{name:'אציל',icon:'👑',cls:'char-noble'},
+  peasant:{name:'איכר',icon:'🌾',cls:'char-peasant'},
+  priest:{name:'כומר',icon:'✝️',cls:'char-priest'},
+  merchant:{name:'סוחר',icon:'💰',cls:'char-merchant'},
+};
+
+function loadReport(){
+  document.getElementById('content').innerHTML='<div class="loading-wrap"><span class="spin">⏳</span><br>טוען...</div>';
+  db.ref('lesson3/students').once('value',snap=>{
+    const data=snap.val();
+    document.getElementById('report-time').textContent='עודכן: '+new Date().toLocaleString('he-IL');
+    if(!data){
+      document.getElementById('content').innerHTML='<div style="text-align:center;padding:60px;opacity:.4;">אין נתונים עדיין.</div>';
+      return;
+    }
+
+    const students=Object.entries(data)
+      .map(([name,val])=>({name,..val}))
+      .sort((a,b)=>a.name.localeCompare(b.name,'he'));
+
+    const total=students.length;
+    const doneS3=students.filter(s=>s.stations?.s3?.completed).length;
+    const doneS4=students.filter(s=>s.stations?.s4?.completed).length;
+    const doneS5=students.filter(s=>s.stations?.s5&&(s.stations.s5['j-p1']||s.stations.s5['j-p2'])).length;
+
+    document.getElementById('stat-total').textContent=total;
+    document.getElementById('stat-s3').textContent=doneS3;
+    document.getElementById('stat-s4').textContent=doneS4;
+    document.getElementById('stat-s5').textContent=doneS5;
+
+    const content=document.getElementById('content');
+    content.innerHTML='';
+
+    students.forEach(s=>{
+      const st=s.stations||{};
+      const info=s.info||{};
+      const char=info.character||'';
+      const charInfo=CHARS[char]||{name:char||'לא נבחר',icon:'👤',cls:''};
+
+      // תחנה 3
+      const s3=st.s3||{};
+      const s3done=s3.completed;
+      // תחנה 4
+      const s4=st.s4||{};
+      const s4done=s4.completed||s4.verification;
+      // תחנה 5 יומן
+      const s5=st.s5||{};
+      const s5done=s5['j-p1']||s5['j-p2'];
+
+      const card=document.createElement('div');
+      card.className='student-card '+charInfo.cls;
+      card.innerHTML=`
+        <div class="student-header">
+          <div>
+            <div class="student-name">👤 ${s.name}</div>
+            <div class="student-char">${charInfo.icon} דמות: ${charInfo.name}</div>
+          </div>
+          <div class="badges">
+            <span class="badge ${s3done?'done':s3['s3-a1']?'partial':'empty'}">תחנה 3 ${s3done?'✓':s3['s3-a1']?'חלקי':'ריק'}</span>
+            <span class="badge ${s4done?'done':s4['s4-yn1']?'partial':'empty'}">תחנה 4 ${s4done?'✓':s4['s4-yn1']?'חלקי':'ריק'}</span>
+            <span class="badge ${s5done?'done':'empty'}">יומן ${s5done?'✓':'ריק'}</span>
+          </div>
+        </div>
+        <div class="sections">
+          <div class="section">
+            <div class="section-title">⚔️ תחנה 3 — הדרך הפיסית</div>
+            <div class="q-label">🏔 שאלה 1 — העגלה והדרך</div>
+            <div class="q-answer ${s3['s3-a1']?'':'empty'}">${s3['s3-a1']||'לא נענה'}</div>
+            <div class="q-label">⏱ שאלה 2 — הקצב והזמן</div>
+            <div class="q-answer ${s3['s3-a2']?'':'empty'}">${s3['s3-a2']||'לא נענה'}</div>
+            <div class="q-label">🧭 שאלה 3 — הניווט</div>
+            <div class="q-answer ${s3['s3-a3']?'':'empty'}">${s3['s3-a3']||'לא נענה'}</div>
+            <div class="q-label">⚠ שאלה 4 — סכנות בדרך</div>
+            <div class="q-answer ${s3['s3-a4q']?'':'empty'}">${s3['s3-a4q']||'לא נענה'}</div>
+            <div class="q-label">📝 3 קשיים פיזיים שחזה</div>
+            <div class="q-answer ${s3['s3-a4']?'':'empty'}">${(s3['s3-a4']||'לא נענה').replace(/\n/g,'<br>')}</div>
+          </div>
+          <div class="section">
+            <div class="section-title">📚 תחנה 4 — בדיקת מקורות</div>
+            <div class="q-label">קושי 1 — האם נכון?</div>
+            <div class="q-answer ${s4['s4-yn1']?'':'empty'}">${s4['s4-yn1']||'לא נענה'}</div>
+            <div class="q-label">קושי 2 — האם נכון?</div>
+            <div class="q-answer ${s4['s4-yn2']?'':'empty'}">${s4['s4-yn2']||'לא נענה'}</div>
+            <div class="q-label">קושי 3 — האם נכון?</div>
+            <div class="q-answer ${s4['s4-yn3']?'':'empty'}">${s4['s4-yn3']||'לא נענה'}</div>
+            <div class="q-label">💡 קושי נעלם שמצא/ה</div>
+            <div class="q-answer ${s4['s4-hidden']?'':'empty'}">${s4['s4-hidden']||'לא נענה'}</div>
+            <div class="q-label">🗺 מחסומים טבעיים</div>
+            <div class="q-answer ${s4['s4-map1']?'':'empty'}">${[s4['s4-map1'],s4['s4-map2']].filter(Boolean).join(' | ')||'לא נענה'}</div>
+          </div>
+          <div class="section">
+            <div class="section-title">📖 תחנה 5 — יומן מסע</div>
+            <div class="q-label">פסקה 1 — מצב פיזי/נפשי</div>
+            <div class="q-answer ${s5['j-p1']?'':'empty'}">${s5['j-p1']||'לא נכתב'}</div>
+            <div class="q-label">פסקה 2 — פרט היסטורי</div>
+            <div class="q-answer ${s5['j-p2']?'':'empty'}">${s5['j-p2']||'לא נכתב'}</div>
+            <div class="q-label">פסקה 3 — הקושי הגדול</div>
+            <div class="q-answer ${s5['j-p3']?'':'empty'}">${s5['j-p3']||'לא נכתב'}</div>
+            <div class="q-label">פסקה 4 — האם שווה היה?</div>
+            <div class="q-answer ${s5['j-p4']?'':'empty'}">${s5['j-p4']||'לא נכתב'}</div>
+          </div>
+        </div>`;
+      content.appendChild(card);
+    });
+  });
+}
+
+window.onload=loadReport;
+</script>
+</body>
+</html>
