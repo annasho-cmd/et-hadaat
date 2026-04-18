@@ -147,11 +147,16 @@ const unitId=params.get('unit');
 const lessonIdx=parseInt(params.get('lesson')||'0');
 const studentName=decodeURIComponent(params.get('student')||'');
 const classCode=params.get('class')||'';
+const isPreview=params.get('preview')==='1';
+
+// נתיב תשובות המורה ב-Firebase
+const teacherAnswersPath=`teacherAnswers/${subjectId}/${unitId}/lesson_${lessonIdx}`;
 
 let lessonData=null;
 let allStations=[];
 let currentStation=0;
 let answers={};
+let teacherAnswers={}; // תשובות דוגמא של המורה
 
 const SECTION_LABELS={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום',enrichment:'⭐ העשרה'};
 const ITEM_TYPES={
@@ -178,6 +183,20 @@ window.onload=function(){
     buildStations();
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('nav-footer').style.display='flex';
+
+    if(isPreview){
+      // מצב תצוגה מקדימה — הצג באנר מורה
+      const banner=document.createElement('div');
+      banner.style.cssText='background:linear-gradient(135deg,#1a5c2a,#2a6b2a);color:#fdf5e0;padding:8px 20px;font-size:.82rem;font-weight:700;text-align:center;position:sticky;top:56px;z-index:40;';
+      banner.textContent='👩‍🏫 מצב תצוגה מקדימה — תשובותייך ישמרו כתשובות דוגמא לתלמידים';
+      document.getElementById('stations-container').before(banner);
+    } else {
+      // מצב תלמיד — טען תשובות דוגמא של המורה
+      db.ref(teacherAnswersPath).once('value',snap=>{
+        teacherAnswers=snap.val()||{};
+      });
+    }
+
     renderCurrentStation();
   });
 };
@@ -246,10 +265,13 @@ function renderCurrentStation(){
 function chooseMC(stIdx,sli,chosen,correct){
   const key=`${stIdx}-${sli}`;
   answers[key]=String(chosen);
-  db.ref(`${dbPath}/stations/${stIdx}/${sli}`).set({answer:String(chosen),ts:Date.now()});
+  const savePath=isPreview
+    ?`${teacherAnswersPath}/station_${stIdx}_${sli}`
+    :`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`;
+  db.ref(savePath).set({answer:String(chosen),ts:Date.now()});
   const saved=document.getElementById(`saved-${stIdx}-${sli}`);
   if(saved){
-    saved.textContent=chosen===correct?'✅ נכון!':'❌ לא נכון';
+    saved.textContent=isPreview?'✅ נשמר כדוגמא':(chosen===correct?'✅ נכון!':'❌ לא נכון');
     saved.style.display='block';
   }
   // Update button styles
@@ -268,10 +290,13 @@ function chooseMC(stIdx,sli,chosen,correct){
 function chooseTF(stIdx,sli,chosen,isSurvey,correct){
   const key=`${stIdx}-${sli}`;
   answers[key]=String(chosen);
-  db.ref(`${dbPath}/stations/${stIdx}/${sli}`).set({answer:String(chosen),ts:Date.now()});
+  const savePath=isPreview
+    ?`${teacherAnswersPath}/station_${stIdx}_${sli}`
+    :`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`;
+  db.ref(savePath).set({answer:String(chosen),ts:Date.now()});
   const saved=document.getElementById(`saved-${stIdx}-${sli}`);
   if(saved){
-    saved.textContent=isSurvey?'✓ תשובתך נשמרה':(chosen===correct?'✅ נכון!':'❌ לא נכון');
+    saved.textContent=isPreview?'✅ נשמר כדוגמא':(isSurvey?'✓ תשובתך נשמרה':(chosen===correct?'✅ נכון!':'❌ לא נכון'));
     saved.style.display='block';
   }
 }
@@ -483,14 +508,20 @@ function saveFillTableCell(tableId, stIdx, sli, showMsg){
   });
   const val=JSON.stringify(cells);
   answers[stIdx+'-'+sli]=val;
-  if(studentName&&classCode){
+  if(isPreview){
+    db.ref(teacherAnswersPath+'/station_'+stIdx+'_'+sli).set({answer:val,savedAt:Date.now()});
+  } else if(studentName&&classCode){
     db.ref('studentAnswers/'+classCode+'/'+studentName+'/lesson_'+lessonIdx+'/station_'+stIdx+'_'+sli).set({
       answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
     });
   }
   if(showMsg){
     const saved=document.getElementById('saved-'+stIdx+'-'+sli);
-    if(saved){saved.style.display='block';setTimeout(()=>saved.style.display='none',2000);}
+    if(saved){
+      saved.textContent=isPreview?'✅ נשמר כדוגמא':'✅ נשמר';
+      saved.style.display='block';
+      setTimeout(()=>saved.style.display='none',2000);
+    }
   }
 }
 
@@ -557,13 +588,36 @@ function saveAnswer(stIdx,sli,uid){
   }
   el.style.borderColor='';
   answers[`${stIdx}-${sli}`]=val;
-  if(studentName&&classCode){
-    db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
-      answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
+
+  if(isPreview){
+    // שמור כתשובת דוגמא של המורה
+    db.ref(`${teacherAnswersPath}/station_${stIdx}_${sli}`).set({
+      answer:val, savedAt:Date.now()
     });
+    const savedEl=document.getElementById(`saved-${stIdx}-${sli}`);
+    if(savedEl){savedEl.textContent='✅ נשמר כתשובת דוגמא';savedEl.style.display='block';setTimeout(()=>savedEl.style.display='none',2500);}
+  } else {
+    // שמור תשובת תלמיד
+    if(studentName&&classCode){
+      db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
+        answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
+      });
+    }
+    const savedEl=document.getElementById(`saved-${stIdx}-${sli}`);
+    if(savedEl){savedEl.style.display='block';setTimeout(()=>savedEl.style.display='none',2500);}
+    // הצג תשובת דוגמא של המורה אחרי השמירה
+    const modelKey=`station_${stIdx}_${sli}`;
+    if(teacherAnswers[modelKey]?.answer){
+      let modelEl=document.getElementById(`model-${stIdx}-${sli}`);
+      if(!modelEl){
+        modelEl=document.createElement('div');
+        modelEl.id=`model-${stIdx}-${sli}`;
+        modelEl.style.cssText='margin-top:8px;padding:8px 12px;background:rgba(42,107,42,.15);border:1px solid rgba(42,107,42,.3);border-radius:8px;font-size:.8rem;color:#6ee7a0;direction:rtl;';
+        modelEl.innerHTML=`<div style="font-size:.68rem;font-weight:700;opacity:.7;margin-bottom:4px;">💡 תשובת דוגמא:</div>${esc(teacherAnswers[modelKey].answer)}`;
+        el.parentElement.appendChild(modelEl);
+      }
+    }
   }
-  const savedEl=document.getElementById(`saved-${stIdx}-${sli}`);
-  if(savedEl){savedEl.style.display='block';setTimeout(()=>savedEl.style.display='none',2500);}
 }
 
 function showValidationMsg(msg){
