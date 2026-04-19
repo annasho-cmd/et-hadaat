@@ -1421,6 +1421,31 @@ function buildSlotEditor(slot, section, si, sli, uid){
 
   const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
 
+  // ── כרטיס כניסה / כרטיס יציאה ──
+  if(slot.type==='entry_card'||slot.type==='exit_card'){
+    const isEntry=slot.type==='entry_card';
+    const icon=isEntry?'🚪':'🎫';
+    const label=isEntry?'כרטיס כניסה':'כרטיס יציאה';
+    const styles=isEntry
+      ?['שאלה פתוחה','בדיקת ידע קודם','סקרנות ושאלות','יישומי-חשיבתי','רפלקטיבי-רגשי']
+      :['סיכום וזיקוק','רפלקציה על למידה','בדיקת הבנה יישומית','משוב והכנה להמשך'];
+    const saved=slot.cardData||{question:'',style:styles[0]};
+    return `<div class="inline-editor-title">${icon} ${label}</div>
+      <div style="font-size:.72rem;opacity:.45;margin-bottom:8px;">בחרי סגנון וכתבי את השאלה</div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:.72rem;opacity:.6;display:block;margin-bottom:4px;">סגנון הכרטיס:</label>
+        <select id="ef-style-${uid}" style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;padding:7px 10px;outline:none;">
+          ${styles.map(s=>`<option value="${s}" ${saved.style===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <textarea class="inline-field" id="ef-${uid}" placeholder="כתבי את השאלה לתלמידים..." rows="3">${esc(saved.question||'')}</textarea>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveCardData('${section}',${si},${sli},'${uid}')">שמור ✓</button>
+      </div>`;
+  }
+
   // ── טבלת מיון ──
   if(slot.type==='sort_table'){
     const td=slot.tableData||{cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}],items:[]};
@@ -1860,6 +1885,18 @@ async function uploadImageFile(input, inputId, prevId){
     alert('שגיאת רשת. נסי קישור URL.');
     if(uploadBtn)uploadBtn.textContent='📁 העלה מהמחשב';
   }
+}
+
+function saveCardData(section, si, sli, uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const q=document.getElementById('ef-'+uid);
+  const s=document.getElementById('ef-style-'+uid);
+  if(!q)return;
+  slot.cardData={question:q.value.trim(), style:s?s.value:''};
+  slot.content=q.value.trim();
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
 }
 
 function saveFreeText(section, si, sli, uid){
