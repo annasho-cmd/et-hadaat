@@ -1519,13 +1519,38 @@ function buildSlotEditor(slot, section, si, sli, uid){
   const isUrl=slot.type==='video'||slot.type==='image';
   const field=isUrl
     ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;"
-        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה או Google Drive...'}"
-        value="${esc(slot.content||'')}" oninput="convertDriveLink('ef-${uid}')">
-      ${slot.type==='image'?`<div style="font-size:.7rem;opacity:.4;margin-top:4px;line-height:1.5;">
-        💡 Google Drive: שיתוף ← "כל מי שיש לו קישור" ← העתיקי את ה-ID מהקישור והכניסי:<br>
-        <span style="font-family:monospace;opacity:.6;">https://drive.google.com/uc?export=view&id=<b>ID</b></span>
-      </div>`:''}
-      ${slot.type==='image'&&slot.content?`<img src="${esc(slot.content)}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:8px;object-fit:contain;" onerror="this.style.display='none'">`:''}` 
+        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה...'}"
+        value="${esc(slot.content||'')}" oninput="convertDriveLink('ef-${uid}');previewImage('ef-${uid}','prev-${uid}')">
+      ${slot.type==='image'?`
+      <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;">
+        <button onclick="openImageUpload('ef-${uid}','prev-${uid}')"
+          style="padding:5px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+          📁 העלה מהמחשב
+        </button>
+        <button onclick="openDriveHelp('ef-${uid}')"
+          style="padding:5px 12px;background:rgba(66,133,244,.12);border:1px solid rgba(66,133,244,.3);border-radius:6px;color:#93c5fd;font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+          ☁️ Google Drive
+        </button>
+        <button onclick="openUrlInput('ef-${uid}')"
+          style="padding:5px 12px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+          🔗 קישור URL
+        </button>
+      </div>
+      <div id="drive-help-${uid}" style="display:none;margin-top:8px;background:rgba(66,133,244,.06);border:1px solid rgba(66,133,244,.2);border-radius:7px;padding:10px 12px;font-size:.72rem;line-height:1.7;opacity:.8;">
+        <strong style="color:#93c5fd;">Google Drive:</strong><br>
+        1. פתחי את התמונה ב-Drive<br>
+        2. לחצי שתף ← "כל מי שיש לו קישור"<br>
+        3. העתיקי את ה-ID מהקישור (אחרי /d/ ולפני /view)<br>
+        4. הכניסי בשדה למעלה:
+        <div style="font-family:monospace;background:rgba(0,0,0,.3);padding:4px 8px;border-radius:4px;margin-top:4px;font-size:.68rem;">
+          https://drive.google.com/uc?export=view&id=<b>ID</b>
+        </div>
+      </div>
+      <input type="file" id="file-${uid}" accept="image/*" style="display:none;" onchange="uploadImageFile(this,'ef-${uid}','prev-${uid}')">
+      ${slot.content?`<img id="prev-${uid}" src="${esc(slot.content)}" style="max-width:100%;max-height:140px;border-radius:8px;margin-top:8px;object-fit:contain;" onerror="this.style.display='none'">`
+        :`<img id="prev-${uid}" src="" style="max-width:100%;max-height:140px;border-radius:8px;margin-top:8px;object-fit:contain;display:none;">`}
+      `:''}
+      ${slot.type==='video'?'':''}` 
     :`<textarea class="inline-field" id="ef-${uid}" placeholder="הכניסי תוכן...">${esc(slot.content||'')}</textarea>`;
   return `<div class="inline-editor-title">${bankItem?.icon||''} ${bankItem?.name||slot.type}</div>
     ${field}
@@ -1776,6 +1801,64 @@ function convertDriveLink(inputId){
   const m=val.match(/\/file\/d\/([^\/\?]+)/);
   if(m&&!val.includes('uc?export')){
     inp.value=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+  }
+  // עדכון תצוגה מקדימה
+  const uid=inputId.replace('ef-','');
+  previewImage(inputId,'prev-'+uid);
+}
+
+function previewImage(inputId, prevId){
+  const el=document.getElementById(inputId);
+  const prev=document.getElementById(prevId);
+  if(!el||!prev)return;
+  const url=el.value.trim();
+  if(url){prev.src=url;prev.style.display='block';}
+  else prev.style.display='none';
+}
+
+function openImageUpload(inputId){
+  const uid=inputId.replace('ef-','');
+  const fileInput=document.getElementById('file-'+uid);
+  if(fileInput)fileInput.click();
+}
+
+function openDriveHelp(inputId){
+  const uid=inputId.replace('ef-','');
+  const help=document.getElementById('drive-help-'+uid);
+  if(help)help.style.display=help.style.display==='none'?'block':'none';
+}
+
+function openUrlInput(inputId){
+  const el=document.getElementById(inputId);
+  if(el){el.focus();el.select();}
+}
+
+async function uploadImageFile(input, inputId, prevId){
+  const file=input.files[0];
+  if(!file)return;
+  const CLOUD_NAME='da6mdtjhh';
+  const UPLOAD_PRESET='w8rzehkl';
+  const formData=new FormData();
+  formData.append('file',file);
+  formData.append('upload_preset',UPLOAD_PRESET);
+  // מצא כפתור העלאה ועדכן טקסט
+  const uploadBtn=document.querySelector(`[onclick="openImageUpload('${inputId}')"]`);
+  if(uploadBtn)uploadBtn.textContent='⏳ מעלה...';
+  try{
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:'POST',body:formData});
+    const data=await res.json();
+    if(data.secure_url){
+      const el=document.getElementById(inputId);
+      if(el){el.value=data.secure_url;previewImage(inputId,prevId);}
+      if(uploadBtn)uploadBtn.textContent='📁 העלה מהמחשב';
+      setSaveStatus('שינויים לא שמורים');
+    } else {
+      alert('שגיאה בהעלאה. נסי קישור URL.');
+      if(uploadBtn)uploadBtn.textContent='📁 העלה מהמחשב';
+    }
+  }catch(e){
+    alert('שגיאת רשת. נסי קישור URL.');
+    if(uploadBtn)uploadBtn.textContent='📁 העלה מהמחשב';
   }
 }
 
