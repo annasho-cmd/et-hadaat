@@ -673,13 +673,19 @@ const ITEM_BANK=[
   {type:'entry_card', icon:'🚪',name:'כרטיס כניסה',  desc:'שאלה שמפעילה ידע קודם'},
   {type:'exit_card',  icon:'🎫',name:'כרטיס יציאה',  desc:'שאלה מסכמת לסוף שיעור'},
   {type:'text',       icon:'📄',name:'טקסט / מקור',  desc:'קטע קריאה או מקור ראשוני'},
+  {type:'sources',    icon:'📜',name:'קריאת מקורות', desc:'טקסט עם שאלות מלוות'},
   {type:'image',      icon:'🖼️',name:'תמונה',         desc:'תמונה, מפה או מסמך חזותי'},
   {type:'video',      icon:'▶️',name:'סרטון',         desc:'קישור YouTube'},
-  {type:'question',   icon:'❓',name:'שאלה',          desc:'שאלה פתוחה או סגורה'},
+  {type:'question',   icon:'❓',name:'שאלה פתוחה',   desc:'שאלה פתוחה או סגורה'},
   {type:'drag_drop',  icon:'🔀',name:'סדר כרונולוגי',desc:'פעילות גרירה לפי סדר'},
   {type:'fill_table', icon:'📋',name:'טבלת מילוי',   desc:'טבלה עם תאים ריקים למילוי ידני'},
+  {type:'sort_table', icon:'📊',name:'טבלת מיון',    desc:'גרירת פריטים לקטגוריות'},
   {type:'discussion', icon:'💬',name:'דיון',          desc:'שאלה לדיון כיתתי'},
   {type:'summary',    icon:'📝',name:'סיכום',         desc:'ממלאים בסוף תחנה'},
+  {type:'argue',      icon:'🖊️',name:'כתיבה טיעונית',desc:'תבנית לכתיבה טיעונית'},
+  {type:'full_ans',   icon:'📝',name:'תשובה מלאה',   desc:'תבנית לכתיבת תשובה מלאה'},
+  {type:'stickies',   icon:'🗒️',name:'פתקיות',        desc:'לוח שיתופי בזמן אמת'},
+  {type:'wordcloud',  icon:'☁️',name:'ענן מילים',     desc:'ענן מילים שיתופי'},
 ];
 
 // ── NAV ──
@@ -1421,31 +1427,6 @@ function buildSlotEditor(slot, section, si, sli, uid){
 
   const bankItem=bankData.find(b=>b.id===slot.type||b.type===slot.type);
 
-  // ── כרטיס כניסה / כרטיס יציאה ──
-  if(slot.type==='entry_card'||slot.type==='exit_card'){
-    const isEntry=slot.type==='entry_card';
-    const icon=isEntry?'🚪':'🎫';
-    const label=isEntry?'כרטיס כניסה':'כרטיס יציאה';
-    const styles=isEntry
-      ?['שאלה פתוחה','בדיקת ידע קודם','סקרנות ושאלות','יישומי-חשיבתי','רפלקטיבי-רגשי']
-      :['סיכום וזיקוק','רפלקציה על למידה','בדיקת הבנה יישומית','משוב והכנה להמשך'];
-    const saved=slot.cardData||{question:'',style:styles[0]};
-    return `<div class="inline-editor-title">${icon} ${label}</div>
-      <div style="font-size:.72rem;opacity:.45;margin-bottom:8px;">בחרי סגנון וכתבי את השאלה</div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:.72rem;opacity:.6;display:block;margin-bottom:4px;">סגנון הכרטיס:</label>
-        <select id="ef-style-${uid}" style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;padding:7px 10px;outline:none;">
-          ${styles.map(s=>`<option value="${s}" ${saved.style===s?'selected':''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <textarea class="inline-field" id="ef-${uid}" placeholder="כתבי את השאלה לתלמידים..." rows="3">${esc(saved.question||'')}</textarea>
-      <div class="editor-btns">
-        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
-        <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
-        <button class="btn btn-gold btn-sm" onclick="saveCardData('${section}',${si},${sli},'${uid}')">שמור ✓</button>
-      </div>`;
-  }
-
   // ── טבלת מיון ──
   if(slot.type==='sort_table'){
     const td=slot.tableData||{cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}],items:[]};
@@ -1782,27 +1763,7 @@ function buildItemEditor(item, section, si){
         style="padding:4px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;flex-shrink:0;">✏️ ערכי</button>
     </div>`;
   }
-  // fill_table — פתח פופאפ בלחיצה
-  if(item.type==='fill_table'){
-    const td=item.tableData;
-    const summary=td?`${td.cols.length} עמודות · ${td.rows.length} שורות`:'לחצי לעריכה';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-      <div style="font-size:.78rem;opacity:.65;">📋 ${summary}</div>
-      <button onclick="openItemPopup('fill_table','${section}',${si},${JSON.stringify(td||null).replace(/"/g,'&quot;')})"
-        style="padding:4px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">✏️ ערכי</button>
-    </div>`;
-  }
-  // sort_table — פתח פופאפ בלחיצה
-  if(item.type==='sort_table'){
-    const td=item.tableData;
-    const summary=td?`${td.cols.length} עמודות · ${td.items.length} פריטים`:'לחצי לעריכה';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-      <div style="font-size:.78rem;opacity:.65;">📊 ${summary}</div>
-      <button onclick="openItemPopup('sort_table','${section}',${si},${JSON.stringify(td||null).replace(/"/g,'&quot;')})"
-        style="padding:4px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">✏️ ערכי</button>
-    </div>`;
-  }
-  // generic
+  // generic — שדה טקסט
   return `<textarea class="inline-field" style="font-size:.82rem;" placeholder="תוכן הפריט..."
     onchange="updateStationItemContent('${section}',${si},this.value)">${esc(item.content||'')}</textarea>`;
 }
@@ -2531,17 +2492,23 @@ const POPUP_EDITORS = {
     render: (d) => renderQuestionPopup(d, 'question'),
     collect: collectQuestionPopup
   },
-  entry: {
+  entry_card: {
     title: '🚪 כרטיס כניסה',
     init: (data) => data || {question:'', style:'בדיקת ידע קודם'},
     render: (d) => renderCardPopup(d, 'entry'),
     collect: collectCardPopup
   },
-  exit: {
+  exit_card: {
     title: '🎫 כרטיס יציאה',
     init: (data) => data || {question:'', style:'סיכום וזיקוק'},
     render: (d) => renderCardPopup(d, 'exit'),
     collect: collectCardPopup
+  },
+  drag_drop: {
+    title: '🔀 סדר כרונולוגי',
+    init: (data) => data || {prompt:'', items:['','','','','']},
+    render: renderDragDropPopup,
+    collect: collectDragDropPopup
   },
   sources: {
     title: '📜 קריאת מקורות',
@@ -2968,7 +2935,27 @@ function renderSimpleQuestionPopup(d,ph){
 }
 function collectSimpleQuestionPopup(){ return JSON.parse(JSON.stringify(window._popupSimpleData||{})); }
 
-// ── HELPER ──
+// ── DRAG DROP POPUP ──
+function renderDragDropPopup(d){
+  window._popupDragData=JSON.parse(JSON.stringify(d));
+  const items=(d.items||['','','','','']).map((item,i)=>
+    '<div style="display:flex;gap:6px;margin-bottom:7px;align-items:center;">'+
+    '<span style="min-width:22px;height:22px;background:rgba(212,168,67,.2);color:#d4a843;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;">'+(i+1)+'</span>'+
+    '<input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\\'Heebo\\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;" placeholder="פריט '+(i+1)+'..." value="'+esc(item)+'" oninput="window._popupDragData.items['+(i)+']=this.value">'+
+    (i>4?'<button onclick="removeDragItem('+i+')" style="padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>':'')+'</div>'
+  ).join('');
+  return '<div style="margin-bottom:10px;">'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הנחיה (אופציונלי):</div>'+
+    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\\'Heebo\\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:12px;" placeholder="סדרו את האירועים לפי סדר כרונולוגי..." value="'+esc(d.prompt||'')+'" oninput="window._popupDragData.prompt=this.value">'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">פריטים לסידור (לפחות 3):</div>'+
+    '<div id="drag-items">'+items+'</div>'+
+    '<button onclick="addDragItem()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:\\'Heebo\\',sans-serif;margin-top:4px;">+ הוסף פריט</button>'+
+    '<div style="font-size:.72rem;opacity:.4;margin-top:8px;">הפריטים יוצגו לתלמיד בסדר אקראי</div></div>';
+}
+function addDragItem(){ window._popupDragData.items.push(''); document.getElementById('item-popup-body').innerHTML=renderDragDropPopup(window._popupDragData); }
+function removeDragItem(i){ window._popupDragData.items.splice(i,1); document.getElementById('item-popup-body').innerHTML=renderDragDropPopup(window._popupDragData); }
+function collectDragDropPopup(){ return JSON.parse(JSON.stringify(window._popupDragData||{})); }
+
 function selectPopupStyle(btn,varName){
   const val=btn.dataset.val;
   if(window[varName]) window[varName].style=val;
