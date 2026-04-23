@@ -537,6 +537,28 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
         <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
       </div>
 
+      <!-- UNIT INTRO — דף נפרד לפני הקרונות -->
+      <div class="section-block" style="border-radius:12px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(212,168,67,.25);">
+        <div style="padding:10px 16px;display:flex;align-items:center;gap:8px;background:rgba(212,168,67,.06);">
+          <span>📖</span>
+          <span style="font-size:.9rem;font-weight:700;">פתיח ליחידה</span>
+          <span style="font-size:.7rem;opacity:.4;flex:1;">יוצג בדף נפרד לפני כל הקרונות</span>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;opacity:.7;cursor:pointer;">
+            <input type="checkbox" id="unit-intro-enabled" 
+              onchange="lessonData.unitIntro=lessonData.unitIntro||{};lessonData.unitIntro.enabled=this.checked;setSaveStatus('שינויים לא שמורים');"
+              style="accent-color:var(--gold);">
+            הפעל
+          </label>
+        </div>
+        <div id="unit-intro-body" style="padding:12px 16px;">
+          <textarea id="unit-intro-text"
+            style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:10px 12px;resize:vertical;min-height:80px;outline:none;"
+            placeholder="כתבי את הפתיח ליחידה — יוצג לתלמידים בדף נפרד לפני תחילת השיעור..."
+            oninput="lessonData.unitIntro=lessonData.unitIntro||{};lessonData.unitIntro.text=this.value;setSaveStatus('שינויים לא שמורים');"></textarea>
+          <div style="font-size:.72rem;opacity:.4;margin-top:4px;">💡 ניתן לכלול: הקשר, שאלת מנחה, רקע, תמונה או מפה</div>
+        </div>
+      </div>
+
       <!-- STEP 0: פתיח -->
       <div class="step-panel active" id="step-panel-0">
         <div class="section-block intro" style="border-radius:12px;overflow:hidden;">
@@ -1171,9 +1193,9 @@ function openLessonBuilder(idx){
     stations:(saved.stations||Array.from({length:4},()=>({}))).map(migrateToNew),
     closing:[(saved.closing&&saved.closing[0]?migrateToNew(saved.closing[0]):{items:[null,null,null],displayMode:'simultaneous'})],
     enrichmentStations:(saved.enrichmentStations||Array.from({length:3},()=>({}))).map(migrateToNew),
-    introSettings:saved.introSettings||{newPage:true,mode:'simultaneous'},
-    stationsSettings:saved.stationsSettings||{newPage:true,mode:'simultaneous'},
-    closingSettings:saved.closingSettings||{newPage:true,mode:'simultaneous'},
+    introSettings:saved.introSettings||{newPage:true,mode:null},
+    stationsSettings:saved.stationsSettings||{newPage:true,mode:null},
+    closingSettings:saved.closingSettings||{newPage:true,mode:null},
     enrichment:saved.enrichment||{
       pairs:[],selectedGames:[],
       qa:[],qaSelectedGames:[],
@@ -1270,6 +1292,11 @@ function renderLessonStructure(){
     const el=document.getElementById('section-intro-'+f);
     if(el && !el._dirty) el.value=lessonData[f]||'';
   });
+  // fill unit intro
+  const unitIntroEl=document.getElementById('unit-intro-text');
+  const unitIntroCheck=document.getElementById('unit-intro-enabled');
+  if(unitIntroEl && lessonData.unitIntro) unitIntroEl.value=lessonData.unitIntro.text||'';
+  if(unitIntroCheck && lessonData.unitIntro) unitIntroCheck.checked=!!lessonData.unitIntro.enabled;
 }
 
 function renderSimpleRows(containerId,rows,section){
@@ -1314,8 +1341,8 @@ function buildStationHTML(st, si, section){
       <div class="station-num">${si+1}</div>
       <div class="station-label">תחנה ${si+1}${filledCount?' · '+filledCount+' פריטים':''}</div>
       <div class="station-display-toggle" onclick="event.stopPropagation()">
-        <button class="disp-btn ${isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'simultaneous')">בו-זמנית</button>
-        <button class="disp-btn ${!isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'sequential')">זה אחר זה</button>
+        <button class="disp-btn ${isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'simultaneous')">⬜ בו-זמנית</button>
+        <button class="disp-btn ${!isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'sequential')">➡️ זה אחר זה</button>
       </div>
       <button onclick="event.stopPropagation();askStationAI('${section}',${si})"
         style="padding:3px 10px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:var(--gold);font-size:.72rem;cursor:pointer;font-family:Heebo,sans-serif;">🤖 עוזר</button>
@@ -1633,7 +1660,7 @@ function renderSectionControls(){
     const el=document.getElementById(`section-controls-${sec}`);
     if(!el)return;
     const key=sec+'Settings';
-    const settings=lessonData[key]||{newPage:true,mode:'simultaneous'};
+    const settings=lessonData[key]||{newPage:true,mode:null};
     el.innerHTML=`
       <button class="sec-ctrl-btn ${settings.newPage!==false?'on':''}"
         onclick="toggleSectionSetting('${sec}','newPage')"
@@ -1641,9 +1668,9 @@ function renderSectionControls(){
         📄 דף חדש
       </button>
       <button class="sec-ctrl-btn ${settings.mode==='simultaneous'?'on':''}"
-        onclick="setSectionMode('${sec}','simultaneous')">בו-זמנית</button>
+        onclick="setSectionMode('${sec}','simultaneous')">⬜ בו-זמנית</button>
       <button class="sec-ctrl-btn ${settings.mode==='sequential'?'on':''}"
-        onclick="setSectionMode('${sec}','sequential')">זה אחר זה</button>
+        onclick="setSectionMode('${sec}','sequential')">➡️ זה אחר זה</button>
     `;
   });
 }
