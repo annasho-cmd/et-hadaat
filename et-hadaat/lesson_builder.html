@@ -534,7 +534,11 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
         </div>
         <div class="section-label">מטרות השיעור</div>
         <textarea class="goals-area" id="b-goals" placeholder="רשמי את מטרות השיעור..."></textarea>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
+        <div style="display:flex;gap:7px;margin-top:6px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
+          <button class="btn btn-sm" style="background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);color:#c4b5fd;" onclick="generateLessonSkeleton()">✨ הכן לי שלד שיעור</button>
+          <button class="btn btn-sm" style="background:rgba(42,107,42,.15);border:1px solid rgba(42,107,42,.4);color:#6ee7a0;" onclick="checkGoalsAlignment()">🎯 בדוק התאמה למטרות</button>
+        </div>
       </div>
 
       <!-- UNIT INTRO — דף נפרד לפני הקרונות -->
@@ -2219,6 +2223,127 @@ async function askGoalsAI(){
   showThinking(false);
   addMsg('ai-messages',reply,'assistant');
   addMsg('ai-messages','העתיקי את המטרות לשדה למעלה אם מתאים לך.','assistant');
+}
+
+async function generateLessonSkeleton(){
+  const goals=document.getElementById('b-goals')?.value?.trim();
+  if(!goals){
+    alert('נא למלא תחילה את מטרות השיעור.');
+    return;
+  }
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const topic=lesson?.topic||document.getElementById('b-topic-input')?.value||'';
+  switchSideTab('ai');
+  const prompt=`אני מורה ואני בונה שיעור בנושא: "${topic}".
+מטרות השיעור:
+${goals}
+
+הצע לי שלד שיעור מפורט בפורמט JSON בלבד (ללא טקסט נוסף):
+{
+  "intro": [{"suggestion": "תיאור קצר לתחנה", "item": "כרטיס כניסה/שאלה פתוחה/פתקיות/תמונה", "questionSuggestion": "הצעה לשאלה"}],
+  "stations": [{"suggestion": "...", "item": "...", "questionSuggestion": "..."}, ...],
+  "closing": [{"suggestion": "...", "item": "...", "questionSuggestion": "..."}]
+}
+כלל: פתיח 1-2 תחנות, גוף 2-4 תחנות, סיום תחנה אחת.
+הפריטים האפשריים: כרטיס כניסה, כרטיס יציאה, שאלה פתוחה, קריאת מקורות, תמונה, סרטון, פתקיות, ענן מילים, טבלת מילוי, סדר כרונולוגי, כתיבה טיעונית, דיון.`;
+
+  addMsg('ai-messages','מכין שלד שיעור...','user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה מנוסה. ענה אך ורק ב-JSON תקני, ללא טקסט לפני או אחרי.',prompt,[]);
+  showThinking(false);
+
+  let skeleton=null;
+  try{
+    const clean=reply.replace(/```json|```/g,'').trim();
+    skeleton=JSON.parse(clean);
+  }catch(e){
+    addMsg('ai-messages','מצטער, לא הצלחתי לנתח את התשובה. נסי שוב.','assistant');
+    return;
+  }
+
+  // הצג את השלד בצ'אט
+  const ITEM_ICONS={'כרטיס כניסה':'🚪','כרטיס יציאה':'🎫','שאלה פתוחה':'❓','קריאת מקורות':'📜','תמונה':'🖼️','סרטון':'▶️','פתקיות':'🗒️','ענן מילים':'☁️','טבלת מילוי':'📋','סדר כרונולוגי':'🔀','כתיבה טיעונית':'✍️','דיון':'💬'};
+  let preview='<div style="font-size:.85rem;line-height:1.9;"><b>✨ שלד שיעור מוצע:</b><br>';
+  if(skeleton.intro) skeleton.intro.forEach((s,i)=>{ preview+=`<br>🌅 <b>פתיח ${i+1}:</b> ${ITEM_ICONS[s.item]||'📄'} ${s.item}<br><span style="opacity:.7;font-size:.78rem;">💡 ${s.questionSuggestion}</span><br>`; });
+  if(skeleton.stations) skeleton.stations.forEach((s,i)=>{ preview+=`<br>🚂 <b>תחנה ${i+1}:</b> ${ITEM_ICONS[s.item]||'📄'} ${s.item}<br><span style="opacity:.7;font-size:.78rem;">💡 ${s.questionSuggestion}</span><br>`; });
+  if(skeleton.closing) skeleton.closing.forEach((s,i)=>{ preview+=`<br>🌇 <b>סיום ${i+1}:</b> ${ITEM_ICONS[s.item]||'📄'} ${s.item}<br><span style="opacity:.7;font-size:.78rem;">💡 ${s.questionSuggestion}</span><br>`; });
+  preview+='</div>';
+  addMsg('ai-messages',preview,'assistant');
+
+  // שאל אם להחיל
+  const apply=confirm('האם להחיל את השלד על השיעור?\n(הפריטים יוכנסו לתחנות — תוכלי לשנות בכל עת)');
+  if(!apply) return;
+
+  // מפה מסוג פריט לtype
+  const TYPE_MAP={
+    'כרטיס כניסה':'entry_card','כרטיס יציאה':'exit_card',
+    'שאלה פתוחה':'question','קריאת מקורות':'sources',
+    'תמונה':'image','סרטון':'video','פתקיות':'stickies',
+    'ענן מילים':'wordcloud','טבלת מילוי':'fill_table',
+    'סדר כרונולוגי':'drag_drop','כתיבה טיעונית':'argue','דיון':'discussion'
+  };
+
+  function applySkeletonSection(items, sectionKey){
+    const arr=sectionKey==='intro'?lessonData.intro:sectionKey==='closing'?lessonData.closing:lessonData.stations;
+    items.forEach((s,i)=>{
+      const type=TYPE_MAP[s.item]||'question';
+      if(!arr[i]) arr[i]={items:[null,null,null],displayMode:null};
+      if(!Array.isArray(arr[i].items)) arr[i].items=[null,null,null];
+      arr[i].items[0]={type, content:s.questionSuggestion||'', popupData:{question:s.questionSuggestion||'',style:''}};
+    });
+  }
+
+  if(skeleton.intro) applySkeletonSection(skeleton.intro,'intro');
+  if(skeleton.stations) applySkeletonSection(skeleton.stations,'stations');
+  if(skeleton.closing) applySkeletonSection(skeleton.closing,'closing');
+
+  // שמור מטרות
+  lessonData.goals=goals;
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+  addMsg('ai-messages','✅ השלד הוחל! עכשיו פתחי כל פריט ועדכני את התוכן לפי הכיתה שלך.','assistant');
+}
+
+async function checkGoalsAlignment(){
+  const goals=document.getElementById('b-goals')?.value?.trim();
+  if(!goals){ alert('נא למלא תחילה את מטרות השיעור.'); return; }
+  switchSideTab('ai');
+
+  // אסוף את כל הפריטים הקיימים
+  const sections=['intro','stations','closing'];
+  const built=[];
+  sections.forEach(sec=>{
+    const arr=sec==='intro'?lessonData.intro:sec==='closing'?lessonData.closing:lessonData.stations;
+    const label=sec==='intro'?'פתיח':sec==='closing'?'סיום':'גוף השיעור';
+    (arr||[]).forEach((st,i)=>{
+      const items=Array.isArray(st.items)?st.items:[st.item||null];
+      items.forEach(item=>{
+        if(!item||!item.type) return;
+        const content=item.popupData?.question||item.content||'';
+        built.push(`${label} תחנה ${i+1}: ${item.type}${content?' — "'+content.substring(0,60)+'"':''}`);
+      });
+    });
+  });
+
+  if(!built.length){ addMsg('ai-messages','לא נמצאו פריטים בשיעור. אנא בנה את השיעור תחילה.','assistant'); return; }
+
+  const prompt=`מטרות השיעור:
+${goals}
+
+פריטי השיעור שנבנו:
+${built.join('\n')}
+
+בדוק כל מטרה האם מכוסה על ידי הפריטים. ענה בפורמט:
+✅/⚠️/❌ מטרה 1: [הסבר קצר]
+✅/⚠️/❌ מטרה 2: [הסבר קצר]
+...
+בסוף: המלצה קצרה לשיפור.`;
+
+  addMsg('ai-messages','בודק התאמה למטרות...','user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה מנוסה. ענה בעברית, תמציתי.',prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
 }
 
 async function askRowAI(uid,section,ri,si){
