@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>התמצאות בתנ"ך — שיעור 3: שמות התנ"ך</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --parch:#f5e6c8;--parch2:#e8d4a8;
+  --ink:#2c1a0e;--brown:#6b3a1f;
+  --gold:#b8860b;--gold2:#d4a843;
+  --green:#1a5c2a;--red:#8b1a1a;
+  --shadow:rgba(44,26,14,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#1a0f05;min-height:100vh;overflow-x:hidden;}
+.page{display:none;width:100%;min-height:100vh;animation:fadeIn .5s ease;}
+.page.active{display:flex;flex-direction:column;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── COVER ── */
+#page-cover{background:var(--ink);align-items:center;justify-content:center;position:relative;overflow:hidden;}
+#page-cover::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(180,120,30,.15),transparent 60%);}
+.cover-inner{position:relative;text-align:center;padding:60px 40px;max-width:700px;width:100%;}
+.unit-label{font-weight:300;font-size:.9rem;letter-spacing:.3em;color:var(--gold2);text-transform:uppercase;margin-bottom:16px;opacity:0;animation:fadeIn .8s ease .2s forwards;}
+.cover-icon{font-size:3.5rem;margin-bottom:20px;opacity:0;animation:fadeIn .8s ease .4s forwards;}
+.cover-unit{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;color:var(--parch2);margin-bottom:8px;opacity:0;animation:fadeIn .8s ease .5s forwards;}
+.cover-title{font-family:'Frank Ruhl Libre',serif;font-size:3rem;font-weight:900;color:var(--parch);line-height:1.1;margin-bottom:10px;opacity:0;animation:fadeIn .8s ease .6s forwards;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
+.cover-sub{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;font-weight:700;color:var(--gold2);margin-bottom:40px;opacity:0;animation:fadeIn .8s ease .7s forwards;}
+.cover-divider{width:120px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:0 auto 28px;opacity:0;animation:fadeIn .8s ease .8s forwards;}
+.cover-student{font-size:.85rem;color:var(--parch2);opacity:.6;margin-bottom:24px;}
+
+/* ── CONTENT ── */
+.content-page{background:var(--parch);flex:1;display:flex;flex-direction:column;}
+.page-header{background:var(--ink);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.page-header-title{font-family:'Frank Ruhl Libre',serif;color:var(--gold2);font-size:1rem;font-weight:700;}
+.page-num{font-size:.75rem;color:var(--parch2);opacity:.5;}
+.page-body{flex:1;padding:22px 20px;max-width:800px;margin:0 auto;width:100%;padding-bottom:40px;}
+
+/* ── BOXES ── */
+.intro-box{background:linear-gradient(135deg,#f5f0e8,#ede3cc);border:1px solid var(--gold2);border-radius:14px;padding:20px 22px;margin-bottom:20px;border-right:4px solid var(--gold);}
+.intro-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--brown);margin-bottom:8px;}
+.intro-text{font-size:.9rem;color:var(--ink);line-height:1.9;}
+.intro-fact{background:rgba(184,134,11,.1);border:1px solid rgba(184,134,11,.3);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:.84rem;color:var(--brown);line-height:1.6;}
+.section-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--brown);margin-bottom:12px;padding-bottom:7px;border-bottom:2px solid var(--gold2);}
+
+/* ── RIDDLE CARDS ── */
+.riddle-card{background:white;border:1.5px solid var(--parch2);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 2px 6px var(--shadow);transition:border-color .3s;}
+.riddle-card.solved{border-color:#22c55e;background:#f0fdf4;}
+.riddle-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.riddle-num{display:inline-flex;align-items:center;justify-content:center;background:var(--ink);color:var(--gold2);width:26px;height:26px;border-radius:50%;font-size:.78rem;font-weight:700;flex-shrink:0;}
+.riddle-img{width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-bottom:12px;background:#fafafa;}
+.boxes-row{display:flex;gap:5px;justify-content:center;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.letter-box{width:36px;height:40px;border:2px solid var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--ink);background:white;transition:all .3s;}
+.letter-box.filled{background:rgba(184,134,11,.1);border-color:var(--gold);}
+.letter-box.correct{background:rgba(34,197,94,.15);border-color:#22c55e;color:#166534;}
+.letter-box.given{background:rgba(184,134,11,.08);border-color:var(--gold2);color:var(--brown);}
+.word-gap{width:12px;}
+.riddle-input{width:100%;border:1.5px solid var(--parch2);border-radius:7px;padding:9px 12px;font-family:'Frank Ruhl Libre',serif;font-size:.98rem;color:var(--ink);outline:none;transition:border .2s;background:#fdfaf5;text-align:center;margin-bottom:9px;}
+.riddle-input:focus{border-color:var(--gold);}
+.riddle-input:disabled{background:#f0fdf4;color:#166534;}
+.riddle-fb{font-size:.83rem;padding:7px 10px;border-radius:6px;margin-bottom:9px;display:none;text-align:center;}
+.riddle-fb.ok{background:#f0fdf4;color:#166534;border:1px solid #86efac;display:block;}
+.riddle-fb.err{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;display:block;}
+.riddle-btns{display:flex;gap:7px;justify-content:center;}
+
+/* ── NAMES TABLE (P2) ── */
+.names-table{width:100%;border-collapse:collapse;margin-bottom:18px;}
+.names-table th{background:var(--ink);color:var(--gold2);padding:10px 12px;font-size:.82rem;font-weight:700;text-align:right;}
+.names-table td{padding:10px 12px;border-bottom:1px solid var(--parch2);vertical-align:top;}
+.names-table tr:nth-child(even) td{background:rgba(184,134,11,.04);}
+.name-cell{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;font-weight:700;color:var(--brown);}
+.explain-area{width:100%;border:1.5px solid var(--parch2);border-radius:6px;padding:7px 10px;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--ink);resize:vertical;min-height:52px;outline:none;background:#fdfaf5;}
+.explain-area:focus{border-color:var(--gold);}
+.btn-search{padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;border:none;font-family:'Heebo',sans-serif;}
+.btn-ai-small{background:rgba(99,102,241,.15);color:#4f46e5;border:1px solid rgba(99,102,241,.3);}
+.btn-google{background:rgba(26,92,42,.15);color:var(--green);border:1px solid rgba(26,92,42,.3);}
+.open-q-box{background:white;border:1px solid var(--parch2);border-radius:10px;padding:16px;margin-top:6px;box-shadow:0 1px 4px var(--shadow);}
+.open-q-label{font-size:.85rem;font-weight:700;color:var(--brown);margin-bottom:8px;}
+.open-q-textarea{width:100%;border:1.5px solid var(--parch2);border-radius:7px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:.9rem;color:var(--ink);resize:vertical;min-height:80px;outline:none;background:#fdfaf5;}
+.open-q-textarea:focus{border-color:var(--gold);}
+
+/* ── CREATIVE (P3) ── */
+.creative-intro{background:linear-gradient(135deg,#f5f0e8,#ede3cc);border:1px solid var(--gold2);border-radius:14px;padding:20px 22px;margin-bottom:20px;border-right:4px solid var(--gold);}
+.agent-btn{width:100%;padding:13px;background:linear-gradient(135deg,#4f46e5,#312e81);color:white;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;margin-bottom:14px;}
+.sticky-section{background:white;border:1px solid var(--parch2);border-radius:12px;padding:18px;box-shadow:0 2px 6px var(--shadow);}
+.sticky-section-title{font-size:.85rem;font-weight:700;color:var(--brown);margin-bottom:12px;}
+.color-opts{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.color-opt{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s;}
+.color-opt:hover{transform:scale(1.15);}
+.color-opt.selected{border-color:var(--ink);transform:scale(1.15);}
+.sticky-live{border-radius:10px;padding:14px;min-height:100px;margin-bottom:12px;box-shadow:2px 3px 8px rgba(0,0,0,.15);transition:background .3s;}
+.sticky-field{width:100%;background:transparent;border:none;font-family:'Heebo',sans-serif;font-size:.9rem;color:#1c1208;resize:none;outline:none;line-height:1.7;}
+.sticky-field::placeholder{color:rgba(28,18,8,.4);}
+.sticky-divider{border:none;border-top:1px dashed rgba(28,18,8,.2);margin:8px 0;}
+.img-upload-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;border-radius:7px;background:rgba(107,58,31,.08);border:1px dashed rgba(107,58,31,.25);color:var(--brown);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;width:100%;margin-bottom:10px;}
+.img-preview-sticky{width:100%;border-radius:6px;margin-bottom:10px;max-height:120px;object-fit:cover;display:none;}
+.upload-prog{font-size:.72rem;color:var(--brown);opacity:.6;text-align:center;margin-bottom:8px;}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;transition:opacity .2s;}
+.btn:hover{opacity:.9;}
+.btn:disabled{opacity:.4;cursor:default;}
+.btn-check{background:var(--green);color:white;}
+.btn-hint{background:rgba(107,58,31,.15);color:var(--brown);border:1px solid rgba(107,58,31,.2);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#8b6310);color:white;}
+.btn-next{background:linear-gradient(135deg,var(--gold),#8b6310);color:white;width:100%;padding:13px;font-size:1rem;margin-top:18px;}
+.btn-submit-sticky{background:linear-gradient(135deg,var(--gold),#8b6310);color:var(--ink);border:none;width:100%;padding:12px;border-radius:10px;font-family:'Heebo',sans-serif;font-size:.95rem;font-weight:800;cursor:pointer;}
+
+/* Progress */
+.prog-wrap{margin-bottom:16px;}
+.prog-top{display:flex;justify-content:space-between;font-size:.73rem;color:var(--brown);opacity:.6;margin-bottom:4px;}
+.prog-bar{height:5px;background:rgba(107,58,31,.15);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),#22c55e);border-radius:3px;transition:width .5s;}
+
+/* ── AI MODAL ── */
+.ai-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:flex-end;justify-content:center;}
+.ai-modal.open{display:flex;}
+.ai-panel{background:#1e293b;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:72vh;display:flex;flex-direction:column;}
+.ai-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #334155;}
+.ai-hdr-title{font-size:.9rem;font-weight:700;color:#f0c060;}
+.ai-close{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;}
+.ai-msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:9px;}
+.ai-m{padding:9px 12px;border-radius:10px;font-size:.83rem;line-height:1.6;max-width:88%;}
+.ai-m.bot{background:#0f172a;color:#e2e8f0;align-self:flex-start;}
+.ai-m.user{background:#312e81;color:#e0e7ff;align-self:flex-end;}
+.ai-inp-row{display:flex;gap:7px;padding:10px 16px;border-top:1px solid #334155;}
+.ai-inp{flex:1;background:#0f172a;border:1px solid #334155;border-radius:7px;padding:8px 11px;color:#e2e8f0;font-family:'Heebo',sans-serif;font-size:.86rem;outline:none;}
+.ai-send{padding:8px 14px;background:#6366f1;color:white;border:none;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.84rem;font-weight:700;}
+
+/* Success */
+.success-msg{background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;color:#166534;font-size:.88rem;text-align:center;margin-top:10px;display:none;}
+
+/* Save indicator */
+#save-ind{position:fixed;bottom:12px;left:12px;background:rgba(26,92,42,.9);color:white;padding:5px 14px;border-radius:20px;font-size:.76rem;font-weight:700;z-index:9999;opacity:0;transition:opacity .5s;}
+.top-prog{height:4px;background:rgba(255,255,255,.1);position:fixed;top:0;left:0;right:0;z-index:200;}
+.top-prog-fill{height:100%;background:var(--gold2);transition:width .5s;}
+
+/* Done */
+#page-done{background:var(--ink);align-items:center;justify-content:center;}
+.done-inner{text-align:center;padding:60px 30px;max-width:480px;}
+</style>
+</head>
+<body>
+
+<div class="top-prog"><div class="top-prog-fill" id="top-prog" style="width:0%"></div></div>
+<div id="save-ind">✓ נשמר</div>
+
+<!-- ══════════ COVER ══════════ -->
+<div class="page active" id="page-cover">
+  <div class="cover-inner">
+    <div class="unit-label">בינתחומי ח׳ — התמצאות בתנ״ך</div>
+    <div class="cover-icon">📜</div>
+    <div class="cover-unit">שיעור שלישי</div>
+    <div class="cover-title">שמות התנ"ך</div>
+    <div class="cover-sub">כל שם — עולם שלם</div>
+    <div class="cover-divider"></div>
+    <div class="cover-student" id="cover-student">טוען...</div>
+    <button class="btn btn-gold" style="padding:13px 40px;font-size:1rem;" onclick="goTo('page-p1')">כניסה לשיעור ✦</button>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 1 — RIDDLES ══════════ -->
+<div class="page content-page" id="page-p1">
+  <div class="page-header">
+    <div class="page-header-title">📜 שמות התנ"ך — חידות</div>
+    <div class="page-num">חלק א׳ מתוך ג׳</div>
+  </div>
+  <div class="page-body">
+
+    <div class="intro-box">
+      <div class="intro-title">📖 הספר שמלווה עם ישראל לאורך הדורות</div>
+      <div class="intro-text">
+        התנ"ך הוא הספר המרכזי של העם היהודי — אוסף כתבים קדושים שנכתבו לאורך מאות שנים.
+        מה שמיוחד בו הוא שיש לו <strong>שמות רבים</strong> — וכל שם מדגיש היבט אחר של חשיבותו.
+      </div>
+      <div class="intro-fact">💡 <strong>ידעתם?</strong> הקאנון — רשימת הספרים הקדושים — התגבש סופית במאה ה-2 לפני הספירה. מאז, אותם 24 ספרים מועברים מדור לדור ללא שינוי.</div>
+    </div>
+
+    <div class="section-title">🔍 גלו את שמות התנ"ך — חידות בציורים</div>
+    <p style="font-size:.85rem;color:var(--brown);margin-bottom:16px;line-height:1.7;">בכל חידה — ציורים מרמזים על שם של התנ"ך. פתרו ומלאו את המשבצות!</p>
+
+    <div class="prog-wrap">
+      <div class="prog-top"><span>התקדמות</span><span id="prog-text">0 מתוך 8</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+
+    <div id="riddles-cont"></div>
+
+    <button class="btn btn-next" id="btn-p2" onclick="goTo('page-p2')" disabled>המשיכו לדף הבא ←</button>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 2 — NAMES ══════════ -->
+<div class="page content-page" id="page-p2">
+  <div class="page-header">
+    <div class="page-header-title">📜 מי נתן לי את השם הזה?</div>
+    <div class="page-num">חלק ב׳ מתוך ג׳</div>
+  </div>
+  <div class="page-body">
+
+    <div class="intro-box">
+      <div class="intro-title">עכשיו כשגילינו את השמות — בואו נבין מאיפה הם באים</div>
+      <div class="intro-text">לכל שם יש סיפור! לפי כל שם — כתבו מה לדעתכם פירוש השם ולמה ניתן לתנ"ך.<br/>תוכלו להיעזר בסוכן הלמידה או לחפש בגוגל.</div>
+    </div>
+
+    <table class="names-table">
+      <thead>
+        <tr>
+          <th>השם</th>
+          <th>פירוש / מדוע ניתן שם זה?</th>
+          <th>עזרה</th>
+        </tr>
+      </thead>
+      <tbody id="names-tbody"></tbody>
+    </table>
+
+    <div class="open-q-box">
+      <div class="open-q-label">💭 שאלה פתוחה: איזה שם לדעתך הכי מתאים לתנ"ך ולמה?</div>
+      <textarea class="open-q-textarea" id="open-q" placeholder="כתבו את תשובתכם..." oninput="debounceSave()"></textarea>
+    </div>
+
+    <button class="btn btn-next" id="btn-p3" onclick="goTo('page-p3')">המשיכו לעבודה היצירתית ←</button>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 3 — CREATIVE ══════════ -->
+<div class="page content-page" id="page-p3">
+  <div class="page-header">
+    <div class="page-header-title">🎨 עבודה יצירתית</div>
+    <div class="page-num">חלק ג׳ מתוך ג׳</div>
+  </div>
+  <div class="page-body">
+
+    <div class="creative-intro">
+      <div class="intro-title">🎨 תורכם ליצור!</div>
+      <div class="intro-text">
+        בחרו שם אחד מהרשימה שלמדתם — <strong>או המציאו שם חדש לתנ"ך</strong>.<br/>
+        תסבירו למה בחרתם בו, ותייצרו תמונה שמייצגת אותו בעזרת בינה מלאכותית.
+      </div>
+      <div class="intro-fact" style="margin-top:10px;">
+        <strong>סדר הפעולות:</strong><br/>
+        1️⃣ שוחחו עם הסוכן — הוא יעזור לכם לבחור שם ולכתוב פרומפט<br/>
+        2️⃣ העתיקו את הפרומפט לכלי בינה מלאכותית (כמו ננו-בננה)<br/>
+        3️⃣ הורידו את התמונה שיצרתם<br/>
+        4️⃣ מלאו את הפתקית ושלחו ללוח הכיתתי
+      </div>
+    </div>
+
+    <!-- Agent button -->
+    <button class="agent-btn" onclick="openCreativeAgent()">🤖 פתחו שיחה עם הסוכן ←</button>
+
+    <!-- Sticky -->
+    <div class="sticky-section">
+      <div class="sticky-section-title">🗒️ הפתקית שלכם ללוח הכיתתי</div>
+
+      <div class="color-opts" id="creative-colors"></div>
+
+      <div class="sticky-live" id="creative-sticky" style="background:#fef08a;">
+        <textarea class="sticky-field" id="chosen-name" placeholder="השם שבחרתם..." rows="1" maxlength="30" oninput="updateCreativeSticky()"></textarea>
+        <hr class="sticky-divider"/>
+        <textarea class="sticky-field" id="chosen-why" placeholder="מדוע בחרתם בשם זה?" rows="3" maxlength="200" oninput="updateCreativeSticky()"></textarea>
+      </div>
+
+      <label class="img-upload-btn" for="creative-img-input">
+        📷 העלו את התמונה שיצרתם
+      </label>
+      <input type="file" id="creative-img-input" accept="image/*" style="display:none;" onchange="handleCreativeImg(this)"/>
+      <div class="upload-prog" id="creative-upload-prog"></div>
+      <img id="creative-img-preview" class="img-preview-sticky"/>
+
+      <button class="btn-submit-sticky" onclick="submitCreativeSticky()">✦ שלחו ללוח הכיתתי</button>
+      <div class="success-msg" id="creative-success">✓ הפתקית שלכם הופיעה על הלוח הכיתתי! 🎉</div>
+    </div>
+
+    <button class="btn btn-next" onclick="goTo('page-done')">סיום השיעור ✦</button>
+  </div>
+</div>
+
+<!-- ══════════ DONE ══════════ -->
+<div class="page" id="page-done">
+  <div class="done-inner">
+    <div style="font-size:4rem;margin-bottom:20px;">🎉</div>
+    <div style="font-family:'Frank Ruhl Libre',serif;font-size:2rem;font-weight:700;color:var(--gold2);margin-bottom:12px;">כל הכבוד!</div>
+    <p style="color:var(--parch2);opacity:.7;margin-top:10px;">סיימתם את שיעור שמות התנ"ך.</p>
+    <p style="color:var(--parch2);opacity:.5;font-size:.82rem;margin-top:6px;">הפתקית שלכם מופיעה על הלוח הכיתתי.</p>
+  </div>
+</div>
+
+<!-- ══════════ AI MODAL ══════════ -->
+<div class="ai-modal" id="ai-modal">
+  <div class="ai-panel">
+    <div class="ai-hdr">
+      <div class="ai-hdr-title" id="ai-modal-title">🤖 עוזר הלמידה</div>
+      <button class="ai-close" onclick="closeAI()">✕</button>
+    </div>
+    <div class="ai-msgs" id="ai-msgs"></div>
+    <div class="ai-inp-row">
+      <input class="ai-inp" id="ai-inp" placeholder="כתבו כאן..." onkeydown="if(event.key==='Enter')sendAI()"/>
+      <button class="ai-send" onclick="sendAI()">שלח</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── FIREBASE ──
+const FB={
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+try{firebase.initializeApp(FB);}catch(e){}
+const db=firebase.database();
+const LESSON='tanach_lesson3';
+
+// Cloudinary
+const CLOUD='da6mdtjhh', PRESET='w8rzehkl';
+
+// ── RIDDLES ──
+const RIDDLES=[
+  {id:1,answer:'מקרא',       img:'images/tanach3/1.jpg',letters:4,words:[4],given:{}},
+  {id:2,answer:'ספר הספרים', img:'images/tanach3/2.jpg',letters:9,words:[3,6],given:{4:'ה'}},
+  {id:3,answer:'כתבי הקודש', img:'images/tanach3/3.jpg',letters:9,words:[4,5],given:{5:'י'}},
+  {id:4,answer:'כד ספרים',   img:'images/tanach3/4.jpg',letters:7,words:[2,5],given:{2:'ד'}},
+  {id:5,answer:'הברית הישנה',img:'images/tanach3/5.jpg',letters:10,words:[5,5],given:{4:'י',9:'נ'}},
+  {id:6,answer:'תורת אלוהים',img:'images/tanach3/6.jpg',letters:10,words:[4,6],given:{}},
+  {id:7,answer:'ספר הברית',  img:'images/tanach3/7.jpg',letters:9,words:[3,6],given:{4:'ה'}},
+  {id:8,answer:'ספר תורת משה',img:'images/tanach3/8.jpg',letters:11,words:[3,4,3],given:{}},
+];
+
+const NAMES_LIST=['מקרא','ספר הספרים','כתבי הקודש','כ"ד ספרים','הברית הישנה','תורת אלוהים','ספר הברית','ספר תורת משה'];
+
+const COLORS=['#fef08a','#86efac','#93c5fd','#f9a8d4','#fcd34d','#c4b5fd','#fdba74','#ffffff'];
+
+// ── STATE ──
+const urlP=new URLSearchParams(window.location.search);
+let studentName=decodeURIComponent(urlP.get('student')||urlP.get('name')||'');
+let solvedCount=0;
+let savedRiddles={};
+let currentPage='page-cover';
+let aiMode='riddle'; // 'riddle' | 'creative'
+let currentRiddleId=null;
+let aiHistory=[];
+let creativeColor='#fef08a';
+let creativeImgUrl='';
+
+// ── INIT ──
+window.onload=function(){
+  if(!studentName){const s=prompt('שמך:','');studentName=(s||'').trim()||'אנונימי';}
+  document.getElementById('cover-student').textContent='שלום, '+studentName.split(' ')[0]+'!';
+  buildRiddles();
+  buildNamesTable();
+  buildCreativeColors();
+  loadSaved();
+  setInterval(autoSave,30000);
+  if(studentName==='מורה'){
+    document.getElementById('btn-p2').disabled=false;
+    document.getElementById('btn-p3').disabled=false;
+  }
+};
+
+// ── NAVIGATION ──
+function goTo(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentPage=id;
+  window.scrollTo(0,0);
+  const pages=['page-cover','page-p1','page-p2','page-p3','page-done'];
+  const pct=Math.round(pages.indexOf(id)/(pages.length-1)*100);
+  document.getElementById('top-prog').style.width=pct+'%';
+  saveProgress();
+}
+
+// ── BUILD RIDDLES ──
+function buildRiddles(){
+  const cont=document.getElementById('riddles-cont');
+  cont.innerHTML=RIDDLES.map(r=>{
+    const boxesHTML=buildBoxes(r);
+    return`<div class="riddle-card" id="rc-${r.id}">
+      <div class="riddle-header">
+        <span class="riddle-num">${r.id}</span>
+        <span style="font-size:.83rem;color:var(--brown);font-weight:600;">מהו שם זה של התנ"ך?</span>
+      </div>
+      <img class="riddle-img" src="${r.img}" alt="חידה ${r.id}" loading="lazy"/>
+      <div class="boxes-row" id="bx-${r.id}">${boxesHTML}</div>
+      <input class="riddle-input" id="ri-${r.id}" placeholder="כתבו את תשובתכם..." maxlength="15"
+        oninput="updateBoxes(${r.id})"
+        onkeydown="if(event.key==='Enter')checkR(${r.id})"/>
+      <div class="riddle-fb" id="rf-${r.id}"></div>
+      <div class="riddle-btns">
+        <button class="btn btn-check" onclick="checkR(${r.id})">✓ בדקו</button>
+        <button class="btn btn-hint" onclick="openRiddleAI(${r.id})">🤖 עזרה</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildBoxes(r){
+  const answer=r.answer.replace(/ /g,'');
+  let html='';let pos=1;
+  r.words.forEach((cnt,wi)=>{
+    for(let i=0;i<cnt;i++){
+      const g=r.given[pos]||'';
+      html+=`<div class="letter-box ${g?'given':''}" id="bx-${r.id}-${pos}">${g}</div>`;
+      pos++;
+    }
+    if(wi<r.words.length-1)html+=`<div class="word-gap"></div>`;
+  });
+  return html;
+}
+
+function updateBoxes(id){
+  const r=RIDDLES.find(x=>x.id===id);
+  const val=document.getElementById('ri-'+id).value;
+  const answer=r.answer.replace(/ /g,'');
+  let inputIdx=0;
+  for(let pos=1;pos<=answer.length;pos++){
+    const box=document.getElementById('bx-'+id+'-'+pos);
+    if(!box)continue;
+    if(r.given[pos]){box.textContent=r.given[pos];box.className='letter-box given';}
+    else{const ch=val[inputIdx]||'';box.textContent=ch;box.className='letter-box'+(ch?' filled':'');inputIdx++;}
+  }
+}
+
+function checkR(id){
+  const r=RIDDLES.find(x=>x.id===id);
+  const val=document.getElementById('ri-'+id).value.trim();
+  const norm=s=>s.replace(/['"״׳\-\s"]/g,'');
+  const ok=norm(r.answer)===norm(val);
+  const fb=document.getElementById('rf-'+id);
+  const card=document.getElementById('rc-'+id);
+  if(ok){
+    fb.textContent='✅ נכון מאוד! '+r.answer;
+    fb.className='riddle-fb ok';
+    card.classList.add('solved');
+    document.getElementById('ri-'+id).disabled=true;
+    const ans=r.answer.replace(/ /g,'');
+    for(let i=1;i<=ans.length;i++){const b=document.getElementById('bx-'+id+'-'+i);if(b){b.textContent=ans[i-1];b.className='letter-box correct';}}
+    if(!savedRiddles[id]){
+      savedRiddles[id]=r.answer;
+      solvedCount++;
+      updateProg();
+      db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/riddles/r'+id).set({answer:r.answer,at:Date.now()});
+      showSave();
+    }
+  } else {
+    fb.textContent='❌ לא מדויק — נסו שוב!';
+    fb.className='riddle-fb err';
+    card.style.borderColor='#ef4444';
+    setTimeout(()=>card.style.borderColor='',1200);
+  }
+}
+
+function updateProg(){
+  const pct=Math.round(solvedCount/8*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-text').textContent=solvedCount+' מתוך 8 נפתרו';
+  if(solvedCount>=8)document.getElementById('btn-p2').disabled=false;
+}
+
+// ── NAMES TABLE ──
+function buildNamesTable(){
+  const tbody=document.getElementById('names-tbody');
+  tbody.innerHTML=NAMES_LIST.map((name,i)=>`
+    <tr>
+      <td><div class="name-cell">${name}</div></td>
+      <td><textarea class="explain-area" id="exp-${i}" placeholder="כתבו כאן..." rows="2" oninput="debounceSave()"></textarea></td>
+      <td style="white-space:nowrap;">
+        <button class="btn-search btn-ai-small" onclick="openNameAI('${name}',${i})">🤖</button>
+        <br/><br/>
+        <button class="btn-search btn-google" onclick="googleSearch('${name}')">🔍</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function googleSearch(name){
+  window.open('https://www.google.com/search?q='+encodeURIComponent('שם התנ"ך '+name+' פירוש מקור'),'_blank');
+}
+
+// ── CREATIVE COLORS ──
+function buildCreativeColors(){
+  const cont=document.getElementById('creative-colors');
+  COLORS.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='color-opt'+(c===creativeColor?' selected':'');
+    d.style.background=c;
+    d.onclick=()=>{
+      creativeColor=c;
+      document.querySelectorAll('.color-opt').forEach(o=>o.classList.remove('selected'));
+      d.classList.add('selected');
+      document.getElementById('creative-sticky').style.background=c;
+    };
+    cont.appendChild(d);
+  });
+}
+
+function updateCreativeSticky(){}
+
+async function handleCreativeImg(input){
+  const file=input.files[0];if(!file)return;
+  const prog=document.getElementById('creative-upload-prog');
+  prog.textContent='מעלה תמונה...';
+  try{
+    const fd=new FormData();
+    fd.append('file',file);
+    fd.append('upload_preset',PRESET);
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,{method:'POST',body:fd});
+    const data=await res.json();
+    creativeImgUrl=data.secure_url;
+    const prev=document.getElementById('creative-img-preview');
+    prev.src=creativeImgUrl;prev.style.display='block';
+    prog.textContent='✓ תמונה הועלתה';
+  }catch(e){prog.textContent='שגיאה בהעלאה';}
+}
+
+function submitCreativeSticky(){
+  const name=document.getElementById('chosen-name').value.trim();
+  const why=document.getElementById('chosen-why').value.trim();
+  if(!name&&!why&&!creativeImgUrl){alert('יש למלא את הפתקית לפני השליחה.');return;}
+
+  // Check if active board
+  db.ref('stickies/active').once('value',snap=>{
+    const board=snap.val();
+    if(!board||!board.active||!board.boardId){
+      alert('אין לוח פתקיות פתוח כרגע. פנו למורה.');return;
+    }
+    const key=studentName.replace(/ /g,'_')+'_'+Date.now();
+    db.ref('stickies/boards/'+board.boardId+'/stickies/'+key).set({
+      text:(name?'📌 '+name+'\n':'')+( why?'💭 '+why:''),
+      color:creativeColor,
+      imageUrl:creativeImgUrl||'',
+      studentName,
+      starred:false,
+      createdAt:Date.now()
+    });
+    document.getElementById('creative-success').style.display='block';
+    setTimeout(()=>document.getElementById('creative-success').style.display='none',4000);
+    saveToFB('creative',{name,why,imgUrl:creativeImgUrl,color:creativeColor});
+  });
+}
+
+// ── AI ──
+let aiContext='';
+
+function openRiddleAI(id){
+  currentRiddleId=id;
+  aiMode='riddle';
+  aiHistory=[];
+  document.getElementById('ai-msgs').innerHTML='';
+  document.getElementById('ai-modal-title').textContent='🤖 עוזר הלמידה — רמז לחידה';
+  document.getElementById('ai-modal').classList.add('open');
+  addAIMsg('bot','שלום! 😊 ספר לי מה אתה רואה בתמונה של החידה ואנסה לרמוז לך — בלי לתת את התשובה ישירות!');
+}
+
+function openNameAI(name,idx){
+  aiMode='name';
+  aiContext=name;
+  aiHistory=[];
+  document.getElementById('ai-msgs').innerHTML='';
+  document.getElementById('ai-modal-title').textContent='🤖 עוזר — פירוש השם: '+name;
+  document.getElementById('ai-modal').classList.add('open');
+  addAIMsg('bot','שלום! אני אעזור לך להבין את המקור של השם "'+name+'" לתנ"ך. מה אתה כבר יודע על שם זה?');
+}
+
+function openCreativeAgent(){
+  aiMode='creative';
+  aiHistory=[];
+  document.getElementById('ai-msgs').innerHTML='';
+  document.getElementById('ai-modal-title').textContent='🤖 עוזר יצירה';
+  document.getElementById('ai-modal').classList.add('open');
+  addAIMsg('bot','שלום! אני אעזור לך ליצור פרומפט לתמונה 🎨\n\nקודם כל — האם תרצה לבחור שם קיים מהרשימה שלמדנו, או להמציא שם חדש לתנ"ך?');
+}
+
+function closeAI(){document.getElementById('ai-modal').classList.remove('open');}
+
+function addAIMsg(role,text){
+  aiHistory.push({role,text});
+  const cont=document.getElementById('ai-msgs');
+  const d=document.createElement('div');
+  d.className='ai-m '+role;
+  d.style.whiteSpace='pre-wrap';
+  d.textContent=text;
+  cont.appendChild(d);
+  cont.scrollTop=cont.scrollHeight;
+}
+
+async function sendAI(){
+  const inp=document.getElementById('ai-inp');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';
+  addAIMsg('user',text);
+
+  let system='';
+  if(aiMode==='riddle'){
+    const r=RIDDLES.find(x=>x.id===currentRiddleId);
+    system=`אתה עוזר לימוד ידידותי לתלמיד ח'. הוא מנסה לפתור חידת ריבוס — ציורים שמרמזים על שם של התנ"ך.
+התשובה הנכונה היא: "${r?.answer||''}" — אל תגיד זאת ישירות!
+תן רמז עקיף אחד בלבד. עודד. עברית קצרה.`;
+  } else if(aiMode==='name'){
+    system=`אתה עוזר לימוד לתלמיד ח'. הוא שואל על המקור של השם "${aiContext}" לתנ"ך.
+תסביר בקצרה את המקור וההיסטוריה של השם הזה. אל תכתוב יותר מ-3 משפטים. עברית פשוטה.`;
+  } else {
+    system=`אתה עוזר יצירתי לתלמיד ח' שלומד על שמות התנ"ך.
+שמות התנ"ך הם: מקרא, ספר הספרים, כתבי הקודש, כ"ד ספרים, הברית הישנה, תורת אלוהים, ספר הברית, ספר תורת משה.
+המשימה: לעזור לתלמיד לבחור שם (קיים או חדש) ולכתוב פרומפט באנגלית לתמונה שמייצגת אותו.
+שלב 1: שאל אם יבחר שם קיים או חדש.
+שלב 2: לפי הבחירה — שאל למה.
+שלב 3: הצע פרומפט באנגלית לתמונה.
+עברית פשוטה, ידידותית. תגובות קצרות.`;
+  }
+
+  const messages=aiHistory.slice(-8).map(m=>({
+    role:m.role==='bot'?'assistant':'user',content:m.text
+  }));
+
+  try{
+    const res=await fetch('https://anthropic-proxy.anna-sho.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,system,messages})
+    });
+    const data=await res.json();
+    addAIMsg('bot',data.content?.map(b=>b.text||'').join('')||'נסה שוב...');
+  }catch(e){addAIMsg('bot','שגיאת חיבור.');}
+}
+
+// ── SAVE/LOAD ──
+function saveToFB(key,data){
+  if(!studentName||!db)return;
+  db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/'+key).set({...data,at:Date.now()});
+  showSave();
+}
+
+function saveProgress(){
+  if(!studentName||!db)return;
+  db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/progress').set({page:currentPage,solvedCount,at:Date.now()});
+}
+
+let _st=null;
+function debounceSave(){clearTimeout(_st);_st=setTimeout(autoSave,3000);}
+
+function autoSave(){
+  if(!studentName||!db)return;
+  const expls={};
+  NAMES_LIST.forEach((_,i)=>{const el=document.getElementById('exp-'+i);if(el)expls['n'+i]=el.value;});
+  db.ref(LESSON+'/students/'+studentName.replace(/ /g,'_')+'/autosave').set({
+    expls,
+    openQ:document.getElementById('open-q')?.value||'',
+    chosenName:document.getElementById('chosen-name')?.value||'',
+    chosenWhy:document.getElementById('chosen-why')?.value||'',
+    page:currentPage,at:Date.now()
+  });
+  showSave();
+}
+
+function loadSaved(){
+  if(!studentName||!db)return;
+  const key=studentName.replace(/ /g,'_');
+  db.ref(LESSON+'/students/'+key).once('value',snap=>{
+    const d=snap.val();if(!d)return;
+
+    // Riddles
+    if(d.riddles){
+      Object.entries(d.riddles).forEach(([k,v])=>{
+        const id=parseInt(k.replace('r',''));
+        if(v.answer&&!savedRiddles[id]){
+          savedRiddles[id]=v.answer;solvedCount++;
+          const inp=document.getElementById('ri-'+id);
+          if(inp){inp.value=v.answer.replace(/ /g,'');inp.disabled=true;checkR(id);}
+        }
+      });
+      updateProg();
+    }
+
+    // Autosave
+    if(d.autosave){
+      const a=d.autosave;
+      if(a.expls)NAMES_LIST.forEach((_,i)=>{const el=document.getElementById('exp-'+i);if(el&&a.expls['n'+i])el.value=a.expls['n'+i];});
+      const oq=document.getElementById('open-q');if(oq&&a.openQ)oq.value=a.openQ;
+      const cn=document.getElementById('chosen-name');if(cn&&a.chosenName)cn.value=a.chosenName;
+      const cw=document.getElementById('chosen-why');if(cw&&a.chosenWhy)cw.value=a.chosenWhy;
+      if(a.page&&a.page!=='page-cover'&&a.page!=='page-done')goTo(a.page);
+    }
+  });
+}
+
+function showSave(){
+  const ind=document.getElementById('save-ind');
+  ind.style.opacity='1';
+  setTimeout(()=>ind.style.opacity='0',2000);
+}
+</script>
+</body>
+</html>

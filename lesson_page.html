@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>שיעור — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.18);
+  --border2:rgba(212,168,67,0.38);--green:#1a5c2a;
+  --intro:#0d2e1a;--body:#0d1e2e;--close:#2e0d0d;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overscroll-behavior:none;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;direction:rtl;}
+
+/* TOPBAR */
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;font-weight:700;color:var(--gold2);}
+.topbar-meta{font-size:.78rem;opacity:.5;}
+.btn-back{padding:5px 12px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;font-weight:600;}
+
+/* PROGRESS BAR */
+.progress-bar{background:rgba(212,168,67,.1);height:4px;flex-shrink:0;}
+.progress-fill{height:100%;background:var(--gold);transition:width .4s ease;}
+
+/* SECTION HEADER */
+.section-header{padding:10px 20px 0;display:flex;align-items:center;gap:8px;}
+.section-badge{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid var(--border2);opacity:.7;}
+
+/* STATION PAGE */
+.station-page{display:none;min-height:calc(100vh - 110px);padding:16px 20px;flex-direction:column;}
+.station-page.active{display:flex;}
+.station-title{font-size:.8rem;font-weight:700;color:var(--gold);opacity:.6;margin-bottom:12px;}
+
+/* SLOTS */
+.slots-wrap{display:flex;flex-direction:column;gap:14px;flex:1;}
+.slots-wrap.simultaneous{display:flex;flex-direction:column;}
+
+/* SLOT ITEM */
+.slot-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;width:100%;}
+.slot-type-label{font-size:.7rem;font-weight:700;color:var(--gold);opacity:.55;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
+
+/* TEXT/SOURCE */
+.source-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:8px;}
+.source-text{font-size:.92rem;line-height:1.8;direction:rtl;text-align:right;}
+
+/* IMAGE */
+.slot-image{width:100%;border-radius:8px;max-height:260px;object-fit:contain;}
+
+/* QUESTION */
+.question-text{font-size:.95rem;font-weight:600;line-height:1.6;margin-bottom:12px;}
+.answer-area{width:100%;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;padding:10px;resize:vertical;min-height:90px;outline:none;direction:rtl;}
+.answer-area:focus{border-color:var(--gold);}
+.answer-area::placeholder{opacity:.3;}
+.btn-submit{padding:8px 20px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;margin-top:8px;}
+.answer-saved{font-size:.78rem;color:#6ee7a0;margin-top:6px;display:none;}
+
+/* NAVIGATION FOOTER */
+.nav-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(10,5,2,.9);flex-shrink:0;position:sticky;bottom:0;}
+.btn-nav{padding:10px 22px;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .18s;}
+.btn-prev{background:none;border:1.5px solid var(--border2);color:var(--parch);}
+.btn-next{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;}
+.btn-next:disabled{opacity:.4;cursor:not-allowed;}
+.station-counter{font-size:.78rem;opacity:.45;}
+
+/* SORT TABLE */
+.sort-wrap{display:grid;grid-template-columns:1fr 180px;gap:12px;align-items:start;}
+.sort-table-area{overflow-x:auto;}
+.sort-table{width:100%;border-collapse:collapse;}
+.sort-table th{background:rgba(212,168,67,.15);border:1px solid var(--border2);padding:8px 10px;font-size:.82rem;font-weight:700;color:var(--gold2);text-align:center;}
+.sort-table td{border:1px solid var(--border);padding:6px;vertical-align:top;min-height:40px;min-width:90px;}
+.sort-cell{min-height:36px;border-radius:6px;padding:4px;}
+.sort-cell.drag-over{background:rgba(212,168,67,.15);outline:2px dashed var(--gold);}
+.sort-chip{background:rgba(44,26,14,.9);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:.8rem;margin:3px;cursor:grab;display:inline-block;user-select:none;transition:all .15s;}
+.sort-chip:hover{border-color:var(--gold);}
+.sort-chip.correct{background:rgba(26,92,42,.4);border-color:#6ee7a0;color:#6ee7a0;}
+.sort-chip.wrong{background:rgba(139,32,32,.3);border-color:#f87171;color:#f87171;}
+.sort-bank{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;padding:10px;}
+.sort-bank-title{font-size:.72rem;font-weight:700;opacity:.45;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
+.sort-bank-items{display:flex;flex-direction:column;gap:4px;}
+.btn-check{padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;margin-top:10px;width:100%;}
+.sort-result{font-size:.82rem;margin-top:8px;text-align:center;font-weight:700;}
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;opacity:.4;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;font-size:2rem;margin-bottom:12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* END SCREEN */
+.end-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 56px);text-align:center;padding:32px;}
+.end-screen.active{display:flex;}
+.end-icon{font-size:4rem;margin-bottom:16px;animation:bounce 1s infinite alternate;}
+@keyframes bounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+.end-title{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;font-weight:700;color:var(--gold2);margin-bottom:8px;}
+.end-sub{font-size:.88rem;opacity:.55;margin-bottom:24px;}
+
+.mc-options{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.mc-option{width:100%;padding:10px 14px;border-radius:8px;border:2px solid var(--border2,#334155);background:transparent;color:var(--parch,#fdf5e0);font-family:Heebo,sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;text-align:right;transition:all .15s;}
+.mc-option:hover{border-color:var(--gold,#d4a843);background:rgba(212,168,67,.08);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="btn-back" onclick="goBack()">← חזרה</button>
+  <div class="topbar-title" id="lesson-title">טוען שיעור...</div>
+  <div class="topbar-meta" id="lesson-meta"></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+<div id="loading-screen" class="loading-screen">
+  <span class="spin">⏳</span>
+  <div>טוען שיעור...</div>
+</div>
+
+<div id="stations-container"></div>
+
+<div class="end-screen" id="end-screen">
+  <div class="end-icon">🎉</div>
+  <div class="end-title">סיימת את השיעור!</div>
+  <div class="end-sub" id="end-sub">כל הכבוד על העבודה היום</div>
+  <button class="btn-nav btn-next" onclick="goBack()">← חזרה ליחידה</button>
+  <button class="btn-nav" id="btn-enrichment" onclick="openEnrichment()"
+    style="display:none;margin-top:12px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:white;border:none;padding:14px 28px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;">
+    🌟 קרון העשרה ←
+  </button>
+</div>
+
+<div class="nav-footer" id="nav-footer" style="display:none;">
+  <button class="btn-nav btn-prev" id="btn-prev" onclick="prevStation()">← קודם</button>
+  <div class="station-counter" id="station-counter"></div>
+  <button class="btn-nav btn-next" id="btn-next" onclick="nextStation()">הבא ←</button>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+// URL params
+const params=new URLSearchParams(window.location.search);
+const subjectId=params.get('subject');
+const unitId=params.get('unit');
+const lessonIdx=parseInt(params.get('lesson')||'0');
+const studentName=decodeURIComponent(params.get('student')||'');
+const classCode=params.get('class')||'';
+const isPreview=params.get('preview')==='1';
+
+// נתיב תשובות המורה ב-Firebase
+const teacherAnswersPath=`teacherAnswers/${subjectId}/${unitId}/lesson_${lessonIdx}`;
+
+let lessonData=null;
+let allStations=[];
+let currentStation=0;
+let answers={};
+let teacherAnswers={}; // תשובות דוגמא של המורה
+
+const SECTION_LABELS={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום',enrichment:'⭐ העשרה'};
+const ITEM_TYPES={
+  entry:{label:'🚪 כרטיס כניסה',hasAnswer:true},
+  exit:{label:'🎫 כרטיס יציאה',hasAnswer:true},
+  open_q:{label:'❓ שאלה פתוחה',hasAnswer:true},
+  question:{label:'❓ שאלה',hasAnswer:true},
+  text:{label:'',hasAnswer:false},
+  sources:{label:'📜 קריאת מקורות',hasAnswer:false},
+  image:{label:'🖼️ תמונה',hasAnswer:false},
+  video:{label:'▶️ סרטון',hasAnswer:false},
+  mc_q:{label:'🔘 רב-ברירה',hasAnswer:true},
+  tf_q:{label:'✅ נכון/לא נכון',hasAnswer:true},
+  fill_table:{label:'📋 טבלת מילוי',hasAnswer:false},
+};
+
+// ── INIT ──
+window.onload=function(){
+  if(!subjectId||!unitId){showError('חסרים פרמטרים. חזרי ללוח התלמיד.');return;}
+  db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}`).once('value',snap=>{
+    const lesson=snap.val();
+    if(!lesson){showError('השיעור לא נמצא.');return;}
+    lessonData=lesson;
+    buildStations();
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('nav-footer').style.display='flex';
+
+    if(isPreview){
+      // מצב תצוגה מקדימה — הצג באנר מורה
+      const banner=document.createElement('div');
+      banner.style.cssText='background:linear-gradient(135deg,#1a5c2a,#2a6b2a);color:#fdf5e0;padding:8px 20px;font-size:.82rem;font-weight:700;text-align:center;position:sticky;top:56px;z-index:40;';
+      banner.textContent='👩‍🏫 מצב תצוגה מקדימה — תשובותייך ישמרו כתשובות דוגמא לתלמידים';
+      document.getElementById('stations-container').before(banner);
+    } else {
+      // מצב תלמיד — טען תשובות דוגמא של המורה
+      db.ref(teacherAnswersPath).once('value',snap=>{
+        teacherAnswers=snap.val()||{};
+      });
+    }
+
+    renderCurrentStation();
+  });
+};
+
+function buildStations(){
+  const d=lessonData.data||{};
+  allStations=[];
+
+  // פתיח
+  if(d.intro) d.intro.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'intro',si,slots,mode:st.displayMode||'simultaneous'});
+  });
+  // גוף
+  if(d.stations) d.stations.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'body',si,slots,mode:st.displayMode||'simultaneous'});
+  });
+  // סיום
+  if(d.closing) d.closing.forEach((st,si)=>{
+    const slots=(st.slots||[]).filter(s=>s.type);
+    if(slots.length) allStations.push({section:'closing',si,slots,mode:st.displayMode||'simultaneous'});
+  });
+
+  document.getElementById('lesson-title').textContent=lessonData.topic||lessonData.name||'שיעור';
+  document.getElementById('lesson-meta').textContent=studentName;
+}
+
+function renderCurrentStation(){
+  const container=document.getElementById('stations-container');
+  container.querySelectorAll('.station-page').forEach(p=>p.remove());
+
+  if(currentStation>=allStations.length){
+    showEndScreen();return;
+  }
+
+  const st=allStations[currentStation];
+  const prev=currentStation>0?allStations[currentStation-1]:null;
+
+  // תווית מעבר בין קרונות
+  const showTransition=prev&&prev.section!==st.section;
+  const sectionLabels={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום'};
+
+  const page=document.createElement('div');
+  page.className='station-page active';
+  page.id='station-page-'+currentStation;
+
+  page.innerHTML=`
+    ${showTransition?`<div style="text-align:center;padding:10px 0 16px;font-size:.85rem;font-weight:700;color:var(--gold);opacity:.7;letter-spacing:.05em;">
+      ${sectionLabels[st.section]||''}
+    </div>`:''}
+    <div class="station-title">${sectionLabels[st.section]||''} · תחנה ${st.si+1}</div>
+    <div class="slots-wrap ${st.mode}" id="slots-${currentStation}"></div>`;
+
+  container.appendChild(page);
+
+  const slotsWrap=document.getElementById('slots-'+currentStation);
+  st.slots.forEach((slot,sli)=>{
+    const block=buildSlotBlock(slot,currentStation,sli);
+    slotsWrap.appendChild(block);
+  });
+
+  updateNav();
+}
+
+function chooseMC(stIdx,sli,chosen,correct){
+  const key=`${stIdx}-${sli}`;
+  answers[key]=String(chosen);
+  const savePath=isPreview
+    ?`${teacherAnswersPath}/station_${stIdx}_${sli}`
+    :`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`;
+  db.ref(savePath).set({answer:String(chosen),ts:Date.now()});
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){
+    saved.textContent=isPreview?'✅ נשמר כדוגמא':(chosen===correct?'✅ נכון!':'❌ לא נכון');
+    saved.style.display='block';
+  }
+  // Update button styles
+  const container=document.getElementById(`mc-${stIdx}-${sli}`);
+  if(container){
+    container.querySelectorAll('.mc-option').forEach(btn=>{
+      const idx=parseInt(btn.dataset.idx);
+      if(idx===correct){btn.style.background='rgba(34,197,94,.2)';btn.style.borderColor='#22c55e';}
+      else if(idx===chosen){btn.style.background='rgba(248,129,113,.15)';btn.style.borderColor='#f87171';}
+      else btn.style.opacity='.5';
+      btn.style.pointerEvents='none';
+    });
+  }
+}
+
+function chooseTF(stIdx,sli,chosen,isSurvey,correct){
+  const key=`${stIdx}-${sli}`;
+  answers[key]=String(chosen);
+  const savePath=isPreview
+    ?`${teacherAnswersPath}/station_${stIdx}_${sli}`
+    :`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`;
+  db.ref(savePath).set({answer:String(chosen),ts:Date.now()});
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){
+    saved.textContent=isPreview?'✅ נשמר כדוגמא':(isSurvey?'✓ תשובתך נשמרה':(chosen===correct?'✅ נכון!':'❌ לא נכון'));
+    saved.style.display='block';
+  }
+}
+
+function buildSlotBlock(slot,stIdx,sli){
+  const block=document.createElement('div');
+  block.className='slot-block';
+  const typeInfo=ITEM_TYPES[slot.type]||{label:slot.type,hasAnswer:false};
+  const savedAnswer=answers[`${stIdx}-${sli}`]||'';
+
+  let html=`<div class="slot-type-label">${typeInfo.label}</div>`;
+
+  if(slot.type==='sort_table'){
+    return buildSortTable(slot, stIdx, sli);
+  }
+
+  if(slot.type==='fill_table'){
+    return buildFillTable(slot, stIdx, sli);
+  }
+
+  if(slot.type==='image'){
+    html+=`<img class="slot-image" src="${esc(slot.content||'')}" alt="תמונה">`;
+  } else if(slot.type==='video'){
+    const ytId=extractYT(slot.content||'');
+    html+=ytId
+      ?`<iframe width="100%" height="200" src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>`
+      :`<div style="opacity:.4;font-size:.85rem;">קישור וידאו: ${esc(slot.content||'')}</div>`;
+  } else if(slot.content){
+    html+=`<div class="source-text">${slot.content.replace(/\n/g,'<br>')}</div>`;
+  }
+
+  // ── רב-ברירה ──
+  if(slot.type==='mc_q'){
+    const mc=slot.mcData||{question:'',options:['','','',''],correct:0};
+    const answered=savedAnswer!=='';
+    const chosenIdx=answered?parseInt(savedAnswer):-1;
+    const optHtml=mc.options.map((o,oi)=>{
+      if(!o)return '';
+      let style='';
+      if(answered){
+        if(oi===mc.correct) style='background:rgba(34,197,94,.2);border-color:#22c55e;';
+        else if(oi===chosenIdx) style='background:rgba(248,129,113,.15);border-color:#f87171;';
+        else style='opacity:.5;';
+      }
+      return `<button class="mc-option" data-idx="${oi}" onclick="chooseMC(${stIdx},${sli},${oi},${mc.correct})"
+        style="${style}${answered?'pointer-events:none;':''}">${esc(o)}</button>`;
+    }).join('');
+    html+=`<div class="source-text">${esc(mc.question)}</div>
+      <div class="mc-options" id="mc-${stIdx}-${sli}">${optHtml}</div>
+      <div class="answer-saved" id="saved-${stIdx}-${sli}" style="${answered?'display:block':'display:none'}">
+        ${chosenIdx===mc.correct?'✅ נכון!':'❌ לא נכון. התשובה הנכונה: '+esc(mc.options[mc.correct]||'')}
+      </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
+  // ── נכון/לא נכון ──
+  if(slot.type==='tf_q'){
+    const tf=slot.tfData||{question:'',correct:true,isSurvey:false};
+    const answered=savedAnswer!=='';
+    const chosen=savedAnswer==='true'?true:savedAnswer==='false'?false:null;
+    const btnStyle=(val)=>{
+      let s='flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;font-family:Heebo,sans-serif;border:2px solid var(--border2);background:transparent;color:var(--parch);';
+      if(answered){
+        if(val===tf.correct) s+='border-color:#22c55e;background:rgba(34,197,94,.15);color:#22c55e;';
+        else if(val===chosen) s+='border-color:#f87171;background:rgba(248,129,113,.1);color:#f87171;';
+        else s+='opacity:.4;';
+        s+='pointer-events:none;';
+      }
+      return s;
+    };
+    html+=`<div class="source-text">${esc(tf.question)}</div>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button style="${btnStyle(true)}" onclick="chooseTF(${stIdx},${sli},true,${tf.isSurvey?'true':'false'},${tf.correct?'true':'false'})">✅ נכון</button>
+        <button style="${btnStyle(false)}" onclick="chooseTF(${stIdx},${sli},false,${tf.isSurvey?'true':'false'},${tf.correct?'true':'false'})">❌ לא נכון</button>
+      </div>
+      <div class="answer-saved" id="saved-${stIdx}-${sli}" style="${answered?'display:block':'display:none'}">
+        ${tf.isSurvey?'✓ תשובתך נשמרה':(chosen===tf.correct?'✅ נכון!':'❌ לא נכון')}
+      </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
+  if(typeInfo.hasAnswer){
+    const uid=`ans-${stIdx}-${sli}`;
+    html+=`<textarea class="answer-area" id="${uid}" placeholder="כתוב/כתבי את תשובתך כאן...">${esc(savedAnswer)}</textarea>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn-submit" onclick="saveAnswer('${stIdx}','${sli}','${uid}')">שמור תשובה ✓</button>
+        <span class="answer-saved" id="saved-${stIdx}-${sli}">✅ נשמר</span>
+      </div>`;
+  }
+
+  block.innerHTML=html;
+  return block;
+}
+
+function buildSortTable(slot, stIdx, sli){
+  const block=document.createElement('div');
+  block.className='slot-block';
+  const td=slot.tableData;
+  if(!td||!td.cols||!td.items){
+    block.innerHTML='<div style="opacity:.4;font-size:.85rem;">טבלת המיון אינה מוגדרת</div>';
+    return block;
+  }
+
+  // ערבוב פריטים
+  const shuffled=[...td.items.map((it,i)=>({...it,origIdx:i}))].sort(()=>Math.random()-.5);
+
+  const id=`st-${stIdx}-${sli}`;
+
+  // בניית טבלה
+  const colsHtml=td.cols.map((c,ci)=>`<th>${c.name}</th>`).join('');
+  // מספר שורות = כמות הפריטים / עמודות (לפחות 1)
+  const rows=Math.ceil(td.items.length/td.cols.length)||1;
+  let tableRows='';
+  for(let r=0;r<rows;r++){
+    tableRows+=`<tr>${td.cols.map((_,ci)=>`<td><div class="sort-cell" id="${id}-cell-${r}-${ci}"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="dropChip(event,'${id}',${r},${ci})"></div></td>`).join('')}</tr>`;
+  }
+
+  const bankHtml=shuffled.map(it=>`
+    <div class="sort-chip" draggable="true" id="${id}-chip-${it.origIdx}"
+      data-idx="${it.origIdx}" data-answer="${it.answer}"
+      ondragstart="dragChip(event,'${id}',${it.origIdx})">
+      ${esc(it.text)}
+    </div>`).join('');
+
+  block.innerHTML=`
+    <div class="slot-type-label">📊 טבלת מיון</div>
+    <div class="sort-wrap">
+      <div class="sort-table-area">
+        <table class="sort-table">
+          <thead><tr>${colsHtml}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <button class="btn-check" onclick="checkSortTable('${id}',${stIdx},${sli})">בדוק ✓</button>
+        <div class="sort-result" id="${id}-result"></div>
+      </div>
+      <div class="sort-bank">
+        <div class="sort-bank-title">פריטים למיון</div>
+        <div class="sort-bank-items" id="${id}-bank">${bankHtml}</div>
+      </div>
+    </div>`;
+
+  // שמירת מידע לבדיקה
+  block.dataset.tableId=id;
+  block.dataset.cols=td.cols.length;
+  return block;
+}
+
+
+function buildFillTable(slot, stIdx, sli){
+  const block=document.createElement('div');
+  block.className='slot-block';
+  const td=slot.tableData;
+  if(!td||!td.cols||!td.rows){
+    block.innerHTML='<div style="opacity:.4;font-size:.85rem;">טבלת המילוי אינה מוגדרת</div>';
+    return block;
+  }
+
+  const tableId='ft-'+stIdx+'-'+sli;
+  const savedRaw=answers[stIdx+'-'+sli]||'';
+  let savedCells={};
+  try{ if(savedRaw) savedCells=JSON.parse(savedRaw); }catch(e){}
+
+  const theadHtml='<tr><th style="padding:7px 10px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.78rem;border:1px solid rgba(212,168,67,.2);width:32px;">#</th>'+
+    td.cols.map(c=>'<th style="padding:7px 10px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.78rem;border:1px solid rgba(212,168,67,.2);">'+esc(c.name||'')+'</th>').join('')+'</tr>';
+
+  const tbodyHtml=td.rows.map((row,ri)=>{
+    const cellsHtml=td.cols.map((col,ci)=>{
+      const key=ri+'-'+ci;
+      const val=row.cells[ci]||'';
+      if(col.editable){
+        const saved=savedCells[key]||'';
+        return '<td style="padding:5px;border:1px solid rgba(212,168,67,.15);">'+
+          '<textarea rows="2" id="'+tableId+'-'+ri+'-'+ci+'"'+
+          ' style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:6px 8px;outline:none;resize:vertical;min-height:48px;direction:rtl;"'+
+          ' placeholder="כתוב/כתבי כאן..."'+
+          ' oninput="saveFillTableCell(''+tableId+'','+stIdx+','+sli+')">'+esc(saved)+'</textarea>'+
+          '</td>';
+      }
+      return '<td style="padding:8px 10px;border:1px solid rgba(212,168,67,.15);font-size:.85rem;line-height:1.6;direction:rtl;vertical-align:top;">'+val.replace(/\n/g,'<br>')+'</td>';
+    }).join('');
+    return '<tr><td style="padding:5px 8px;border:1px solid rgba(212,168,67,.15);text-align:center;opacity:.45;font-size:.75rem;">'+(ri+1)+'</td>'+cellsHtml+'</tr>';
+  }).join('');
+
+  block.innerHTML=
+    '<div class="slot-type-label">📋 טבלת מילוי</div>'+
+    '<div style="overflow-x:auto;">'+
+      '<table style="width:100%;border-collapse:collapse;" id="'+tableId+'">'+
+        '<thead>'+theadHtml+'</thead>'+
+        '<tbody>'+tbodyHtml+'</tbody>'+
+      '</table>'+
+    '</div>'+
+    '<div style="margin-top:8px;display:flex;align-items:center;gap:10px;">'+
+      '<button class="btn-submit" onclick="saveFillTableCell(''+tableId+'','+stIdx+','+sli+',true)">שמור ✓</button>'+
+      '<span class="answer-saved" id="saved-'+stIdx+'-'+sli+'">✅ נשמר</span>'+
+    '</div>';
+  return block;
+}
+
+function saveFillTableCell(tableId, stIdx, sli, showMsg){
+  const cells={};
+  document.querySelectorAll('[id^="'+tableId+'-"]').forEach(el=>{
+    const parts=el.id.replace(tableId+'-','').split('-');
+    if(parts.length===2) cells[parts[0]+'-'+parts[1]]=el.value;
+  });
+  const val=JSON.stringify(cells);
+  answers[stIdx+'-'+sli]=val;
+  if(isPreview){
+    db.ref(teacherAnswersPath+'/station_'+stIdx+'_'+sli).set({answer:val,savedAt:Date.now()});
+  } else if(studentName&&classCode){
+    db.ref('studentAnswers/'+classCode+'/'+studentName+'/lesson_'+lessonIdx+'/station_'+stIdx+'_'+sli).set({
+      answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
+    });
+  }
+  if(showMsg){
+    const saved=document.getElementById('saved-'+stIdx+'-'+sli);
+    if(saved){
+      saved.textContent=isPreview?'✅ נשמר כדוגמא':'✅ נשמר';
+      saved.style.display='block';
+      setTimeout(()=>saved.style.display='none',2000);
+    }
+  }
+}
+
+// ── DRAG & DROP ──
+let dragInfo={};
+function dragChip(event,tableId,idx){
+  dragInfo={tableId,idx};
+  event.dataTransfer.setData('text/plain',`${tableId}|${idx}`);
+}
+
+function dropChip(event,tableId,row,col){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const data=event.dataTransfer.getData('text/plain').split('|');
+  const fromTable=data[0];
+  const chipIdx=parseInt(data[1]);
+  const chip=document.getElementById(`${fromTable}-chip-${chipIdx}`);
+  if(!chip)return;
+
+  // הסר מהמיקום הקודם (החזר לבנק אם צריך)
+  const cell=event.currentTarget;
+  cell.appendChild(chip);
+}
+
+function checkSortTable(tableId, stIdx, sli){
+  const cells=document.querySelectorAll(`[id^="${tableId}-cell-"]`);
+  let correct=0, total=0;
+  cells.forEach(cell=>{
+    const chips=cell.querySelectorAll('.sort-chip');
+    const ci=parseInt(cell.id.split('-').pop());
+    chips.forEach(chip=>{
+      total++;
+      const correctCol=parseInt(chip.dataset.answer);
+      if(correctCol===ci){correct++;chip.classList.add('correct');chip.classList.remove('wrong');}
+      else{chip.classList.add('wrong');chip.classList.remove('correct');}
+    });
+  });
+  const result=document.getElementById(`${tableId}-result`);
+  if(result){
+    if(total===0){result.textContent='גררי פריטים לטבלה תחילה';return;}
+    result.textContent=correct===total
+      ?`✅ מצוין! כל ${total} הפריטים נכונים!`
+      :`${correct}/${total} נכון — נסי שוב`;
+    result.style.color=correct===total?'#6ee7a0':'#f59e0b';
+  }
+  // שמירה ב-Firebase
+  if(studentName&&classCode){
+    db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
+      correct,total,timestamp:Date.now(),lessonTopic:lessonData.topic||''
+    });
+  }
+}
+
+function saveAnswer(stIdx,sli,uid){
+  const el=document.getElementById(uid);
+  const val=el?.value.trim();
+  if(!val)return;
+  // בדיקת 3 מילים לפחות
+  const words=val.split(/\s+/).filter(w=>w.length>0);
+  if(words.length<3){
+    el.style.borderColor='#f87171';
+    showValidationMsg('יש לכתוב לפחות 3 מילים לפני השמירה.');
+    return;
+  }
+  el.style.borderColor='';
+  answers[`${stIdx}-${sli}`]=val;
+
+  if(isPreview){
+    // שמור כתשובת דוגמא של המורה
+    db.ref(`${teacherAnswersPath}/station_${stIdx}_${sli}`).set({
+      answer:val, savedAt:Date.now()
+    });
+    const savedEl=document.getElementById(`saved-${stIdx}-${sli}`);
+    if(savedEl){savedEl.textContent='✅ נשמר כתשובת דוגמא';savedEl.style.display='block';setTimeout(()=>savedEl.style.display='none',2500);}
+  } else {
+    // שמור תשובת תלמיד
+    if(studentName&&classCode){
+      db.ref(`studentAnswers/${classCode}/${studentName}/lesson_${lessonIdx}/station_${stIdx}_${sli}`).set({
+        answer:val, timestamp:Date.now(), lessonTopic:lessonData.topic||''
+      });
+    }
+    const savedEl=document.getElementById(`saved-${stIdx}-${sli}`);
+    if(savedEl){savedEl.style.display='block';setTimeout(()=>savedEl.style.display='none',2500);}
+    // הצג תשובת דוגמא של המורה אחרי השמירה
+    const modelKey=`station_${stIdx}_${sli}`;
+    if(teacherAnswers[modelKey]?.answer){
+      let modelEl=document.getElementById(`model-${stIdx}-${sli}`);
+      if(!modelEl){
+        modelEl=document.createElement('div');
+        modelEl.id=`model-${stIdx}-${sli}`;
+        modelEl.style.cssText='margin-top:8px;padding:8px 12px;background:rgba(42,107,42,.15);border:1px solid rgba(42,107,42,.3);border-radius:8px;font-size:.8rem;color:#6ee7a0;direction:rtl;';
+        modelEl.innerHTML=`<div style="font-size:.68rem;font-weight:700;opacity:.7;margin-bottom:4px;">💡 תשובת דוגמא:</div>${esc(teacherAnswers[modelKey].answer)}`;
+        el.parentElement.appendChild(modelEl);
+      }
+    }
+  }
+}
+
+function showValidationMsg(msg){
+  let el=document.getElementById('validation-msg');
+  if(!el){
+    el=document.createElement('div');
+    el.id='validation-msg';
+    el.style.cssText='position:fixed;bottom:80px;right:16px;background:#dc2626;color:white;padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:280px;text-align:right;direction:rtl;';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+function updateNav(){
+  const total=allStations.length;
+  document.getElementById('station-counter').textContent=`${currentStation+1} / ${total}`;
+  document.getElementById('btn-prev').style.visibility=currentStation===0?'hidden':'visible';
+  document.getElementById('btn-next').textContent=currentStation>=total-1?'סיים שיעור ✓':'הבא ←';
+  document.getElementById('progress-fill').style.width=((currentStation+1)/total*100)+'%';
+}
+
+function nextStation(){
+  // בדיקה שכל שאלות החובה בתחנה הנוכחית נשמרו
+  const st=allStations[currentStation];
+  const items=Array.isArray(st.items)?st.items:[st.item||null];
+  let hasUnsaved=false;
+  items.forEach((item,sli)=>{
+    if(!item)return;
+    const typeInfo=ITEM_TYPES[item.type]||{};
+    if(!typeInfo.hasAnswer)return;
+    const uid=`ans-${currentStation}-${sli}`;
+    const el=document.getElementById(uid);
+    if(!el)return;
+    const saved=answers[`${currentStation}-${sli}`];
+    const words=(el.value||'').trim().split(/\s+/).filter(w=>w.length>0);
+    if(words.length<3&&!saved){
+      el.style.borderColor='#f87171';
+      hasUnsaved=true;
+    }
+  });
+  if(hasUnsaved){
+    showValidationMsg('יש לענות על כל השאלות (לפחות 3 מילים) לפני המעבר לתחנה הבאה.');
+    return;
+  }
+  if(currentStation>=allStations.length-1){showEndScreen();return;}
+  currentStation++;
+  renderCurrentStation();
+  window.scrollTo(0,0);
+}
+
+function prevStation(){
+  if(currentStation<=0)return;
+  currentStation--;
+  renderCurrentStation();
+  window.scrollTo(0,0);
+}
+
+function showEndScreen(){
+  document.getElementById('stations-container').querySelectorAll('.station-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('end-screen').classList.add('active');
+  document.getElementById('nav-footer').style.display='none';
+  document.getElementById('progress-fill').style.width='100%';
+  document.getElementById('end-sub').textContent=`${lessonData.topic||'השיעור'} הושלם בהצלחה 🎉`;
+  // סמן סיום שיעור ב-Firebase
+  if(studentName&&classCode){
+    db.ref(`studentProgress/${classCode}/${studentName.replace(/ /g,'_')}/lesson_${lessonIdx}`).set({
+      completed:true, completedAt:Date.now(), topic:lessonData.topic||''
+    });
+    // סמן זמינות לקרון העשרה
+    db.ref(`enrichmentAvailable/${classCode}/${studentName.replace(/ /g,'_')}`).set({
+      available:true, lessonIdx, at:Date.now()
+    });
+  }
+  // הצג כפתור קרון העשרה אם יש תוכן
+  const enr=lessonData.enrichment||{};
+  const hasEnrich=(enr.pairsSelectedGames&&enr.pairsSelectedGames.length)||(enr.qaSelectedGames&&enr.qaSelectedGames.length);
+  if(hasEnrich){
+    document.getElementById('btn-enrichment').style.display='block';
+  }
+}
+
+function goBack(){history.back();}
+
+function openEnrichment(){
+  const params=new URLSearchParams({
+    subject:subjectId, unit:unitId, lesson:lessonIdx,
+    student:encodeURIComponent(studentName), class:classCode
+  });
+  window.location.href='enrichment_station.html?'+params.toString();
+}
+
+function showError(msg){
+  document.getElementById('loading-screen').innerHTML=`<div style="text-align:center;opacity:.5;padding:40px;">${msg}</div>`;
+}
+
+function extractYT(url){
+  const m=url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
+  return m?m[1]:null;
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>

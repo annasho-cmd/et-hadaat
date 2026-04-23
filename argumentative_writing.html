@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>כתיבה טיעונית — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--surface:rgba(44,26,14,0.88);
+  --border:rgba(212,168,67,0.22);--border2:rgba(212,168,67,0.4);
+  --blue:#3b82f6;--green:#22c55e;--purple:#8b5cf6;
+  --c1:#1a3a2a;--c2:#1a2a3a;--c3:#2a1a3a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#0a1628,#0f0a04 60%,#1a0a1a);color:var(--parch);min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── TOPBAR ── */
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+.btn-sm{padding:5px 14px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;}
+.btn-sm:hover{background:rgba(212,168,67,.1);}
+.btn-save{background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;padding:6px 16px;border-radius:6px;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;}
+
+/* ── SETUP SCREEN ── */
+#screen-setup{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;}
+.setup-box{background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:32px;max-width:640px;width:100%;}
+.setup-title{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;font-weight:700;color:var(--gold2);margin-bottom:6px;}
+.setup-sub{font-size:.85rem;opacity:.55;margin-bottom:24px;}
+.form-row{margin-bottom:18px;}
+.form-label{display:block;font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em;}
+.form-input{width:100%;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.95rem;outline:none;transition:border .2s;}
+.form-input:focus{border-color:var(--gold);}
+
+/* Mode cards */
+.mode-cards{display:flex;flex-direction:column;gap:10px;}
+.mode-card{
+  border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;
+  transition:all .2s;background:rgba(253,245,224,.04);
+  display:flex;gap:14px;align-items:flex-start;
+}
+.mode-card:hover{border-color:rgba(212,168,67,.5);background:rgba(212,168,67,.05);}
+.mode-card.selected{background:rgba(212,168,67,.12);border-color:var(--gold);}
+.mode-icon{font-size:1.6rem;min-width:32px;}
+.mode-info{}
+.mode-name{font-weight:700;font-size:.95rem;color:var(--gold2);margin-bottom:3px;}
+.mode-desc{font-size:.78rem;opacity:.55;line-height:1.5;}
+.mode-tag{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:700;background:rgba(212,168,67,.15);color:var(--gold);border:1px solid var(--border);}
+
+.btn-start{width:100%;margin-top:22px;padding:14px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;transition:opacity .2s;}
+.btn-start:hover{opacity:.9;}
+.btn-word-bank{width:100%;margin-top:10px;padding:10px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);color:#c4b5fd;border-radius:10px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;}
+.btn-word-bank:hover{background:rgba(139,92,246,.25);}
+
+/* ── WRITING SCREEN ── */
+#screen-write{flex:1;display:none;flex-direction:column;}
+.write-layout{flex:1;display:flex;gap:0;}
+.write-main{flex:1;padding:20px 24px;overflow-y:auto;}
+.write-sidebar{
+  width:0;overflow:hidden;transition:width .3s;
+  background:rgba(15,8,40,.95);border-left:1px solid rgba(139,92,246,.2);
+}
+.write-sidebar.open{width:280px;}
+
+/* Section cards */
+.section-card{
+  border-radius:14px;padding:20px;margin-bottom:16px;
+  border:1px solid var(--border);
+  position:relative;
+}
+.section-card.opening{background:var(--c1);border-color:rgba(34,197,94,.2);}
+.section-card.body{background:var(--c2);border-color:rgba(59,130,246,.2);}
+.section-card.closing{background:var(--c3);border-color:rgba(139,92,246,.2);}
+
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.section-num{
+  width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;font-weight:700;flex-shrink:0;
+}
+.opening .section-num{background:rgba(34,197,94,.2);color:#86efac;}
+.body .section-num{background:rgba(59,130,246,.2);color:#93c5fd;}
+.closing .section-num{background:rgba(139,92,246,.2);color:#c4b5fd;}
+.section-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;}
+.opening .section-title{color:#86efac;}
+.body .section-title{color:#93c5fd;}
+.closing .section-title{color:#c4b5fd;}
+
+/* Description (mode 2) */
+.section-desc{
+  font-size:.78rem;line-height:1.7;opacity:.65;margin-bottom:12px;
+  padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.04);
+  border-right:3px solid;
+}
+.opening .section-desc{border-color:#22c55e;}
+.body .section-desc{border-color:#3b82f6;}
+.closing .section-desc{border-color:#8b5cf6;}
+
+/* Connector words (mode 2) */
+.connectors{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.connector-chip{
+  padding:3px 10px;border-radius:12px;font-size:.75rem;cursor:pointer;
+  border:1px solid;transition:all .15s;font-family:'Heebo',sans-serif;
+}
+.opening .connector-chip{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#86efac;}
+.opening .connector-chip:hover{background:rgba(34,197,94,.25);}
+.body .connector-chip{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:#93c5fd;}
+.body .connector-chip:hover{background:rgba(59,130,246,.25);}
+.closing .connector-chip{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:#c4b5fd;}
+.closing .connector-chip:hover{background:rgba(139,92,246,.25);}
+
+/* Textarea */
+.section-textarea{
+  width:100%;background:rgba(253,245,224,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;padding:12px 14px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.95rem;line-height:1.8;
+  outline:none;resize:vertical;min-height:100px;transition:border .2s;
+}
+.section-textarea:focus{border-color:rgba(212,168,67,.3);}
+.char-count{font-size:.7rem;opacity:.35;text-align:left;margin-top:4px;}
+
+/* ── SIDEBAR (mode 3) ── */
+.sidebar-inner{padding:16px;overflow-y:auto;height:100%;}
+.sidebar-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;font-weight:700;color:var(--gold2);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.sidebar-close{background:none;border:none;color:var(--gold);cursor:pointer;font-size:1rem;}
+.sidebar-section{margin-bottom:18px;}
+.sidebar-section-title{font-size:.75rem;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;}
+.s-open{color:#86efac;}
+.s-body{color:#93c5fd;}
+.s-close{color:#c4b5fd;}
+.sidebar-chips{display:flex;flex-direction:column;gap:5px;}
+.sidebar-chip{
+  padding:6px 10px;border-radius:8px;font-size:.8rem;cursor:pointer;
+  border:1px solid;transition:all .15s;font-family:'Heebo',sans-serif;text-align:right;
+}
+.s-open .sidebar-chip{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);color:#86efac;}
+.s-open .sidebar-chip:hover{background:rgba(34,197,94,.2);}
+.s-body .sidebar-chip{background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.2);color:#93c5fd;}
+.s-body .sidebar-chip:hover{background:rgba(59,130,246,.2);}
+.s-close .sidebar-chip{background:rgba(139,92,246,.08);border-color:rgba(139,92,246,.2);color:#c4b5fd;}
+.s-close .sidebar-chip:hover{background:rgba(139,92,246,.2);}
+
+/* ── WORD BANK EDITOR ── */
+#screen-editor{flex:1;display:none;padding:24px;max-width:760px;margin:0 auto;width:100%;}
+.editor-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);margin-bottom:6px;}
+.editor-sub{font-size:.83rem;opacity:.55;margin-bottom:22px;}
+.editor-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;}
+.editor-section-title{font-size:.85rem;font-weight:700;margin-bottom:12px;}
+.editor-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
+.editor-chip{
+  padding:4px 10px;border-radius:12px;font-size:.8rem;
+  display:flex;align-items:center;gap:6px;cursor:default;
+}
+.editor-chip-del{background:none;border:none;color:inherit;cursor:pointer;opacity:.6;font-size:.75rem;padding:0;}
+.editor-chip-del:hover{opacity:1;}
+.editor-add-row{display:flex;gap:8px;}
+.editor-input{flex:1;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:7px;padding:7px 12px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;}
+.editor-input:focus{border-color:var(--gold);}
+.btn-add-chip{padding:7px 14px;background:rgba(212,168,67,.15);border:1px solid var(--border);border-radius:7px;color:var(--gold);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;}
+.btn-add-chip:hover{background:rgba(212,168,67,.25);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">🖊️ כתיבה טיעונית</div>
+  <div class="topbar-right">
+    <span id="topbar-mode" style="font-size:.75rem;opacity:.45;"></span>
+    <button class="btn-sm" id="btn-bank-editor" onclick="showEditor()" style="display:none;">✏️ ערכי מילות קישור</button>
+    <button class="btn-sm" id="btn-sidebar-toggle" onclick="toggleSidebar()" style="display:none;">📋 מילות קישור</button>
+    <button class="btn-save" id="btn-save" onclick="saveWork()" style="display:none;">💾 שמור</button>
+    <button class="btn-sm" onclick="goSetup()">← הגדרות</button>
+  </div>
+</div>
+
+<!-- ═══ SETUP ═══ -->
+<div id="screen-setup">
+  <div class="setup-box">
+    <div class="setup-title">🖊️ כתיבה טיעונית</div>
+    <div class="setup-sub">בחרי את אופן הצגת התבנית לתלמידים</div>
+
+    <div class="form-row">
+      <label class="form-label">נושא הכתיבה (אופציונלי)</label>
+      <input class="form-input" id="topic-input" placeholder="למשל: האם מסעות הצלב הועילו לאירופה?" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">בחרי תבנית</label>
+      <div class="mode-cards">
+        <div class="mode-card selected" id="mode-card-1" onclick="selectMode(1)">
+          <div class="mode-icon">📄</div>
+          <div class="mode-info">
+            <div class="mode-name">תבנית עצמאית</div>
+            <div class="mode-desc">רק כותרות לכל חלק — פתיחה, גוף, סיכום. התלמיד כותב בחופשיות.</div>
+            <span class="mode-tag">מתאים לתלמידים מתקדמים</span>
+          </div>
+        </div>
+        <div class="mode-card" id="mode-card-2" onclick="selectMode(2)">
+          <div class="mode-icon">📖</div>
+          <div class="mode-info">
+            <div class="mode-name">תבנית מונחית</div>
+            <div class="mode-desc">כותרות + תיאור תפקיד כל חלק + מילות קישור לחיצות שמוכנסות לטקסט.</div>
+            <span class="mode-tag">מתאים לתלמידים שלומדים את המבנה</span>
+          </div>
+        </div>
+        <div class="mode-card" id="mode-card-3" onclick="selectMode(3)">
+          <div class="mode-icon">📋</div>
+          <div class="mode-info">
+            <div class="mode-name">תבנית עם בנק מילים</div>
+            <div class="mode-desc">כותרות בלבד + פאנל צדדי עם מילות קישור לפי חלק — התלמיד בוחר אם להיעזר.</div>
+            <span class="mode-tag">מתאים לתלמידים שצריכים תמיכה גמישה</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="startWriting()">✍️ פתחו את התבנית</button>
+    <button class="btn-word-bank" onclick="showEditor()">✏️ ערכי את בנק מילות הקישור</button>
+  </div>
+</div>
+
+<!-- ═══ WRITING SCREEN ═══ -->
+<div id="screen-write">
+  <div class="write-layout">
+
+    <!-- Main writing area -->
+    <div class="write-main" id="write-main">
+      <div id="topic-display" style="font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:18px;"></div>
+
+      <!-- OPENING -->
+      <div class="section-card opening" id="card-opening">
+        <div class="section-header">
+          <div class="section-num">1</div>
+          <div class="section-title">פתיחה — הצגת הטענה</div>
+        </div>
+        <div class="section-desc" id="desc-opening" style="display:none;">
+          מטרת הפתיחה לעורר רצון להמשיך לשמוע את הטיעון. אמצעים רטוריים: שאלה, תקציר, פנייה לרגש.
+        </div>
+        <div class="connectors" id="chips-opening" style="display:none;"></div>
+        <textarea class="section-textarea" id="text-opening" rows="4"
+          placeholder="כתבו כאן את פתיחת הטיעון..." oninput="updateCount('opening')"></textarea>
+        <div class="char-count" id="count-opening">0 תווים</div>
+      </div>
+
+      <!-- BODY -->
+      <div class="section-card body" id="card-body">
+        <div class="section-header">
+          <div class="section-num">2</div>
+          <div class="section-title">גוף הטענה</div>
+        </div>
+        <div class="section-desc" id="desc-body" style="display:none;">
+          ביסוס הטענה באמצעות עובדות, נימוקים, דוגמאות והסברים.
+        </div>
+        <div class="connectors" id="chips-body" style="display:none;"></div>
+        <textarea class="section-textarea" id="text-body" rows="6"
+          placeholder="כתבו כאן את גוף הטיעון..." oninput="updateCount('body')"></textarea>
+        <div class="char-count" id="count-body">0 תווים</div>
+      </div>
+
+      <!-- CLOSING -->
+      <div class="section-card closing" id="card-closing">
+        <div class="section-header">
+          <div class="section-num">3</div>
+          <div class="section-title">סיכום הטענה</div>
+        </div>
+        <div class="section-desc" id="desc-closing" style="display:none;">
+          כתיבת מסקנה/המלצה. הסיום מרכז את עיקרי הרעיונות. אין לכתוב רעיונות חדשים — רק חזרה על מה שהועלה בגוף.
+        </div>
+        <div class="connectors" id="chips-closing" style="display:none;"></div>
+        <textarea class="section-textarea" id="text-closing" rows="4"
+          placeholder="כתבו כאן את סיכום הטיעון..." oninput="updateCount('closing')"></textarea>
+        <div class="char-count" id="count-closing">0 תווים</div>
+      </div>
+    </div>
+
+    <!-- Sidebar (mode 3) -->
+    <div class="write-sidebar" id="write-sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-title">
+          📋 מילות קישור
+          <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
+        </div>
+
+        <div class="sidebar-section s-open">
+          <div class="sidebar-section-title s-open">פתיחה</div>
+          <div class="sidebar-chips" id="sidebar-opening"></div>
+        </div>
+        <div class="sidebar-section s-body" style="margin-top:14px;">
+          <div class="sidebar-section-title s-body">גוף הטענה</div>
+          <div class="sidebar-chips" id="sidebar-body"></div>
+        </div>
+        <div class="sidebar-section s-close" style="margin-top:14px;">
+          <div class="sidebar-section-title s-close">סיכום</div>
+          <div class="sidebar-chips" id="sidebar-closing"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ EDITOR ═══ -->
+<div id="screen-editor">
+  <div class="editor-title">✏️ עריכת בנק מילות קישור</div>
+  <div class="editor-sub">הוסיפי, מחקי או שני מילות קישור לכל חלק. השינויים נשמרים לכל השימושים הבאים.</div>
+
+  <div class="editor-section">
+    <div class="editor-section-title" style="color:#86efac;">🟢 פתיחה — הצגת הטענה</div>
+    <div class="editor-chips" id="edit-chips-opening"></div>
+    <div class="editor-add-row">
+      <input class="editor-input" id="edit-input-opening" placeholder="הוסיפי מילת קישור..." onkeydown="if(event.key==='Enter')addChip('opening')" />
+      <button class="btn-add-chip" onclick="addChip('opening')">+ הוסיפי</button>
+    </div>
+  </div>
+
+  <div class="editor-section">
+    <div class="editor-section-title" style="color:#93c5fd;">🔵 גוף הטענה</div>
+    <div class="editor-chips" id="edit-chips-body"></div>
+    <div class="editor-add-row">
+      <input class="editor-input" id="edit-input-body" placeholder="הוסיפי מילת קישור..." onkeydown="if(event.key==='Enter')addChip('body')" />
+      <button class="btn-add-chip" onclick="addChip('body')">+ הוסיפי</button>
+    </div>
+  </div>
+
+  <div class="editor-section">
+    <div class="editor-section-title" style="color:#c4b5fd;">🟣 סיכום הטענה</div>
+    <div class="editor-chips" id="edit-chips-closing"></div>
+    <div class="editor-add-row">
+      <input class="editor-input" id="edit-input-closing" placeholder="הוסיפי מילת קישור..." onkeydown="if(event.key==='Enter')addChip('closing')" />
+      <button class="btn-add-chip" onclick="addChip('closing')">+ הוסיפי</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:8px;">
+    <button class="btn-save" onclick="saveWordBank()" style="padding:10px 24px;">💾 שמור בנק מילות קישור</button>
+    <button class="btn-sm" onclick="goSetup()">← חזרה</button>
+  </div>
+</div>
+
+<script>
+// ── FIREBASE ──
+const firebaseConfig = {
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── DEFAULT WORD BANK ──
+const DEFAULT_BANK = {
+  opening: [
+    'רבים טוענים כי...',
+    'לעניות דעתי...',
+    'רבים סבורים כי...',
+    'שאלה מרכזית היא...',
+    'נושא חשוב ביותר הוא...',
+    'ידוע לכל כי...',
+    'אין ספק כי...',
+  ],
+  body: [
+    'ראיה לכך היא...',
+    'לדוגמה...',
+    'כפי שניתן לראות...',
+    'עובדה זו מוכיחה כי...',
+    'יתרה מזאת...',
+    'בנוסף לכך...',
+    'מחד גיסא... ומאידך גיסא...',
+    'על פי...',
+    'ניתן לומר כי...',
+  ],
+  closing: [
+    'מכל האמור אפשר להסיק כי...',
+    'מכאן נובע כי...',
+    'נראה כי...',
+    'אני מאמין/ה כי רצוי ל...',
+    'על כן מומלץ ל...',
+    'לפיכך יש צורך ב...',
+    'לסיכום...',
+    'בסופו של דבר...',
+  ]
+};
+
+// ── STATE ──
+let wordBank = { opening: [], body: [], closing: [] };
+let selectedMode = 1;
+let currentTopic = '';
+let studentName = '';
+let sidebarOpen = false;
+
+// ── INIT ──
+window.onload = function() {
+  const params = new URLSearchParams(window.location.search);
+  studentName = decodeURIComponent(params.get('student') || params.get('name') || '');
+  currentTopic = decodeURIComponent(params.get('topic') || '');
+  const urlMode = parseInt(params.get('mode') || '0');
+
+  if (currentTopic) document.getElementById('topic-input').value = currentTopic;
+
+  // Load word bank from Firebase
+  db.ref('teacher/argumentativeBank').once('value', snap => {
+    const saved = snap.val();
+    if (saved) {
+      wordBank = {
+        opening: saved.opening || DEFAULT_BANK.opening,
+        body: saved.body || DEFAULT_BANK.body,
+        closing: saved.closing || DEFAULT_BANK.closing,
+      };
+    } else {
+      wordBank = JSON.parse(JSON.stringify(DEFAULT_BANK));
+    }
+    renderEditorChips();
+
+    // Auto-start if mode passed in URL
+    if (urlMode >= 1 && urlMode <= 3) {
+      selectMode(urlMode);
+      startWriting();
+    }
+
+    // Load saved work if student
+    if (studentName) loadSavedWork();
+  });
+};
+
+function selectMode(m) {
+  selectedMode = m;
+  [1,2,3].forEach(i => {
+    document.getElementById('mode-card-' + i).classList.toggle('selected', i === m);
+  });
+}
+
+// ── WRITING ──
+function startWriting() {
+  currentTopic = document.getElementById('topic-input').value.trim();
+
+  document.getElementById('screen-setup').style.display = 'none';
+  document.getElementById('screen-editor').style.display = 'none';
+  document.getElementById('screen-write').style.display = 'flex';
+
+  const modeLabels = {1:'עצמאית', 2:'מונחית', 3:'עם בנק מילים'};
+  document.getElementById('topbar-mode').textContent = 'תבנית ' + modeLabels[selectedMode];
+
+  if (currentTopic) {
+    document.getElementById('topic-display').textContent = '📌 ' + currentTopic;
+  }
+
+  // Show/hide elements by mode
+  const showDesc = selectedMode === 2;
+  const showChips = selectedMode === 2;
+  const showSidebarBtn = selectedMode === 3;
+
+  ['opening','body','closing'].forEach(sec => {
+    document.getElementById('desc-' + sec).style.display = showDesc ? 'block' : 'none';
+    const chipsEl = document.getElementById('chips-' + sec);
+    chipsEl.style.display = showChips ? 'flex' : 'none';
+    if (showChips) renderChips(sec);
+  });
+
+  document.getElementById('btn-sidebar-toggle').style.display = showSidebarBtn ? '' : 'none';
+  document.getElementById('btn-bank-editor').style.display = '';
+  document.getElementById('btn-save').style.display = studentName ? '' : 'none';
+
+  // Populate sidebar for mode 3
+  if (selectedMode === 3) renderSidebar();
+}
+
+function renderChips(section) {
+  const cont = document.getElementById('chips-' + section);
+  cont.innerHTML = (wordBank[section] || []).map(w =>
+    `<span class="connector-chip" onclick="insertWord('${section}','${w.replace(/'/g,"\\'")}')">
+      ${w}
+    </span>`
+  ).join('');
+}
+
+function renderSidebar() {
+  ['opening','body','closing'].forEach(sec => {
+    const cont = document.getElementById('sidebar-' + sec);
+    cont.innerHTML = (wordBank[sec] || []).map(w =>
+      `<div class="sidebar-chip" onclick="insertWord('${sec}','${w.replace(/'/g,"\\'")}')">
+        ${w}
+      </div>`
+    ).join('');
+  });
+}
+
+function insertWord(section, word) {
+  const ta = document.getElementById('text-' + section);
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const text = ta.value;
+  ta.value = text.substring(0, start) + word + text.substring(end);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = start + word.length;
+  updateCount(section);
+}
+
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('write-sidebar').classList.toggle('open', sidebarOpen);
+}
+
+function updateCount(section) {
+  const len = document.getElementById('text-' + section).value.length;
+  document.getElementById('count-' + section).textContent = len + ' תווים';
+}
+
+// ── SAVE/LOAD ──
+function saveWork() {
+  if (!studentName) return;
+  const data = {
+    topic: currentTopic,
+    mode: selectedMode,
+    opening: document.getElementById('text-opening').value,
+    body: document.getElementById('text-body').value,
+    closing: document.getElementById('text-closing').value,
+    savedAt: Date.now()
+  };
+  const key = studentName.replace(/ /g,'_');
+  db.ref('teacher/argumentativeWork/' + key).set(data).then(() => {
+    const btn = document.getElementById('btn-save');
+    btn.textContent = '✓ נשמר!';
+    setTimeout(() => btn.textContent = '💾 שמור', 2000);
+  });
+}
+
+function loadSavedWork() {
+  const key = studentName.replace(/ /g,'_');
+  db.ref('teacher/argumentativeWork/' + key).once('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    if (d.topic) document.getElementById('topic-input').value = d.topic;
+    if (d.opening) document.getElementById('text-opening').value = d.opening;
+    if (d.body) document.getElementById('text-body').value = d.body;
+    if (d.closing) document.getElementById('text-closing').value = d.closing;
+    ['opening','body','closing'].forEach(s => updateCount(s));
+  });
+}
+
+// ── EDITOR ──
+function showEditor() {
+  document.getElementById('screen-setup').style.display = 'none';
+  document.getElementById('screen-write').style.display = 'none';
+  document.getElementById('screen-editor').style.display = 'block';
+  document.getElementById('btn-bank-editor').style.display = 'none';
+  renderEditorChips();
+}
+
+function renderEditorChips() {
+  ['opening','body','closing'].forEach(sec => {
+    const cont = document.getElementById('edit-chips-' + sec);
+    const colors = {opening:'rgba(34,197,94,.15)',body:'rgba(59,130,246,.15)',closing:'rgba(139,92,246,.15)'};
+    const tcol = {opening:'#86efac',body:'#93c5fd',closing:'#c4b5fd'};
+    const bord = {opening:'rgba(34,197,94,.3)',body:'rgba(59,130,246,.3)',closing:'rgba(139,92,246,.3)'};
+    cont.innerHTML = (wordBank[sec] || []).map((w, i) =>
+      `<span class="editor-chip" style="background:${colors[sec]};border:1px solid ${bord[sec]};color:${tcol[sec]};">
+        ${w}
+        <button class="editor-chip-del" onclick="removeChip('${sec}',${i})">✕</button>
+      </span>`
+    ).join('');
+  });
+}
+
+function addChip(section) {
+  const inp = document.getElementById('edit-input-' + section);
+  const val = inp.value.trim();
+  if (!val) return;
+  if (!wordBank[section]) wordBank[section] = [];
+  wordBank[section].push(val);
+  inp.value = '';
+  renderEditorChips();
+}
+
+function removeChip(section, idx) {
+  wordBank[section].splice(idx, 1);
+  renderEditorChips();
+}
+
+function saveWordBank() {
+  db.ref('teacher/argumentativeBank').set(wordBank).then(() => {
+    alert('✓ בנק מילות הקישור נשמר!');
+  });
+}
+
+function goSetup() {
+  document.getElementById('screen-write').style.display = 'none';
+  document.getElementById('screen-editor').style.display = 'none';
+  document.getElementById('screen-setup').style.display = 'flex';
+  document.getElementById('btn-bank-editor').style.display = 'none';
+  document.getElementById('btn-sidebar-toggle').style.display = 'none';
+  document.getElementById('btn-save').style.display = 'none';
+  document.getElementById('topbar-mode').textContent = '';
+}
+</script>
+</body>
+</html>

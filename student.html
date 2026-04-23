@@ -196,6 +196,94 @@ body::before{
 .lc-status.open{color:#4caf50;}
 .lc-status.locked{color:#888;}
 .lc-status.done{color:var(--gold);}
+
+/* ── ENRICHMENT ── */
+.btn-enrichment{
+  padding:6px 14px;
+  background:linear-gradient(135deg,#7c3aed,#4c1d95);
+  color:white;border:none;border-radius:8px;
+  font-family:'Heebo',sans-serif;font-size:.8rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;
+}
+.enrichment-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:20;
+  background:linear-gradient(135deg,#4c1d95,#7c3aed);
+  color:white;padding:12px 20px;
+  display:none;align-items:center;justify-content:space-between;
+  box-shadow:0 -4px 20px rgba(124,58,237,.4);
+}
+.enrichment-banner.show{display:flex;}
+#view-enrichment{background:#0f0a04;}
+.enrich-header{
+  padding:20px;text-align:center;
+  background:linear-gradient(135deg,#1a0a3e,#2d1b69);
+  border-bottom:1px solid rgba(124,58,237,.3);
+}
+.enrich-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.3rem;font-weight:900;color:#c4b5fd;margin-bottom:4px;
+}
+.enrich-sub{font-size:.8rem;opacity:.5;}
+.enrich-games-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:12px;padding:20px;
+}
+.enrich-game-card{
+  background:rgba(109,40,217,.1);
+  border:1px solid rgba(109,40,217,.3);
+  border-radius:12px;padding:16px 12px;
+  text-align:center;cursor:pointer;
+  transition:all .18s;
+}
+.enrich-game-card:hover{
+  border-color:#7c3aed;
+  background:rgba(109,40,217,.2);
+  transform:translateY(-2px);
+}
+.enrich-game-icon{font-size:1.6rem;margin-bottom:6px;}
+.enrich-game-name{font-size:.8rem;font-weight:700;color:#c4b5fd;}
+.enrich-game-btns{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.btn-solo{
+  padding:6px;background:rgba(109,40,217,.2);
+  border:1px solid rgba(109,40,217,.3);border-radius:6px;
+  color:#c4b5fd;font-size:.72rem;font-weight:700;cursor:pointer;
+  font-family:'Heebo',sans-serif;
+}
+.btn-vs{
+  padding:6px;background:rgba(212,168,67,.15);
+  border:1px solid rgba(212,168,67,.3);border-radius:6px;
+  color:var(--gold);font-size:.72rem;font-weight:700;cursor:pointer;
+  font-family:'Heebo',sans-serif;
+}
+.available-list{
+  padding:0 20px 20px;
+}
+.available-title{
+  font-size:.72rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;opacity:.4;margin-bottom:10px;
+}
+.available-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;margin:4px;
+  background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);
+  border-radius:20px;cursor:pointer;font-size:.8rem;
+  color:#6ee7a0;transition:all .15s;font-family:'Heebo',sans-serif;
+}
+.available-chip:hover{background:rgba(34,197,94,.2);}
+
+/* invite modal */
+.invite-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+  display:none;align-items:center;justify-content:center;
+}
+.invite-modal.open{display:flex;}
+.invite-box{
+  background:#1a0f05;border:1px solid rgba(109,40,217,.4);
+  border-radius:16px;padding:24px;width:90%;max-width:360px;
+  text-align:center;
+}
+.invite-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:#c4b5fd;margin-bottom:16px;}
+.invite-waiting{font-size:.85rem;opacity:.6;margin-top:12px;}
 .lc-arrow{font-size:1.2rem;opacity:.5;}
 .lesson-card.locked .lc-arrow{display:none;}
 .btn-enter{
@@ -484,6 +572,21 @@ body::before{
       <div class="loading"><span class="loading-spinner">⏳</span>טוען...</div>
     </div>
 
+    <!-- VIEW: ENRICHMENT STATION -->
+    <div class="view" id="view-enrichment">
+      <div class="enrich-header">
+        <div class="enrich-title">🌟 קרון העשרה</div>
+        <div class="enrich-sub" id="enrich-sub">בחר/י משחק ושחק/י לבד או עם חבר/ה</div>
+      </div>
+      <div class="enrich-games-grid" id="enrich-games-grid">
+        <div style="opacity:.4;font-size:.85rem;text-align:center;padding:20px;grid-column:1/-1;">טוען משחקים...</div>
+      </div>
+      <div class="available-list" id="enrich-available" style="display:none;">
+        <div class="available-title">תלמידים זמינים לראש בראש</div>
+        <div id="available-chips"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -501,6 +604,26 @@ body::before{
     📖 <span id="lesson-banner-title">המורה פתחה שיעור!</span><span class="game-banner-pulse">🔔</span>
   </div>
   <button class="btn-join-game" style="background:#fff;color:#166534;" onclick="joinLiveLesson()">כנס/י לשיעור ←</button>
+</div>
+
+<!-- ══ ENRICHMENT BANNER ══ -->
+<div class="enrichment-banner" id="enrichment-banner">
+  <div>
+    <div style="font-weight:700;font-size:.9rem;">🌟 קרון העשרה מחכה לך!</div>
+    <div style="font-size:.75rem;opacity:.7;">סיימת את השיעור — כנס/י לשחק</div>
+  </div>
+  <button class="btn-enrichment" onclick="showView('view-enrichment');loadEnrichmentGames()">כנס/י ←</button>
+</div>
+
+<!-- ══ INVITE MODAL ══ -->
+<div class="invite-modal" id="invite-modal">
+  <div class="invite-box">
+    <div class="invite-title">🎮 הזמן/י חבר/ה למשחק</div>
+    <div id="invite-game-name" style="font-size:.85rem;color:#c4b5fd;margin-bottom:12px;"></div>
+    <div id="available-players"></div>
+    <div class="invite-waiting" id="invite-waiting" style="display:none;">⏳ ממתין/ת לאישור...</div>
+    <button onclick="closeInviteModal()" style="margin-top:16px;padding:8px 20px;background:none;border:1px solid rgba(109,40,217,.4);border-radius:8px;color:#c4b5fd;cursor:pointer;font-family:'Heebo',sans-serif;">ביטול</button>
+  </div>
 </div>
 
 <script>
@@ -741,7 +864,7 @@ function enterApp(isTeacher) {
     showView('view-home');
   }
   // מאחר את ה-listener כדי שלא יקפוץ הבאנר מיד
-  setTimeout(()=>{ startGameListener(); startLessonListener(); }, 1500);
+  setTimeout(()=>{ startGameListener(); startLessonListener(); startEnrichmentListener(); }, 1500);
 
   // ── עדכון בזמן אמת של מצב שיעורים (פתוח/נעול) ──
   db.ref('teacher/subjects').on('value', snap => {
@@ -1041,6 +1164,167 @@ function joinLiveGame() {
   const base = window.location.href.split('/').slice(0, -1).join('/');
   const name = encodeURIComponent(studentName);
   window.location.href = `${base}/game_student.html?code=${liveGameCode}&name=${name}`;
+}
+
+// ── ENRICHMENT STATION ──
+let enrichmentData = null;
+let currentInviteGame = null;
+let inviteListener = null;
+
+function startEnrichmentListener() {
+  if (!classCode || !studentName) return;
+  const key = studentName.replace(/ /g, '_');
+  db.ref(`enrichmentAvailable/${classCode}/${key}`).on('value', snap => {
+    const data = snap.val();
+    if (data && data.available) {
+      enrichmentData = data;
+      // הצג באנר קרון העשרה
+      document.getElementById('enrichment-banner').classList.add('show');
+    }
+  });
+  // האזן להזמנות נכנסות
+  db.ref(`enrichInvites/${classCode}/${key}`).on('value', snap => {
+    const inv = snap.val();
+    if (inv && inv.from && inv.game && inv.status === 'pending') {
+      if (confirm(`${inv.from} מזמין/ה אותך למשחק "${inv.game}" — מקבל/ת?`)) {
+        db.ref(`enrichInvites/${classCode}/${key}`).update({status:'accepted'});
+        openEnrichGame(inv.game, false);
+      } else {
+        db.ref(`enrichInvites/${classCode}/${key}`).update({status:'declined'});
+      }
+    }
+  });
+}
+
+function loadEnrichmentGames() {
+  if (!enrichmentData) return;
+  const {lessonIdx} = enrichmentData;
+  // קרא את נתוני השיעור מ-Firebase
+  const subjectId = currentSubject?.id;
+  const unitId = currentUnit?.id;
+  if (!subjectId || !unitId) return;
+
+  db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}`).once('value', snap => {
+    const lesson = snap.val();
+    if (!lesson || !lesson.enrichment) return;
+    const enr = lesson.enrichment;
+
+    const games = [];
+    // תבנית א — צמדים
+    const pairsGames = enr.pairsSelectedGames || [];
+    pairsGames.forEach(g => games.push({name:g, template:'pairs', icon:getGameIcon(g)}));
+    // תבנית ב — שאלות
+    const qaGames = enr.qaSelectedGames || [];
+    qaGames.forEach(g => games.push({name:g, template:'qa', icon:getGameIcon(g)}));
+
+    const grid = document.getElementById('enrich-games-grid');
+    if (!games.length) {
+      grid.innerHTML = '<div style="opacity:.4;font-size:.85rem;text-align:center;padding:20px;grid-column:1/-1;">אין משחקים זמינים כרגע</div>';
+      return;
+    }
+
+    grid.innerHTML = games.map(g => `
+      <div class="enrich-game-card">
+        <div class="enrich-game-icon">${g.icon}</div>
+        <div class="enrich-game-name">${g.name}</div>
+        <div class="enrich-game-btns">
+          <button class="btn-solo" onclick="openEnrichGame('${g.name}',true)">▶ שחק לבד</button>
+          <button class="btn-vs" onclick="openInviteModal('${g.name}')">⚔️ ראש בראש</button>
+        </div>
+      </div>`).join('');
+
+    // הצג רשימת זמינים
+    loadAvailablePlayers();
+  });
+}
+
+function getGameIcon(name) {
+  const icons = {
+    'מתיחת קו':'↔️','משחק זיכרון':'🃏','כרטיסיות':'📇','בינגו':'🎰',
+    'תשבץ':'📐','תפזורת':'🔤','כתב סתרים':'🔏','גלה את המושג':'🔍',
+    'טריוויה':'🎯','ג\'פרדי':'🏆','קוויז':'📋','חדר בריחה':'🔐',
+    'משחק מסלול':'🎲','גלגל המזל':'🎡','פיצוחים':'🎲',
+    'תשע בריבוע':'⬜','גלה את התמונה':'🖼️','זום תמונה':'🔎','פאזל':'🧩'
+  };
+  return icons[name] || '🎮';
+}
+
+function loadAvailablePlayers() {
+  db.ref(`enrichmentAvailable/${classCode}`).once('value', snap => {
+    const all = snap.val() || {};
+    const myKey = studentName.replace(/ /g, '_');
+    const available = Object.entries(all)
+      .filter(([k, v]) => k !== myKey && v.available)
+      .map(([k]) => k.replace(/_/g, ' '));
+
+    const wrap = document.getElementById('enrich-available');
+    const chips = document.getElementById('available-chips');
+    if (!available.length) { wrap.style.display = 'none'; return; }
+
+    chips.innerHTML = available.map(name =>
+      `<span class="available-chip">🟢 ${name}</span>`).join('');
+    wrap.style.display = 'block';
+  });
+}
+
+function openEnrichGame(gameName, solo) {
+  // בשלב זה — הצגת הודעה (המשחקים עצמם יפותחו בהמשך)
+  alert(`${solo ? 'מתחיל/ת' : 'מתחיל/ת עם חבר/ה'} את המשחק: ${gameName}\n(המשחק יפתח בקרוב!)`);
+}
+
+function openInviteModal(gameName) {
+  currentInviteGame = gameName;
+  document.getElementById('invite-game-name').textContent = '🎮 ' + gameName;
+  document.getElementById('invite-waiting').style.display = 'none';
+
+  // טען רשימת זמינים
+  db.ref(`enrichmentAvailable/${classCode}`).once('value', snap => {
+    const all = snap.val() || {};
+    const myKey = studentName.replace(/ /g, '_');
+    const available = Object.entries(all)
+      .filter(([k, v]) => k !== myKey && v.available)
+      .map(([k]) => k.replace(/_/g, ' '));
+
+    const wrap = document.getElementById('available-players');
+    if (!available.length) {
+      wrap.innerHTML = '<div style="opacity:.5;font-size:.85rem;">אין תלמידים זמינים כרגע</div>';
+    } else {
+      wrap.innerHTML = available.map(name =>
+        `<span class="available-chip" onclick="sendInvite('${name}')">${name}</span>`).join('');
+    }
+    document.getElementById('invite-modal').classList.add('open');
+  });
+}
+
+function sendInvite(toName) {
+  const toKey = toName.replace(/ /g, '_');
+  const myKey = studentName.replace(/ /g, '_');
+  db.ref(`enrichInvites/${classCode}/${toKey}`).set({
+    from: studentName, game: currentInviteGame,
+    status: 'pending', at: Date.now()
+  });
+  document.getElementById('available-players').innerHTML = '';
+  document.getElementById('invite-waiting').style.display = 'block';
+  document.getElementById('invite-waiting').textContent = `⏳ ממתין/ת לאישור מ-${toName}...`;
+
+  // האזן לתשובה
+  if (inviteListener) inviteListener();
+  db.ref(`enrichInvites/${classCode}/${toKey}`).on('value', snap => {
+    const inv = snap.val();
+    if (inv && inv.status === 'accepted') {
+      db.ref(`enrichInvites/${classCode}/${toKey}`).off();
+      closeInviteModal();
+      openEnrichGame(currentInviteGame, false);
+    } else if (inv && inv.status === 'declined') {
+      db.ref(`enrichInvites/${classCode}/${toKey}`).off();
+      document.getElementById('invite-waiting').textContent = `${toName} לא יכול/ה כרגע`;
+    }
+  });
+}
+
+function closeInviteModal() {
+  document.getElementById('invite-modal').classList.remove('open');
+  currentInviteGame = null;
 }
 
 window.addEventListener('load', () => {
