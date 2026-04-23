@@ -2067,46 +2067,36 @@ function prevStep(){if(currentStep>0)goToStep(currentStep-1);}
 
 // ── BANK (accordion) ──
 const BANK_CATS=[
-  {id:'questions',icon:'📝',name:'שאלות ומשימות'},
-  {id:'writing',  icon:'✍️',name:'כתיבה ויצירה'},
-  {id:'media',    icon:'🎬',name:'מדיה'},
-  {id:'games',    icon:'🎮',name:'משחקי ידע'},
-  {id:'discovery',icon:'🔍',name:'גילוי מיון והתאמה'},
+  {id:'all', icon:'🧩', name:'כל הפריטים'},
 ];
 
 let bankData=[];
 
 function loadBankFromFirebase(cb){
-  firebase.database().ref('teacher/itemBank').once('value',snap=>{
-    bankData=snap.val()?Object.values(snap.val()):ITEM_BANK.map(i=>({...i,cat:ITEM_BANK.indexOf(i)}));
-    cb&&cb();
-  });
+  // הבנק בבונה תמיד משתמש ברשימה המובנית — לא Firebase
+  bankData = ITEM_BANK.map((i,idx) => ({...i, cat:idx}));
+  cb&&cb();
 }
 
 function renderBankAccordion(){
   const acc=document.getElementById('bank-accordion');
   if(!acc)return;
-  acc.innerHTML=BANK_CATS.map((cat,ci)=>{
-    const items=bankData.filter(it=>it.cat===ci);
-    if(!items.length)return '';
-    return `<div class="bank-cat-section">
-      <div class="bank-cat-header" onclick="toggleBankCat(${ci},this)">
-        <span class="bank-cat-icon">${cat.icon}</span>
-        <span class="bank-cat-name">${cat.name}</span>
-        <span class="bank-cat-count">(${items.length})</span>
-        <span class="bank-cat-chevron" id="bch-${ci}">▼</span>
-      </div>
-      <div class="bank-cat-items" id="bci-${ci}">
-        ${items.map(item=>`
-          <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
-            onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
-            onmouseleave="hideBankTooltip()">
-            <span class="bank-cube-icon">${item.icon||'📄'}</span>
-            <div class="bank-cube-name">${item.name}</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
+  const itemsHtml = bankData.map(item=>`
+    <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
+      onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
+      onmouseleave="hideBankTooltip()">
+      <span class="bank-cube-icon">${item.icon||'📄'}</span>
+      <div class="bank-cube-name">${item.name}</div>
+    </div>`).join('');
+  acc.innerHTML=`<div class="bank-cat-section">
+    <div class="bank-cat-header open" onclick="toggleBankCat(0,this)">
+      <span class="bank-cat-icon">🧩</span>
+      <span class="bank-cat-name">פריטים</span>
+      <span class="bank-cat-count">(${bankData.length})</span>
+      <span class="bank-cat-chevron open" id="bch-0">▼</span>
+    </div>
+    <div class="bank-cat-items open" id="bci-0">${itemsHtml}</div>
+  </div>`;
 }
 
 function toggleBankCat(ci,header){
