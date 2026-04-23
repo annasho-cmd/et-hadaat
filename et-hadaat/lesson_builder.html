@@ -2941,15 +2941,15 @@ function renderDragDropPopup(d){
   const items=(d.items||['','','','','']).map((item,i)=>
     '<div style="display:flex;gap:6px;margin-bottom:7px;align-items:center;">'+
     '<span style="min-width:22px;height:22px;background:rgba(212,168,67,.2);color:#d4a843;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;">'+(i+1)+'</span>'+
-    '<input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\\'Heebo\\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;" placeholder="פריט '+(i+1)+'..." value="'+esc(item)+'" oninput="window._popupDragData.items['+(i)+']=this.value">'+
+    '<input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:7px 10px;outline:none;" placeholder="פריט '+(i+1)+'..." value="'+esc(item)+'" oninput="window._popupDragData.items['+(i)+']=this.value">'+
     (i>4?'<button onclick="removeDragItem('+i+')" style="padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>':'')+'</div>'
   ).join('');
   return '<div style="margin-bottom:10px;">'+
     '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הנחיה (אופציונלי):</div>'+
-    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\\'Heebo\\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:12px;" placeholder="סדרו את האירועים לפי סדר כרונולוגי..." value="'+esc(d.prompt||'')+'" oninput="window._popupDragData.prompt=this.value">'+
+    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:12px;" placeholder="סדרו את האירועים לפי סדר כרונולוגי..." value="'+esc(d.prompt||'')+'" oninput="window._popupDragData.prompt=this.value">'+
     '<div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">פריטים לסידור (לפחות 3):</div>'+
     '<div id="drag-items">'+items+'</div>'+
-    '<button onclick="addDragItem()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:\\'Heebo\\',sans-serif;margin-top:4px;">+ הוסף פריט</button>'+
+    '<button onclick="addDragItem()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-top:4px;">+ הוסף פריט</button>'+
     '<div style="font-size:.72rem;opacity:.4;margin-top:8px;">הפריטים יוצגו לתלמיד בסדר אקראי</div></div>';
 }
 function addDragItem(){ window._popupDragData.items.push(''); document.getElementById('item-popup-body').innerHTML=renderDragDropPopup(window._popupDragData); }
