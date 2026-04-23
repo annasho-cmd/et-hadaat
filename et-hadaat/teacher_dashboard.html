@@ -774,14 +774,15 @@ function renderUnits() {
   if (!units.length) { grid.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display = 'none';
   grid.innerHTML = '';
-  units.forEach(unit => {
+  units.forEach((unit, idx) => {
     const card = document.createElement('div');
     card.className = 'unit-card';
     const gCount = Object.keys(unit.groups||{}).length;
     const lCount = (unit.lessons||[]).length;
+    const unitNum = idx + 1;
     card.innerHTML = `
       <div class="unit-icon">${unit.avatar||'📖'}</div>
-      <div class="unit-name">${unit.num?unit.num+'. ':''}${unit.name}</div>
+      <div class="unit-name">${unitNum}. ${unit.name}</div>
       <div class="unit-meta">${lCount} שיעורים · ${gCount} קבוצות משויכות</div>
       <div class="unit-arrow">‹</div>
       <button class="btn-del" style="position:absolute;top:8px;left:8px;z-index:2;"
@@ -829,7 +830,7 @@ function renderUnitLessons() {
       ? `<span style="font-size:.7rem;padding:2px 8px;border-radius:10px;background:${l.status==='ready'?'rgba(42,107,42,.3)':'rgba(212,168,67,.15)'};color:${l.status==='ready'?'#6ee7a0':'var(--gold)'};">${l.status==='ready'?'✅ מוכן':'✏️ טיוטה'}</span>`
       : `<span style="font-size:.72rem;color:var(--muted);">${l.url||''}</span>`;
     row.innerHTML = `
-      <div class="lesson-num">${l.num||i+1}</div>
+      <div class="lesson-num">${i+1}</div>
       <div class="lesson-info">
         <div class="lesson-name">${displayName}</div>
         ${statusBadge}
