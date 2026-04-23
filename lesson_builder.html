@@ -534,7 +534,33 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
         </div>
         <div class="section-label">מטרות השיעור</div>
         <textarea class="goals-area" id="b-goals" placeholder="רשמי את מטרות השיעור..."></textarea>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
+        <div style="display:flex;gap:7px;margin-top:6px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="askGoalsAI()">🤖 עזרה בניסוח מטרות</button>
+          <button class="btn btn-sm" style="background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);color:#c4b5fd;" onclick="generateLessonSkeleton()">✨ הכן לי שלד שיעור</button>
+          <button class="btn btn-sm" style="background:rgba(42,107,42,.15);border:1px solid rgba(42,107,42,.4);color:#6ee7a0;" onclick="checkGoalsAlignment()">🎯 בדוק התאמה למטרות</button>
+        </div>
+      </div>
+
+      <!-- UNIT INTRO — דף נפרד לפני הקרונות -->
+      <div class="section-block" style="border-radius:12px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(212,168,67,.25);">
+        <div style="padding:10px 16px;display:flex;align-items:center;gap:8px;background:rgba(212,168,67,.06);">
+          <span>📖</span>
+          <span style="font-size:.9rem;font-weight:700;">פתיח ליחידה</span>
+          <span style="font-size:.7rem;opacity:.4;flex:1;">יוצג בדף נפרד לפני כל הקרונות</span>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;opacity:.7;cursor:pointer;">
+            <input type="checkbox" id="unit-intro-enabled" 
+              onchange="lessonData.unitIntro=lessonData.unitIntro||{};lessonData.unitIntro.enabled=this.checked;setSaveStatus('שינויים לא שמורים');"
+              style="accent-color:var(--gold);">
+            הפעל
+          </label>
+        </div>
+        <div id="unit-intro-body" style="padding:12px 16px;">
+          <textarea id="unit-intro-text"
+            style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:10px 12px;resize:vertical;min-height:80px;outline:none;"
+            placeholder="כתבי את הפתיח ליחידה — יוצג לתלמידים בדף נפרד לפני תחילת השיעור..."
+            oninput="lessonData.unitIntro=lessonData.unitIntro||{};lessonData.unitIntro.text=this.value;setSaveStatus('שינויים לא שמורים');"></textarea>
+          <div style="font-size:.72rem;opacity:.4;margin-top:4px;">💡 ניתן לכלול: הקשר, שאלת מנחה, רקע, תמונה או מפה</div>
+        </div>
       </div>
 
       <!-- STEP 0: פתיח -->
@@ -673,12 +699,19 @@ const ITEM_BANK=[
   {type:'entry_card', icon:'🚪',name:'כרטיס כניסה',  desc:'שאלה שמפעילה ידע קודם'},
   {type:'exit_card',  icon:'🎫',name:'כרטיס יציאה',  desc:'שאלה מסכמת לסוף שיעור'},
   {type:'text',       icon:'📄',name:'טקסט / מקור',  desc:'קטע קריאה או מקור ראשוני'},
+  {type:'sources',    icon:'📜',name:'קריאת מקורות', desc:'טקסט עם שאלות מלוות'},
   {type:'image',      icon:'🖼️',name:'תמונה',         desc:'תמונה, מפה או מסמך חזותי'},
   {type:'video',      icon:'▶️',name:'סרטון',         desc:'קישור YouTube'},
-  {type:'question',   icon:'❓',name:'שאלה',          desc:'שאלה פתוחה או סגורה'},
+  {type:'question',   icon:'❓',name:'שאלה פתוחה',   desc:'שאלה פתוחה או סגורה'},
   {type:'drag_drop',  icon:'🔀',name:'סדר כרונולוגי',desc:'פעילות גרירה לפי סדר'},
+  {type:'fill_table', icon:'📋',name:'טבלת מילוי',   desc:'טבלה עם תאים ריקים למילוי ידני'},
+  {type:'sort_table', icon:'📊',name:'טבלת מיון',    desc:'גרירת פריטים לקטגוריות'},
   {type:'discussion', icon:'💬',name:'דיון',          desc:'שאלה לדיון כיתתי'},
   {type:'summary',    icon:'📝',name:'סיכום',         desc:'ממלאים בסוף תחנה'},
+  {type:'argue',      icon:'🖊️',name:'כתיבה טיעונית',desc:'תבנית לכתיבה טיעונית'},
+  {type:'full_ans',   icon:'📝',name:'תשובה מלאה',   desc:'תבנית לכתיבת תשובה מלאה'},
+  {type:'stickies',   icon:'🗒️',name:'פתקיות',        desc:'לוח שיתופי בזמן אמת'},
+  {type:'wordcloud',  icon:'☁️',name:'ענן מילים',     desc:'ענן מילים שיתופי'},
 ];
 
 // ── NAV ──
@@ -1164,9 +1197,9 @@ function openLessonBuilder(idx){
     stations:(saved.stations||Array.from({length:4},()=>({}))).map(migrateToNew),
     closing:[(saved.closing&&saved.closing[0]?migrateToNew(saved.closing[0]):{items:[null,null,null],displayMode:'simultaneous'})],
     enrichmentStations:(saved.enrichmentStations||Array.from({length:3},()=>({}))).map(migrateToNew),
-    introSettings:saved.introSettings||{newPage:true,mode:'simultaneous'},
-    stationsSettings:saved.stationsSettings||{newPage:true,mode:'simultaneous'},
-    closingSettings:saved.closingSettings||{newPage:true,mode:'simultaneous'},
+    introSettings:saved.introSettings||{newPage:true,mode:null},
+    stationsSettings:saved.stationsSettings||{newPage:true,mode:null},
+    closingSettings:saved.closingSettings||{newPage:true,mode:null},
     enrichment:saved.enrichment||{
       pairs:[],selectedGames:[],
       qa:[],qaSelectedGames:[],
@@ -1229,27 +1262,8 @@ function openBankForStationSlot(section, si, slotIdx){
     document.querySelectorAll('.bank-cat-chevron').forEach(el=>el.classList.add('open'));
     document.querySelectorAll('.bank-cat-header').forEach(h=>h.classList.add('open'));
     const hint=document.getElementById('bank-hint');
-    if(hint){
-      hint.textContent='✨ עכשיו לחצי על פריט להוספה לתחנה';
-      hint.style.cssText='background:rgba(212,168,67,.18);border:1.5px solid var(--gold);border-radius:8px;padding:8px 12px;color:var(--gold2);font-weight:700;font-size:.82rem;text-align:center;';
-    }
-    // הבלט את פריטי הבנק
-    document.querySelectorAll('.bank-cube').forEach(el=>{
-      el.style.border='1px solid rgba(212,168,67,.5)';
-      el.style.cursor='pointer';
-    });
+    if(hint) hint.textContent='בחרי פריט להוספה לתחנה ←';
   }, 50);
-}
-
-function clearBankHighlight(){
-  const hint=document.getElementById('bank-hint');
-  if(hint){
-    hint.textContent='לחצי על שורה בשיעור, ואז בחרי פריט';
-    hint.style.cssText='';
-  }
-  document.querySelectorAll('.bank-cube').forEach(el=>{
-    el.style.border='';
-  });
 }
 
 function removeStationSlotItem(section, si, slotIdx){
@@ -1282,6 +1296,11 @@ function renderLessonStructure(){
     const el=document.getElementById('section-intro-'+f);
     if(el && !el._dirty) el.value=lessonData[f]||'';
   });
+  // fill unit intro
+  const unitIntroEl=document.getElementById('unit-intro-text');
+  const unitIntroCheck=document.getElementById('unit-intro-enabled');
+  if(unitIntroEl && lessonData.unitIntro) unitIntroEl.value=lessonData.unitIntro.text||'';
+  if(unitIntroCheck && lessonData.unitIntro) unitIntroCheck.checked=!!lessonData.unitIntro.enabled;
 }
 
 function renderSimpleRows(containerId,rows,section){
@@ -1326,8 +1345,8 @@ function buildStationHTML(st, si, section){
       <div class="station-num">${si+1}</div>
       <div class="station-label">תחנה ${si+1}${filledCount?' · '+filledCount+' פריטים':''}</div>
       <div class="station-display-toggle" onclick="event.stopPropagation()">
-        <button class="disp-btn ${isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'simultaneous')">בו-זמנית</button>
-        <button class="disp-btn ${!isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'sequential')">זה אחר זה</button>
+        <button class="disp-btn ${isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'simultaneous')">⬜ בו-זמנית</button>
+        <button class="disp-btn ${!isSim?'on':''}" onclick="setDisplayMode('${section}',${si},'sequential')">➡️ זה אחר זה</button>
       </div>
       <button onclick="event.stopPropagation();askStationAI('${section}',${si})"
         style="padding:3px 10px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:var(--gold);font-size:.72rem;cursor:pointer;font-family:Heebo,sans-serif;">🤖 עוזר</button>
@@ -1537,13 +1556,38 @@ function buildSlotEditor(slot, section, si, sli, uid){
   const isUrl=slot.type==='video'||slot.type==='image';
   const field=isUrl
     ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;"
-        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה או Google Drive...'}"
-        value="${esc(slot.content||'')}" oninput="convertDriveLink('ef-${uid}')">
-      ${slot.type==='image'?`<div style="font-size:.7rem;opacity:.4;margin-top:4px;line-height:1.5;">
-        💡 Google Drive: שיתוף ← "כל מי שיש לו קישור" ← העתיקי את ה-ID מהקישור והכניסי:<br>
-        <span style="font-family:monospace;opacity:.6;">https://drive.google.com/uc?export=view&id=<b>ID</b></span>
-      </div>`:''}
-      ${slot.type==='image'&&slot.content?`<img src="${esc(slot.content)}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:8px;object-fit:contain;" onerror="this.style.display='none'">`:''}` 
+        placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה...'}"
+        value="${esc(slot.content||'')}" oninput="convertDriveLink('ef-${uid}');previewImage('ef-${uid}','prev-${uid}')">
+      ${slot.type==='image'?`
+      <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;">
+        <button onclick="openImageUpload('ef-${uid}','prev-${uid}')"
+          style="padding:5px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+          📁 העלה מהמחשב
+        </button>
+        <button onclick="openDriveHelp('ef-${uid}')"
+          style="padding:5px 12px;background:rgba(66,133,244,.12);border:1px solid rgba(66,133,244,.3);border-radius:6px;color:#93c5fd;font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+          ☁️ Google Drive
+        </button>
+        <button onclick="openUrlInput('ef-${uid}')"
+          style="padding:5px 12px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+          🔗 קישור URL
+        </button>
+      </div>
+      <div id="drive-help-${uid}" style="display:none;margin-top:8px;background:rgba(66,133,244,.06);border:1px solid rgba(66,133,244,.2);border-radius:7px;padding:10px 12px;font-size:.72rem;line-height:1.7;opacity:.8;">
+        <strong style="color:#93c5fd;">Google Drive:</strong><br>
+        1. פתחי את התמונה ב-Drive<br>
+        2. לחצי שתף ← "כל מי שיש לו קישור"<br>
+        3. העתיקי את ה-ID מהקישור (אחרי /d/ ולפני /view)<br>
+        4. הכניסי בשדה למעלה:
+        <div style="font-family:monospace;background:rgba(0,0,0,.3);padding:4px 8px;border-radius:4px;margin-top:4px;font-size:.68rem;">
+          https://drive.google.com/uc?export=view&id=<b>ID</b>
+        </div>
+      </div>
+      <input type="file" id="file-${uid}" accept="image/*" style="display:none;" onchange="uploadImageFile(this,'ef-${uid}','prev-${uid}')">
+      ${slot.content?`<img id="prev-${uid}" src="${esc(slot.content)}" style="max-width:100%;max-height:140px;border-radius:8px;margin-top:8px;object-fit:contain;" onerror="this.style.display='none'">`
+        :`<img id="prev-${uid}" src="" style="max-width:100%;max-height:140px;border-radius:8px;margin-top:8px;object-fit:contain;display:none;">`}
+      `:''}
+      ${slot.type==='video'?'':''}` 
     :`<textarea class="inline-field" id="ef-${uid}" placeholder="הכניסי תוכן...">${esc(slot.content||'')}</textarea>`;
   return `<div class="inline-editor-title">${bankItem?.icon||''} ${bankItem?.name||slot.type}</div>
     ${field}
@@ -1620,7 +1664,7 @@ function renderSectionControls(){
     const el=document.getElementById(`section-controls-${sec}`);
     if(!el)return;
     const key=sec+'Settings';
-    const settings=lessonData[key]||{newPage:true,mode:'simultaneous'};
+    const settings=lessonData[key]||{newPage:true,mode:null};
     el.innerHTML=`
       <button class="sec-ctrl-btn ${settings.newPage!==false?'on':''}"
         onclick="toggleSectionSetting('${sec}','newPage')"
@@ -1628,9 +1672,9 @@ function renderSectionControls(){
         📄 דף חדש
       </button>
       <button class="sec-ctrl-btn ${settings.mode==='simultaneous'?'on':''}"
-        onclick="setSectionMode('${sec}','simultaneous')">בו-זמנית</button>
+        onclick="setSectionMode('${sec}','simultaneous')">⬜ בו-זמנית</button>
       <button class="sec-ctrl-btn ${settings.mode==='sequential'?'on':''}"
-        onclick="setSectionMode('${sec}','sequential')">זה אחר זה</button>
+        onclick="setSectionMode('${sec}','sequential')">➡️ זה אחר זה</button>
     `;
   });
 }
@@ -1740,17 +1784,17 @@ function buildItemEditor(item, section, si){
           style="padding:4px 10px;border-radius:6px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};background:${tf.correct===false?'rgba(248,129,113,.1)':'transparent'};color:${tf.correct===false?'#f87171':'var(--parch)'};cursor:pointer;font-size:.75rem;font-family:Heebo,sans-serif;font-weight:700;">❌ לא נכון</button>`:''}
       </div>`;
   }
-  // sort_table — פתח פופאפ בלחיצה
-  if(item.type==='sort_table'){
-    const td=item.tableData;
-    const summary=td?`${td.cols.length} עמודות · ${td.items.length} פריטים`:'לחצי לעריכה';
+  // כל פריט שיש לו POPUP_EDITOR — הצג כפתור ערכי
+  if(POPUP_EDITORS[item.type]){
+    const d=item.cardData||item.popupData||item.tableData||null;
+    const preview=getItemPreview(item);
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-      <div style="font-size:.78rem;opacity:.65;">📊 ${summary}</div>
-      <button onclick="openItemPopup('sort_table','${section}',${si},${JSON.stringify(td||null).replace(/"/g,'&quot;')})"
-        style="padding:4px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">✏️ ערכי</button>
+      <div style="font-size:.78rem;opacity:.65;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${preview}</div>
+      <button onclick="openItemPopup('${item.type}','${section}',${si},${JSON.stringify(d||null).replace(/"/g,'&quot;')})"
+        style="padding:4px 12px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;flex-shrink:0;">✏️ ערכי</button>
     </div>`;
   }
-  // generic
+  // generic — שדה טקסט
   return `<textarea class="inline-field" style="font-size:.82rem;" placeholder="תוכן הפריט..."
     onchange="updateStationItemContent('${section}',${si},this.value)">${esc(item.content||'')}</textarea>`;
 }
@@ -1785,6 +1829,76 @@ function convertDriveLink(inputId){
   if(m&&!val.includes('uc?export')){
     inp.value=`https://drive.google.com/uc?export=view&id=${m[1]}`;
   }
+  // עדכון תצוגה מקדימה
+  const uid=inputId.replace('ef-','');
+  previewImage(inputId,'prev-'+uid);
+}
+
+function previewImage(inputId, prevId){
+  const el=document.getElementById(inputId);
+  const prev=document.getElementById(prevId);
+  if(!el||!prev)return;
+  const url=el.value.trim();
+  if(url){prev.src=url;prev.style.display='block';}
+  else prev.style.display='none';
+}
+
+function openImageUpload(inputId){
+  const uid=inputId.replace('ef-','');
+  const fileInput=document.getElementById('file-'+uid);
+  if(fileInput)fileInput.click();
+}
+
+function openDriveHelp(inputId){
+  const uid=inputId.replace('ef-','');
+  const help=document.getElementById('drive-help-'+uid);
+  if(help)help.style.display=help.style.display==='none'?'block':'none';
+}
+
+function openUrlInput(inputId){
+  const el=document.getElementById(inputId);
+  if(el){el.focus();el.select();}
+}
+
+async function uploadImageFile(input, inputId, prevId){
+  const file=input.files[0];
+  if(!file)return;
+  const CLOUD_NAME='da6mdtjhh';
+  const UPLOAD_PRESET='w8rzehkl';
+  const formData=new FormData();
+  formData.append('file',file);
+  formData.append('upload_preset',UPLOAD_PRESET);
+  // מצא כפתור העלאה ועדכן טקסט
+  const uploadBtn=document.querySelector(`[onclick="openImageUpload('${inputId}')"]`);
+  if(uploadBtn)uploadBtn.textContent='⏳ מעלה...';
+  try{
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:'POST',body:formData});
+    const data=await res.json();
+    if(data.secure_url){
+      const el=document.getElementById(inputId);
+      if(el){el.value=data.secure_url;previewImage(inputId,prevId);}
+      if(uploadBtn)uploadBtn.textContent='📁 העלה מהמחשב';
+      setSaveStatus('שינויים לא שמורים');
+    } else {
+      alert('שגיאה בהעלאה. נסי קישור URL.');
+      if(uploadBtn)uploadBtn.textContent='📁 העלה מהמחשב';
+    }
+  }catch(e){
+    alert('שגיאת רשת. נסי קישור URL.');
+    if(uploadBtn)uploadBtn.textContent='📁 העלה מהמחשב';
+  }
+}
+
+function saveCardData(section, si, sli, uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const q=document.getElementById('ef-'+uid);
+  const s=document.getElementById('ef-style-'+uid);
+  if(!q)return;
+  slot.cardData={question:q.value.trim(), style:s?s.value:''};
+  slot.content=q.value.trim();
+  setSaveStatus('שינויים לא שמורים');
+  renderLessonStructure();
+  setTimeout(()=>selectSlot(section,si,sli),30);
 }
 
 function saveFreeText(section, si, sli, uid){
@@ -1920,8 +2034,7 @@ function selectBankItem(typeOrId){
       renderLessonStructure();
       reopenStation(section, si);
       setSaveStatus('שינויים לא שמורים');
-      clearBankHighlight();
-      document.getElementById('bank-hint').textContent='✓ פריט נוסף לתחנה!';
+      document.getElementById('bank-hint').textContent='פריט נוסף לתחנה ✓';
     }
     return;
   }
@@ -1985,46 +2098,36 @@ function prevStep(){if(currentStep>0)goToStep(currentStep-1);}
 
 // ── BANK (accordion) ──
 const BANK_CATS=[
-  {id:'questions',icon:'📝',name:'שאלות ומשימות'},
-  {id:'writing',  icon:'✍️',name:'כתיבה ויצירה'},
-  {id:'media',    icon:'🎬',name:'מדיה'},
-  {id:'games',    icon:'🎮',name:'משחקי ידע'},
-  {id:'discovery',icon:'🔍',name:'גילוי מיון והתאמה'},
+  {id:'all', icon:'🧩', name:'כל הפריטים'},
 ];
 
 let bankData=[];
 
 function loadBankFromFirebase(cb){
-  firebase.database().ref('teacher/itemBank').once('value',snap=>{
-    bankData=snap.val()?Object.values(snap.val()):ITEM_BANK.map(i=>({...i,cat:ITEM_BANK.indexOf(i)}));
-    cb&&cb();
-  });
+  // הבנק בבונה תמיד משתמש ברשימה המובנית — לא Firebase
+  bankData = ITEM_BANK.map((i,idx) => ({...i, cat:idx}));
+  cb&&cb();
 }
 
 function renderBankAccordion(){
   const acc=document.getElementById('bank-accordion');
   if(!acc)return;
-  acc.innerHTML=BANK_CATS.map((cat,ci)=>{
-    const items=bankData.filter(it=>it.cat===ci);
-    if(!items.length)return '';
-    return `<div class="bank-cat-section">
-      <div class="bank-cat-header" onclick="toggleBankCat(${ci},this)">
-        <span class="bank-cat-icon">${cat.icon}</span>
-        <span class="bank-cat-name">${cat.name}</span>
-        <span class="bank-cat-count">(${items.length})</span>
-        <span class="bank-cat-chevron" id="bch-${ci}">▼</span>
-      </div>
-      <div class="bank-cat-items" id="bci-${ci}">
-        ${items.map(item=>`
-          <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
-            onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
-            onmouseleave="hideBankTooltip()">
-            <span class="bank-cube-icon">${item.icon||'📄'}</span>
-            <div class="bank-cube-name">${item.name}</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
+  const itemsHtml = bankData.map(item=>`
+    <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
+      onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
+      onmouseleave="hideBankTooltip()">
+      <span class="bank-cube-icon">${item.icon||'📄'}</span>
+      <div class="bank-cube-name">${item.name}</div>
+    </div>`).join('');
+  acc.innerHTML=`<div class="bank-cat-section">
+    <div class="bank-cat-header open" onclick="toggleBankCat(0,this)">
+      <span class="bank-cat-icon">🧩</span>
+      <span class="bank-cat-name">פריטים</span>
+      <span class="bank-cat-count">(${bankData.length})</span>
+      <span class="bank-cat-chevron open" id="bch-0">▼</span>
+    </div>
+    <div class="bank-cat-items open" id="bci-0">${itemsHtml}</div>
+  </div>`;
 }
 
 function toggleBankCat(ci,header){
@@ -2120,6 +2223,127 @@ async function askGoalsAI(){
   showThinking(false);
   addMsg('ai-messages',reply,'assistant');
   addMsg('ai-messages','העתיקי את המטרות לשדה למעלה אם מתאים לך.','assistant');
+}
+
+async function generateLessonSkeleton(){
+  const goals=document.getElementById('b-goals')?.value?.trim();
+  if(!goals){
+    alert('נא למלא תחילה את מטרות השיעור.');
+    return;
+  }
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const topic=lesson?.topic||document.getElementById('b-topic-input')?.value||'';
+  switchSideTab('ai');
+  const prompt=`אני מורה ואני בונה שיעור בנושא: "${topic}".
+מטרות השיעור:
+${goals}
+
+הצע לי שלד שיעור מפורט בפורמט JSON בלבד (ללא טקסט נוסף):
+{
+  "intro": [{"suggestion": "תיאור קצר לתחנה", "item": "כרטיס כניסה/שאלה פתוחה/פתקיות/תמונה", "questionSuggestion": "הצעה לשאלה"}],
+  "stations": [{"suggestion": "...", "item": "...", "questionSuggestion": "..."}, ...],
+  "closing": [{"suggestion": "...", "item": "...", "questionSuggestion": "..."}]
+}
+כלל: פתיח 1-2 תחנות, גוף 2-4 תחנות, סיום תחנה אחת.
+הפריטים האפשריים: כרטיס כניסה, כרטיס יציאה, שאלה פתוחה, קריאת מקורות, תמונה, סרטון, פתקיות, ענן מילים, טבלת מילוי, סדר כרונולוגי, כתיבה טיעונית, דיון.`;
+
+  addMsg('ai-messages','מכין שלד שיעור...','user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה מנוסה. ענה אך ורק ב-JSON תקני, ללא טקסט לפני או אחרי.',prompt,[]);
+  showThinking(false);
+
+  let skeleton=null;
+  try{
+    const clean=reply.replace(/```json|```/g,'').trim();
+    skeleton=JSON.parse(clean);
+  }catch(e){
+    addMsg('ai-messages','מצטער, לא הצלחתי לנתח את התשובה. נסי שוב.','assistant');
+    return;
+  }
+
+  // הצג את השלד בצ'אט
+  const ITEM_ICONS={'כרטיס כניסה':'🚪','כרטיס יציאה':'🎫','שאלה פתוחה':'❓','קריאת מקורות':'📜','תמונה':'🖼️','סרטון':'▶️','פתקיות':'🗒️','ענן מילים':'☁️','טבלת מילוי':'📋','סדר כרונולוגי':'🔀','כתיבה טיעונית':'✍️','דיון':'💬'};
+  let preview='<div style="font-size:.85rem;line-height:1.9;"><b>✨ שלד שיעור מוצע:</b><br>';
+  if(skeleton.intro) skeleton.intro.forEach((s,i)=>{ preview+=`<br>🌅 <b>פתיח ${i+1}:</b> ${ITEM_ICONS[s.item]||'📄'} ${s.item}<br><span style="opacity:.7;font-size:.78rem;">💡 ${s.questionSuggestion}</span><br>`; });
+  if(skeleton.stations) skeleton.stations.forEach((s,i)=>{ preview+=`<br>🚂 <b>תחנה ${i+1}:</b> ${ITEM_ICONS[s.item]||'📄'} ${s.item}<br><span style="opacity:.7;font-size:.78rem;">💡 ${s.questionSuggestion}</span><br>`; });
+  if(skeleton.closing) skeleton.closing.forEach((s,i)=>{ preview+=`<br>🌇 <b>סיום ${i+1}:</b> ${ITEM_ICONS[s.item]||'📄'} ${s.item}<br><span style="opacity:.7;font-size:.78rem;">💡 ${s.questionSuggestion}</span><br>`; });
+  preview+='</div>';
+  addMsg('ai-messages',preview,'assistant');
+
+  // שאל אם להחיל
+  const apply=confirm('האם להחיל את השלד על השיעור?\n(הפריטים יוכנסו לתחנות — תוכלי לשנות בכל עת)');
+  if(!apply) return;
+
+  // מפה מסוג פריט לtype
+  const TYPE_MAP={
+    'כרטיס כניסה':'entry_card','כרטיס יציאה':'exit_card',
+    'שאלה פתוחה':'question','קריאת מקורות':'sources',
+    'תמונה':'image','סרטון':'video','פתקיות':'stickies',
+    'ענן מילים':'wordcloud','טבלת מילוי':'fill_table',
+    'סדר כרונולוגי':'drag_drop','כתיבה טיעונית':'argue','דיון':'discussion'
+  };
+
+  function applySkeletonSection(items, sectionKey){
+    const arr=sectionKey==='intro'?lessonData.intro:sectionKey==='closing'?lessonData.closing:lessonData.stations;
+    items.forEach((s,i)=>{
+      const type=TYPE_MAP[s.item]||'question';
+      if(!arr[i]) arr[i]={items:[null,null,null],displayMode:null};
+      if(!Array.isArray(arr[i].items)) arr[i].items=[null,null,null];
+      arr[i].items[0]={type, content:s.questionSuggestion||'', popupData:{question:s.questionSuggestion||'',style:''}};
+    });
+  }
+
+  if(skeleton.intro) applySkeletonSection(skeleton.intro,'intro');
+  if(skeleton.stations) applySkeletonSection(skeleton.stations,'stations');
+  if(skeleton.closing) applySkeletonSection(skeleton.closing,'closing');
+
+  // שמור מטרות
+  lessonData.goals=goals;
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+  addMsg('ai-messages','✅ השלד הוחל! עכשיו פתחי כל פריט ועדכני את התוכן לפי הכיתה שלך.','assistant');
+}
+
+async function checkGoalsAlignment(){
+  const goals=document.getElementById('b-goals')?.value?.trim();
+  if(!goals){ alert('נא למלא תחילה את מטרות השיעור.'); return; }
+  switchSideTab('ai');
+
+  // אסוף את כל הפריטים הקיימים
+  const sections=['intro','stations','closing'];
+  const built=[];
+  sections.forEach(sec=>{
+    const arr=sec==='intro'?lessonData.intro:sec==='closing'?lessonData.closing:lessonData.stations;
+    const label=sec==='intro'?'פתיח':sec==='closing'?'סיום':'גוף השיעור';
+    (arr||[]).forEach((st,i)=>{
+      const items=Array.isArray(st.items)?st.items:[st.item||null];
+      items.forEach(item=>{
+        if(!item||!item.type) return;
+        const content=item.popupData?.question||item.content||'';
+        built.push(`${label} תחנה ${i+1}: ${item.type}${content?' — "'+content.substring(0,60)+'"':''}`);
+      });
+    });
+  });
+
+  if(!built.length){ addMsg('ai-messages','לא נמצאו פריטים בשיעור. אנא בנה את השיעור תחילה.','assistant'); return; }
+
+  const prompt=`מטרות השיעור:
+${goals}
+
+פריטי השיעור שנבנו:
+${built.join('\n')}
+
+בדוק כל מטרה האם מכוסה על ידי הפריטים. ענה בפורמט:
+✅/⚠️/❌ מטרה 1: [הסבר קצר]
+✅/⚠️/❌ מטרה 2: [הסבר קצר]
+...
+בסוף: המלצה קצרה לשיפור.`;
+
+  addMsg('ai-messages','בודק התאמה למטרות...','user');
+  showThinking(true);
+  const reply=await callAI('אתה עוזר הוראה מנוסה. ענה בעברית, תמציתי.',prompt,[]);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
 }
 
 async function askRowAI(uid,section,ri,si){
@@ -2231,19 +2455,7 @@ const ENRICH_TEMPLATES=[
     id:'qa',icon:'❓',title:'תבנית ב׳ — שאלה + תשובות',
     sub:'שאלה עם תשובה נכונה ומסיחים (+ תמונה אופציונלית)',
     colA:'שאלה',colB:'תשובה נכונה',hasDistractors:true,hasImage:true,
-    games:['טריוויה','מי רוצה להיות מיליונר','ג׳פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','גלה את התמונה','זום תמונה','פאזל']
-  },
-  {
-    id:'sequence',icon:'📅',title:'תבנית ג׳ — רצף ומבנה',
-    sub:'רשימת אירועים / משפטים לפי סדר',
-    colA:'אירוע / משפט',colB:'',
-    games:['ציר זמן','רצף אירועים','קלוז','השלמת משפטים','אירוע היסטורי']
-  },
-  {
-    id:'categories',icon:'🗂️',title:'תבנית ד׳ — קטגוריות וקשרים',
-    sub:'מיון לקטגוריות / מציאת קשר בין פריטים',
-    isCategories:true,
-    games:['מה קשור?','מה הקשר?','מיון וגרירה']
+    games:['טריוויה','ג׳פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','גלה את התמונה','זום תמונה','פאזל']
   }
 ];
 
@@ -2300,6 +2512,9 @@ function buildTemplateHTML(t,enr){
 
   const gamesHTML=`
     <div class="enrich-games-title">בחרי משחקים לתלמידים:</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+      <button class="enrich-add-btn" style="margin:0;" onclick="selectAllGames('${t.id}')">✅ בחר הכל</button>
+    </div>
     <div class="enrich-games-list">
       ${t.games.map(g=>`<button class="enrich-game-chip ${selectedGames.includes(g)?'selected':''}"
         onclick="toggleGame('${t.id}','${g}',this)">${g}</button>`).join('')}
@@ -2370,6 +2585,17 @@ function toggleGame(tid,game,btn){
   setSaveStatus('שינויים לא שמורים');
 }
 
+function selectAllGames(tid){
+  const t=ENRICH_TEMPLATES.find(t=>t.id===tid);
+  if(!t)return;
+  if(!lessonData.enrichment[tid+'SelectedGames']) lessonData.enrichment[tid+'SelectedGames']=[];
+  lessonData.enrichment[tid+'SelectedGames']=[...t.games];
+  setSaveStatus('שינויים לא שמורים');
+  renderEnrichmentTemplates();
+  const body=document.getElementById('et-'+tid);
+  if(body){body.classList.add('open');const ch=document.getElementById('etch-'+tid);if(ch)ch.textContent='▲';}
+}
+
 function saveEnrichTemplate(tid){
   setSaveStatus('שינויים לא שמורים');
   // visual feedback
@@ -2389,6 +2615,102 @@ const POPUP_EDITORS = {
     init: (data) => data || {cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}], items:[], orderMatters:false},
     render: renderSortTablePopup,
     collect: collectSortTablePopup
+  },
+  fill_table: {
+    title: '📋 טבלת מילוי',
+    init: (data) => data || {cols:[{name:'',editable:false},{name:'מילוי',editable:true}], rows:[{cells:['','']}]},
+    render: renderFillTablePopup,
+    collect: collectFillTablePopup
+  },
+  open_q: {
+    title: '❓ שאלה פתוחה',
+    init: (data) => data || {question:'', style:'שאלה פתוחה', guidance:''},
+    render: (d) => renderQuestionPopup(d, 'open_q'),
+    collect: collectQuestionPopup
+  },
+  question: {
+    title: '❓ שאלה',
+    init: (data) => data || {question:'', style:'שאלה פתוחה', guidance:''},
+    render: (d) => renderQuestionPopup(d, 'question'),
+    collect: collectQuestionPopup
+  },
+  entry_card: {
+    title: '🚪 כרטיס כניסה',
+    init: (data) => data || {question:'', style:'בדיקת ידע קודם'},
+    render: (d) => renderCardPopup(d, 'entry'),
+    collect: collectCardPopup
+  },
+  exit_card: {
+    title: '🎫 כרטיס יציאה',
+    init: (data) => data || {question:'', style:'סיכום וזיקוק'},
+    render: (d) => renderCardPopup(d, 'exit'),
+    collect: collectCardPopup
+  },
+  drag_drop: {
+    title: '🔀 סדר כרונולוגי',
+    init: (data) => data || {prompt:'', items:['','','','','']},
+    render: renderDragDropPopup,
+    collect: collectDragDropPopup
+  },
+  sources: {
+    title: '📜 קריאת מקורות',
+    init: (data) => data || {title:'', text:'', questions:[''], style:'טקסט + שאלות'},
+    render: renderSourcesPopup,
+    collect: collectSourcesPopup
+  },
+  text: {
+    title: '📄 טקסט / מקור',
+    init: (data) => data || {title:'', text:''},
+    render: renderTextPopup,
+    collect: collectTextPopup
+  },
+  video: {
+    title: '▶️ סרטון',
+    init: (data) => data || {url:'', startTime:'', endTime:'', question:''},
+    render: renderVideoPopup,
+    collect: collectVideoPopup
+  },
+  image: {
+    title: '🖼️ תמונה',
+    init: (data) => data || {url:'', caption:'', question:''},
+    render: renderImagePopup,
+    collect: collectImagePopup
+  },
+  argue: {
+    title: '✍️ כתיבה טיעונית',
+    init: (data) => data || {prompt:'', style:'תבנית מונחית', wordBank:''},
+    render: renderArguePopup,
+    collect: collectArguePopup
+  },
+  full_ans: {
+    title: '📝 כתיבת תשובה מלאה',
+    init: (data) => data || {question:'', style:'תבנית מונחית', wordBank:''},
+    render: renderFullAnsPopup,
+    collect: collectFullAnsPopup
+  },
+  stickies: {
+    title: '🗒️ פתקיות',
+    init: (data) => data || {question:'', style:'הטרמה'},
+    render: renderStickiesPopup,
+    collect: collectStickiesPopup
+  },
+  wordcloud: {
+    title: '☁️ ענן מילים',
+    init: (data) => data || {question:'', style:'הטרמה'},
+    render: renderWordcloudPopup,
+    collect: collectWordcloudPopup
+  },
+  discussion: {
+    title: '💬 דיון',
+    init: (data) => data || {question:''},
+    render: (d) => renderSimpleQuestionPopup(d, 'שאלה לדיון כיתתי...'),
+    collect: collectSimpleQuestionPopup
+  },
+  summary: {
+    title: '📝 סיכום',
+    init: (data) => data || {prompt:'', style:'תבנית מונחית'},
+    render: (d) => renderSimpleQuestionPopup(d, 'הנחיה לסיכום...'),
+    collect: collectSimpleQuestionPopup
   }
 };
 
@@ -2434,9 +2756,15 @@ function confirmItemPopup() {
                     arr[si].items.findIndex(x=>x&&x.type===typeOrId);
     const finalIdx = slotIdx >= 0 ? slotIdx : arr[si].items.findIndex(x=>!x);
     const idx = finalIdx >= 0 ? finalIdx : 0;
-    if(!arr[si].items[idx]) arr[si].items[idx] = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null};
+    if(!arr[si].items[idx]) arr[si].items[idx] = {type:typeOrId, content:'', mcData:null, tfData:null, tableData:null, popupData:null};
     arr[si].items[idx].type = typeOrId;
-    arr[si].items[idx].tableData = data;
+    // שמור לפי סוג פריט
+    if(typeOrId==='sort_table'||typeOrId==='fill_table'){
+      arr[si].items[idx].tableData = data;
+    } else {
+      arr[si].items[idx].popupData = data;
+      arr[si].items[idx].content = data.question||data.text||data.url||data.prompt||'';
+    }
     window._popupSlotTarget = null;
     renderLessonStructure();
     reopenStation(section, si);
@@ -2519,6 +2847,264 @@ function removeSortItem(ii) {
 
 function collectSortTablePopup() {
   return JSON.parse(JSON.stringify(window._popupSortData));
+}
+
+// ── FILL TABLE POPUP ──
+function renderFillTablePopup(data) {
+  window._popupFillData = JSON.parse(JSON.stringify(data));
+  return buildFillTablePopupHtml();
+}
+
+function buildFillTablePopupHtml() {
+  const d = window._popupFillData;
+  // כותרות עמודות
+  const colHeadersHtml = d.cols.map((c,ci) => `
+    <div style="display:flex;flex-direction:column;gap:5px;min-width:140px;flex:1;">
+      <input style="background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.82rem;padding:5px 8px;outline:none;font-weight:700;"
+        placeholder="שם עמודה" value="${esc(c.name||'')}"
+        oninput="window._popupFillData.cols[${ci}].name=this.value">
+      <label style="display:flex;align-items:center;gap:5px;font-size:.72rem;opacity:.65;cursor:pointer;">
+        <input type="checkbox" ${c.editable?'checked':''} onchange="window._popupFillData.cols[${ci}].editable=this.checked;refreshFillPopup()">
+        תלמיד ממלא
+      </label>
+      ${d.cols.length>1?`<button onclick="removeFillCol(${ci})" style="padding:2px 6px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:4px;color:#f87171;cursor:pointer;font-size:.7rem;">✕ הסר</button>`:''}
+    </div>`).join('');
+
+  // שורות
+  const rowsHtml = d.rows.map((row,ri) => {
+    const cellsHtml = d.cols.map((c,ci) => {
+      const val = row.cells[ci]||'';
+      if(c.editable) {
+        return `<td style="padding:5px;border:1px solid rgba(212,168,67,.15);">
+          <div style="background:rgba(34,197,94,.06);border:1px dashed rgba(34,197,94,.3);border-radius:5px;padding:4px 8px;font-size:.72rem;color:#86efac;text-align:center;">ריק לתלמיד</div>
+        </td>`;
+      }
+      return `<td style="padding:5px;border:1px solid rgba(212,168,67,.15);">
+        <textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.8rem;padding:4px 6px;outline:none;resize:vertical;min-height:40px;"
+          placeholder="תוכן קבוע..."
+          oninput="window._popupFillData.rows[${ri}].cells[${ci}]=this.value">${esc(val)}</textarea>
+      </td>`;
+    }).join('');
+    return `<tr>
+      <td style="padding:5px;border:1px solid rgba(212,168,67,.15);text-align:center;">
+        <span style="font-size:.78rem;opacity:.5;">${ri+1}</span>
+        ${d.rows.length>1?`<button onclick="removeFillRow(${ri})" style="display:block;margin:2px auto 0;padding:1px 5px;background:rgba(139,32,32,.15);border:1px solid rgba(139,32,32,.25);border-radius:3px;color:#f87171;cursor:pointer;font-size:.65rem;">✕</button>`:''}
+      </td>
+      ${cellsHtml}
+    </tr>`;
+  }).join('');
+
+  return `
+    <div style="font-size:.78rem;opacity:.5;margin-bottom:14px;">הגדירי עמודות — סמני "תלמיד ממלא" לעמודות ריקות. תאים ירוקים = ימולאו על ידי התלמיד.</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;">
+      <div style="min-width:32px;"></div>
+      ${colHeadersHtml}
+      <button onclick="addFillCol()" style="padding:6px 10px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:#d4a843;font-size:.78rem;cursor:pointer;white-space:nowrap;align-self:flex-start;">+ עמודה</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tbody id="fill-table-body">${rowsHtml}</tbody>
+      </table>
+    </div>
+    <button onclick="addFillRow()" style="margin-top:10px;width:100%;padding:7px;background:rgba(212,168,67,.07);border:1px dashed rgba(212,168,67,.25);border-radius:7px;color:#d4a843;font-size:.78rem;cursor:pointer;">+ שורה</button>`;
+}
+
+function refreshFillPopup() {
+  document.getElementById('item-popup-body').innerHTML = buildFillTablePopupHtml();
+}
+
+function addFillCol() {
+  window._popupFillData.cols.push({name:'',editable:false});
+  window._popupFillData.rows.forEach(r => r.cells.push(''));
+  refreshFillPopup();
+}
+
+function removeFillCol(ci) {
+  if(window._popupFillData.cols.length<=1) return;
+  window._popupFillData.cols.splice(ci,1);
+  window._popupFillData.rows.forEach(r => r.cells.splice(ci,1));
+  refreshFillPopup();
+}
+
+function addFillRow() {
+  const emptyCells = window._popupFillData.cols.map(()=>'');
+  window._popupFillData.rows.push({cells:emptyCells});
+  refreshFillPopup();
+}
+
+function removeFillRow(ri) {
+  if(window._popupFillData.rows.length<=1) return;
+  window._popupFillData.rows.splice(ri,1);
+  refreshFillPopup();
+}
+
+function collectFillTablePopup() {
+  return JSON.parse(JSON.stringify(window._popupFillData));
+}
+
+
+function getItemPreview(item){
+  if(item.popupData?.question) return item.popupData.question.substring(0,60);
+  if(item.popupData?.text) return item.popupData.text.substring(0,60);
+  if(item.popupData?.url) return item.popupData.url.substring(0,60);
+  if(item.popupData?.prompt) return item.popupData.prompt.substring(0,60);
+  if(item.cardData?.question) return item.cardData.question.substring(0,60);
+  if(item.content) return item.content.substring(0,60);
+  if(item.tableData?.cols) return item.tableData.cols.length+' עמודות';
+  return 'לחצי לעריכה';
+}
+
+// ── QUESTION POPUP ──
+function renderQuestionPopup(d,type){
+  window._popupQData=JSON.parse(JSON.stringify(d));
+  const styles=['שאלה פתוחה','שאלה מערערת','שאלה עשירה','שאלה מחוברת','שאלה טעונה','שאלה מרכזית'];
+  return '<div style="margin-bottom:12px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון השאלה:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
+    styles.map(s=>'<button onclick="selectPopupStyle(this,\'_popupQData\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
+    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה:</div>'+
+    '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="כתבי את השאלה לתלמידים..." oninput="window._popupQData.question=this.value">'+esc(d.question||'')+'</textarea>'+
+    '<div style="font-size:.75rem;opacity:.6;margin:10px 0 6px;">הנחיה נוספת (אופציונלי):</div>'+
+    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;" placeholder="למשל: כתבו לפחות 3 שורות..." value="'+esc(d.guidance||'')+'" oninput="window._popupQData.guidance=this.value">'+
+    '</div>';
+}
+function collectQuestionPopup(){ return JSON.parse(JSON.stringify(window._popupQData||{})); }
+
+// ── CARD POPUP ──
+function renderCardPopup(d,type){
+  window._popupCardData=JSON.parse(JSON.stringify(d));
+  const isEntry=type==='entry';
+  const styles=isEntry?['בדיקת ידע קודם','שאלה פתוחה','סקרנות ושאלות','יישומי-חשיבתי','רפלקטיבי-רגשי']:['סיכום וזיקוק','רפלקציה על למידה','בדיקת הבנה יישומית','משוב והכנה להמשך'];
+  return '<div style="margin-bottom:12px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון הכרטיס:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
+    styles.map(s=>'<button onclick="selectPopupStyle(this,\'_popupCardData\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
+    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה לתלמידים:</div>'+
+    '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="'+(isEntry?'שאלת הכניסה...':'שאלת הסיכום...')+'" oninput="window._popupCardData.question=this.value">'+esc(d.question||'')+'</textarea></div>';
+}
+function collectCardPopup(){ return JSON.parse(JSON.stringify(window._popupCardData||{})); }
+
+// ── SOURCES POPUP ──
+function renderSourcesPopup(d){
+  window._popupSourcesData=JSON.parse(JSON.stringify(d));
+  if(!window._popupSourcesData.questions||!window._popupSourcesData.questions.length) window._popupSourcesData.questions=[''];
+  const qs=window._popupSourcesData.questions.map((q,i)=>'<div style="display:flex;gap:6px;margin-bottom:7px;"><span style="min-width:20px;font-size:.75rem;opacity:.5;padding-top:8px;">'+(i+1)+'.</span><input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;" placeholder="שאלה '+(i+1)+'..." value="'+esc(q)+'" oninput="window._popupSourcesData.questions['+i+']=this.value">'+
+    (i>0?'<button onclick="removeSourceQ('+i+')" style="padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>':'')+'</div>').join('');
+  return '<div style="margin-bottom:10px;">'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כותרת (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:10px;" placeholder="שם המקור..." value="'+esc(d.title||'')+'" oninput="window._popupSourcesData.title=this.value">'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">טקסט המקור:</div><textarea rows="5" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Frank Ruhl Libre\',serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;margin-bottom:10px;" placeholder="הדביקי את הטקסט כאן..." oninput="window._popupSourcesData.text=this.value">'+esc(d.text||'')+'</textarea>'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">שאלות מלוות:</div><div id="sources-qs">'+qs+'</div>'+
+    '<button onclick="addSourceQ()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;margin-top:4px;">+ הוסף שאלה</button></div>';
+}
+function addSourceQ(){ window._popupSourcesData.questions.push(''); document.getElementById('item-popup-body').innerHTML=renderSourcesPopup(window._popupSourcesData); }
+function removeSourceQ(i){ window._popupSourcesData.questions.splice(i,1); document.getElementById('item-popup-body').innerHTML=renderSourcesPopup(window._popupSourcesData); }
+function collectSourcesPopup(){ return JSON.parse(JSON.stringify(window._popupSourcesData||{})); }
+
+// ── TEXT POPUP ──
+function renderTextPopup(d){
+  window._popupTextData=JSON.parse(JSON.stringify(d));
+  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כותרת (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:10px;" placeholder="כותרת..." value="'+esc(d.title||'')+'" oninput="window._popupTextData.title=this.value"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">תוכן:</div><textarea rows="6" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="כתבי טקסט, הנחיה או הסבר..." oninput="window._popupTextData.text=this.value">'+esc(d.text||'')+'</textarea></div>';
+}
+function collectTextPopup(){ return JSON.parse(JSON.stringify(window._popupTextData||{})); }
+
+// ── VIDEO POPUP ──
+function renderVideoPopup(d){
+  window._popupVideoData=JSON.parse(JSON.stringify(d));
+  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">קישור YouTube:</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;direction:ltr;margin-bottom:10px;" placeholder="https://www.youtube.com/watch?v=..." value="'+esc(d.url||'')+'" oninput="window._popupVideoData.url=this.value">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;"><div><div style="font-size:.75rem;opacity:.6;margin-bottom:4px;">התחל מ (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:ltr;" placeholder="1:30" value="'+esc(d.startTime||'')+'" oninput="window._popupVideoData.startTime=this.value"></div><div><div style="font-size:.75rem;opacity:.6;margin-bottom:4px;">סיים ב (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:ltr;" placeholder="5:00" value="'+esc(d.endTime||'')+'" oninput="window._popupVideoData.endTime=this.value"></div></div>'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שאלה לאחר הצפייה (אופציונלי):</div><textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.85rem;padding:8px 10px;outline:none;resize:vertical;direction:rtl;" placeholder="מה למדתם מהסרטון?" oninput="window._popupVideoData.question=this.value">'+esc(d.question||'')+'</textarea></div>';
+}
+function collectVideoPopup(){ return JSON.parse(JSON.stringify(window._popupVideoData||{})); }
+
+// ── IMAGE POPUP ──
+function renderImagePopup(d){
+  window._popupImageData=JSON.parse(JSON.stringify(d));
+  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">מקור התמונה:</div>'+
+    '<div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;"><button onclick="document.getElementById(\'img-popup-file\').click()" style="padding:6px 14px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;">📁 העלה מהמחשב</button></div>'+
+    '<input type="file" id="img-popup-file" accept="image/*" style="display:none;" onchange="uploadPopupImage(this)">'+
+    '<input id="img-popup-url" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;direction:ltr;margin-bottom:8px;" placeholder="קישור לתמונה (URL)..." value="'+esc(d.url||'')+'" oninput="window._popupImageData.url=this.value;updatePopupImagePreview()">'+
+    '<div id="img-popup-preview" style="'+(d.url?'':'display:none;')+'margin-bottom:10px;"><img src="'+esc(d.url||'')+'" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" onerror="this.parentElement.style.display=\'none\'"></div>'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כיתוב (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;margin-bottom:8px;" placeholder="כיתוב מתחת לתמונה..." value="'+esc(d.caption||'')+'" oninput="window._popupImageData.caption=this.value">'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שאלה מלווה (אופציונלי):</div><textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.85rem;padding:8px 10px;outline:none;resize:vertical;direction:rtl;" placeholder="שאלה על התמונה..." oninput="window._popupImageData.question=this.value">'+esc(d.question||'')+'</textarea></div>';
+}
+function updatePopupImagePreview(){
+  const url=document.getElementById('img-popup-url')?.value;
+  const prev=document.getElementById('img-popup-preview');
+  if(!prev)return;
+  if(url){prev.style.display='block';const img=prev.querySelector('img');if(img)img.src=url;}
+  else prev.style.display='none';
+}
+async function uploadPopupImage(input){
+  const file=input.files[0];if(!file)return;
+  const formData=new FormData();
+  formData.append('file',file);formData.append('upload_preset','w8rzehkl');
+  try{
+    const res=await fetch('https://api.cloudinary.com/v1_1/da6mdtjhh/image/upload',{method:'POST',body:formData});
+    const data=await res.json();
+    if(data.secure_url){window._popupImageData.url=data.secure_url;const el=document.getElementById('img-popup-url');if(el)el.value=data.secure_url;updatePopupImagePreview();}
+  }catch(e){alert('שגיאה בהעלאה');}
+}
+function collectImagePopup(){ return JSON.parse(JSON.stringify(window._popupImageData||{})); }
+
+// ── WRITING POPUP (argue, full_ans) ──
+function renderArguePopup(d){ window._popupArgueData=JSON.parse(JSON.stringify(d)); return renderWritingPopupHtml(d,'_popupArgueData','כתבי את הנושא לכתיבה טיעונית...'); }
+function renderFullAnsPopup(d){ window._popupArgueData=JSON.parse(JSON.stringify(d)); return renderWritingPopupHtml(d,'_popupArgueData','כתבי את השאלה לכתיבת תשובה מלאה...'); }
+function renderWritingPopupHtml(d,varName,ph){
+  const styles=['תבנית עצמאית','תבנית מונחית','עם בנק מילים'];
+  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">רמת הנחיה:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
+    styles.map(s=>'<button onclick="selectPopupStyle(this,\''+varName+'\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
+    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הנושא / השאלה:</div>'+
+    '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;margin-bottom:10px;" placeholder="'+ph+'" oninput="window.'+varName+'.prompt=this.value">'+esc(d.prompt||'')+'</textarea>'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">בנק מילים (מופרדות בפסיק, אופציונלי):</div>'+
+    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:rtl;" placeholder="לדוגמה, מפני ש, לפיכך..." value="'+esc(d.wordBank||'')+'" oninput="window.'+varName+'.wordBank=this.value">'+
+    '</div>';
+}
+function collectArguePopup(){ return JSON.parse(JSON.stringify(window._popupArgueData||{})); }
+function collectFullAnsPopup(){ return JSON.parse(JSON.stringify(window._popupArgueData||{})); }
+
+// ── STICKIES / WORDCLOUD POPUP ──
+function renderStickiesPopup(d){ window._popupStickyData=JSON.parse(JSON.stringify(d)); return renderStyleQuestionPopup(d,'_popupStickyData',['הטרמה','סיכום','סיעור מוחות','יצירה'],'כתבי את ההנחיה לפתקיות...'); }
+function renderWordcloudPopup(d){ window._popupStickyData=JSON.parse(JSON.stringify(d)); return renderStyleQuestionPopup(d,'_popupStickyData',['הטרמה','סיכום ורפלקציה','ניתוח טקסט','סיעור מוחות'],'כתבי את השאלה לענן המילים...'); }
+function renderStyleQuestionPopup(d,varName,styles,ph){
+  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
+    styles.map(s=>'<button onclick="selectPopupStyle(this,\''+varName+'\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
+    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שאלה / הנחיה:</div>'+
+    '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="'+ph+'" oninput="window.'+varName+'.question=this.value">'+esc(d.question||'')+'</textarea></div>';
+}
+function collectStickiesPopup(){ return JSON.parse(JSON.stringify(window._popupStickyData||{})); }
+function collectWordcloudPopup(){ return JSON.parse(JSON.stringify(window._popupStickyData||{})); }
+
+// ── SIMPLE POPUP (discussion, summary) ──
+function renderSimpleQuestionPopup(d,ph){
+  window._popupSimpleData=JSON.parse(JSON.stringify(d));
+  return '<div style="margin-bottom:10px;"><textarea rows="4" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="'+ph+'" oninput="window._popupSimpleData.question=this.value">'+esc(d.question||'')+'</textarea></div>';
+}
+function collectSimpleQuestionPopup(){ return JSON.parse(JSON.stringify(window._popupSimpleData||{})); }
+
+// ── DRAG DROP POPUP ──
+function renderDragDropPopup(d){
+  window._popupDragData=JSON.parse(JSON.stringify(d));
+  const items=(d.items||['','','','','']).map((item,i)=>
+    '<div style="display:flex;gap:6px;margin-bottom:7px;align-items:center;">'+
+    '<span style="min-width:22px;height:22px;background:rgba(212,168,67,.2);color:#d4a843;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;">'+(i+1)+'</span>'+
+    '<input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:7px 10px;outline:none;" placeholder="פריט '+(i+1)+'..." value="'+esc(item)+'" oninput="window._popupDragData.items['+(i)+']=this.value">'+
+    (i>4?'<button onclick="removeDragItem('+i+')" style="padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>':'')+'</div>'
+  ).join('');
+  return '<div style="margin-bottom:10px;">'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הנחיה (אופציונלי):</div>'+
+    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:12px;" placeholder="סדרו את האירועים לפי סדר כרונולוגי..." value="'+esc(d.prompt||'')+'" oninput="window._popupDragData.prompt=this.value">'+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">פריטים לסידור (לפחות 3):</div>'+
+    '<div id="drag-items">'+items+'</div>'+
+    '<button onclick="addDragItem()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-top:4px;">+ הוסף פריט</button>'+
+    '<div style="font-size:.72rem;opacity:.4;margin-top:8px;">הפריטים יוצגו לתלמיד בסדר אקראי</div></div>';
+}
+function addDragItem(){ window._popupDragData.items.push(''); document.getElementById('item-popup-body').innerHTML=renderDragDropPopup(window._popupDragData); }
+function removeDragItem(i){ window._popupDragData.items.splice(i,1); document.getElementById('item-popup-body').innerHTML=renderDragDropPopup(window._popupDragData); }
+function collectDragDropPopup(){ return JSON.parse(JSON.stringify(window._popupDragData||{})); }
+
+function selectPopupStyle(btn,varName){
+  const val=btn.dataset.val;
+  if(window[varName]) window[varName].style=val;
+  btn.closest('div').querySelectorAll('button').forEach(b=>{
+    b.style.background=b===btn?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)';
+    b.style.color=b===btn?'#f0c060':'var(--parch)';
+  });
 }
 
 </script>
