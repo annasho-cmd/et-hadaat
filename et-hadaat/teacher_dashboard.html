@@ -1974,7 +1974,7 @@ function showToast(msg){
 }
 
 // ══ HEROES CHAT LOG ══
-let _heroLogData = null;
+var _heroLogData = null;
 
 function openHeroesScreen() {
   showScreen('screen-heroes');
@@ -1991,25 +1991,25 @@ function loadHeroesLog() {
       log.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">עדיין אין שיחות</div>';
       return;
     }
-    var chars = Object.keys(data);
-    var filterHtml = '';
-    var allChars = ['הכל'].concat(chars);
-    allChars.forEach(function(ch, i) {
-      var bg = i === 0 ? 'rgba(239,159,39,.2)' : 'transparent';
-      filterHtml += '<button onclick="filterHeroLog(this, \'' + ch + '\')" style="padding:5px 14px;border-radius:20px;border:1px solid rgba(212,168,67,.3);background:' + bg + ';color:var(--parch);cursor:pointer;font-size:.8rem;">' + ch + '</button>';
-    });
-    document.getElementById('heroes-filter').innerHTML = filterHtml;
     _heroLogData = data;
+    var chars = Object.keys(data);
+    var btns = document.getElementById('heroes-filter');
+    btns.innerHTML = '';
+    var allF = ['הכל'].concat(chars);
+    allF.forEach(function(ch, i) {
+      var btn = document.createElement('button');
+      btn.textContent = ch;
+      btn.setAttribute('data-char', ch);
+      btn.style.cssText = 'padding:5px 14px;border-radius:20px;border:1px solid rgba(212,168,67,.3);background:' + (i===0 ? 'rgba(239,159,39,.2)' : 'transparent') + ';color:var(--parch);cursor:pointer;font-size:.8rem;';
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('#heroes-filter button').forEach(function(b) { b.style.background = 'transparent'; });
+        btn.style.background = 'rgba(239,159,39,.2)';
+        renderHeroLog(data, ch);
+      });
+      btns.appendChild(btn);
+    });
     renderHeroLog(data, 'הכל');
   });
-}
-
-function filterHeroLog(btn, charId) {
-  document.querySelectorAll('#heroes-filter button').forEach(function(b) {
-    b.style.background = 'transparent';
-  });
-  btn.style.background = 'rgba(239,159,39,.2)';
-  if (_heroLogData) renderHeroLog(_heroLogData, charId);
 }
 
 function renderHeroLog(data, filter) {
@@ -2028,20 +2028,15 @@ function renderHeroLog(data, filter) {
     log.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">אין שיחות לדמות זו</div>';
     return;
   }
-  var html = '';
+  log.innerHTML = '';
   entries.forEach(function(e) {
+    var div = document.createElement('div');
+    div.style.cssText = 'background:rgba(44,26,14,.6);border:1px solid rgba(212,168,67,.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;';
     var ans = (e.answer || '').substring(0, 120) + ((e.answer || '').length > 120 ? '...' : '');
     var time = new Date(e.ts).toLocaleString('he-IL');
-    html += '<div style="background:rgba(44,26,14,.6);border:1px solid rgba(212,168,67,.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
-    html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">';
-    html += '<span style="font-size:.78rem;font-weight:700;color:var(--gold2);">' + (e.student || 'אנונימי') + '</span>';
-    html += '<span style="font-size:.72rem;opacity:.5;">' + e.charId + ' | ' + time + '</span>';
-    html += '</div>';
-    html += '<div style="font-size:.82rem;opacity:.8;margin-bottom:4px;">❓ ' + e.question + '</div>';
-    html += '<div style="font-size:.82rem;opacity:.6;border-top:1px solid rgba(212,168,67,.1);padding-top:6px;margin-top:4px;">💬 ' + ans + '</div>';
-    html += '</div>';
+    div.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:.78rem;font-weight:700;color:var(--gold2);">' + (e.student || 'אנונימי') + '</span><span style="font-size:.72rem;opacity:.5;">' + e.charId + ' | ' + time + '</span></div><div style="font-size:.82rem;opacity:.8;margin-bottom:4px;">&#10067; ' + e.question + '</div><div style="font-size:.82rem;opacity:.6;border-top:1px solid rgba(212,168,67,.1);padding-top:6px;margin-top:4px;">&#128172; ' + ans + '</div>';
+    log.appendChild(div);
   });
-  log.innerHTML = html;
 }
 </script>
 </body>
