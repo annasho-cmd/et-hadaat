@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>משוחחים עם גיבורים — ניהול</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);--border2:rgba(212,168,67,0.4);--ink:#1c1208;}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#0a1628,#0f0a04);color:var(--parch);min-height:100vh;}
+.topbar{background:rgba(10,10,4,.8);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);flex:1;}
+.back-btn{padding:7px 16px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--parch);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;}
+.back-btn:hover{background:rgba(212,168,67,.1);}
+.tabs{display:flex;border-bottom:2px solid rgba(212,168,67,.2);padding:0 20px;margin-top:4px;}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;padding:10px 20px;color:var(--parch);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:-2px;transition:all .2s;}
+.tab:hover{color:var(--gold2);}
+.tab.active{border-bottom-color:var(--gold);color:var(--gold2);}
+.panel{display:none;padding:20px;}
+.panel.active{display:block;}
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+.hero-card{background:rgba(44,26,14,.7);border:1.5px solid rgba(212,168,67,.15);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s;position:relative;}
+.hero-card:hover{border-color:rgba(239,159,39,.5);transform:translateY(-2px);}
+.hero-card .dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;}
+.hero-card img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.25);margin-bottom:8px;}
+.hero-card .no-img{width:56px;height:56px;border-radius:50%;background:rgba(212,168,67,.15);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin:0 auto 8px;}
+.hero-card .name{font-size:.8rem;font-weight:700;color:var(--gold2);line-height:1.3;}
+.hero-card .years{font-size:.67rem;opacity:.5;margin-top:2px;}
+.btn-primary{padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;}
+.btn-primary:hover{opacity:.9;}
+.input{width:100%;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;transition:border .2s;margin-bottom:8px;}
+.input:focus{border-color:var(--gold);}
+.label{font-size:.72rem;color:var(--gold);margin-bottom:4px;display:block;}
+.group-row{background:rgba(44,26,14,.6);border:1px solid rgba(212,168,67,.2);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+/* Modal */
+.overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:100;overflow-y:auto;padding:20px;}
+.modal{background:#1a0f06;border:1px solid var(--border2);border-radius:16px;max-width:820px;margin:0 auto;padding:24px;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.modal-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);}
+.close-btn{background:transparent;border:none;color:var(--parch);font-size:1.3rem;cursor:pointer;padding:4px 8px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+.ai-panel{background:rgba(44,26,14,.6);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.ai-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;color:var(--gold2);}
+.ai-note{font-size:.75rem;opacity:.6;line-height:1.5;}
+.ai-response{font-size:.82rem;line-height:1.65;max-height:220px;overflow-y:auto;opacity:.9;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back-btn" onclick="window.location.href='teacher_dashboard.html'">→ חזרה ללוח</button>
+  <div class="topbar-title">🌟 משוחחים עם גיבורים — ניהול</div>
+  <button class="btn-primary" onclick="openHeroModal(null)">+ דמות חדשה</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('chars',this)">📋 דמויות</button>
+  <button class="tab" onclick="switchTab('groups',this)">👥 קבוצות</button>
+</div>
+
+<div id="panel-chars" class="panel active">
+  <div id="hero-grid" class="hero-grid"></div>
+</div>
+
+<div id="panel-groups" class="panel">
+  <div style="margin-bottom:16px;">
+    <span style="font-size:.85rem;opacity:.6;">צרי קבוצת דמויות ושייכי אותה לקבוצת לימוד. התלמידים יראו רק את הדמויות שבקבוצה שלהם.</span>
+    <button class="btn-primary" onclick="openNewGroup()" style="margin-right:16px;">+ קבוצה חדשה</button>
+  </div>
+  <div id="groups-list"></div>
+</div>
+
+<!-- Hero Modal -->
+<div id="hero-overlay" class="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">עריכת דמות</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-primary" onclick="saveHero()">💾 שמור</button>
+        <button class="close-btn" onclick="closeModal('hero-overlay')">✕</button>
+      </div>
+    </div>
+    <div class="two-col">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;">
+          <img id="m-img-preview" src="" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--border2);flex-shrink:0;display:none;">
+          <div style="flex:1;">
+            <span class="label">שם הדמות</span>
+            <input id="m-name" class="input" style="margin:0;" placeholder="שם מלא">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><span class="label">שנות חיים</span><input id="m-years" class="input" style="margin:0;" placeholder="1921–1944"></div>
+          <div><span class="label">תחום</span><input id="m-field" class="input" style="margin:0;" placeholder="לוחמת ומשוררת"></div>
+        </div>
+        <div><span class="label">ערכים (מופרדים בפסיק)</span><input id="m-values" class="input" style="margin:0;" placeholder="אומץ, הקרבה, חזון"></div>
+        <div><span class="label">קישור לתמונה</span><input id="m-image" class="input" style="margin:0;" oninput="previewImg(this.value)" placeholder="https://..."></div>
+        <div><span class="label">הצגה עצמית</span><textarea id="m-intro" class="input" rows="3" style="margin:0;resize:vertical;" placeholder="שלום! אני..."></textarea></div>
+        <div><span class="label">הוראות לדמות (System Prompt)</span><textarea id="m-system" class="input" rows="5" style="margin:0;resize:vertical;"></textarea></div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;"><input type="checkbox" id="m-available" style="width:15px;height:15px;"> פעיל — גלוי לתלמידים</label>
+        <input type="hidden" id="m-id">
+      </div>
+      <div class="ai-panel">
+        <div class="ai-title">🤖 עוזר הוראה</div>
+        <div class="ai-note">העוזר מכיר את מטרת האפליקציה ואת 9 הקריטריונים לדמות מופת. הקלידי שם ולחצי "צור טיוטה".</div>
+        <button class="btn-primary" onclick="generateContent()" style="font-size:.82rem;">✨ צור טיוטה אוטומטית</button>
+        <div style="border-top:1px solid rgba(212,168,67,.1);padding-top:10px;">
+          <span class="label">שאל את עוזר ההוראה:</span>
+          <textarea id="ai-question" class="input" rows="2" style="resize:none;font-size:.82rem;margin:0;" placeholder="למשל: איך להסביר את הדמות לכיתה ז?"></textarea>
+          <button class="btn-primary" onclick="askAssistant()" style="width:100%;margin-top:6px;font-size:.8rem;">שלח שאלה ↗</button>
+        </div>
+        <div id="ai-response" class="ai-response"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Group Modal -->
+<div id="group-overlay" class="overlay">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <div class="modal-title" id="group-modal-title">עריכת קבוצה</div>
+      <button class="close-btn" onclick="closeModal('group-overlay')">✕</button>
+    </div>
+    <div class="two-col">
+      <div>
+        <span class="label" style="font-weight:700;">בחרי דמויות לקבוצה:</span>
+        <div id="group-chars-list" style="max-height:320px;overflow-y:auto;margin-top:8px;"></div>
+      </div>
+      <div>
+        <span class="label" style="font-weight:700;">שייכי לקבוצות לימוד:</span>
+        <div id="group-classes-list" style="margin-top:8px;"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid rgba(212,168,67,.1);padding-top:16px;">
+      <button onclick="closeModal('group-overlay')" style="padding:8px 18px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--parch);cursor:pointer;">ביטול</button>
+      <button class="btn-primary" onclick="saveGroup()">💾 שמור קבוצה</button>
+    </div>
+    <input type="hidden" id="g-id">
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const AI_SYSTEM = "אתה עוזר הוראה למורה ישראלית. האפליקציה נקראת משוחחים עם גיבורים אמיתיים לתלמידי כיתה ז. תלמידים משוחחים עם דמויות מופת בגוף ראשון. 9 קריטריונים לדמות מופת: אישיות חשובה שתרמה לחברה, פועלה חשוב ומשמעותי, השפעה רבה על המדינה ועולם, חותמת בהיסטוריה, מודל לחיקוי, בעלת חזון ומוכנה להקריב, ניחנת בכריזמה, אומץ לב ואחריות, ערכים: אהבת האדם, צדק, חסד, מנהיגות. הדמות מדברת בגוף ראשון, עברית פשוטה, גובה העיניים לגיל 13. יודעת רק עד שנת פטירתה. ענה בעברית, בקצרה ובמעשיות.";
+
+const DEFAULT_HEROES = [
+  {id:"chana",name:"חנה סנש",years:"1921-1944",field:"לוחמת ומשוררת",values:["אומץ","אהבת הארץ","הקרבה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Hannah_Szenes.jpg/200px-Hannah_Szenes.jpg",available:true,intro:"שלום! אני חנה סנש. נולדתי בבודפשט ב-1921, ועליתי לארץ ישראל ב-1939. גרתי בקיבוץ שדות ים, כתבתי שירים ועבדתי בחקלאות. ב-1943 התגייסתי כמצנחנית כדי לנסות להציל יהודים באירופה.",system:"אתה חנה סנש. ענה תמיד בגוף ראשון נקבה, בעברית פשוטה וחמה. נולדת בבודפשט 1921, עלית לארץ 1939, קיבוץ שדות ים. שירים: אלי אלי ואשרי הגפרור. קפצת במצנח להונגריה 1944. נתפסת, עונית, נורית 7.11.1944 בגיל 23. אם שואלים אחרי מותך: זה כבר אחרי ימיי. ענה 2-4 משפטים."},
+  {id:"korczak",name:"יאנוש קורצ\u05f3אק",years:"1878-1942",field:"מחנך וסופר",values:["חסד","אחריות","הקרבה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Janusz_Korczak.jpg/200px-Janusz_Korczak.jpg",available:false,intro:"",system:"אתה יאנוש קורצ\u05f3אק, מחנך ורופא יהודי-פולני. ענה בגוף ראשון, עברית פשוטה. פעלת בוורשה, ניהלת בית יתומים, כתבת ספרים לילדים. ב-1942 ליוית 192 ילדיך לטרבלינקה, סירבת להצעות הצלה. אם שואלים על אחרי 1942: זה כבר מעבר לימיי."},
+  {id:"herzl",name:"בנימין זאב תיאודור הרצל",years:"1860-1904",field:"חוזה המדינה",values:["חזון","מנהיגות","כריזמה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Theodor_Herzl_1901.jpg/200px-Theodor_Herzl_1901.jpg",available:false,intro:"",system:"אתה בנימין זאב תיאודור הרצל. ענה בגוף ראשון, עברית פשוטה. נולדת בבודפשט 1860, עיתונאי ומחזאי. ראיית דרייפוס 1894 שינתה חייך. כתבת מדינת היהודים 1896, כינסת הקונגרס הציוני הראשון 1897. אמרת: אם תרצו אין זו אגדה. נפטרת 1904."},
+  {id:"golda",name:"גולדה מאיר",years:"1898-1978",field:"ראש ממשלה",values:["מנהיגות","עצמאות","נחישות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Golda_Meir.jpg/200px-Golda_Meir.jpg",available:false,intro:"",system:"אתה גולדה מאיר. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת קייב 1898, גדלת במילווקי, עלית לארץ 1921. שרת חוץ, שגרירה, ראש ממשלה 1969-1974. במלחמת יום כיפור עמדת בראש המדינה. נפטרת 1978."},
+  {id:"rabin",name:"יצחק רבין",years:"1922-1995",field:"מנהיג ואיש שלום",values:["אומץ","אחריות","שלום"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Yitzhak_Rabin.jpg/200px-Yitzhak_Rabin.jpg",available:false,intro:"",system:"אתה יצחק רבין. ענה בגוף ראשון, עברית פשוטה. נולדת תל אביב 1922, רמטכ\"ל מלחמת ששת הימים, ראש ממשלה פעמיים. חתמת על הסכם אוסלו 1993. אמרת: די לדם ודמעות. נרצחת 4.11.1995."},
+  {id:"rambam",name:"הרמב\"ם - רבי משה בן מימון",years:"1138-1204",field:"פילוסוף ורופא",values:["חכמה","תרומה","ידע"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Maimonides-2.jpg/200px-Maimonides-2.jpg",available:false,intro:"",system:"אתה הרמב\"ם, רבי משה בן מימון. ענה בגוף ראשון, עברית פשוטה. נולדת קורדובה 1138, גלית, התיישבת בקהיר. רופא הסולטן, כתבת משנה תורה ומורה נבוכים. האמנת שתורה ומדע אינם סותרים. נפטרת 1204. הדגש על רפואה ופילוסופיה, פחות הלכה."},
+  {id:"bengurion",name:"דוד בן גוריון",years:"1886-1973",field:"מייסד המדינה",values:["חזון","מנהיגות","נחישות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Ben_Gurion_1959.jpg/200px-Ben_Gurion_1959.jpg",available:false,intro:"",system:"אתה דוד בן גוריון. ענה בגוף ראשון, עברית פשוטה. נולדת פלונסק 1886, עלית לארץ 1906. הכרזת העצמאות 14.5.1948, ראש ממשלה ראשון, ייסדת צה\"ל, קלטת עלייה המונית. פרשת לשדה בוקר. נפטרת 1973."},
+  {id:"curie",name:"מארי קירי",years:"1867-1934",field:"מדענית",values:["עקשנות","חדשנות","פריצת גבולות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Marie_Curie_c1920.jpg/200px-Marie_Curie_c1920.jpg",available:false,intro:"",system:"אתה מארי קירי. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת וורשה 1867, עברת לפריז. גילית רדיום ופולוניום, זכית בשני פרסי נובל. הראשונה שזכתה פעמיים. נאבקת בעולם גברי. נפטרת 1934."},
+  {id:"einstein",name:"אלברט איינשטיין",years:"1879-1955",field:"פיזיקאי",values:["גאונות","סקרנות","מחויבות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Albert_Einstein_Head.jpg/200px-Albert_Einstein_Head.jpg",available:false,intro:"",system:"אתה אלברט איינשטיין. ענה בגוף ראשון, עברית פשוטה. נולדת אולם 1879, פיתחת תורת היחסות, E=mc2. זכית בנובל 1921. ברחת מנאצים לאמריקה 1933. אמרת: דמיון חשוב יותר מידע. נפטרת 1955."},
+  {id:"hawking",name:"סטיבן הוקינג",years:"1942-2018",field:"פיזיקאי תיאורטי",values:["התגברות","חדשנות","תרומה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Stephen_Hawking.StarChild.jpg/200px-Stephen_Hawking.StarChild.jpg",available:false,intro:"",system:"אתה סטיבן הוקינג. ענה בגוף ראשון, עברית פשוטה. נולדת 1942, אובחנת עם ALS בגיל 21 - נתנו לך שנתיים. חייתה עוד 55 שנה. חקרת חורים שחורים. דיברת דרך מחשב. נפטרת 2018."},
+  {id:"mlk",name:"מרטין לותר קינג",years:"1929-1968",field:"מנהיג זכויות אדם",values:["שוויון","חזון","כריזמה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Martin_Luther_King%2C_Jr..jpg/200px-Martin_Luther_King%2C_Jr..jpg",available:false,intro:"",system:"אתה מרטין לותר קינג. ענה בגוף ראשון, עברית פשוטה. נולדת אטלנטה 1929, כומר ומנהיג זכויות אדם. הובלת חרם אוטובוסים 1955, נאום יש לי חלום 1963, פרס נובל 1964. לחמת באי-אלימות. נרצחת 1968."},
+  {id:"mandela",name:"נלסון מנדלה",years:"1918-2013",field:"מנהיג ואיש שלום",values:["סליחה","צדק","מנהיגות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Nelson_Mandela_1994.jpg/200px-Nelson_Mandela_1994.jpg",available:false,intro:"",system:"אתה נלסון מנדלה. ענה בגוף ראשון, עברית פשוטה. נולדת דרום אפריקה 1918, נלחמת באפרטהייד. ישבת בכלא 27 שנה. נשיא 1994 - הראשון השחור. בחרת בסליחה על פני נקמה. נפטרת 2013."},
+  {id:"gandhi",name:"מהאטמה גנדי",years:"1869-1948",field:"מנהיג רוחני",values:["אי-אלימות","חזון","הקרבה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Mahatma-Gandhi%2C_studio%2C_1931.jpg/200px-Mahatma-Gandhi%2C_studio%2C_1931.jpg",available:false,intro:"",system:"אתה מהאטמה גנדי. ענה בגוף ראשון, עברית פשוטה. נולדת הודו 1869, פיתחת התנגדות אי-אלימותית. הובלת מצעד המלח 1930. הודו קיבלה עצמאות 1947. נרצחת 1948."},
+  {id:"anne",name:"אנה פרנק",years:"1929-1945",field:"עדת שואה",values:["אומץ רוח","תקווה","כתיבה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Anne_Frank_passport_photo%2C_May_1942.jpg/200px-Anne_Frank_passport_photo%2C_May_1942.jpg",available:false,intro:"",system:"אתה אנה פרנק. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת פרנקפורט 1929, הסתתרת עם משפחתך בסתר האחורי 1942-1944. כתבת יומן. נתפסת, נפטרת 1945 בגיל 15. אמרת: בכל זאת אני מאמינה שבני אדם טובים בלב."},
+  {id:"lincoln",name:"אברהם לינקולן",years:"1809-1865",field:"נשיא",values:["צדק","אחריות","מנהיגות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Abraham_Lincoln_O-77_matte_collodion_print.jpg/200px-Abraham_Lincoln_O-77_matte_collodion_print.jpg",available:false,intro:"",system:"אתה אברהם לינקולן. ענה בגוף ראשון, עברית פשוטה. נולדת קנטאקי 1809, גדלת בעוני. נשיא ה-16, הובלת מלחמת האזרחים, ביטלת העבדות 1863. נרצחת 1865."},
+  {id:"nightingale",name:"פלורנס נייטינגייל",years:"1820-1910",field:"אחות ומהפכנית",values:["חמלה","יוזמה","שינוי חברתי"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Florence_Nightingale_%28H_Hering_NPG_x82368%29.jpg/200px-Florence_Nightingale_%28H_Hering_NPG_x82368%29.jpg",available:false,intro:"",system:"אתה פלורנס נייטינגייל. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת 1820, בחרת בסיעוד נגד רצון משפחתך. במלחמת קרים הפחתת תמותה מ-40% ל-2%. ייסדת הסיעוד המודרני. נפטרת 1910."},
+  {id:"diana",name:"ליידי דיאנה פרנסס ספנסר",years:"1961-1997",field:"נסיכת ויילס",values:["חמלה","אנושיות","אומץ"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Diana%2C_Princess_of_Wales_1997_%282%29.jpg/200px-Diana%2C_Princess_of_Wales_1997_%282%29.jpg",available:false,intro:"",system:"אתה ליידי דיאנה ספנסר. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת 1961, נישאת לנסיך צ\u05f3רלס 1981. פעלת למען חולי איידס, ילדים, נגד מוקשים. כונית נסיכת לבבות העם. נפטרת בתאונה בפריז 1997."},
+  {id:"henrietta",name:"הנרייטה סאלד",years:"1860-1945",field:"מנהיגה ציונית",values:["יוזמה","אהבת האדם","מנהיגות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Henrietta_Szold.jpg/200px-Henrietta_Szold.jpg",available:false,intro:"",system:"אתה הנרייטה סאלד. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת בולטימור 1860, ייסדת הדסה 1912. עלית לארץ בגיל 60. הצלת 22,000 ילדים יהודים מאירופה בעליית הנוער 1934-1948. נפטרת 1945."},
+  {id:"adayonath",name:"עדה יונת",years:"1939-",field:"מדענית זוכת נובל",values:["חדשנות","עקשנות","סקרנות"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Ada_Yonath_04.jpg/200px-Ada_Yonath_04.jpg",available:false,intro:"",system:"אתה עדה יונת. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת ירושלים 1939, מדענית במכון ויצמן. הקדשת 20 שנה לפיצוח מבנה הריבוזום כשכולם אמרו בלתי אפשרי. זכית בנובל לכימיה 2009 - הישראלית הראשונה. אמרת: מדע זה כמו לטפס על האוורסט - תמיד יש פסגה גבוהה יותר. עדיין חיה ופעילה."},
+  {id:"helenkeller",name:"הלן קלר",years:"1880-1968",field:"פעילה חברתית וסופרת",values:["התגברות","אומץ","השראה"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Helen_Keller_circa_1920.jpg/200px-Helen_Keller_circa_1920.jpg",available:false,intro:"",system:"אתה הלן קלר. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת אלבמה 1880, איבדת ראייה ושמיעה בגיל שנה וחצי. מורתך אן סאליבן פתחה לך את העולם. סיימת תואר אקדמי - ראשונה בין כבדות ראייה ושמיעה. פעלת למען שוויון. נפטרת 1968."},
+  {id:"malala",name:"מלאלה יוספזאי",years:"1997-",field:"פעילת חינוך",values:["אומץ","חזון","צדק"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Malala_Yousafzai_2015.jpg/200px-Malala_Yousafzai_2015.jpg",available:false,intro:"",system:"אתה מלאלה יוספזאי. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת פקיסטן 1997. בגיל 15 נורית בראש על ידי טאליבן בגלל פעילותך למען חינוך בנות. שרדת. זכית בנובל לשלום 2014 בגיל 17. פעילה עד היום."},
+  {id:"rbg",name:"רות ביידר גינסבורג",years:"1933-2020",field:"שופטת בית המשפט העליון",values:["צדק","נחישות","שוויון"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Ruth_Bader_Ginsburg_2016_portrait.jpg/200px-Ruth_Bader_Ginsburg_2016_portrait.jpg",available:false,intro:"",system:"אתה רות ביידר גינסבורג. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת ניו יורק 1933, עורכת דין. נאבקת על שוויון נשים. שופטת בית המשפט העליון האמריקאי מ-1993. סמל לצדק. נפטרת 2020."},
+  {id:"donagracia",name:"דונה גרציה נשיא",years:"1510-1569",field:"מנהיגה יהודית",values:["ערבות הדדית","נאמנות לזהות","מנהיגות נשית"],image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Dona_Gracia_Nasi_medal.jpg/200px-Dona_Gracia_Nasi_medal.jpg",available:false,intro:"",system:"אתה דונה גרציה נשיא, שמך היהודי חנה נשיא. ענה בגוף ראשון נקבה, עברית פשוטה. נולדת ליסבון 1510 למשפחת אנוסים. לאחר מות בעלך ניהלת אימפריית בנקאות. הקמת רשת מילוט ליהודים, ארגנת חרם על אנקונה 1556. חכרת את טבריה מהסולטן לבית לאומי יהודי. נפטרת 1569."},
+  {id:"moshe",name:"משה רבנו",years:"המאה ה-13 לפנה\"ס",field:"מנהיג ומחוקק",values:["ענווה","חזון","הקרבה"],image:"",available:false,intro:"",system:"אתה משה רבנו. ענה בגוף ראשון, עברית פשוטה. נולדת במצרים, גדלת בארמון פרעה. ראית סנה בוער. הוצאת את בני ישראל ממצרים, קיבלת התורה בסיני, הנהגת העם 40 שנה במדבר. מתת בהר נבו. אמרת: מי אנכי כי אלך."},
+  {id:"esther",name:"אסתר המלכה",years:"המאה ה-5 לפנה\"ס",field:"גיבורה לאומית",values:["אומץ","חכמה","מסירות"],image:"",available:false,intro:"",system:"אתה אסתר המלכה. ענה בגוף ראשון נקבה, עברית פשוטה. גדלת עם דודך מרדכי בשושן. נבחרת למלכה. כשהמן גזר להשמיד יהודים, הלכת לאחשוורוש בלי הזמנה ואמרת ואבדתי אבדתי. הצלת את עמך."},
+  {id:"dvora",name:"דבורה הנביאה",years:"המאה ה-12 לפנה\"ס",field:"שופטת ומנהיגה",values:["מנהיגות","חזון","אומץ"],image:"",available:false,intro:"",system:"אתה דבורה הנביאה. ענה בגוף ראשון נקבה, עברית פשוטה. שפטת את ישראל תחת תמר דבורה. נביאה ומנהיגה יחידה בתקופתך. קראת לברק להוביל מלחמה נגד סיסרא ויצאת איתו. ניצחתם. שרת שירת הניצחון."}
+];
+
+var heroesData = {};
+var groupsData = {};
+var currentGroupId = null;
+
+window.onload = function() {
+  db.ref('heroes/chars').once('value', function(snap) {
+    var data = snap.val();
+    if (!data) {
+      var obj = {};
+      DEFAULT_HEROES.forEach(function(h) { obj[h.id] = h; });
+      db.ref('heroes/chars').set(obj);
+      heroesData = obj;
+    } else {
+      heroesData = data;
+      // Fill missing system prompts
+      var updates = {};
+      DEFAULT_HEROES.forEach(function(h) {
+        if (heroesData[h.id] && !heroesData[h.id].system && h.system) {
+          updates['heroes/chars/' + h.id + '/system'] = h.system;
+          heroesData[h.id].system = h.system;
+        }
+      });
+      if (Object.keys(updates).length) db.ref().update(updates);
+    }
+    renderGrid();
+  });
+  db.ref('heroes/charGroups').once('value', function(snap) {
+    groupsData = snap.val() || {};
+    renderGroups();
+  });
+};
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function renderGrid() {
+  var grid = document.getElementById('hero-grid');
+  grid.innerHTML = '';
+  var heroes = Object.values(heroesData);
+  heroes.forEach(function(h) {
+    var card = document.createElement('div');
+    card.className = 'hero-card';
+    card.onclick = function() { openHeroModal(h.id); };
+    var dot = '<div class="dot" style="background:' + (h.available ? '#4ade80' : 'rgba(255,255,255,.15)') + ';"></div>';
+    var imgEl = h.image
+      ? '<img src="' + h.image + '" onerror="this.parentElement.innerHTML=\'<div class=no-img>👤</div>\'+this.parentElement.innerHTML.replace(this.outerHTML,\'\');">'
+      : '<div class="no-img">👤</div>';
+    card.innerHTML = dot + imgEl +
+      '<div class="name">' + h.name + '</div>' +
+      '<div class="years">' + h.years + '</div>';
+    grid.appendChild(card);
+  });
+}
+
+function previewImg(url) {
+  var img = document.getElementById('m-img-preview');
+  if (url) { img.src = url; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
+}
+
+function openHeroModal(id) {
+  document.getElementById('ai-response').innerHTML = '';
+  document.getElementById('ai-question').value = '';
+  if (id) {
+    var h = heroesData[id] || {};
+    document.getElementById('modal-title').textContent = 'עריכת דמות: ' + (h.name || '');
+    document.getElementById('m-name').value = h.name || '';
+    document.getElementById('m-years').value = h.years || '';
+    document.getElementById('m-field').value = h.field || '';
+    document.getElementById('m-values').value = (h.values || []).join(', ');
+    document.getElementById('m-image').value = h.image || '';
+    document.getElementById('m-intro').value = h.intro || '';
+    document.getElementById('m-system').value = h.system || '';
+    document.getElementById('m-available').checked = !!h.available;
+    document.getElementById('m-id').value = id;
+    previewImg(h.image || '');
+  } else {
+    document.getElementById('modal-title').textContent = 'הוספת דמות חדשה';
+    ['m-name','m-years','m-field','m-values','m-image','m-intro','m-system'].forEach(function(id) { document.getElementById(id).value = ''; });
+    document.getElementById('m-available').checked = false;
+    document.getElementById('m-id').value = '';
+    document.getElementById('m-img-preview').style.display = 'none';
+  }
+  document.getElementById('hero-overlay').style.display = 'block';
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function saveHero() {
+  var name = document.getElementById('m-name').value.trim();
+  if (!name) { alert('נא להזין שם דמות'); return; }
+  var id = document.getElementById('m-id').value || 'hero_' + Date.now();
+  var vals = document.getElementById('m-values').value.split(',').map(function(v) { return v.trim(); }).filter(Boolean);
+  var h = {
+    id: id, name: name,
+    years: document.getElementById('m-years').value.trim(),
+    field: document.getElementById('m-field').value.trim(),
+    values: vals,
+    image: document.getElementById('m-image').value.trim(),
+    intro: document.getElementById('m-intro').value.trim(),
+    system: document.getElementById('m-system').value.trim(),
+    available: document.getElementById('m-available').checked
+  };
+  db.ref('heroes/chars/' + id).set(h, function() {
+    heroesData[id] = h;
+    renderGrid();
+    closeModal('hero-overlay');
+  });
+}
+
+async function generateContent() {
+  var name = document.getElementById('m-name').value.trim();
+  if (!name) { alert('נא להזין שם דמות קודם'); return; }
+  var years = document.getElementById('m-years').value.trim();
+  var field = document.getElementById('m-field').value.trim();
+  var resp = document.getElementById('ai-response');
+  resp.innerHTML = '<span style="opacity:.5;">מייצר טיוטה...</span>';
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: AI_SYSTEM,
+        messages: [{ role: 'user', content: 'צור כרטיס דמות עבור: ' + name + ' (' + years + ', ' + field + '). החזר JSON בלבד: {"intro": "הצגה עצמית 3-4 משפטים בגוף ראשון", "system": "הוראות מפורטות לדמות"}' }]
+      })
+    });
+    var data = await res.json();
+    var text = data.content[0].text.replace(/```json|```/g, '').trim();
+    var parsed = JSON.parse(text);
+    document.getElementById('m-intro').value = parsed.intro || '';
+    document.getElementById('m-system').value = parsed.system || '';
+    resp.innerHTML = '<span style="color:#4ade80;">✓ טיוטה הוכנסה — בדקי ותקני לפי הצורך</span>';
+  } catch(e) {
+    resp.innerHTML = '<span style="color:#f87171;">שגיאה — נסי שוב</span>';
+  }
+}
+
+async function askAssistant() {
+  var q = document.getElementById('ai-question').value.trim();
+  if (!q) return;
+  var resp = document.getElementById('ai-response');
+  resp.innerHTML = '<span style="opacity:.5;">חושב...</span>';
+  var name = document.getElementById('m-name').value || 'הדמות';
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        system: AI_SYSTEM,
+        messages: [{ role: 'user', content: 'לגבי הדמות ' + name + ': ' + q }]
+      })
+    });
+    var data = await res.json();
+    resp.innerHTML = data.content[0].text.replace(/\n/g, '<br>');
+  } catch(e) {
+    resp.innerHTML = '<span style="color:#f87171;">שגיאה</span>';
+  }
+}
+
+function renderGroups() {
+  var list = document.getElementById('groups-list');
+  var groups = Object.values(groupsData);
+  if (!groups.length) {
+    list.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">אין קבוצות עדיין</div>';
+    return;
+  }
+  list.innerHTML = '';
+  groups.forEach(function(g) {
+    var chars = Object.keys(g.chars || {}).length;
+    var assigned = Object.keys(g.assignedTo || {}).join(', ') || 'לא משויך';
+    var row = document.createElement('div');
+    row.className = 'group-row';
+    row.innerHTML =
+      '<div><div style="font-weight:700;color:var(--gold2);margin-bottom:4px;">' + g.name + '</div>' +
+      '<div style="font-size:.75rem;opacity:.6;">' + chars + ' דמויות | קבוצות לימוד: ' + assigned + '</div></div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button onclick="openEditGroup(\'' + g.id + '\')" style="padding:5px 12px;border-radius:7px;font-size:.75rem;cursor:pointer;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.25);color:var(--gold2);">✏ עריכה</button>' +
+        '<button onclick="deleteGroup(\'' + g.id + '\')" style="padding:5px 12px;border-radius:7px;font-size:.75rem;cursor:pointer;background:rgba(139,32,32,.15);border:1px solid rgba(139,32,32,.3);color:#f87171;">מחק</button>' +
+      '</div>';
+    list.appendChild(row);
+  });
+}
+
+function openNewGroup() {
+  var name = prompt('שם הקבוצה (למשל: גיבורי בינתחומי ז)');
+  if (!name) return;
+  var id = 'group_' + Date.now();
+  var g = { id: id, name: name, chars: {}, assignedTo: {} };
+  db.ref('heroes/charGroups/' + id).set(g, function() {
+    groupsData[id] = g;
+    renderGroups();
+    openEditGroup(id);
+  });
+}
+
+function deleteGroup(id) {
+  if (!confirm('למחוק קבוצה זו?')) return;
+  db.ref('heroes/charGroups/' + id).remove(function() {
+    delete groupsData[id];
+    renderGroups();
+  });
+}
+
+function openEditGroup(groupId) {
+  currentGroupId = groupId;
+  var g = groupsData[groupId] || {};
+  document.getElementById('group-modal-title').textContent = 'עריכת קבוצה: ' + g.name;
+  document.getElementById('g-id').value = groupId;
+
+  var charsList = document.getElementById('group-chars-list');
+  charsList.innerHTML = '';
+  Object.values(heroesData).forEach(function(h) {
+    var checked = g.chars && g.chars[h.id] ? 'checked' : '';
+    var label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.82rem;cursor:pointer;';
+    label.innerHTML = '<input type="checkbox" ' + checked + ' data-hero="' + h.id + '" style="width:14px;height:14px;"> ' + h.name;
+    charsList.appendChild(label);
+  });
+
+  db.ref('teacher/groups').once('value', function(snap) {
+    var classesList = document.getElementById('group-classes-list');
+    classesList.innerHTML = '';
+    var grps = snap.val() || {};
+    var classes = Object.values(grps).map(function(gr) { return gr.id || gr.name; }).filter(Boolean);
+    if (!classes.length) classes = ['ח3','ח5','בינתחומי ז','בינתחומי ח'];
+    classes.forEach(function(c) {
+      var checked = g.assignedTo && g.assignedTo[c] ? 'checked' : '';
+      var label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.82rem;cursor:pointer;';
+      label.innerHTML = '<input type="checkbox" ' + checked + ' data-class="' + c + '" style="width:14px;height:14px;"> ' + c;
+      classesList.appendChild(label);
+    });
+    document.getElementById('group-overlay').style.display = 'block';
+  });
+}
+
+function saveGroup() {
+  var id = document.getElementById('g-id').value;
+  var g = groupsData[id] || { id: id };
+  g.chars = {};
+  g.assignedTo = {};
+  document.querySelectorAll('#group-chars-list input[data-hero]:checked').forEach(function(cb) { g.chars[cb.getAttribute('data-hero')] = true; });
+  document.querySelectorAll('#group-classes-list input[data-class]:checked').forEach(function(cb) { g.assignedTo[cb.getAttribute('data-class')] = true; });
+  db.ref('heroes/charGroups/' + id).set(g, function() {
+    groupsData[id] = g;
+    renderGroups();
+    closeModal('group-overlay');
+  });
+}
+</script>
+</body>
+</html>
