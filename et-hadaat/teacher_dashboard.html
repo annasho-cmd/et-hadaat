@@ -1974,6 +1974,8 @@ function showToast(msg){
 }
 
 // ══ HEROES CHAT LOG ══
+let _heroLogData = null;
+
 function openHeroesScreen() {
   showScreen('screen-heroes');
   updateBreadcrumb([{label:'גיבורים'}]);
@@ -1981,36 +1983,65 @@ function openHeroesScreen() {
 }
 
 function loadHeroesLog() {
-  const log = document.getElementById('heroes-log');
+  var log = document.getElementById('heroes-log');
   log.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">טוען שיחות...</div>';
-  db.ref('heroes_chats').once('value', snap => {
-    const data = snap.val();
-    if (!data) { log.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">עדיין אין שיחות</div>'; return; }
-    const chars = Object.keys(data);
-    document.getElementById('heroes-filter').innerHTML =
-      ['הכל',...chars].map((c,i) => '<button onclick="filterHeroLog('' + c + '')" style="padding:5px 14px;border-radius:20px;border:1px solid rgba(212,168,67,.3);background:' + (i===0?'rgba(239,159,39,.2)':'transparent') + ';color:var(--parch);cursor:pointer;font-size:.8rem;">' + (c==='הכל'?'הכל':c) + '</button>').join('');
+  db.ref('heroes_chats').once('value', function(snap) {
+    var data = snap.val();
+    if (!data) {
+      log.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">עדיין אין שיחות</div>';
+      return;
+    }
+    var chars = Object.keys(data);
+    var filterHtml = '';
+    var allChars = ['הכל'].concat(chars);
+    allChars.forEach(function(ch, i) {
+      var bg = i === 0 ? 'rgba(239,159,39,.2)' : 'transparent';
+      filterHtml += '<button onclick="filterHeroLog(this, \'' + ch + '\')" style="padding:5px 14px;border-radius:20px;border:1px solid rgba(212,168,67,.3);background:' + bg + ';color:var(--parch);cursor:pointer;font-size:.8rem;">' + ch + '</button>';
+    });
+    document.getElementById('heroes-filter').innerHTML = filterHtml;
     _heroLogData = data;
     renderHeroLog(data, 'הכל');
   });
 }
 
-let _heroLogData = null;
-function filterHeroLog(charId) {
+function filterHeroLog(btn, charId) {
+  document.querySelectorAll('#heroes-filter button').forEach(function(b) {
+    b.style.background = 'transparent';
+  });
+  btn.style.background = 'rgba(239,159,39,.2)';
   if (_heroLogData) renderHeroLog(_heroLogData, charId);
-  document.querySelectorAll('#heroes-filter button').forEach(b =>
-    b.style.background = b.textContent.trim() === charId ? 'rgba(239,159,39,.2)' : 'transparent');
 }
 
 function renderHeroLog(data, filter) {
-  const log = document.getElementById('heroes-log');
-  const entries = [];
-  Object.entries(data).forEach(([charId, msgs]) => {
+  var log = document.getElementById('heroes-log');
+  var entries = [];
+  Object.keys(data).forEach(function(charId) {
     if (filter !== 'הכל' && charId !== filter) return;
-    Object.values(msgs).forEach(m => entries.push({...m, charId}));
+    var msgs = data[charId];
+    Object.keys(msgs).forEach(function(k) {
+      var m = msgs[k];
+      entries.push({ student: m.student, question: m.question, answer: m.answer, ts: m.ts, charId: charId });
+    });
   });
-  entries.sort((a,b) => b.ts - a.ts);
-  if (!entries.length) { log.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">אין שיחות לדמות זו</div>'; return; }
-  log.innerHTML = entries.map(e => '<div style="background:rgba(44,26,14,.6);border:1px solid rgba(212,168,67,.15);border-radius:10px;padding:12px 16px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:.78rem;font-weight:700;color:var(--gold2);">' + (e.student||'אנונימי') + '</span><span style="font-size:.72rem;opacity:.5;">' + e.charId + ' | ' + new Date(e.ts).toLocaleString('he-IL') + '</span></div><div style="font-size:.82rem;opacity:.8;margin-bottom:4px;">❓ ' + e.question + '</div><div style="font-size:.82rem;opacity:.6;border-top:1px solid rgba(212,168,67,.1);padding-top:6px;margin-top:4px;">💬 ' + (e.answer||'').substring(0,120) + ((e.answer||'').length>120?'...':'') + '</div></div>').join('');
+  entries.sort(function(a,b) { return b.ts - a.ts; });
+  if (!entries.length) {
+    log.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;">אין שיחות לדמות זו</div>';
+    return;
+  }
+  var html = '';
+  entries.forEach(function(e) {
+    var ans = (e.answer || '').substring(0, 120) + ((e.answer || '').length > 120 ? '...' : '');
+    var time = new Date(e.ts).toLocaleString('he-IL');
+    html += '<div style="background:rgba(44,26,14,.6);border:1px solid rgba(212,168,67,.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">';
+    html += '<span style="font-size:.78rem;font-weight:700;color:var(--gold2);">' + (e.student || 'אנונימי') + '</span>';
+    html += '<span style="font-size:.72rem;opacity:.5;">' + e.charId + ' | ' + time + '</span>';
+    html += '</div>';
+    html += '<div style="font-size:.82rem;opacity:.8;margin-bottom:4px;">❓ ' + e.question + '</div>';
+    html += '<div style="font-size:.82rem;opacity:.6;border-top:1px solid rgba(212,168,67,.1);padding-top:6px;margin-top:4px;">💬 ' + ans + '</div>';
+    html += '</div>';
+  });
+  log.innerHTML = html;
 }
 </script>
 </body>
