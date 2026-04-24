@@ -473,7 +473,7 @@ body::before{
           <div class="home-card-title">המקצועות שלי</div>
           <div class="home-card-sub">יחידות ושיעורים</div>
         </div>
-        <div class="home-card" style="--card-accent:#EF9F27;" onclick="showView('view-heroes')">
+        <div class="home-card" style="--card-accent:#EF9F27;" onclick="showView('view-heroes');initHeroesView();">
           <div class="home-card-icon">🌟</div>
           <div class="home-card-title">משוחחים עם גיבורים</div>
           <div class="home-card-sub">שיחות עם דמויות מופת</div>
@@ -1372,60 +1372,82 @@ window.addEventListener('load', () => {
   }
 });
 
+
 // ══════════════════════════════════════════
 // HEROES CHAT
 // ══════════════════════════════════════════
-const HEROES = [
-  { id:'chana', name:'חנה סנש', years:'1921–1944', field:'לוחמת ומשוררת', values:['אומץ','אהבת הארץ','הקרבה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Hannah_Szenes.jpg/200px-Hannah_Szenes.jpg', available:true,
-    intro:'שלום! אני חנה סנש. נולדתי בבודפשט ב-1921, ועליתי לארץ ישראל ב-1939. גרתי בקיבוץ שדות ים, כתבתי שירים ועבדתי בחקלאות. ב-1943 התגייסתי כמצנחנית כדי לנסות להציל יהודים באירופה. שאלו אותי כל שאלה — על חיי, על השירים שלי, על הבחירות שעשיתי.',
-    system:`אתה חנה סנש. ענה תמיד בגוף ראשון נקבה, בעברית. דברי בשפה פשוטה, חמה וברורה שמתאימה לתלמידי כיתה ז'. היי אנושית וקרובה. עובדות: נולדת בבודפשט 1921, עלית לארץ 1939, קיבוץ שדות ים, שירים: "אלי אלי" ו"אשרי הגפרור", נפלת 7.11.1944. אם שואלים על אחרי מותך — אמרי "זה כבר אחרי ימיי". ענה בקצרה — 2-4 משפטים.`
-  },
-  { id:'korczak', name:'יאנוש קורצ\'אק', years:'1878–1942', field:'מחנך וסופר', values:['חסד','אחריות','הקרבה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Janusz_Korczak.jpg/200px-Janusz_Korczak.jpg', available:false },
-  { id:'herzl', name:'תיאודור הרצל', years:'1860–1904', field:'חוזה המדינה', values:['חזון','מנהיגות','כריזמה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Theodor_Herzl_1901.jpg/200px-Theodor_Herzl_1901.jpg', available:false },
-  { id:'golda', name:'גולדה מאיר', years:'1898–1978', field:'ראש ממשלה', values:['מנהיגות','עצמאות','נחישות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Golda_Meir.jpg/200px-Golda_Meir.jpg', available:false },
-  { id:'rabin', name:'יצחק רבין', years:'1922–1995', field:'מנהיג ואיש שלום', values:['אומץ','אחריות','שלום'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Yitzhak_Rabin.jpg/200px-Yitzhak_Rabin.jpg', available:false },
-  { id:'curie', name:'מריה קירי', years:'1867–1934', field:'מדענית', values:['עקשנות','חדשנות','פריצת גבולות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Marie_Curie_c1920.jpg/200px-Marie_Curie_c1920.jpg', available:false },
-  { id:'einstein', name:'אלברט איינשטיין', years:'1879–1955', field:'פיזיקאי', values:['גאונות','סקרנות','מחויבות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Albert_Einstein_Head.jpg/200px-Albert_Einstein_Head.jpg', available:false },
-  { id:'mlk', name:'מרטין לותר קינג', years:'1929–1968', field:'מנהיג זכויות אדם', values:['שוויון','חזון','כריזמה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Martin_Luther_King%2C_Jr..jpg/200px-Martin_Luther_King%2C_Jr..jpg', available:false },
-  { id:'mandela', name:'נלסון מנדלה', years:'1918–2013', field:'מנהיג ואיש שלום', values:['סליחה','צדק','מנהיגות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Nelson_Mandela_1994.jpg/200px-Nelson_Mandela_1994.jpg', available:false },
-  { id:'anne', name:'אנה פרנק', years:'1929–1945', field:'עדת שואה', values:['אומץ רוח','תקווה','כתיבה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Anne_Frank_passport_photo%2C_May_1942.jpg/200px-Anne_Frank_passport_photo%2C_May_1942.jpg', available:false },
-];
+var heroCurrentChar = null;
+var heroHistory = [];
 
-let heroCurrentChar = null;
-let heroHistory = [];
-
-function renderHeroesGrid() {
-  const grid = document.getElementById('heroes-grid');
+function loadAndRenderHeroes() {
+  var grid = document.getElementById('heroes-grid');
   if (!grid) return;
-  grid.innerHTML = HEROES.map(h => `
-    <div onclick="${h.available ? `openHero('${h.id}')` : ''}"
-      style="background:rgba(44,26,14,.7);border:1.5px solid rgba(212,168,67,${h.available?'.3':'.1'});border-radius:13px;padding:14px 8px;text-align:center;cursor:${h.available?'pointer':'default'};opacity:${h.available?1:.5};transition:all .15s;"
-      ${h.available ? `onmouseover="this.style.borderColor='rgba(239,159,39,.7)'" onmouseout="this.style.borderColor='rgba(212,168,67,.3)'"` : ''}>
-      ${!h.available ? '<div style="font-size:.65rem;background:rgba(255,255,255,.08);border-radius:999px;padding:2px 8px;margin-bottom:6px;color:rgba(253,245,224,.4);">בקרוב</div>' : ''}
-      <img src="${h.image}" alt="${h.name}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.25);margin-bottom:8px;"
-        onerror="this.style.display='none'">
-      <div style="font-size:.82rem;font-weight:700;color:var(--gold2);margin-bottom:2px;">${h.name}</div>
-      <div style="font-size:.68rem;opacity:.55;">${h.years}</div>
-    </div>`).join('');
+  grid.innerHTML = '<div style="opacity:.5;text-align:center;padding:20px;grid-column:1/-1;">טוען דמויות...</div>';
+
+  // Get student group
+  var myGroupId = groupData ? groupData.id : null;
+  if (!myGroupId) {
+    grid.innerHTML = '<div style="opacity:.5;text-align:center;padding:20px;grid-column:1/-1;">לא ניתן לזהות קבוצה</div>';
+    return;
+  }
+
+  // Load char groups assigned to this student group
+  db.ref('heroes/charGroups').once('value', function(snapGroups) {
+    var charGroups = snapGroups.val() || {};
+    var allowedCharIds = {};
+
+    // Find groups assigned to my class
+    Object.values(charGroups).forEach(function(g) {
+      if (g.assignedTo && g.assignedTo[myGroupId]) {
+        Object.keys(g.chars || {}).forEach(function(cid) { allowedCharIds[cid] = true; });
+      }
+    });
+
+    // Load all chars
+    db.ref('heroes/chars').once('value', function(snapChars) {
+      var allChars = snapChars.val() || {};
+      var myChars = Object.values(allChars).filter(function(h) {
+        return h.available && allowedCharIds[h.id];
+      });
+
+      if (!myChars.length) {
+        grid.innerHTML = '<div style="opacity:.5;text-align:center;padding:30px;grid-column:1/-1;">אין דמויות זמינות כרגע</div>';
+        return;
+      }
+
+      grid.innerHTML = '';
+      myChars.forEach(function(h) {
+        var div = document.createElement('div');
+        div.style.cssText = 'background:rgba(44,26,14,.7);border:1.5px solid rgba(212,168,67,.3);border-radius:13px;padding:14px 8px;text-align:center;cursor:pointer;transition:all .15s;';
+        div.onmouseover = function() { this.style.borderColor = 'rgba(239,159,39,.7)'; };
+        div.onmouseout = function() { this.style.borderColor = 'rgba(212,168,67,.3)'; };
+        div.onclick = function() { openHero(h); };
+        var imgHtml = h.image ? '<img src="' + h.image + '" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.25);margin-bottom:8px;" onerror="this.style.display='none'">' : '<div style="width:56px;height:56px;border-radius:50%;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 8px;">👤</div>';
+        div.innerHTML = imgHtml +
+          '<div style="font-size:.82rem;font-weight:700;color:var(--gold2);margin-bottom:2px;">' + h.name + '</div>' +
+          '<div style="font-size:.68rem;opacity:.55;">' + h.years + '</div>';
+        grid.appendChild(div);
+      });
+    });
+  });
 }
 
-function openHero(id) {
-  heroCurrentChar = HEROES.find(h => h.id === id);
-  if (!heroCurrentChar) return;
+function openHero(h) {
+  heroCurrentChar = h;
   heroHistory = [];
   document.getElementById('heroes-selection').style.display = 'none';
-  const ca = document.getElementById('heroes-chat-area');
+  var ca = document.getElementById('heroes-chat-area');
   ca.style.display = 'flex';
   ca.style.flexDirection = 'column';
-  document.getElementById('hc-photo').src = heroCurrentChar.image;
-  document.getElementById('hc-name').textContent = heroCurrentChar.name;
-  document.getElementById('hc-meta').textContent = heroCurrentChar.years + ' | ' + heroCurrentChar.field;
-  const msgs = document.getElementById('hc-messages');
+  document.getElementById('hc-photo').src = h.image || '';
+  document.getElementById('hc-name').textContent = h.name;
+  document.getElementById('hc-meta').textContent = h.years + ' | ' + h.field;
+  var msgs = document.getElementById('hc-messages');
   msgs.innerHTML = '';
-  if (heroCurrentChar.intro) {
-    const d = document.createElement('div');
+  if (h.intro) {
+    var d = document.createElement('div');
     d.style.cssText = 'background:rgba(239,159,39,.1);border:1px solid rgba(239,159,39,.25);border-right:3px solid #EF9F27;border-radius:10px;padding:10px 14px;font-size:.85rem;line-height:1.65;color:var(--parch);margin-bottom:4px;';
-    d.innerHTML = `<div style="font-size:.68rem;color:#EF9F27;margin-bottom:4px;font-weight:700;">הצגה עצמית</div>${heroCurrentChar.intro}`;
+    d.innerHTML = '<div style="font-size:.68rem;color:#EF9F27;margin-bottom:4px;font-weight:700;">הצגה עצמית</div>' + h.intro;
     msgs.appendChild(d);
   }
   document.getElementById('hc-input').value = '';
@@ -1433,18 +1455,20 @@ function openHero(id) {
 }
 
 function backToHeroesGrid() {
-  heroCurrentChar = null; heroHistory = [];
+  heroCurrentChar = null;
+  heroHistory = [];
   document.getElementById('heroes-selection').style.display = 'block';
   document.getElementById('heroes-chat-area').style.display = 'none';
 }
 
 function addHeroBubble(text, role) {
-  const msgs = document.getElementById('hc-messages');
-  const d = document.createElement('div');
-  d.style.cssText = `display:flex;justify-content:${role==='user'?'flex-start':'flex-end'};`;
-  const b = document.createElement('div');
-  b.style.cssText = `max-width:80%;padding:9px 13px;font-size:.87rem;line-height:1.6;border-radius:${role==='user'?'12px 12px 12px 3px':'12px 12px 3px 12px'};background:${role==='user'?'rgba(55,138,221,.2)':'rgba(44,26,14,.9)'};border:1px solid ${role==='user'?'rgba(55,138,221,.3)':'rgba(212,168,67,.2)'};color:var(--parch);`;
-  b.innerHTML = text.replace(/\n/g,'<br>');
+  var msgs = document.getElementById('hc-messages');
+  var d = document.createElement('div');
+  d.style.cssText = 'display:flex;justify-content:' + (role === 'user' ? 'flex-start' : 'flex-end') + ';';
+  var b = document.createElement('div');
+  b.style.cssText = 'max-width:80%;padding:9px 13px;font-size:.87rem;line-height:1.6;border-radius:' + (role === 'user' ? '12px 12px 12px 3px' : '12px 12px 3px 12px') + ';background:' + (role === 'user' ? 'rgba(55,138,221,.2)' : 'rgba(44,26,14,.9)') + ';border:1px solid ' + (role === 'user' ? 'rgba(55,138,221,.3)' : 'rgba(212,168,67,.2)') + ';color:var(--parch);';
+  b.innerHTML = text.replace(/
+/g, '<br>');
   d.appendChild(b);
   msgs.appendChild(d);
   msgs.scrollTop = msgs.scrollHeight;
@@ -1452,40 +1476,39 @@ function addHeroBubble(text, role) {
 }
 
 async function sendHeroMsg() {
-  const input = document.getElementById('hc-input');
-  const text = input.value.trim();
+  var input = document.getElementById('hc-input');
+  var text = input.value.trim();
   if (!text || !heroCurrentChar) return;
   input.value = '';
   addHeroBubble(text, 'user');
-  heroHistory.push({ role:'user', content:text });
-  const typing = addHeroBubble('...', 'char');
-  typing.style.fontStyle = 'italic'; typing.style.opacity = '.5';
+  heroHistory.push({ role: 'user', content: text });
+  var typing = addHeroBubble('...', 'char');
+  typing.style.fontStyle = 'italic';
+  typing.style.opacity = '.5';
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system: heroCurrentChar.system, messages: heroHistory })
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: heroCurrentChar.system || ('אתה ' + heroCurrentChar.name + '. ענה בגוף ראשון בעברית פשוטה.'), messages: heroHistory })
     });
-    const data = await res.json();
-    const reply = data.content?.[0]?.text || 'מצטערת, נסה שוב.';
+    var data = await res.json();
+    var reply = data.content[0].text || 'מצטערת, נסה שוב.';
     typing.parentElement.remove();
     addHeroBubble(reply, 'char');
-    heroHistory.push({ role:'assistant', content:reply });
-    // Save to Firebase
-    const studentName = sessionStorage.getItem('studentName') || 'אנונימי';
-    const fbRef = db.ref('heroes_chats/' + heroCurrentChar.id + '/' + Date.now());
-    fbRef.set({ student: studentName, question: text, answer: reply, ts: Date.now() });
+    heroHistory.push({ role: 'assistant', content: reply });
+    var sName = studentName || 'אנונימי';
+    db.ref('heroes/chats/' + heroCurrentChar.id + '/' + Date.now()).set({ student: sName, question: text, answer: reply, ts: Date.now() });
   } catch(e) {
     typing.parentElement.remove();
     addHeroBubble('שגיאת חיבור. נסה שוב.', 'char');
   }
 }
 
-// Init heroes grid when view is shown
-const _origShowView = typeof showView === 'function' ? showView : null;
-document.addEventListener('DOMContentLoaded', () => {
-  renderHeroesGrid();
-});
+// Called when view-heroes is shown
+function initHeroesView() {
+  loadAndRenderHeroes();
+}
+
 </script>
 </body>
 </html>
