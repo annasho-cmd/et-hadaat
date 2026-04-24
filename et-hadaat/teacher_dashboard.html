@@ -2049,38 +2049,6 @@ function showToast(msg){
   t.textContent=msg;t.style.display='block';
   setTimeout(()=>t.style.display='none',2500);
 }
-
-// ══════════════════════════════════════════
-// HEROES MANAGEMENT
-// ══════════════════════════════════════════
-
-var DEFAULT_HEROES = [
-  { id:"chana", name:"חנה סנש", years:"1921–1944", field:"לוחמת ומשוררת", values:["אומץ","אהבת הארץ","הקרבה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Hannah_Szenes.jpg/200px-Hannah_Szenes.jpg", available:true, intro:"שלום! אני חנה סנש. נולדתי בבודפשט ב-1921, ועליתי לארץ ישראל ב-1939. גרתי בקיבוץ שדות ים, כתבתי שירים ועבדתי בחקלאות. ב-1943 התגייסתי כמצנחנית כדי לנסות להציל יהודים באירופה.", system:"אתה חנה סנש. ענה תמיד בגוף ראשון נקבה, בעברית פשוטה וחמה המתאימה לתלמידי כיתה ז. עובדות: נולדת בבודפשט 1921, עלית לארץ 1939, קיבוץ שדות ים, שירים: אלי אלי ואשרי הגפרור, נפלת 7.11.1944. אם שואלים על אחרי מותך אמרי: זה כבר אחרי ימיי. ענה בקצרה 2-4 משפטים." },
-  { id:"korczak", name:"יאנוש קורצ׳אק", years:"1878–1942", field:"מחנך וסופר", values:["חסד","אחריות","הקרבה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Janusz_Korczak.jpg/200px-Janusz_Korczak.jpg", available:false, intro:"", system:"" },
-  { id:"herzl", name:"בנימין זאב תיאודור הרצל", years:"1860–1904", field:"חוזה המדינה", values:["חזון","מנהיגות","כריזמה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Theodor_Herzl_1901.jpg/200px-Theodor_Herzl_1901.jpg", available:false, intro:"", system:"" },
-  { id:"golda", name:"גולדה מאיר", years:"1898–1978", field:"ראש ממשלה", values:["מנהיגות","עצמאות","נחישות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Golda_Meir.jpg/200px-Golda_Meir.jpg", available:false, intro:"", system:"" },
-  { id:"rabin", name:"יצחק רבין", years:"1922–1995", field:"מנהיג ואיש שלום", values:["אומץ","אחריות","שלום"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Yitzhak_Rabin.jpg/200px-Yitzhak_Rabin.jpg", available:false, intro:"", system:"" },
-  { id:"rambam", name:"הרמב"ם — רבי משה בן מימון", years:"1138–1204", field:"פילוסוף ורופא", values:["חכמה","תרומה","ידע"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Maimonides-2.jpg/200px-Maimonides-2.jpg", available:false, intro:"", system:"" },
-  { id:"bengurion", name:"דוד בן גוריון", years:"1886–1973", field:"מייסד המדינה", values:["חזון","מנהיגות","נחישות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Ben_Gurion_1959.jpg/200px-Ben_Gurion_1959.jpg", available:false, intro:"", system:"" },
-  { id:"curie", name:"מארי קירי", years:"1867–1934", field:"מדענית", values:["עקשנות","חדשנות","פריצת גבולות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Marie_Curie_c1920.jpg/200px-Marie_Curie_c1920.jpg", available:false, intro:"", system:"" },
-  { id:"einstein", name:"אלברט איינשטיין", years:"1879–1955", field:"פיזיקאי", values:["גאונות","סקרנות","מחויבות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Albert_Einstein_Head.jpg/200px-Albert_Einstein_Head.jpg", available:false, intro:"", system:"" },
-  { id:"hawking", name:"סטיבן הוקינג", years:"1942–2018", field:"פיזיקאי תיאורטי", values:["התגברות","חדשנות","תרומה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Stephen_Hawking.StarChild.jpg/200px-Stephen_Hawking.StarChild.jpg", available:false, intro:"", system:"" },
-  { id:"mlk", name:"מרטין לותר קינג", years:"1929–1968", field:"מנהיג זכויות אדם", values:["שוויון","חזון","כריזמה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Martin_Luther_King%2C_Jr..jpg/200px-Martin_Luther_King%2C_Jr..jpg", available:false, intro:"", system:"" },
-  { id:"mandela", name:"נלסון מנדלה", years:"1918–2013", field:"מנהיג ואיש שלום", values:["סליחה","צדק","מנהיגות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Nelson_Mandela_1994.jpg/200px-Nelson_Mandela_1994.jpg", available:false, intro:"", system:"" },
-  { id:"gandhi", name:"מהאטמה גנדי", years:"1869–1948", field:"מנהיג רוחני", values:["אי-אלימות","חזון","הקרבה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Mahatma-Gandhi%2C_studio%2C_1931.jpg/200px-Mahatma-Gandhi%2C_studio%2C_1931.jpg", available:false, intro:"", system:"" },
-  { id:"anne", name:"אנה פרנק", years:"1929–1945", field:"עדת שואה", values:["אומץ רוח","תקווה","כתיבה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Anne_Frank_passport_photo%2C_May_1942.jpg/200px-Anne_Frank_passport_photo%2C_May_1942.jpg", available:false, intro:"", system:"" },
-  { id:"lincoln", name:"אברהם לינקולן", years:"1809–1865", field:"נשיא", values:["צדק","אחריות","מנהיגות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Abraham_Lincoln_O-77_matte_collodion_print.jpg/200px-Abraham_Lincoln_O-77_matte_collodion_print.jpg", available:false, intro:"", system:"" },
-  { id:"nightingale", name:"פלורנס נייטינגייל", years:"1820–1910", field:"אחות ומהפכנית", values:["חמלה","יוזמה","שינוי חברתי"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Florence_Nightingale_%28H_Hering_NPG_x82368%29.jpg/200px-Florence_Nightingale_%28H_Hering_NPG_x82368%29.jpg", available:false, intro:"", system:"" },
-  { id:"diana", name:"ליידי דיאנה פרנסס ספנסר", years:"1961–1997", field:"נסיכת ויילס", values:["חמלה","אנושיות","אומץ"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Diana%2C_Princess_of_Wales_1997_%282%29.jpg/200px-Diana%2C_Princess_of_Wales_1997_%282%29.jpg", available:false, intro:"", system:"" },
-  { id:"henrietta", name:"הנרייטה סאלד", years:"1860–1945", field:"מנהיגה ציונית", values:["יוזמה","אהבת האדם","מנהיגות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Henrietta_Szold.jpg/200px-Henrietta_Szold.jpg", available:false, intro:"", system:"" },
-  { id:"adayonath", name:"עדה יונת", years:"1939–", field:"מדענית זוכת נובל", values:["חדשנות","עקשנות","סקרנות"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Ada_Yonath_04.jpg/200px-Ada_Yonath_04.jpg", available:false, intro:"", system:"" },
-  { id:"helenkeller", name:"הלן קלר", years:"1880–1968", field:"פעילה חברתית וסופרת", values:["התגברות","אומץ","השראה"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Helen_Keller_circa_1920.jpg/200px-Helen_Keller_circa_1920.jpg", available:false, intro:"", system:"" },
-  { id:"malala", name:"מלאלה יוספזאי", years:"1997–", field:"פעילת חינוך", values:["אומץ","חזון","צדק"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Malala_Yousafzai_2015.jpg/200px-Malala_Yousafzai_2015.jpg", available:false, intro:"", system:"" },
-  { id:"rbg", name:"רות ביידר גינסבורג", years:"1933–2020", field:"שופטת בית המשפט העליון", values:["צדק","נחישות","שוויון"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Ruth_Bader_Ginsburg_2016_portrait.jpg/200px-Ruth_Bader_Ginsburg_2016_portrait.jpg", available:false, intro:"", system:"" },
-  { id:"donagracia", name:"דונה גרציה נשיא", years:"1510–1569", field:"מנהיגה יהודית", values:["ערבות הדדית","נאמנות לזהות","מנהיגות נשית"], image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Dona_Gracia_Nasi_medal.jpg/200px-Dona_Gracia_Nasi_medal.jpg", available:false, intro:"", system:"" },
-  { id:"moshe", name:"משה רבנו", years:"המאה ה-13 לפנה"ס", field:"מנהיג ומחוקק", values:["ענווה","חזון","הקרבה"], image:"", available:false, intro:"", system:"" },
-  { id:"esther", name:"אסתר המלכה", years:"המאה ה-5 לפנה"ס", field:"גיבורה לאומית", values:["אומץ","חכמה","מסירות"], image:"", available:false, intro:"", system:"" }
-]
 </script>
 </body>
 </html>
