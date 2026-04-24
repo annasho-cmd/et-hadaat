@@ -473,6 +473,11 @@ body::before{
           <div class="home-card-title">המקצועות שלי</div>
           <div class="home-card-sub">יחידות ושיעורים</div>
         </div>
+        <div class="home-card" style="--card-accent:#EF9F27;" onclick="showView('view-heroes')">
+          <div class="home-card-icon">🌟</div>
+          <div class="home-card-title">משוחחים עם גיבורים</div>
+          <div class="home-card-sub">שיחות עם דמויות מופת</div>
+        </div>
         <div class="home-card coming-soon" style="--card-accent:#3b82f6;">
           <div class="home-card-icon">👤</div>
           <div class="home-card-title">הפרופיל שלי</div>
@@ -496,6 +501,36 @@ body::before{
           <div class="home-card-title">הציונים שלי</div>
           <div class="home-card-sub">ציונים והערכות</div>
           <div class="soon-badge">🔜 בקרוב</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: HEROES CHAT -->
+    <div class="view" id="view-heroes">
+      <div class="view-header">
+        <button class="back-btn" onclick="showView('view-home')">→ חזרה</button>
+        <div style="flex:1;text-align:center;">
+          <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);">משוחחים עם גיבורים אמיתיים 🌟</div>
+        </div>
+        <div style="width:60px;"></div>
+      </div>
+      <div id="heroes-selection" style="padding:16px 0;">
+        <div style="font-size:.8rem;color:var(--gold);opacity:.7;margin-bottom:12px;text-align:center;text-transform:uppercase;letter-spacing:.5px;">בחר דמות לשיחה</div>
+        <div id="heroes-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;"></div>
+      </div>
+      <div id="heroes-chat-area" style="display:none;flex-direction:column;height:calc(100vh - 120px);">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0 12px;border-bottom:1px solid rgba(212,168,67,.15);margin-bottom:12px;">
+          <button onclick="backToHeroesGrid()" style="font-size:.8rem;padding:5px 12px;border:1px solid rgba(212,168,67,.3);border-radius:7px;background:transparent;color:var(--parch);cursor:pointer;">→ רשימה</button>
+          <img id="hc-photo" src="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.3);">
+          <div>
+            <div id="hc-name" style="font-weight:700;font-size:.95rem;color:var(--gold2);"></div>
+            <div id="hc-meta" style="font-size:.72rem;opacity:.6;"></div>
+          </div>
+        </div>
+        <div id="hc-messages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;align-items:flex-end;padding-top:10px;border-top:1px solid rgba(212,168,67,.1);">
+          <textarea id="hc-input" rows="2" placeholder="שאל את הדמות..." style="flex:1;resize:none;font-family:'Heebo',sans-serif;font-size:.9rem;padding:9px 12px;background:rgba(44,26,14,.7);border:1px solid rgba(212,168,67,.25);border-radius:10px;color:var(--parch);direction:rtl;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendHeroMsg();}"></textarea>
+          <button onclick="sendHeroMsg()" style="padding:9px 18px;background:linear-gradient(135deg,#EF9F27,#BA7517);color:#1c1208;border:none;border-radius:10px;font-weight:700;font-size:.88rem;cursor:pointer;height:52px;">שלח</button>
         </div>
       </div>
     </div>
@@ -1335,6 +1370,121 @@ window.addEventListener('load', () => {
     document.getElementById('first-name').value = parts[0] || '';
     document.getElementById('last-name').value = parts.slice(1).join(' ') || '';
   }
+});
+
+// ══════════════════════════════════════════
+// HEROES CHAT
+// ══════════════════════════════════════════
+const HEROES = [
+  { id:'chana', name:'חנה סנש', years:'1921–1944', field:'לוחמת ומשוררת', values:['אומץ','אהבת הארץ','הקרבה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Hannah_Szenes.jpg/200px-Hannah_Szenes.jpg', available:true,
+    intro:'שלום! אני חנה סנש. נולדתי בבודפשט ב-1921, ועליתי לארץ ישראל ב-1939. גרתי בקיבוץ שדות ים, כתבתי שירים ועבדתי בחקלאות. ב-1943 התגייסתי כמצנחנית כדי לנסות להציל יהודים באירופה. שאלו אותי כל שאלה — על חיי, על השירים שלי, על הבחירות שעשיתי.',
+    system:`אתה חנה סנש. ענה תמיד בגוף ראשון נקבה, בעברית. דברי בשפה פשוטה, חמה וברורה שמתאימה לתלמידי כיתה ז'. היי אנושית וקרובה. עובדות: נולדת בבודפשט 1921, עלית לארץ 1939, קיבוץ שדות ים, שירים: "אלי אלי" ו"אשרי הגפרור", נפלת 7.11.1944. אם שואלים על אחרי מותך — אמרי "זה כבר אחרי ימיי". ענה בקצרה — 2-4 משפטים.`
+  },
+  { id:'korczak', name:'יאנוש קורצ\'אק', years:'1878–1942', field:'מחנך וסופר', values:['חסד','אחריות','הקרבה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Janusz_Korczak.jpg/200px-Janusz_Korczak.jpg', available:false },
+  { id:'herzl', name:'תיאודור הרצל', years:'1860–1904', field:'חוזה המדינה', values:['חזון','מנהיגות','כריזמה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Theodor_Herzl_1901.jpg/200px-Theodor_Herzl_1901.jpg', available:false },
+  { id:'golda', name:'גולדה מאיר', years:'1898–1978', field:'ראש ממשלה', values:['מנהיגות','עצמאות','נחישות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Golda_Meir.jpg/200px-Golda_Meir.jpg', available:false },
+  { id:'rabin', name:'יצחק רבין', years:'1922–1995', field:'מנהיג ואיש שלום', values:['אומץ','אחריות','שלום'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Yitzhak_Rabin.jpg/200px-Yitzhak_Rabin.jpg', available:false },
+  { id:'curie', name:'מריה קירי', years:'1867–1934', field:'מדענית', values:['עקשנות','חדשנות','פריצת גבולות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Marie_Curie_c1920.jpg/200px-Marie_Curie_c1920.jpg', available:false },
+  { id:'einstein', name:'אלברט איינשטיין', years:'1879–1955', field:'פיזיקאי', values:['גאונות','סקרנות','מחויבות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Albert_Einstein_Head.jpg/200px-Albert_Einstein_Head.jpg', available:false },
+  { id:'mlk', name:'מרטין לותר קינג', years:'1929–1968', field:'מנהיג זכויות אדם', values:['שוויון','חזון','כריזמה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Martin_Luther_King%2C_Jr..jpg/200px-Martin_Luther_King%2C_Jr..jpg', available:false },
+  { id:'mandela', name:'נלסון מנדלה', years:'1918–2013', field:'מנהיג ואיש שלום', values:['סליחה','צדק','מנהיגות'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Nelson_Mandela_1994.jpg/200px-Nelson_Mandela_1994.jpg', available:false },
+  { id:'anne', name:'אנה פרנק', years:'1929–1945', field:'עדת שואה', values:['אומץ רוח','תקווה','כתיבה'], image:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Anne_Frank_passport_photo%2C_May_1942.jpg/200px-Anne_Frank_passport_photo%2C_May_1942.jpg', available:false },
+];
+
+let heroCurrentChar = null;
+let heroHistory = [];
+
+function renderHeroesGrid() {
+  const grid = document.getElementById('heroes-grid');
+  if (!grid) return;
+  grid.innerHTML = HEROES.map(h => `
+    <div onclick="${h.available ? `openHero('${h.id}')` : ''}"
+      style="background:rgba(44,26,14,.7);border:1.5px solid rgba(212,168,67,${h.available?'.3':'.1'});border-radius:13px;padding:14px 8px;text-align:center;cursor:${h.available?'pointer':'default'};opacity:${h.available?1:.5};transition:all .15s;"
+      ${h.available ? `onmouseover="this.style.borderColor='rgba(239,159,39,.7)'" onmouseout="this.style.borderColor='rgba(212,168,67,.3)'"` : ''}>
+      ${!h.available ? '<div style="font-size:.65rem;background:rgba(255,255,255,.08);border-radius:999px;padding:2px 8px;margin-bottom:6px;color:rgba(253,245,224,.4);">בקרוב</div>' : ''}
+      <img src="${h.image}" alt="${h.name}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.25);margin-bottom:8px;"
+        onerror="this.style.display='none'">
+      <div style="font-size:.82rem;font-weight:700;color:var(--gold2);margin-bottom:2px;">${h.name}</div>
+      <div style="font-size:.68rem;opacity:.55;">${h.years}</div>
+    </div>`).join('');
+}
+
+function openHero(id) {
+  heroCurrentChar = HEROES.find(h => h.id === id);
+  if (!heroCurrentChar) return;
+  heroHistory = [];
+  document.getElementById('heroes-selection').style.display = 'none';
+  const ca = document.getElementById('heroes-chat-area');
+  ca.style.display = 'flex';
+  ca.style.flexDirection = 'column';
+  document.getElementById('hc-photo').src = heroCurrentChar.image;
+  document.getElementById('hc-name').textContent = heroCurrentChar.name;
+  document.getElementById('hc-meta').textContent = heroCurrentChar.years + ' | ' + heroCurrentChar.field;
+  const msgs = document.getElementById('hc-messages');
+  msgs.innerHTML = '';
+  if (heroCurrentChar.intro) {
+    const d = document.createElement('div');
+    d.style.cssText = 'background:rgba(239,159,39,.1);border:1px solid rgba(239,159,39,.25);border-right:3px solid #EF9F27;border-radius:10px;padding:10px 14px;font-size:.85rem;line-height:1.65;color:var(--parch);margin-bottom:4px;';
+    d.innerHTML = `<div style="font-size:.68rem;color:#EF9F27;margin-bottom:4px;font-weight:700;">הצגה עצמית</div>${heroCurrentChar.intro}`;
+    msgs.appendChild(d);
+  }
+  document.getElementById('hc-input').value = '';
+  document.getElementById('hc-input').focus();
+}
+
+function backToHeroesGrid() {
+  heroCurrentChar = null; heroHistory = [];
+  document.getElementById('heroes-selection').style.display = 'block';
+  document.getElementById('heroes-chat-area').style.display = 'none';
+}
+
+function addHeroBubble(text, role) {
+  const msgs = document.getElementById('hc-messages');
+  const d = document.createElement('div');
+  d.style.cssText = `display:flex;justify-content:${role==='user'?'flex-start':'flex-end'};`;
+  const b = document.createElement('div');
+  b.style.cssText = `max-width:80%;padding:9px 13px;font-size:.87rem;line-height:1.6;border-radius:${role==='user'?'12px 12px 12px 3px':'12px 12px 3px 12px'};background:${role==='user'?'rgba(55,138,221,.2)':'rgba(44,26,14,.9)'};border:1px solid ${role==='user'?'rgba(55,138,221,.3)':'rgba(212,168,67,.2)'};color:var(--parch);`;
+  b.innerHTML = text.replace(/\n/g,'<br>');
+  d.appendChild(b);
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+  return b;
+}
+
+async function sendHeroMsg() {
+  const input = document.getElementById('hc-input');
+  const text = input.value.trim();
+  if (!text || !heroCurrentChar) return;
+  input.value = '';
+  addHeroBubble(text, 'user');
+  heroHistory.push({ role:'user', content:text });
+  const typing = addHeroBubble('...', 'char');
+  typing.style.fontStyle = 'italic'; typing.style.opacity = '.5';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system: heroCurrentChar.system, messages: heroHistory })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'מצטערת, נסה שוב.';
+    typing.parentElement.remove();
+    addHeroBubble(reply, 'char');
+    heroHistory.push({ role:'assistant', content:reply });
+    // Save to Firebase
+    const studentName = sessionStorage.getItem('studentName') || 'אנונימי';
+    const fbRef = db.ref('heroes_chats/' + heroCurrentChar.id + '/' + Date.now());
+    fbRef.set({ student: studentName, question: text, answer: reply, ts: Date.now() });
+  } catch(e) {
+    typing.parentElement.remove();
+    addHeroBubble('שגיאת חיבור. נסה שוב.', 'char');
+  }
+}
+
+// Init heroes grid when view is shown
+const _origShowView = typeof showView === 'function' ? showView : null;
+document.addEventListener('DOMContentLoaded', () => {
+  renderHeroesGrid();
 });
 </script>
 </body>
