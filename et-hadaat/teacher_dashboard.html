@@ -524,82 +524,71 @@ select.modal-input option{background:#2c1a0e;}
       <div class="screen" id="screen-profile">
         <div class="screen-hd">
           <div class="screen-title">👤 פרופיל אישי</div>
-          <button class="btn-primary" onclick="saveProfile()">💾 שמור</button>
+          <button class="btn-primary" onclick="saveProfile()">💾 שמור פרופיל</button>
         </div>
-        <div style="max-width:680px;margin:0 auto;">
-    
-          <!-- תמונה + שם -->
-          <div class="card" style="margin-bottom:16px;">
-            <div class="card-title">פרטים אישיים</div>
-            <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:16px;">
-              <!-- תמונת פרופיל -->
-              <div style="flex-shrink:0;text-align:center;">
-                <div id="prof-photo-wrap" style="width:88px;height:88px;border-radius:50%;background:rgba(212,168,67,.1);border:2px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
-                  <img id="prof-photo-img" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
-                  <span id="prof-photo-icon" style="font-size:2.2rem;">👤</span>
-                </div>
-                <button onclick="document.getElementById('prof-photo-file').click()"
-                  style="padding:4px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-size:.72rem;cursor:pointer;font-family:'Heebo',sans-serif;">
-                  📷 העלה תמונה
-                </button>
-                <input type="file" id="prof-photo-file" accept="image/*" style="display:none;" onchange="uploadProfilePhoto(this)">
-                <input type="hidden" id="prof-photo-url">
+        <div style="max-width:720px;margin:0 auto;">
+
+          <!-- תמונה -->
+          <div class="card" style="margin-bottom:20px;text-align:center;padding:28px;">
+            <div id="prof-photo-wrap" style="width:110px;height:110px;border-radius:50%;background:rgba(212,168,67,.1);border:3px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+              <img id="prof-photo-img" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <span id="prof-photo-icon" style="font-size:3rem;">👤</span>
+            </div>
+            <button onclick="document.getElementById('prof-photo-file').click()"
+              style="padding:8px 20px;background:rgba(212,168,67,.12);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-size:.88rem;cursor:pointer;font-family:'Heebo',sans-serif;">
+              📷 העלה תמונה
+            </button>
+            <input type="file" id="prof-photo-file" accept="image/*" style="display:none;" onchange="uploadProfilePhoto(this)">
+            <input type="hidden" id="prof-photo-url">
+          </div>
+
+          <!-- פרטים אישיים -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-title" style="font-size:1.05rem;margin-bottom:18px;">פרטים אישיים</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+              <div>
+                <label class="form-label" style="font-size:.88rem;margin-bottom:6px;display:block;">שם פרטי</label>
+                <input id="prof-first" class="input-field" placeholder="שם פרטי" style="font-size:.95rem;padding:10px 14px;">
               </div>
-              <!-- שם + מייל -->
-              <div style="flex:1;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-                  <div>
-                    <label class="form-label">שם פרטי</label>
-                    <input id="prof-first" class="input-field" placeholder="שם פרטי">
-                  </div>
-                  <div>
-                    <label class="form-label">שם משפחה</label>
-                    <input id="prof-last" class="input-field" placeholder="שם משפחה">
-                  </div>
-                </div>
-                <div style="margin-bottom:12px;">
-                  <label class="form-label">מייל ארגוני</label>
-                  <input id="prof-email" class="input-field" placeholder="name@school.edu.il" type="email">
-                </div>
-                <div>
-                  <label class="form-label">מורים שותפים</label>
-                  <input id="prof-partners" class="input-field" placeholder="שמות מורים שותפים, מופרדים בפסיק">
-                </div>
+              <div>
+                <label class="form-label" style="font-size:.88rem;margin-bottom:6px;display:block;">שם משפחה</label>
+                <input id="prof-last" class="input-field" placeholder="שם משפחה" style="font-size:.95rem;padding:10px 14px;">
               </div>
             </div>
+            <div style="margin-bottom:16px;">
+              <label class="form-label" style="font-size:.88rem;margin-bottom:6px;display:block;">מייל ארגוני</label>
+              <input id="prof-email" class="input-field" placeholder="name@school.edu.il" type="email" style="font-size:.95rem;padding:10px 14px;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:.88rem;margin-bottom:6px;display:block;">מורים שותפים</label>
+              <input id="prof-partners" class="input-field" placeholder="שמות מורים שותפים, מופרדים בפסיק" style="font-size:.95rem;padding:10px 14px;">
+            </div>
           </div>
-    
+
           <!-- מקצועות -->
-          <div class="card" style="margin-bottom:16px;">
-            <div class="card-title">מקצועות לימוד</div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="היסטוריה"> היסטוריה</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אזרחות"> אזרחות</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="תנ&quot;ך"> תנ"ך</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="ספרות"> ספרות</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="לשון"> לשון</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="גיאוגרפיה"> גיאוגרפיה</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="מדעים"> מדעים</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="מתמטיקה"> מתמטיקה</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אנגלית"> אנגלית</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="ערבית"> ערבית</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="חינוך"> חינוך</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אמנות"> אמנות</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="מוזיקה"> מוזיקה</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="חינוך גופני"> חינוך גופני</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="בינתחומי"> בינתחומי</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.3);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="ניסיון"> 🧪 ניסיון</label>
-              <label style="display:flex;align-items:center;gap:5px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.82rem;"><input type="checkbox" class="prof-subj-cb" value="אחר"> אחר</label>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-title" style="font-size:1.05rem;margin-bottom:16px;">מקצועות לימוד</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+              ${['היסטוריה','אזרחות','תנ"ך','ספרות','לשון','גיאוגרפיה','מדעים','מתמטיקה','אנגלית','ערבית','חינוך','אמנות','מוזיקה','חינוך גופני','בינתחומי'].map(s=>`
+              <label style="display:flex;align-items:center;gap:7px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:24px;padding:7px 16px;cursor:pointer;font-size:.9rem;transition:all .15s;">
+                <input type="checkbox" class="prof-subj-cb" value="${s}" style="width:16px;height:16px;accent-color:var(--gold);"> ${s}
+              </label>`).join('')}
+              <label style="display:flex;align-items:center;gap:7px;background:rgba(109,40,217,.12);border:1px solid rgba(109,40,217,.3);border-radius:24px;padding:7px 16px;cursor:pointer;font-size:.9rem;">
+                <input type="checkbox" class="prof-subj-cb" value="ניסיון" style="width:16px;height:16px;accent-color:#7c3aed;"> 🧪 ניסיון
+              </label>
+              <label style="display:flex;align-items:center;gap:7px;background:rgba(212,168,67,.07);border:1px solid var(--border);border-radius:24px;padding:7px 16px;cursor:pointer;font-size:.9rem;">
+                <input type="checkbox" class="prof-subj-cb" value="אחר" style="width:16px;height:16px;accent-color:var(--gold);"> אחר
+              </label>
             </div>
           </div>
-    
+
           <!-- כיתות -->
           <div class="card">
-            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="card-title" style="font-size:1.05rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span>כיתות</span>
-              <button class="btn-primary" style="font-size:.75rem;padding:4px 12px;" onclick="addProfileClass()">➕ הוסף כיתה</button>
+              <button class="btn-primary" onclick="addProfileClass()">➕ הוסף כיתה</button>
             </div>
-            <div style="font-size:.75rem;opacity:.5;margin-bottom:10px;">מקצוע · שם כיתה (למשל: ח1) · קוד Classroom</div>
+            <div style="font-size:.82rem;opacity:.5;margin-bottom:14px;">בחרי מקצוע · שם כיתה (למשל: ח1) · קוד Classroom לניהול משימות</div>
             <div id="prof-classes-wrap"></div>
           </div>
         </div>
@@ -2145,11 +2134,21 @@ function renderProfileClasses(classes){
 
 function profileClassRow(c,i){
   const opts=SUBJECTS_LIST.map(s=>`<option value="${s}" ${c?.subj===s?'selected':''}>${s}</option>`).join('');
-  return `<div class="prof-class-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
-    <select class="prof-class-subj input-field" style="flex:1;">${opts}</select>
-    <input class="prof-class-name input-field" style="flex:1;" placeholder="שם כיתה (למשל: ח1)" value="${c?.name||''}">
-    <input class="prof-class-code input-field" style="flex:1;" placeholder="קוד Classroom" value="${c?.code||''}">
-    <button onclick="this.closest('.prof-class-row').remove()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem;">✕</button>
+  return `<div class="prof-class-row" style="display:grid;grid-template-columns:1.2fr 1fr 1.2fr auto;gap:10px;margin-bottom:12px;align-items:center;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;padding:12px;">
+    <div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:5px;">מקצוע</div>
+      <select class="prof-class-subj input-field" style="width:100%;font-size:.9rem;padding:8px 10px;">${opts}</select>
+    </div>
+    <div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:5px;">שם כיתה</div>
+      <input class="prof-class-name input-field" style="width:100%;font-size:.9rem;padding:8px 10px;" placeholder="למשל: ח1" value="${c?.name||''}">
+    </div>
+    <div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:5px;">קוד Classroom</div>
+      <input class="prof-class-code input-field" style="width:100%;font-size:.9rem;padding:8px 10px;" placeholder="קוד לניהול משימות" value="${c?.code||''}">
+    </div>
+    <button onclick="this.closest('.prof-class-row').remove()"
+      style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:7px;color:#f87171;cursor:pointer;font-size:.85rem;padding:8px 12px;margin-top:18px;">✕</button>
   </div>`;
 }
 
