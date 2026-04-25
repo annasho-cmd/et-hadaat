@@ -312,7 +312,7 @@ async function generateContent() {
   var resp = document.getElementById('ai-response');
   resp.innerHTML = '<span style="opacity:.5;">מייצר טיוטה...</span>';
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -340,7 +340,7 @@ async function askAssistant() {
   resp.innerHTML = '<span style="opacity:.5;">חושב...</span>';
   var name = document.getElementById('m-name').value || 'הדמות';
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -421,13 +421,17 @@ function openEditGroup(groupId) {
     var classesList = document.getElementById('group-classes-list');
     classesList.innerHTML = '';
     var grps = snap.val() || {};
-    var classes = Object.values(grps).map(function(gr) { return gr.id || gr.name; }).filter(Boolean);
-    if (!classes.length) classes = ['ח3','ח5','בינתחומי ז','בינתחומי ח'];
-    classes.forEach(function(c) {
-      var checked = g.assignedTo && g.assignedTo[c] ? 'checked' : '';
+    var classes = Object.values(grps).filter(function(gr) { return gr.id; });
+    if (!classes.length) {
+      classes = [{id:'bein7', name:'בינתחומי ז'},{id:'history', name:'היסטוריה'},{id:'tarbut', name:'תרבות ישראל'}];
+    }
+    classes.forEach(function(gr) {
+      var cid = gr.id;
+      var cname = gr.name || gr.id;
+      var checked = g.assignedTo && g.assignedTo[cid] ? 'checked' : '';
       var label = document.createElement('label');
       label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.82rem;cursor:pointer;';
-      label.innerHTML = '<input type="checkbox" ' + checked + ' data-class="' + c + '" style="width:14px;height:14px;"> ' + c;
+      label.innerHTML = '<input type="checkbox" ' + checked + ' data-class="' + cid + '" style="width:14px;height:14px;"> ' + cname;
       classesList.appendChild(label);
     });
     document.getElementById('group-overlay').style.display = 'block';
