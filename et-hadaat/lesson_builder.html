@@ -2126,7 +2126,9 @@ function loadBankFromFirebase(cb){
 function renderBankAccordion(){
   const acc=document.getElementById('bank-accordion');
   if(!acc)return;
-  const itemsHtml = bankData.map(item=>`
+  // סנן רק פריטים שיש להם type
+  const items=bankData.filter(item=>item.type);
+  const itemsHtml=items.map(item=>`
     <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
       onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
       onmouseleave="hideBankTooltip()">
@@ -2137,7 +2139,7 @@ function renderBankAccordion(){
     <div class="bank-cat-header open" onclick="toggleBankCat(0,this)">
       <span class="bank-cat-icon">🧩</span>
       <span class="bank-cat-name">פריטים</span>
-      <span class="bank-cat-count">(${bankData.length})</span>
+      <span class="bank-cat-count">(${items.length})</span>
       <span class="bank-cat-chevron open" id="bch-0">▼</span>
     </div>
     <div class="bank-cat-items open" id="bci-0">${itemsHtml}</div>
