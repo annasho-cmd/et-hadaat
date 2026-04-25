@@ -1584,6 +1584,14 @@ function openTasksScreen(){
   loadTasks();
 }
 
+function deleteTask(taskId){
+  if(!confirm('למחוק את המשימה?')) return;
+  db.ref('teacher/tasks/'+taskId).remove();
+  tasks=tasks.filter(t=>t.id!==taskId);
+  renderTasksList();
+  showToast('✓ המשימה נמחקה');
+}
+
 function loadTasks(){
   db.ref('teacher/tasks').once('value',snap=>{
     tasks=snap.val()?Object.entries(snap.val()).map(([id,v])=>({id,...v})):[];
@@ -1611,7 +1619,8 @@ function renderTasksList(){
     const gradeStr=daysLeft>0?`⏰ ${daysLeft} ימים לציונים`:'🔴 עבר המועד';
     const checked=t.grades?Object.keys(t.grades).length:0;
     const group=groups.find(g=>g.id===t.groupId);
-    return `<div class="card" style="${urgency}cursor:pointer;margin-bottom:12px;" onclick="openTaskDetail('${t.id}')">
+    return `<div class="card" style="${urgency}cursor:pointer;margin-bottom:12px;position:relative;" onclick="openTaskDetail('${t.id}')">
+      <button onclick="event.stopPropagation();deleteTask('${t.id}')" class="btn-del" style="position:absolute;top:10px;left:10px;">🗑</button>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
           <div style="font-size:.95rem;font-weight:700;margin-bottom:4px;">${t.name}</div>
@@ -1807,22 +1816,28 @@ function setCheckMode(mode){
 
 function loadCheckFile(input,type){
   const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const base64=e.target.result.split(',')[1];
-    const mediaType=type==='pdf'?'application/pdf':file.type;
-    _checkFileData={type,base64,mediaType,name:file.name};
-    if(type==='pdf'){
+  if(type==='pdf'){
+    // קרא כ-base64 לשימוש ישיר
+    const r2=new FileReader();
+    r2.onload=e=>{
+      const base64=e.target.result.split(',')[1];
+      _checkFileData={type:'pdf',base64,mediaType:'application/pdf',name:file.name};
       const el=document.getElementById('check-pdf-name');if(el)el.textContent='✓ '+file.name;
-    } else {
+    };
+    r2.readAsDataURL(file);
+  } else {
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const base64=e.target.result.split(',')[1];
+      _checkFileData={type:'image',base64,mediaType:file.type,name:file.name};
       const el=document.getElementById('check-img-name');if(el)el.textContent='✓ '+file.name;
       const prev=document.getElementById('check-img-preview');
       const img=document.getElementById('check-img-el');
       if(img)img.src=e.target.result;
       if(prev)prev.style.display='block';
-    }
-  };
-  reader.readAsDataURL(file);
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
 async function checkWorkWithAI(){
@@ -1844,6 +1859,7 @@ async function checkWorkWithAI(){
         messages:[{role:'user',content:`בדוק לפי המחוון:\n${rubricText}\n\nעבודה:\n${workText}${jsonPrompt}`}]};
     } else {
       if(!_checkFileData){alert('נא לבחור קובץ.');if(btn)btn.textContent='🤖 בדוק לפי מחוון';return;}
+      // PDF - שלח כמסמך, תמונה - שלח כתמונה
       const fileContent=_checkFileData.type==='pdf'
         ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_checkFileData.base64}}
         :{type:'image',source:{type:'base64',media_type:_checkFileData.mediaType,data:_checkFileData.base64}};
