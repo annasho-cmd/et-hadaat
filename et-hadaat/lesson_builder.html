@@ -715,18 +715,15 @@ const ITEM_BANK=[
       {name:'🖼️ תמונה/מספר + שאלה', desc:'סולם מספרים (1-10) + שאלה פתוחה. מתאים לרפלקציה.'},
     ],
     usedIn:['closing']},
-  {type:'text',       icon:'📄',name:'טקסט / מקור',  desc:'קטע קריאה או מקור ראשוני'},
-  {type:'sources',    icon:'📜',name:'קריאת מקורות', desc:'טקסט עם שאלות מלוות'},
+  {type:'sources',    icon:'📜',name:'קריאת מקורות', desc:'טקסט / מקור עם כותרת, הנחיה ושאלות מלוות'},
   {type:'image',      icon:'🖼️',name:'תמונה',         desc:'תמונה, מפה או מסמך חזותי'},
-  {type:'video',      icon:'▶️',name:'סרטון',         desc:'קישור YouTube'},
-  {type:'question',   icon:'❓',name:'שאלה פתוחה',   desc:'שאלה פתוחה או סגורה'},
+  {type:'video',      icon:'▶️',name:'סרטון',         desc:'קישור YouTube או Google Drive'},
+  {type:'question',   icon:'❓',name:'שאלה פתוחה',   desc:'שאלה פתוחה — כולל סגנונות עשירים לדיון ומחשבה'},
   {type:'drag_drop',  icon:'🔀',name:'סדר כרונולוגי',desc:'פעילות גרירה לפי סדר'},
-  {type:'fill_table', icon:'📋',name:'טבלת מילוי',   desc:'טבלה עם תאים ריקים למילוי ידני'},
-  {type:'sort_table', icon:'📊',name:'טבלת מיון',    desc:'גרירת פריטים לקטגוריות'},
-  {type:'discussion', icon:'💬',name:'דיון',          desc:'שאלה לדיון כיתתי'},
-  {type:'summary',    icon:'📝',name:'סיכום',         desc:'ממלאים בסוף תחנה'},
-  {type:'argue',      icon:'🖊️',name:'כתיבה טיעונית',desc:'תבנית לכתיבה טיעונית'},
-  {type:'full_ans',   icon:'📝',name:'תשובה מלאה',   desc:'תבנית לכתיבת תשובה מלאה'},
+  {type:'fill_table', icon:'📋',name:'טבלת מילוי',   desc:'המורה מגדירה עמודות ושורות — תאים לבחירה: מורה ממלאת / תלמיד ממלא'},
+  {type:'sort_table', icon:'📊',name:'טבלת מיון',    desc:'המורה מגדירה עמודות ותוכן — תלמיד גורר או ממלא עצמאית'},
+  {type:'argue',      icon:'🖊️',name:'כתיבה טיעונית',desc:'תבנית כתיבה טיעונית מובנית — מונחית או עצמאית + בנק מילים'},
+  {type:'full_ans',   icon:'📝',name:'תשובה מלאה',   desc:'תבנית תשובה מלאה מובנית — מונחית או עצמאית + בנק מילים'},
   {type:'stickies',   icon:'🗒️',name:'פתקיות',        desc:'לוח שיתופי בזמן אמת'},
   {type:'wordcloud',  icon:'☁️',name:'ענן מילים',     desc:'ענן מילים שיתופי'},
 ];
@@ -1477,7 +1474,7 @@ function buildSlotEditor(slot, section, si, sli, uid){
 
   // ── טבלת מיון ──
   if(slot.type==='sort_table'){
-    const td=slot.tableData||{cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}],items:[]};
+    const td=slot.tableData||{cols:[{name:''},{name:''},{name:''}],items:[]};
     
     const colsHtml=td.cols.map((c,ci)=>{
       const colItems=td.items.filter(it=>it.answer===ci);
@@ -2629,7 +2626,7 @@ let _popupTarget = null; // {section, si, existingData}
 const POPUP_EDITORS = {
   sort_table: {
     title: '📊 טבלת מיון',
-    init: (data) => data || {cols:[{name:'תורה'},{name:'נביאים'},{name:'כתובים'}], items:[], orderMatters:false},
+    init: (data) => data || {cols:[{name:''},{name:''},{name:''}], items:[], orderMatters:false},
     render: renderSortTablePopup,
     collect: collectSortTablePopup
   },
@@ -2671,19 +2668,13 @@ const POPUP_EDITORS = {
   },
   sources: {
     title: '📜 קריאת מקורות',
-    init: (data) => data || {title:'', text:'', questions:[''], style:'טקסט + שאלות'},
+    init: (data) => data || {title:'', instruction:'', text:'', imgUrl:'', contentType:'text', questions:['','']},
     render: renderSourcesPopup,
     collect: collectSourcesPopup
   },
-  text: {
-    title: '📄 טקסט / מקור',
-    init: (data) => data || {title:'', text:''},
-    render: renderTextPopup,
-    collect: collectTextPopup
-  },
   video: {
     title: '▶️ סרטון',
-    init: (data) => data || {url:'', startTime:'', endTime:'', question:''},
+    init: (data) => data || {url:'', source:'youtube', startTime:'', endTime:'', question:''},
     render: renderVideoPopup,
     collect: collectVideoPopup
   },
@@ -2693,15 +2684,21 @@ const POPUP_EDITORS = {
     render: renderImagePopup,
     collect: collectImagePopup
   },
+  question: {
+    title: '❓ שאלה פתוחה',
+    init: (data) => data || {question:'', style:'שאלה פתוחה', guidance:'', isDiscussion:false},
+    render: (d) => renderQuestionPopup(d, 'question'),
+    collect: collectQuestionPopup
+  },
   argue: {
     title: '✍️ כתיבה טיעונית',
-    init: (data) => data || {prompt:'', style:'תבנית מונחית', wordBank:''},
+    init: (data) => data || {prompt:'', style:'מובנית', wordBank:'', useWordBank:false},
     render: renderArguePopup,
     collect: collectArguePopup
   },
   full_ans: {
-    title: '📝 כתיבת תשובה מלאה',
-    init: (data) => data || {question:'', style:'תבנית מונחית', wordBank:''},
+    title: '📝 תשובה מלאה',
+    init: (data) => data || {question:'', style:'מובנית', wordBank:'', useWordBank:false},
     render: renderFullAnsPopup,
     collect: collectFullAnsPopup
   },
@@ -2822,11 +2819,24 @@ function buildSortTablePopupHtml(d) {
   }).join('');
 
   return `
+    <div style="margin-bottom:10px;">
+      <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">אופן מילוי התלמיד:</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button onclick="setSortMode('drag')" id="smode-drag"
+          style="padding:6px 14px;border-radius:7px;border:1px solid ${(d.mode||'drag')==='drag'?'var(--gold)':'var(--border)'};background:${(d.mode||'drag')==='drag'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">
+          🔀 גרור פריטים
+        </button>
+        <button onclick="setSortMode('write')" id="smode-write"
+          style="padding:6px 14px;border-radius:7px;border:1px solid ${d.mode==='write'?'var(--gold)':'var(--border)'};background:${d.mode==='write'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">
+          ✏️ מלא עצמאית
+        </button>
+      </div>
+    </div>
     <div style="margin-bottom:14px;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;">
         <input type="checkbox" ${d.orderMatters?'checked':''} onchange="window._popupSortData.orderMatters=this.checked"
-          style="width:16px;height:16px;cursor:pointer;">
-        סדר הפריטים בעמודה חשוב (התלמיד חייב לסדר בסדר הנכון)
+          style="width:16px;height:16px;cursor:pointer;accent-color:var(--gold);">
+        סדר הפריטים בעמודה חשוב (תלמיד חייב לסדר בסדר הנכון)
       </label>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;" id="sort-cols-wrap">
@@ -2834,6 +2844,16 @@ function buildSortTablePopupHtml(d) {
     </div>
     <button onclick="addSortCol()" style="padding:7px 16px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:7px;color:#d4a843;font-size:.82rem;cursor:pointer;">+ הוסף עמודה</button>
     <div style="margin-top:12px;font-size:.75rem;opacity:.45;">סה"כ ${d.items.length} פריטים ב-${d.cols.length} עמודות</div>`;
+}
+
+function setSortMode(mode){
+  window._popupSortData.mode=mode;
+  ['drag','write'].forEach(m=>{
+    const btn=document.getElementById('smode-'+m);
+    if(!btn)return;
+    btn.style.borderColor=m===mode?'var(--gold)':'var(--border)';
+    btn.style.background=m===mode?'rgba(212,168,67,.15)':'transparent';
+  });
 }
 
 function refreshSortPopup() {
@@ -2975,13 +2995,69 @@ function getItemPreview(item){
 function renderQuestionPopup(d,type){
   window._popupQData=JSON.parse(JSON.stringify(d));
   const styles=['שאלה פתוחה','שאלה מערערת','שאלה עשירה','שאלה מחוברת','שאלה טעונה','שאלה מרכזית'];
-  return '<div style="margin-bottom:12px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון השאלה:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
-    styles.map(s=>'<button onclick="selectPopupStyle(this,\'_popupQData\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
-    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה:</div>'+
-    '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="כתבי את השאלה לתלמידים..." oninput="window._popupQData.question=this.value">'+esc(d.question||'')+'</textarea>'+
-    '<div style="font-size:.75rem;opacity:.6;margin:10px 0 6px;">הנחיה נוספת (אופציונלי):</div>'+
-    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;" placeholder="למשל: כתבו לפחות 3 שורות..." value="'+esc(d.guidance||'')+'" oninput="window._popupQData.guidance=this.value">'+
-    '</div>';
+  const descMap={
+    'שאלה פתוחה':'שאלה רגילה לתשובה כתובה',
+    'שאלה מערערת':'מאתגרת הנחות — "האם זה תמיד נכון?"',
+    'שאלה עשירה':'מזמינה עומק, ניתוח ורפלקציה',
+    'שאלה מחוברת':'מקשרת לחיי התלמיד',
+    'שאלה טעונה':'נושאת ערכים ודילמות',
+    'שאלה מרכזית':'מלווה את כל השיעור / היחידה — לדיון ולא לתשובה'
+  };
+  const selected=d.style||'שאלה פתוחה';
+  return `<div style="margin-bottom:12px;">
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">סגנון השאלה:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+      ${styles.map(s=>`<button onclick="selectQStyle('${s}')" id="qstyle-${s.replace(/\s/g,'_')}"
+        style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:'Heebo',sans-serif;
+        border:1px solid ${selected===s?'var(--gold)':'var(--border)'};
+        background:${selected===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)'};
+        color:${selected===s?'#f0c060':'var(--parch)'};">${s}</button>`).join('')}
+    </div>
+    <div id="qstyle-desc" style="font-size:.73rem;color:#d4b06a;opacity:.8;margin-bottom:12px;min-height:16px;">${descMap[selected]||''}</div>
+    ${selected==='שאלה מרכזית'?`<div style="background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);border-radius:8px;padding:8px 12px;font-size:.78rem;margin-bottom:10px;">
+      💡 שאלה מרכזית מופיעה בפתיח ומלווה את כל השיעור. התלמידים חוזרים אליה בסוף.</div>`:''}
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה:</div>
+    <textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;"
+      placeholder="כתבי את השאלה לתלמידים..." oninput="window._popupQData.question=this.value">${esc(d.question||'')}</textarea>
+    <div style="font-size:.75rem;opacity:.6;margin:8px 0 5px;">הנחיה נוספת (אופציונלי):</div>
+    <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;"
+      placeholder="למשל: כתבו לפחות 3 שורות..." value="${esc(d.guidance||'')}" oninput="window._popupQData.guidance=this.value">
+    <button onclick="askQuestionAI()" style="margin-top:10px;width:100%;padding:8px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.35);border-radius:8px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:.83rem;cursor:pointer;font-weight:700;">
+      🤖 עוזר הוראה — עזרה בניסוח
+    </button>
+    <div id="q-ai-result" style="display:none;margin-top:8px;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.2);border-radius:8px;padding:10px;font-size:.82rem;line-height:1.6;direction:rtl;"></div>
+  </div>`;
+}
+
+function selectQStyle(s){
+  const descMap={
+    'שאלה פתוחה':'שאלה רגילה לתשובה כתובה',
+    'שאלה מערערת':'מאתגרת הנחות — "האם זה תמיד נכון?"',
+    'שאלה עשירה':'מזמינה עומק, ניתוח ורפלקציה',
+    'שאלה מחוברת':'מקשרת לחיי התלמיד',
+    'שאלה טעונה':'נושאת ערכים ודילמות',
+    'שאלה מרכזית':'מלווה את כל השיעור / היחידה — לדיון ולא לתשובה'
+  };
+  window._popupQData.style=s;
+  document.querySelectorAll('[id^="qstyle-"]').forEach(b=>{
+    const isSel=b.id==='qstyle-'+s.replace(/\s/g,'_');
+    b.style.borderColor=isSel?'var(--gold)':'var(--border)';
+    b.style.background=isSel?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)';
+    b.style.color=isSel?'#f0c060':'var(--parch)';
+  });
+  const desc=document.getElementById('qstyle-desc');
+  if(desc)desc.textContent=descMap[s]||'';
+}
+
+async function askQuestionAI(){
+  const lesson=currentUnit?.lessons?.[currentLessonIdx];
+  const topic=lessonData?.topic||lesson?.topic||document.getElementById('b-topic-input')?.value||'';
+  const style=window._popupQData?.style||'שאלה פתוחה';
+  const prompt=`אני מורה ואני בונה שיעור בנושא "${topic}". עזרי לי לנסח ${style} לתלמידים. הציעי 3 אפשרויות.`;
+  const resultEl=document.getElementById('q-ai-result');
+  if(resultEl){resultEl.style.display='block';resultEl.textContent='⏳ מחשב...';}
+  const reply=await callAI('אתה עוזר הוראה. ענה בעברית, קצר.',prompt,[]);
+  if(resultEl){resultEl.textContent=reply;}
 }
 function collectQuestionPopup(){ return JSON.parse(JSON.stringify(window._popupQData||{})); }
 
@@ -3058,35 +3134,97 @@ function addCardTableRow(){ if(!window._popupCardData.tableRows)window._popupCar
 function addCardDragItem(){ if(!window._popupCardData.dragItems)window._popupCardData.dragItems=[]; window._popupCardData.dragItems.push(''); document.getElementById('card-template-fields').innerHTML=renderCardTemplateFields(window._popupCardData.template,window._popupCardData); }
 function collectCardPopup(){ return JSON.parse(JSON.stringify(window._popupCardData||{})); }
 
-// ── SOURCES POPUP ──
+// ── SOURCES POPUP (קריאת מקורות - מאוחד) ──
 function renderSourcesPopup(d){
   window._popupSourcesData=JSON.parse(JSON.stringify(d));
-  if(!window._popupSourcesData.questions||!window._popupSourcesData.questions.length) window._popupSourcesData.questions=[''];
-  const qs=window._popupSourcesData.questions.map((q,i)=>'<div style="display:flex;gap:6px;margin-bottom:7px;"><span style="min-width:20px;font-size:.75rem;opacity:.5;padding-top:8px;">'+(i+1)+'.</span><input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;" placeholder="שאלה '+(i+1)+'..." value="'+esc(q)+'" oninput="window._popupSourcesData.questions['+i+']=this.value">'+
-    (i>0?'<button onclick="removeSourceQ('+i+')" style="padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>':'')+'</div>').join('');
-  return '<div style="margin-bottom:10px;">'+
-    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כותרת (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:10px;" placeholder="שם המקור..." value="'+esc(d.title||'')+'" oninput="window._popupSourcesData.title=this.value">'+
-    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">טקסט המקור:</div><textarea rows="5" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Frank Ruhl Libre\',serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;margin-bottom:10px;" placeholder="הדביקי את הטקסט כאן..." oninput="window._popupSourcesData.text=this.value">'+esc(d.text||'')+'</textarea>'+
-    '<div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">שאלות מלוות:</div><div id="sources-qs">'+qs+'</div>'+
-    '<button onclick="addSourceQ()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;margin-top:4px;">+ הוסף שאלה</button></div>';
+  if(!window._popupSourcesData.questions||!window._popupSourcesData.questions.length)
+    window._popupSourcesData.questions=['',''];
+  const ct=d.contentType||'text';
+  const qs=window._popupSourcesData.questions.map((q,i)=>
+    '<div style="display:flex;gap:6px;margin-bottom:7px;"><span style="min-width:20px;font-size:.75rem;opacity:.5;padding-top:8px;">'+(i+1)+'.</span>'+
+    '<input style="flex:1;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:7px 10px;outline:none;" placeholder="שאלה '+(i+1)+'..." value="'+esc(q)+'" oninput="window._popupSourcesData.questions['+i+']=this.value">'+
+    (i>0?'<button onclick="removeSourceQ('+i+')" style="padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>':'')+'</div>'
+  ).join('');
+
+  return `<div style="margin-bottom:10px;">
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כותרת המקור:</div>
+    <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:8px 10px;outline:none;margin-bottom:10px;font-weight:700;"
+      placeholder="שם המקור / הכותרת..." value="${esc(d.title||'')}" oninput="window._popupSourcesData.title=this.value">
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הנחיה לתלמידים (אופציונלי):</div>
+    <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:12px;"
+      placeholder="למשל: קראו את הטקסט וענו על השאלות..." value="${esc(d.instruction||'')}" oninput="window._popupSourcesData.instruction=this.value">
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">סוג התוכן:</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button onclick="setSourceContentType('text')" id="sct-text" style="padding:6px 14px;border-radius:7px;border:1px solid ${ct==='text'?'var(--gold)':'var(--border)'};background:${ct==='text'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">📝 טקסט</button>
+      <button onclick="setSourceContentType('image')" id="sct-image" style="padding:6px 14px;border-radius:7px;border:1px solid ${ct==='image'?'var(--gold)':'var(--border)'};background:${ct==='image'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">🖼️ תמונה</button>
+    </div>
+    ${ct==='text'?`
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">טקסט המקור (עד 15 שורות):</div>
+    <textarea rows="8" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:'Frank Ruhl Libre',serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;margin-bottom:10px;"
+      placeholder="הדביקי את הטקסט כאן..." oninput="window._popupSourcesData.text=this.value">${esc(d.text||'')}</textarea>`:`
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">קישור לתמונה או העלאה:</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button onclick="document.getElementById('src-img-file').click()" style="padding:5px 12px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">📁 העלה מהמחשב</button>
+    </div>
+    <input type="file" id="src-img-file" accept="image/*" style="display:none;" onchange="uploadSourceImage(this)">
+    <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:8px;direction:ltr;"
+      placeholder="קישור לתמונה..." value="${esc(d.imgUrl||'')}" oninput="window._popupSourcesData.imgUrl=this.value">
+    ${d.imgUrl?`<img src="${esc(d.imgUrl)}" style="max-width:100%;max-height:150px;border-radius:8px;object-fit:contain;margin-bottom:8px;" onerror="this.style.display='none'">`:''}`}
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">שאלות מלוות <span style="opacity:.5;">(יופיעו מימין לטקסט בלוח התלמיד)</span>:</div>
+    <div id="sources-qs">${qs}</div>
+    <button onclick="addSourceQ()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-top:4px;">+ הוסף שאלה</button>
+  </div>`;
+}
+function setSourceContentType(type){
+  window._popupSourcesData.contentType=type;
+  document.getElementById('item-popup-body').innerHTML=renderSourcesPopup(window._popupSourcesData);
+}
+async function uploadSourceImage(input){
+  const file=input.files[0];if(!file)return;
+  const formData=new FormData();formData.append('file',file);formData.append('upload_preset','w8rzehkl');
+  try{
+    const res=await fetch('https://api.cloudinary.com/v1_1/da6mdtjhh/image/upload',{method:'POST',body:formData});
+    const data=await res.json();
+    if(data.secure_url){window._popupSourcesData.imgUrl=data.secure_url;document.getElementById('item-popup-body').innerHTML=renderSourcesPopup(window._popupSourcesData);}
+  }catch(e){alert('שגיאה בהעלאה');}
 }
 function addSourceQ(){ window._popupSourcesData.questions.push(''); document.getElementById('item-popup-body').innerHTML=renderSourcesPopup(window._popupSourcesData); }
 function removeSourceQ(i){ window._popupSourcesData.questions.splice(i,1); document.getElementById('item-popup-body').innerHTML=renderSourcesPopup(window._popupSourcesData); }
 function collectSourcesPopup(){ return JSON.parse(JSON.stringify(window._popupSourcesData||{})); }
 
-// ── TEXT POPUP ──
-function renderTextPopup(d){
-  window._popupTextData=JSON.parse(JSON.stringify(d));
-  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כותרת (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:10px;" placeholder="כותרת..." value="'+esc(d.title||'')+'" oninput="window._popupTextData.title=this.value"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">תוכן:</div><textarea rows="6" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="כתבי טקסט, הנחיה או הסבר..." oninput="window._popupTextData.text=this.value">'+esc(d.text||'')+'</textarea></div>';
-}
-function collectTextPopup(){ return JSON.parse(JSON.stringify(window._popupTextData||{})); }
-
-// ── VIDEO POPUP ──
+// ── VIDEO POPUP (YouTube + Drive) ──
 function renderVideoPopup(d){
   window._popupVideoData=JSON.parse(JSON.stringify(d));
-  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">קישור YouTube:</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:8px 10px;outline:none;direction:ltr;margin-bottom:10px;" placeholder="https://www.youtube.com/watch?v=..." value="'+esc(d.url||'')+'" oninput="window._popupVideoData.url=this.value">'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;"><div><div style="font-size:.75rem;opacity:.6;margin-bottom:4px;">התחל מ (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:ltr;" placeholder="1:30" value="'+esc(d.startTime||'')+'" oninput="window._popupVideoData.startTime=this.value"></div><div><div style="font-size:.75rem;opacity:.6;margin-bottom:4px;">סיים ב (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:ltr;" placeholder="5:00" value="'+esc(d.endTime||'')+'" oninput="window._popupVideoData.endTime=this.value"></div></div>'+
-    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שאלה לאחר הצפייה (אופציונלי):</div><textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.85rem;padding:8px 10px;outline:none;resize:vertical;direction:rtl;" placeholder="מה למדתם מהסרטון?" oninput="window._popupVideoData.question=this.value">'+esc(d.question||'')+'</textarea></div>';
+  const src=d.source||'youtube';
+  return `<div style="margin-bottom:10px;">
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">מקור הסרטון:</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button onclick="setVideoSource('youtube')" id="vsrc-youtube" style="padding:6px 14px;border-radius:7px;border:1px solid ${src==='youtube'?'var(--gold)':'var(--border)'};background:${src==='youtube'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">▶️ YouTube</button>
+      <button onclick="setVideoSource('drive')" id="vsrc-drive" style="padding:6px 14px;border-radius:7px;border:1px solid ${src==='drive'?'var(--gold)':'var(--border)'};background:${src==='drive'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">☁️ Google Drive</button>
+    </div>
+    ${src==='drive'?`<div style="background:rgba(66,133,244,.07);border:1px solid rgba(66,133,244,.2);border-radius:8px;padding:10px 12px;font-size:.75rem;margin-bottom:10px;line-height:1.7;">
+      <b style="color:#93c5fd;">Google Drive:</b> שיתוף ← "כל מי שיש לו קישור" ← הדביקי את קישור הסרטון ישירות.
+    </div>`:''}
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">${src==='youtube'?'קישור YouTube:':'קישור Google Drive:'}</div>
+    <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;direction:ltr;margin-bottom:10px;"
+      placeholder="${src==='youtube'?'https://www.youtube.com/watch?v=...':'https://drive.google.com/file/d/.../view'}"
+      value="${esc(d.url||'')}" oninput="window._popupVideoData.url=this.value">
+    ${src==='youtube'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div><div style="font-size:.75rem;opacity:.6;margin-bottom:4px;">התחל מ (אופציונלי):</div>
+      <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:ltr;"
+        placeholder="1:30" value="${esc(d.startTime||'')}" oninput="window._popupVideoData.startTime=this.value"></div>
+      <div><div style="font-size:.75rem;opacity:.6;margin-bottom:4px;">סיים ב (אופציונלי):</div>
+      <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:ltr;"
+        placeholder="5:00" value="${esc(d.endTime||'')}" oninput="window._popupVideoData.endTime=this.value"></div>
+    </div>`:''}
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שאלה לאחר הצפייה (אופציונלי):</div>
+    <textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:8px 10px;outline:none;resize:vertical;direction:rtl;"
+      placeholder="מה למדתם מהסרטון?" oninput="window._popupVideoData.question=this.value">${esc(d.question||'')}</textarea>
+  </div>`;
+}
+function setVideoSource(src){
+  window._popupVideoData.source=src;
+  document.getElementById('item-popup-body').innerHTML=renderVideoPopup(window._popupVideoData);
 }
 function collectVideoPopup(){ return JSON.parse(JSON.stringify(window._popupVideoData||{})); }
 
@@ -3120,18 +3258,75 @@ async function uploadPopupImage(input){
 }
 function collectImagePopup(){ return JSON.parse(JSON.stringify(window._popupImageData||{})); }
 
-// ── WRITING POPUP (argue, full_ans) ──
-function renderArguePopup(d){ window._popupArgueData=JSON.parse(JSON.stringify(d)); return renderWritingPopupHtml(d,'_popupArgueData','כתבי את הנושא לכתיבה טיעונית...'); }
-function renderFullAnsPopup(d){ window._popupArgueData=JSON.parse(JSON.stringify(d)); return renderWritingPopupHtml(d,'_popupArgueData','כתבי את השאלה לכתיבת תשובה מלאה...'); }
-function renderWritingPopupHtml(d,varName,ph){
-  const styles=['תבנית עצמאית','תבנית מונחית','עם בנק מילים'];
-  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">רמת הנחיה:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
-    styles.map(s=>'<button onclick="selectPopupStyle(this,\''+varName+'\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
-    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הנושא / השאלה:</div>'+
-    '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;margin-bottom:10px;" placeholder="'+ph+'" oninput="window.'+varName+'.prompt=this.value">'+esc(d.prompt||'')+'</textarea>'+
-    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">בנק מילים (מופרדות בפסיק, אופציונלי):</div>'+
-    '<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.83rem;padding:7px 10px;outline:none;direction:rtl;" placeholder="לדוגמה, מפני ש, לפיכך..." value="'+esc(d.wordBank||'')+'" oninput="window.'+varName+'.wordBank=this.value">'+
-    '</div>';
+// ── WRITING POPUPS (argue + full_ans) ──
+const ARGUE_STRUCTURE=[
+  {key:'claim',label:'טענה',desc:'הצהרה ברורה על עמדתך'},
+  {key:'evidence1',label:'נימוק 1',desc:'ראיה ראשונה לטענה'},
+  {key:'evidence2',label:'נימוק 2',desc:'ראיה שנייה לטענה'},
+  {key:'counter',label:'טענת נגד + תשובה',desc:'הכר את הטענה הנגדית והפריך אותה'},
+  {key:'conclusion',label:'סיכום',desc:'חיזוק הטענה לאור הנימוקים'},
+];
+const FULL_ANS_STRUCTURE=[
+  {key:'intro',label:'פתיחה',desc:'הצגת הנושא ותשובתך הכללית'},
+  {key:'body1',label:'גוף 1 — פירוט ראשון',desc:'הסבר מפורט + דוגמה'},
+  {key:'body2',label:'גוף 2 — פירוט שני',desc:'הסבר מפורט + דוגמה'},
+  {key:'conclusion',label:'סיכום',desc:'מסקנה המשלבת את הנקודות'},
+];
+
+// בנק מילים קבוע — ניתן לשנות
+const DEFAULT_WORD_BANK='לפיכך, מכאן ש, בשל כך, לעומת זאת, בנוסף, ניתן לראות, יש לציין, כאמור, לסיכום, מחד, מאידך, בהתאם ל, כתוצאה מ, בעקבות';
+
+function renderArguePopup(d){ window._popupArgueData=JSON.parse(JSON.stringify(d)); return renderWritingPopupNew(d,'argue'); }
+function renderFullAnsPopup(d){ window._popupArgueData=JSON.parse(JSON.stringify(d)); return renderWritingPopupNew(d,'full_ans'); }
+
+function renderWritingPopupNew(d,type){
+  const isArg=type==='argue';
+  const struct=isArg?ARGUE_STRUCTURE:FULL_ANS_STRUCTURE;
+  const style=d.style||'מובנית';
+  const useWB=d.useWordBank||false;
+  const wb=d.wordBank||(useWB?DEFAULT_WORD_BANK:'');
+
+  const structHtml=struct.map(s=>`
+    <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;padding:8px;background:rgba(253,245,224,.03);border-radius:8px;border:1px solid rgba(212,168,67,.1);">
+      <div style="min-width:110px;font-size:.8rem;font-weight:700;color:var(--gold);padding-top:6px;">${s.label}</div>
+      <div style="flex:1;">
+        ${style==='מובנית'?`<div style="font-size:.7rem;opacity:.45;margin-bottom:4px;">${s.desc}</div>`:''}
+        <input style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:6px 10px;outline:none;"
+          placeholder="${style==='מובנית'?s.desc:''}..."
+          value="${esc((d.structure||{})[s.key]||'')}"
+          oninput="window._popupArgueData.structure=window._popupArgueData.structure||{};window._popupArgueData.structure['${s.key}']=this.value">
+      </div>
+    </div>`).join('');
+
+  return `<div style="margin-bottom:10px;">
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">${isArg?'נושא הכתיבה הטיעונית:':'שאלה לכתיבה:'}</div>
+    <textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.9rem;padding:9px;outline:none;resize:vertical;direction:rtl;margin-bottom:12px;"
+      placeholder="${isArg?'כתבי את הנושא לכתיבה טיעונית...':'כתבי את השאלה...'}"
+      oninput="window._popupArgueData.prompt=this.value">${esc(d.prompt||'')}</textarea>
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון תבנית:</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      ${['מובנית','עצמאית'].map(s=>`<button onclick="setWritingStyle('${s}')" id="ws-${s}"
+        style="padding:6px 14px;border-radius:7px;border:1px solid ${style===s?'var(--gold)':'var(--border)'};background:${style===s?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">${s}</button>`).join('')}
+    </div>
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">מבנה הכתיבה <span style="opacity:.5;">(${style==='מובנית'?'עם הסברים':'עמודות בלבד'})</span>:</div>
+    <div id="writing-structure">${structHtml}</div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;margin-top:12px;margin-bottom:${useWB?'8px':'0'};">
+      <input type="checkbox" ${useWB?'checked':''} onchange="window._popupArgueData.useWordBank=this.checked;document.getElementById('wb-wrap').style.display=this.checked?'block':'none'"
+        style="width:16px;height:16px;accent-color:var(--gold);">
+      הוסף בנק מילים לתלמידים
+    </label>
+    <div id="wb-wrap" style="${useWB?'':'display:none;'}margin-top:8px;">
+      <div style="font-size:.73rem;opacity:.5;margin-bottom:5px;">ערכי את הבנק (מופרדות בפסיק):</div>
+      <textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:8px;outline:none;resize:vertical;direction:rtl;"
+        placeholder="מילות קישור, ביטויים..." oninput="window._popupArgueData.wordBank=this.value">${esc(wb||DEFAULT_WORD_BANK)}</textarea>
+    </div>
+  </div>`;
+}
+
+function setWritingStyle(s){
+  window._popupArgueData.style=s;
+  document.getElementById('item-popup-body').innerHTML=renderWritingPopupNew(window._popupArgueData,
+    window._popupArgueData.prompt!==undefined?'argue':'full_ans');
 }
 function collectArguePopup(){ return JSON.parse(JSON.stringify(window._popupArgueData||{})); }
 function collectFullAnsPopup(){ return JSON.parse(JSON.stringify(window._popupArgueData||{})); }
