@@ -1422,7 +1422,7 @@ function loadAndRenderHeroes() {
         div.onmouseover = function() { this.style.borderColor = 'rgba(239,159,39,.7)'; };
         div.onmouseout = function() { this.style.borderColor = 'rgba(212,168,67,.3)'; };
         div.onclick = function() { openHero(h); };
-        var imgHtml = h.image ? '<img src="' + h.image + '" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.25);margin-bottom:8px;" onerror="this.style.display='none'">' : '<div style="width:56px;height:56px;border-radius:50%;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 8px;">👤</div>';
+        var imgHtml = h.image ? '<img src="' + h.image + '" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.25);margin-bottom:8px;" onerror="this.style.display=\'none\'">' : '<div style="width:56px;height:56px;border-radius:50%;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 8px;">👤</div>';
         div.innerHTML = imgHtml +
           '<div style="font-size:.82rem;font-weight:700;color:var(--gold2);margin-bottom:2px;">' + h.name + '</div>' +
           '<div style="font-size:.68rem;opacity:.55;">' + h.years + '</div>';
@@ -1467,8 +1467,7 @@ function addHeroBubble(text, role) {
   d.style.cssText = 'display:flex;justify-content:' + (role === 'user' ? 'flex-start' : 'flex-end') + ';';
   var b = document.createElement('div');
   b.style.cssText = 'max-width:80%;padding:9px 13px;font-size:.87rem;line-height:1.6;border-radius:' + (role === 'user' ? '12px 12px 12px 3px' : '12px 12px 3px 12px') + ';background:' + (role === 'user' ? 'rgba(55,138,221,.2)' : 'rgba(44,26,14,.9)') + ';border:1px solid ' + (role === 'user' ? 'rgba(55,138,221,.3)' : 'rgba(212,168,67,.2)') + ';color:var(--parch);';
-  b.innerHTML = text.replace(/
-/g, '<br>');
+  b.innerHTML = text.replace(/\n/g, '<br>');
   d.appendChild(b);
   msgs.appendChild(d);
   msgs.scrollTop = msgs.scrollHeight;
