@@ -360,6 +360,15 @@ async function askAssistant() {
   var name = document.getElementById('m-name').value || 'הדמות';
   try {
     var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        system: AI_SYSTEM,
+        messages: [{ role: 'user', content: 'לגבי הדמות ' + name + ': ' + q }]
+      })
+    });
     var data = await res.json();
     resp.innerHTML = data.content[0].text.replace(/\n/g, '<br>');
   } catch(e) {
