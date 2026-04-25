@@ -245,7 +245,7 @@ function renderGrid() {
     card.onclick = function() { openHeroModal(h.id); };
     var dot = '<div class="dot" style="background:' + (h.available ? '#4ade80' : 'rgba(255,255,255,.15)') + ';"></div>';
     var imgEl = h.image
-      ? '<img src="' + h.image + '" onerror="this.parentElement.innerHTML=\'<div class=no-img>👤</div>\'+this.parentElement.innerHTML.replace(this.outerHTML,\'\');">'
+      ? '<img src="' + h.image + '" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.25);margin-bottom:8px;" onerror="this.style.display=\'none\'">'
       : '<div class="no-img">👤</div>';
     card.innerHTML = dot + imgEl +
       '<div class="name">' + h.name + '</div>' +
