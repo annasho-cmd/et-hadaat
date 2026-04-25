@@ -101,6 +101,14 @@ body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#0a1628,#0
         <div><span class="label">קישור לתמונה</span><input id="m-image" class="input" style="margin:0;" oninput="previewImg(this.value)" placeholder="https://..."></div>
         <div><span class="label">הצגה עצמית</span><textarea id="m-intro" class="input" rows="3" style="margin:0;resize:vertical;" placeholder="שלום! אני..."></textarea></div>
         <div><span class="label">הוראות לדמות (System Prompt)</span><textarea id="m-system" class="input" rows="5" style="margin:0;resize:vertical;"></textarea></div>
+        <div>
+          <span class="label">טון דיבור</span>
+          <select id="m-tone" class="input" style="margin:0;cursor:pointer;">
+            <option value="simple">🟢 גובה העיניים — שפה פשוטה וחמה (כיתה ז')</option>
+            <option value="literary">🟡 היסטורי-ספרותי — סגנון עשיר יותר (כיתות גבוהות)</option>
+            <option value="deep">🔵 עמוק/חוקר — שפה עשירה עם דילמות (מתקדמים)</option>
+          </select>
+        </div>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;"><input type="checkbox" id="m-available" style="width:15px;height:15px;"> פעיל — גלוי לתלמידים</label>
         <input type="hidden" id="m-id">
       </div>
@@ -265,6 +273,7 @@ function openHeroModal(id) {
     document.getElementById('m-image').value = h.image || '';
     document.getElementById('m-intro').value = h.intro || '';
     document.getElementById('m-system').value = h.system || '';
+    document.getElementById('m-tone').value = h.tone || 'simple';
     document.getElementById('m-available').checked = !!h.available;
     document.getElementById('m-id').value = id;
     previewImg(h.image || '');
@@ -287,6 +296,13 @@ function saveHero() {
   if (!name) { alert('נא להזין שם דמות'); return; }
   var id = document.getElementById('m-id').value || 'hero_' + Date.now();
   var vals = document.getElementById('m-values').value.split(',').map(function(v) { return v.trim(); }).filter(Boolean);
+  var tone = document.getElementById('m-tone').value;
+  var toneNote = tone === 'simple'
+    ? 'דבר בשפה פשוטה, חמה וברורה המתאימה לתלמידי כיתה ז (גיל 13). היה אנושי וקרוב.'
+    : tone === 'literary'
+    ? 'דבר בסגנון ספרותי-היסטורי קצת יותר עשיר, כמו ביומן או במכתב, אך עדיין מובן.'
+    : 'דבר בשפה עשירה, הצג דילמות ושאלות מורכבות. מתאים לתלמידים מתקדמים.';
+  var fixedInstructions = '\n\nכללים קבועים: (1) ענה תמיד בגוף ראשון. (2) אם שואלים על אירועים אחרי שנת פטירתך — אמור: "זה כבר אחרי ימיי, איני יכול לדעת". (3) ' + toneNote + ' (4) ענה בקצרה — 2-4 משפטים.';
   var h = {
     id: id, name: name,
     years: document.getElementById('m-years').value.trim(),
@@ -294,7 +310,8 @@ function saveHero() {
     values: vals,
     image: document.getElementById('m-image').value.trim(),
     intro: document.getElementById('m-intro').value.trim(),
-    system: document.getElementById('m-system').value.trim(),
+    system: document.getElementById('m-system').value.trim() + fixedInstructions,
+    tone: tone,
     available: document.getElementById('m-available').checked
   };
   db.ref('heroes/chars/' + id).set(h, function() {
@@ -312,6 +329,8 @@ async function generateContent() {
   var resp = document.getElementById('ai-response');
   resp.innerHTML = '<span style="opacity:.5;">מייצר טיוטה...</span>';
   try {
+    var tone = document.getElementById('m-tone').value;
+    var toneDesc = tone === 'simple' ? 'גובה העיניים, שפה פשוטה לגיל 13' : tone === 'literary' ? 'היסטורי-ספרותי, לכיתות גבוהות' : 'עמוק עם דילמות, למתקדמים';
     var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -319,7 +338,7 @@ async function generateContent() {
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1500,
         system: AI_SYSTEM,
-        messages: [{ role: 'user', content: 'צור כרטיס דמות עבור: ' + name + ' (' + years + ', ' + field + '). החזר JSON בלבד: {"intro": "הצגה עצמית 3-4 משפטים בגוף ראשון", "system": "הוראות מפורטות לדמות"}' }]
+        messages: [{ role: 'user', content: 'צור כרטיס דמות עבור: ' + name + ' (' + years + ', ' + field + '). טון: ' + toneDesc + '. החזר JSON בלבד: {"intro": "הצגה עצמית 3-4 משפטים בגוף ראשון", "system": "הוראות מפורטות — ללא כללי גוף ראשון וטון, אלה יתווספו אוטומטית"}' }]
       })
     });
     var data = await res.json();
@@ -341,15 +360,6 @@ async function askAssistant() {
   var name = document.getElementById('m-name').value || 'הדמות';
   try {
     var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 600,
-        system: AI_SYSTEM,
-        messages: [{ role: 'user', content: 'לגבי הדמות ' + name + ': ' + q }]
-      })
-    });
     var data = await res.json();
     resp.innerHTML = data.content[0].text.replace(/\n/g, '<br>');
   } catch(e) {
