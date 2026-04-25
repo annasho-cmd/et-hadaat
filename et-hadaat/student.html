@@ -507,10 +507,10 @@ body::before{
 
     <!-- VIEW: HEROES CHAT -->
     <div class="view" id="view-heroes">
-      <div class="view-header">
-        <button class="back-btn" onclick="showView('view-home')">→ חזרה</button>
+      <div class="view-header" id="heroes-view-header">
+        <button class="back-btn" id="heroes-back-btn" onclick="heroesBackBtn()">→ חזרה</button>
         <div style="flex:1;text-align:center;">
-          <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);">משוחחים עם גיבורים אמיתיים 🌟</div>
+          <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);" id="heroes-header-title">משוחחים עם גיבורים אמיתיים 🌟</div>
         </div>
         <div style="width:60px;"></div>
       </div>
@@ -520,7 +520,6 @@ body::before{
       </div>
       <div id="heroes-chat-area" style="display:none;flex-direction:column;height:calc(100vh - 120px);">
         <div style="display:flex;align-items:center;gap:10px;padding:10px 0 12px;border-bottom:1px solid rgba(212,168,67,.15);margin-bottom:12px;">
-          <button onclick="backToHeroesGrid()" style="font-size:.8rem;padding:5px 12px;border:1px solid rgba(212,168,67,.3);border-radius:7px;background:transparent;color:var(--parch);cursor:pointer;">→ רשימה</button>
           <img id="hc-photo" src="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.3);">
           <div>
             <div id="hc-name" style="font-weight:700;font-size:.95rem;color:var(--gold2);"></div>
@@ -1452,6 +1451,17 @@ function openHero(h) {
   }
   document.getElementById('hc-input').value = '';
   document.getElementById('hc-input').focus();
+  var btn = document.getElementById('heroes-back-btn');
+  if (btn) btn.textContent = '→ רשימה';
+}
+
+function heroesBackBtn() {
+  var chatArea = document.getElementById('heroes-chat-area');
+  if (chatArea && chatArea.style.display !== 'none') {
+    backToHeroesGrid();
+  } else {
+    showView('view-home');
+  }
 }
 
 function backToHeroesGrid() {
@@ -1459,6 +1469,10 @@ function backToHeroesGrid() {
   heroHistory = [];
   document.getElementById('heroes-selection').style.display = 'block';
   document.getElementById('heroes-chat-area').style.display = 'none';
+  var btn = document.getElementById('heroes-back-btn');
+  if (btn) btn.textContent = '→ חזרה';
+  var title = document.getElementById('heroes-header-title');
+  if (title) title.textContent = 'משוחחים עם גיבורים אמיתיים 🌟';
 }
 
 function addHeroBubble(text, role) {
