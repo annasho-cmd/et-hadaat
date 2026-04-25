@@ -697,8 +697,24 @@ const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
 let aiHistory=[];
 
 const ITEM_BANK=[
-  {type:'entry_card', icon:'🚪',name:'כרטיס כניסה',  desc:'שאלה שמפעילה ידע קודם'},
-  {type:'exit_card',  icon:'🎫',name:'כרטיס יציאה',  desc:'שאלה מסכמת לסוף שיעור'},
+  {type:'entry_card', icon:'🚪',name:'כרטיס כניסה',
+    desc:'כלי הערכה מעצבת קצר (3-5 דקות) בתחילת השיעור. מטרתו: לחבר תלמידים לנושא, לבדוק ידע קודם, או לעורר סקרנות. 4 סגנונות: 🔴 רפלקסיבי-רגשי — חיבור אישי לנושא. 🟡 בדיקת ידע קודם — שליפה מהזיכרון. 🟢 סקרנות ושאלות — ניבוי לפני ההוראה. 🔵 יישומי/חשיבתי — אתגר קצר של מיומנות.',
+    styles:[
+      {name:'🖼️ תמונה/מספר + שאלה', desc:'סולם מספרים (1-10) או תמונה + שאלה פתוחה. מתאים לסגנון רפלקסיבי-רגשי.'},
+      {name:'❓ סוגי שאלות', desc:'שאלה פתוחה / נכון-לא נכון / רב-ברירה. מתאים לבדיקת ידע קודם.'},
+      {name:'🎬 מדיה + שאלה', desc:'תמונה או סרטון + שאלה פתוחה. מתאים לסגנון סקרנות ושאלות.'},
+      {name:'📊 טבלה + השלמה', desc:'טבלה עם תאים למילוי חופשי. מתאים ליישומי/חשיבתי.'},
+      {name:'🔀 מיון וגרירה', desc:'סידור פריטים לפי קטגוריות. מתאים ליישומי/חשיבתי.'},
+    ],
+    usedIn:['intro']},
+  {type:'exit_card',  icon:'🎫',name:'כרטיס יציאה',
+    desc:'"כרטיס מעבר" בסיום השיעור. התלמיד משיב לפני שיוצא. עבור המורה: משוב מיידי לזיהוי פערים ותכנון השיעור הבא. 4 סגנונות: 📝 סיכום וזיקוק — זיהוי העיקר. 🧠 רפלקציה על למידה — מטה-קוגניציה. ✅ בדיקת הבנה יישומית — יישום הידע. 💬 משוב להמשך — הכנה לשיעור הבא.',
+    styles:[
+      {name:'❓ סוגי שאלות', desc:'שאלה פתוחה / רב-ברירה / נכון-לא נכון. מתאים לכל הסגנונות.'},
+      {name:'📊 טבלה + השלמה', desc:'טבלה עם תאים למילוי. מתאים לסיכום וזיקוק.'},
+      {name:'🖼️ תמונה/מספר + שאלה', desc:'סולם מספרים (1-10) + שאלה פתוחה. מתאים לרפלקציה.'},
+    ],
+    usedIn:['closing']},
   {type:'text',       icon:'📄',name:'טקסט / מקור',  desc:'קטע קריאה או מקור ראשוני'},
   {type:'sources',    icon:'📜',name:'קריאת מקורות', desc:'טקסט עם שאלות מלוות'},
   {type:'image',      icon:'🖼️',name:'תמונה',         desc:'תמונה, מפה או מסמך חזותי'},
@@ -2970,15 +2986,76 @@ function renderQuestionPopup(d,type){
 function collectQuestionPopup(){ return JSON.parse(JSON.stringify(window._popupQData||{})); }
 
 // ── CARD POPUP ──
-function renderCardPopup(d,type){
-  window._popupCardData=JSON.parse(JSON.stringify(d));
-  const isEntry=type==='entry';
-  const styles=isEntry?['בדיקת ידע קודם','שאלה פתוחה','סקרנות ושאלות','יישומי-חשיבתי','רפלקטיבי-רגשי']:['סיכום וזיקוק','רפלקציה על למידה','בדיקת הבנה יישומית','משוב והכנה להמשך'];
-  return '<div style="margin-bottom:12px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון הכרטיס:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
-    styles.map(s=>'<button onclick="selectPopupStyle(this,\'_popupCardData\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
-    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה לתלמידים:</div>'+
-    '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="'+(isEntry?'שאלת הכניסה...':'שאלת הסיכום...')+'" oninput="window._popupCardData.question=this.value">'+esc(d.question||'')+'</textarea></div>';
+function renderCardPopup(d, type){
+  window._popupCardData = JSON.parse(JSON.stringify(d));
+  if(!window._popupCardData.template) window._popupCardData.template = '';
+  const isEntry = type === 'entry';
+  const templates = isEntry ? [
+    {id:'img_num_q', icon:'🖼️', name:'תמונה/מספר + שאלה', desc:'סולם מספרים (1-10) או תמונה + שאלה פתוחה. מתאים לסגנון רפלקסיבי-רגשי.'},
+    {id:'question_types', icon:'❓', name:'סוגי שאלות', desc:'פתוחה / נכון-לא נכון / רב-ברירה. מתאים לבדיקת ידע קודם.'},
+    {id:'media_q', icon:'🎬', name:'מדיה + שאלה', desc:'תמונה או סרטון + שאלה פתוחה. מתאים לסקרנות ושאלות.'},
+    {id:'table_fill', icon:'📊', name:'טבלה + השלמה', desc:'טבלה עם תאים למילוי חופשי. מתאים ליישומי/חשיבתי.'},
+    {id:'drag_sort', icon:'🔀', name:'מיון וגרירה', desc:'סידור פריטים לפי קטגוריות. מתאים ליישומי/חשיבתי.'},
+  ] : [
+    {id:'question_types', icon:'❓', name:'סוגי שאלות', desc:'פתוחה / רב-ברירה / נכון-לא נכון. מתאים לכל הסגנונות.'},
+    {id:'table_fill', icon:'📊', name:'טבלה + השלמה', desc:'טבלה עם תאים למילוי. מתאים לסיכום וזיקוק.'},
+    {id:'img_num_q', icon:'🖼️', name:'תמונה/מספר + שאלה', desc:'סולם מספרים (1-10) + שאלה פתוחה. מתאים לרפלקציה.'},
+  ];
+  const selected = window._popupCardData.template;
+  const templateButtons = templates.map(t =>
+    '<div onclick="selectCardTemplate(\''+t.id+'\')" id="ctpl-'+t.id+'" style="border:2px solid '+(selected===t.id?'var(--gold)':'var(--border)')+';border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;background:'+(selected===t.id?'rgba(212,168,67,.12)':'rgba(253,245,224,.03)')+';margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.2rem;">'+t.icon+'</span><div><div style="font-size:.85rem;font-weight:700;color:'+(selected===t.id?'var(--gold)':'var(--parch)')+';">'+t.name+'</div><div style="font-size:.72rem;opacity:.6;margin-top:2px;">'+t.desc+'</div></div></div></div>'
+  ).join('');
+  return '<div style="font-size:.75rem;opacity:.5;margin-bottom:12px;">בחרי תבנית לכרטיס '+(isEntry?'הכניסה':'היציאה')+':</div>'+templateButtons+'<div id="card-template-fields" style="margin-top:14px;">'+(selected?renderCardTemplateFields(selected,window._popupCardData):'<div style="opacity:.4;font-size:.82rem;text-align:center;padding:12px;">בחרי תבנית למעלה כדי להמשיך</div>')+'</div>';
 }
+
+function selectCardTemplate(tplId){
+  window._popupCardData.template=tplId;
+  document.querySelectorAll('[id^="ctpl-"]').forEach(el=>{
+    const isSel=el.id==='ctpl-'+tplId;
+    el.style.borderColor=isSel?'var(--gold)':'var(--border)';
+    el.style.background=isSel?'rgba(212,168,67,.12)':'rgba(253,245,224,.03)';
+    const nameEl=el.querySelector('div>div>div');
+    if(nameEl)nameEl.style.color=isSel?'var(--gold)':'var(--parch)';
+  });
+  document.getElementById('card-template-fields').innerHTML=renderCardTemplateFields(tplId,window._popupCardData);
+}
+
+function renderCardTemplateFields(tplId,d){
+  const q=d.question||'';
+  const time=d.time||'3';
+  const timeField='<div style="margin-top:12px;display:flex;align-items:center;gap:10px;"><div style="font-size:.75rem;opacity:.6;">⏱ זמן:</div><label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer;"><input type="radio" name="card-time" value="2" '+(time==='2'?'checked':'')+' onchange="window._popupCardData.time=\'2\'"> 2 דקות</label><label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer;"><input type="radio" name="card-time" value="3" '+(time!=='2'?'checked':'')+' onchange="window._popupCardData.time=\'3\'"> 3 דקות</label></div>';
+  if(tplId==='img_num_q'){
+    const sub=d.subtype||'scale';
+    return '<div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;">🖼️ תמונה/מספר + שאלה</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סוג הפתיח:</div><div style="display:flex;gap:8px;margin-bottom:12px;"><button onclick="setCardSubtype(\'scale\')" style="padding:6px 14px;border-radius:7px;border:1px solid '+(sub==='scale'?'var(--gold)':'var(--border)')+';background:'+(sub==='scale'?'rgba(212,168,67,.15)':'transparent')+';color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.8rem;">📊 סולם 1-10</button><button onclick="setCardSubtype(\'image\')" style="padding:6px 14px;border-radius:7px;border:1px solid '+(sub==='image'?'var(--gold)':'var(--border)')+';background:'+(sub==='image'?'rgba(212,168,67,.15)':'transparent')+';color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.8rem;">🖼️ תמונה</button></div>'+(sub==='image'?'<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:10px;direction:ltr;" placeholder="קישור לתמונה..." value="'+esc(d.imgUrl||'')+'" oninput="window._popupCardData.imgUrl=this.value">'+'':'')+
+    '<div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה:</div><textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:9px;outline:none;resize:vertical;direction:rtl;" placeholder="מה תרגיש/י אם..." oninput="window._popupCardData.question=this.value">'+esc(q)+'</textarea>'+timeField;
+  }
+  if(tplId==='question_types'){
+    const qt=d.qtype||'open';
+    return '<div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;">❓ סוגי שאלות</div><div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'
+      +[['open','שאלה פתוחה'],['tf','נכון/לא נכון'],['mc','רב-ברירה']].map(([v,l])=>'<button onclick="setCardQType(\''+v+'\')" style="padding:6px 14px;border-radius:7px;border:1px solid '+(qt===v?'var(--gold)':'var(--border)')+';background:'+(qt===v?'rgba(212,168,67,.15)':'transparent')+';color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.8rem;">'+l+'</button>').join('')
+      +'</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה:</div><textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:9px;outline:none;resize:vertical;direction:rtl;" placeholder="כתבי את השאלה..." oninput="window._popupCardData.question=this.value">'+esc(q)+'</textarea>'
+      +(qt==='mc'?'<div style="font-size:.75rem;opacity:.6;margin:8px 0 5px;">אפשרויות (עד 4):</div>'+[0,1,2,3].map(i=>'<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.82rem;padding:7px 10px;outline:none;margin-bottom:6px;" placeholder="אפשרות '+(i+1)+'..." value="'+esc((d.options||[])[i]||'')+'" oninput="window._popupCardData.options=window._popupCardData.options||[];window._popupCardData.options['+(i)+']=this.value">').join('')+'<div style="font-size:.75rem;opacity:.6;margin-bottom:5px;">תשובה נכונה (1-4):</div><input type="number" min="1" max="4" style="width:80px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:Heebo,sans-serif;padding:7px;outline:none;text-align:center;" value="'+(d.correct||1)+'" oninput="window._popupCardData.correct=parseInt(this.value)">':'')
+      +timeField;
+  }
+  if(tplId==='media_q'){
+    const sub=d.subtype||'img_media';
+    return '<div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;">🎬 מדיה + שאלה</div><div style="display:flex;gap:8px;margin-bottom:10px;"><button onclick="setCardSubtype(\'img_media\')" style="padding:6px 14px;border-radius:7px;border:1px solid '+(sub==='img_media'?'var(--gold)':'var(--border)')+';background:'+(sub==='img_media'?'rgba(212,168,67,.15)':'transparent')+';color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.8rem;">🖼️ תמונה</button><button onclick="setCardSubtype(\'vid_media\')" style="padding:6px 14px;border-radius:7px;border:1px solid '+(sub==='vid_media'?'var(--gold)':'var(--border)')+';background:'+(sub==='vid_media'?'rgba(212,168,67,.15)':'transparent')+';color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.8rem;">▶️ סרטון</button></div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:10px;direction:ltr;" placeholder="'+(sub==='vid_media'?'קישור YouTube...':'קישור לתמונה...')+'" value="'+esc(d.mediaUrl||'')+'" oninput="window._popupCardData.mediaUrl=this.value"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">השאלה:</div><textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:9px;outline:none;resize:vertical;direction:rtl;" placeholder="מה אתם רואים? מה לדעתכם..." oninput="window._popupCardData.question=this.value">'+esc(q)+'</textarea>'+timeField;
+  }
+  if(tplId==='table_fill'){
+    const rows=d.tableRows||[{label:'',value:''}];
+    return '<div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;">📊 טבלה + השלמה</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שאלה/הוראה (אופציונלי):</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:12px;" placeholder="למלא את הטבלה לפי..." value="'+esc(q)+'" oninput="window._popupCardData.question=this.value"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שורות הטבלה:</div><div id="card-table-rows">'+rows.map((r,i)=>'<div style="display:flex;gap:8px;margin-bottom:7px;"><input style="flex:1;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.82rem;padding:7px 10px;outline:none;" placeholder="כותרת שורה '+(i+1)+'" value="'+esc(r.label||'')+'" oninput="window._popupCardData.tableRows['+(i)+'].label=this.value"><div style="padding:7px 10px;background:rgba(42,107,42,.1);border:1px dashed rgba(42,107,42,.3);border-radius:6px;font-size:.75rem;color:#6ee7a0;white-space:nowrap;">ריק לתלמיד</div></div>').join('')+'</div><button onclick="addCardTableRow()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף שורה</button>'+timeField;
+  }
+  if(tplId==='drag_sort'){
+    const items=d.dragItems||['','',''];
+    return '<div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;">🔀 מיון וגרירה</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הוראה לתלמיד:</div><input style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.83rem;padding:8px 10px;outline:none;margin-bottom:12px;" placeholder="מיינו את הפריטים לפי..." value="'+esc(q)+'" oninput="window._popupCardData.question=this.value"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">פריטים למיון (לפחות 3):</div>'+items.map((it,i)=>'<input style="width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.82rem;padding:7px 10px;outline:none;margin-bottom:7px;" placeholder="פריט '+(i+1)+'..." value="'+esc(it)+'" oninput="window._popupCardData.dragItems=window._popupCardData.dragItems||[];window._popupCardData.dragItems['+(i)+']=this.value">').join('')+'<button onclick="addCardDragItem()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף פריט</button>'+timeField;
+  }
+  return '<div style="opacity:.4;font-size:.82rem;text-align:center;padding:12px;">תבנית לא מוכרת</div>';
+}
+
+function setCardSubtype(sub){ window._popupCardData.subtype=sub; document.getElementById('card-template-fields').innerHTML=renderCardTemplateFields(window._popupCardData.template,window._popupCardData); }
+function setCardQType(qt){ window._popupCardData.qtype=qt; document.getElementById('card-template-fields').innerHTML=renderCardTemplateFields(window._popupCardData.template,window._popupCardData); }
+function addCardTableRow(){ if(!window._popupCardData.tableRows)window._popupCardData.tableRows=[]; window._popupCardData.tableRows.push({label:'',value:''}); document.getElementById('card-template-fields').innerHTML=renderCardTemplateFields(window._popupCardData.template,window._popupCardData); }
+function addCardDragItem(){ if(!window._popupCardData.dragItems)window._popupCardData.dragItems=[]; window._popupCardData.dragItems.push(''); document.getElementById('card-template-fields').innerHTML=renderCardTemplateFields(window._popupCardData.template,window._popupCardData); }
 function collectCardPopup(){ return JSON.parse(JSON.stringify(window._popupCardData||{})); }
 
 // ── SOURCES POPUP ──
