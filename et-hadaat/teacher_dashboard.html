@@ -712,7 +712,6 @@ select.modal-input option{background:#2c1a0e;}
   </div>
 </div>
 
-<!-- CHECK WORK MODAL -->
 <div class="modal-overlay" id="modal-check-work">
   <div class="modal" style="max-width:620px;width:95%;">
     <div class="modal-title">📎 בדיקת עבודה</div>
@@ -721,8 +720,50 @@ select.modal-input option{background:#2c1a0e;}
       <input class="modal-input" id="check-student-name" placeholder="שם התלמיד/ה">
     </div>
     <div class="modal-field">
-      <div class="modal-label">הדבקי את תוכן העבודה</div>
-      <textarea class="modal-input" id="check-work-text" rows="8" placeholder="הדביקי כאן את טקסט העבודה..."></textarea>
+      <div class="modal-label">אופן הגשת העבודה</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button onclick="setCheckMode('text')" id="cmode-text"
+          style="padding:7px 14px;border-radius:8px;border:1px solid var(--gold);background:rgba(212,168,67,.15);color:var(--gold);cursor:pointer;font-family:Heebo,sans-serif;font-size:.83rem;font-weight:700;">
+          📝 הדבקת טקסט
+        </button>
+        <button onclick="setCheckMode('pdf')" id="cmode-pdf"
+          style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.83rem;">
+          📄 קובץ PDF
+        </button>
+        <button onclick="setCheckMode('image')" id="cmode-image"
+          style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.83rem;">
+          🖼️ תמונה
+        </button>
+      </div>
+      <!-- טקסט -->
+      <div id="check-mode-text">
+        <textarea class="modal-input" id="check-work-text" rows="7" placeholder="הדביקי כאן את טקסט העבודה..."></textarea>
+      </div>
+      <!-- PDF -->
+      <div id="check-mode-pdf" style="display:none;">
+        <div onclick="document.getElementById('check-pdf-file').click()"
+          style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;"
+          onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2rem;margin-bottom:8px;">📄</div>
+          <div style="font-size:.88rem;opacity:.7;">לחצי לבחירת קובץ PDF</div>
+          <div id="check-pdf-name" style="font-size:.8rem;color:var(--gold);margin-top:8px;"></div>
+        </div>
+        <input type="file" id="check-pdf-file" accept=".pdf" style="display:none;" onchange="loadCheckFile(this,'pdf')">
+      </div>
+      <!-- תמונה -->
+      <div id="check-mode-image" style="display:none;">
+        <div onclick="document.getElementById('check-img-file').click()"
+          style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;"
+          onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2rem;margin-bottom:8px;">🖼️</div>
+          <div style="font-size:.88rem;opacity:.7;">לחצי לבחירת תמונה</div>
+          <div id="check-img-name" style="font-size:.8rem;color:var(--gold);margin-top:8px;"></div>
+        </div>
+        <input type="file" id="check-img-file" accept="image/*" style="display:none;" onchange="loadCheckFile(this,'image')">
+        <div id="check-img-preview" style="display:none;margin-top:10px;text-align:center;">
+          <img id="check-img-el" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;">
+        </div>
+      </div>
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
@@ -1743,68 +1784,78 @@ function openCheckWorkModal(){
   document.getElementById('modal-check-work').style.display='flex';
 }
 
+let _checkFileData = null;
+
+function setCheckMode(mode){
+  ['text','pdf','image'].forEach(m=>{
+    const el=document.getElementById('check-mode-'+m);
+    if(el)el.style.display=m===mode?'block':'none';
+    const btn=document.getElementById('cmode-'+m);
+    if(!btn)return;
+    btn.style.borderColor=m===mode?'var(--gold)':'var(--border)';
+    btn.style.background=m===mode?'rgba(212,168,67,.15)':'transparent';
+    btn.style.color=m===mode?'var(--gold)':'var(--parch)';
+    btn.style.fontWeight=m===mode?'700':'400';
+  });
+  _checkFileData=null;
+}
+
+function loadCheckFile(input,type){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const base64=e.target.result.split(',')[1];
+    const mediaType=type==='pdf'?'application/pdf':file.type;
+    _checkFileData={type,base64,mediaType,name:file.name};
+    if(type==='pdf'){
+      const el=document.getElementById('check-pdf-name');if(el)el.textContent='✓ '+file.name;
+    } else {
+      const el=document.getElementById('check-img-name');if(el)el.textContent='✓ '+file.name;
+      const prev=document.getElementById('check-img-preview');
+      const img=document.getElementById('check-img-el');
+      if(img)img.src=e.target.result;
+      if(prev)prev.style.display='block';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
 async function checkWorkWithAI(){
   const task=tasks.find(t=>t.id===currentTaskId);
   if(!task){alert('לא נמצאה משימה');return;}
   if(!task.rubric){alert('אין מחוון למשימה זו. תחילה צרי מחוון.');return;}
-  const workText=document.getElementById('check-work-text').value.trim();
   const studentName=document.getElementById('check-student-name').value.trim();
-  if(!workText){alert('נא להדביק את תוכן העבודה.');return;}
+  const activeMode=['text','pdf','image'].find(m=>{const el=document.getElementById('check-mode-'+m);return el&&el.style.display!=='none';})||'text';
+  const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description}`).join('\n');
+  const jsonPrompt=`\n\nענה בפורמט JSON בלבד:\n{"scores":[{"criterion":"שם","score":מספר,"maxScore":מספר,"comment":"הערה"}],"totalScore":מספר,"verbalFeedback":"משוב","strengths":"חוזקות","improvements":"לשיפור"}`;
   const btn=document.querySelector('#modal-check-work .modal-save');
   if(btn)btn.textContent='⏳ בודק...';
-  const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description}`).join('\n');
-  const prompt=`בדוק את העבודה הבאה לפי המחוון:
-
-מחוון:
-${rubricText}
-
-עבודת התלמיד:
-${workText}
-
-ענה בפורמט JSON בלבד:
-{
-  "scores": [{"criterion": "שם הקריטריון", "score": ניקוד_שניתן, "maxScore": ניקוד_מקסימלי, "comment": "הערה קצרה"}],
-  "totalScore": סה"כ,
-  "verbalFeedback": "הערה מילולית כוללת (2-3 משפטים)",
-  "strengths": "נקודות חוזק",
-  "improvements": "מה לשפר"
-}`;
   try{
-    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
-        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
-        messages:[{role:'user',content:prompt}]})});
+    let body;
+    if(activeMode==='text'){
+      const workText=document.getElementById('check-work-text').value.trim();
+      if(!workText){alert('נא להדביק את תוכן העבודה.');if(btn)btn.textContent='🤖 בדוק לפי מחוון';return;}
+      body={model:'claude-sonnet-4-20250514',max_tokens:1000,system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
+        messages:[{role:'user',content:`בדוק לפי המחוון:\n${rubricText}\n\nעבודה:\n${workText}${jsonPrompt}`}]};
+    } else {
+      if(!_checkFileData){alert('נא לבחור קובץ.');if(btn)btn.textContent='🤖 בדוק לפי מחוון';return;}
+      const fileContent=_checkFileData.type==='pdf'
+        ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_checkFileData.base64}}
+        :{type:'image',source:{type:'base64',media_type:_checkFileData.mediaType,data:_checkFileData.base64}};
+      body={model:'claude-sonnet-4-20250514',max_tokens:1000,system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
+        messages:[{role:'user',content:[fileContent,{type:'text',text:`בדוק לפי המחוון:\n${rubricText}${jsonPrompt}`}]}]};
+    }
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     const clean=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
     const result=JSON.parse(clean);
     const resultEl=document.getElementById('check-work-result');
     resultEl.style.display='block';
-    resultEl.innerHTML=`
-      <div style="background:rgba(42,107,42,.1);border:1px solid rgba(42,107,42,.3);border-radius:10px;padding:14px;">
-        <div style="font-size:1rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">
-          ציון מוצע: ${result.totalScore}/100
-        </div>
-        ${result.scores.map(s=>`<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);">
-          <span>${s.criterion}: <span style="opacity:.6">${s.comment}</span></span>
-          <span style="color:var(--gold);">${s.score}/${s.maxScore}</span>
-        </div>`).join('')}
-        <div style="margin-top:10px;font-size:.82rem;line-height:1.6;">
-          <div style="color:#6ee7a0;margin-bottom:4px;">✓ חוזקות: ${result.strengths}</div>
-          <div style="color:#fca5a5;margin-bottom:4px;">⚠ לשיפור: ${result.improvements}</div>
-          <div style="opacity:.7;">${result.verbalFeedback}</div>
-        </div>
-        <div style="margin-top:12px;display:flex;gap:8px;">
-          <button onclick="confirmGrade('${currentTaskId}','${studentName}',${result.totalScore})" 
-            class="btn-primary" style="font-size:.8rem;">✓ אשר ציון ${result.totalScore}</button>
-          <input type="number" id="manual-score" value="${result.totalScore}" min="0" max="100"
-            style="width:70px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);text-align:center;padding:4px;font-family:'Heebo',sans-serif;">
-          <button onclick="confirmGrade('${currentTaskId}','${studentName}',document.getElementById('manual-score').value)"
-            class="btn-primary" style="font-size:.8rem;background:rgba(212,168,67,.15);color:var(--gold);">שנה וישמר</button>
-        </div>
-      </div>`;
+    resultEl.innerHTML=`<div style="background:rgba(42,107,42,.1);border:1px solid rgba(42,107,42,.3);border-radius:10px;padding:14px;"><div style="font-size:1rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">ציון מוצע: ${result.totalScore}/100</div>${result.scores.map(s=>`<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);"><span>${s.criterion}: <span style="opacity:.6">${s.comment}</span></span><span style="color:var(--gold);">${s.score}/${s.maxScore}</span></div>`).join('')}<div style="margin-top:10px;font-size:.82rem;line-height:1.6;"><div style="color:#6ee7a0;margin-bottom:4px;">✓ חוזקות: ${result.strengths}</div><div style="color:#fca5a5;margin-bottom:4px;">⚠ לשיפור: ${result.improvements}</div><div style="opacity:.7;">${result.verbalFeedback}</div></div><div style="margin-top:12px;display:flex;gap:8px;"><button onclick="confirmGrade('${currentTaskId}','${studentName}',${result.totalScore})" class="btn-primary" style="font-size:.8rem;">✓ אשר ציון ${result.totalScore}</button><input type="number" id="manual-score" value="${result.totalScore}" min="0" max="100" style="width:70px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);text-align:center;padding:4px;font-family:Heebo,sans-serif;"><button onclick="confirmGrade('${currentTaskId}','${studentName}',document.getElementById('manual-score').value)" class="btn-primary" style="font-size:.8rem;background:rgba(212,168,67,.15);color:var(--gold);">שנה וישמר</button></div></div>`;
   }catch(e){alert('שגיאה בבדיקה. נסי שוב.');}
   if(btn)btn.textContent='🤖 בדוק לפי מחוון';
 }
+
 
 function confirmGrade(taskId,studentName,score){
   saveStudentGrade(taskId,studentName,score);
