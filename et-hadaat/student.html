@@ -1397,18 +1397,8 @@ function loadAndRenderHeroes() {
     var allowedCharIds = {};
 
     // Find groups assigned to my class
-    // Also collect all possible IDs for this student (id, code, name)
-    var myIds = {};
-    if (groupData) {
-      if (groupData.id) myIds[groupData.id] = true;
-      if (groupData.code) myIds[groupData.code] = true;
-      if (groupData.name) myIds[groupData.name] = true;
-    }
-
     Object.values(charGroups).forEach(function(g) {
-      var assigned = g.assignedTo || {};
-      var match = Object.keys(myIds).some(function(mid) { return assigned[mid]; });
-      if (match) {
+      if (g.assignedTo && g.assignedTo[myGroupId]) {
         Object.keys(g.chars || {}).forEach(function(cid) { allowedCharIds[cid] = true; });
       }
     });
@@ -1495,7 +1485,7 @@ async function sendHeroMsg() {
   typing.style.fontStyle = 'italic';
   typing.style.opacity = '.5';
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: heroCurrentChar.system || ('אתה ' + heroCurrentChar.name + '. ענה בגוף ראשון בעברית פשוטה.'), messages: heroHistory })
