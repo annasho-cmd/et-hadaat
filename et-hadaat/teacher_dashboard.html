@@ -705,7 +705,8 @@ select.modal-input option{background:#2c1a0e;}
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
       <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="buildTaskRubric()">🤖 בנה מחוון</button>
-      <button class="modal-save" onclick="saveNewTask()">💾 שמור בלי מחוון</button>
+      <button class="modal-save" id="btn-save-with-rubric" style="display:none;background:rgba(42,107,42,.8);" onclick="saveNewTask(true)">💾 שמור עם מחוון ✓</button>
+      <button class="modal-save" onclick="saveNewTask(false)">💾 שמור בלי מחוון</button>
     </div>
     <!-- מחוון שנבנה -->
     <div id="task-rubric-preview" style="display:none;margin-top:16px;background:rgba(42,107,42,.1);border:1px solid rgba(42,107,42,.3);border-radius:10px;padding:14px;"></div>
@@ -1705,11 +1706,14 @@ async function buildTaskRubric(){
         <span style="color:var(--gold);font-weight:700;">${c.maxPoints} נק׳</span>
       </div>`).join('')+
       `<div style="font-size:.8rem;margin-top:8px;opacity:.5;">${rubric.notes||''}</div>`;
+    // הצג כפתור שמור עם מחוון
+    const saveBtn=document.getElementById('btn-save-with-rubric');
+    if(saveBtn)saveBtn.style.display='inline-block';
   }catch(e){alert('שגיאה בבניית המחוון. נסי שוב.');}
   if(btn)btn.textContent=prevText;
 }
 
-function saveNewTask(rubricFromModal){
+function saveNewTask(withRubric){
   const name=document.getElementById('task-name').value.trim();
   const groupId=document.getElementById('task-group').value;
   const type=document.getElementById('task-type').value;
@@ -1718,11 +1722,12 @@ function saveNewTask(rubricFromModal){
   const gradeDays=parseInt(document.getElementById('task-grade-deadline').value);
   const instructions=document.getElementById('task-instructions').value.trim();
   if(!name){alert('נא למלא שם משימה.');return;}
-  const rubric=document.getElementById('task-rubric-preview')._rubric||null;
+  const rubric=(withRubric&&document.getElementById('task-rubric-preview')._rubric)||null;
+  if(withRubric&&!rubric){alert('נא לבנות מחוון תחילה.');return;}
   const task={name,groupId,type,mode,due,gradeDays,instructions,rubric,createdAt:Date.now(),grades:{}};
-  const ref=db.ref('teacher/tasks').push(task);
+  db.ref('teacher/tasks').push(task);
   closeModals();
-  showToast('✓ המשימה נשמרה');
+  showToast(rubric?'✓ המשימה נשמרה עם מחוון':'✓ המשימה נשמרה');
   loadTasks();
 }
 
