@@ -1397,8 +1397,18 @@ function loadAndRenderHeroes() {
     var allowedCharIds = {};
 
     // Find groups assigned to my class
+    // Also collect all possible IDs for this student (id, code, name)
+    var myIds = {};
+    if (groupData) {
+      if (groupData.id) myIds[groupData.id] = true;
+      if (groupData.code) myIds[groupData.code] = true;
+      if (groupData.name) myIds[groupData.name] = true;
+    }
+
     Object.values(charGroups).forEach(function(g) {
-      if (g.assignedTo && g.assignedTo[myGroupId]) {
+      var assigned = g.assignedTo || {};
+      var match = Object.keys(myIds).some(function(mid) { return assigned[mid]; });
+      if (match) {
         Object.keys(g.chars || {}).forEach(function(cid) { allowedCharIds[cid] = true; });
       }
     });
