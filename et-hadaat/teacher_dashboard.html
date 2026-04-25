@@ -294,6 +294,12 @@ select.modal-input option{background:#2c1a0e;}
           <div class="home-card-title">דוחות</div>
           <div class="home-card-sub">מעקב תלמידים וציונים</div>
         </div>
+        <div class="home-card" onclick="openTasksScreen()" style="border-color:rgba(139,92,246,.35);" id="tasks-home-card">
+          <div class="home-card-icon">📋</div>
+          <div class="home-card-title">ניהול משימות</div>
+          <div class="home-card-sub">מחוונים, ציונים והתראות</div>
+          <div id="tasks-alert-badge" style="display:none;position:absolute;top:10px;left:10px;background:#dc2626;color:white;border-radius:50%;width:20px;height:20px;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;"></div>
+        </div>
       </div>
     </div>
 
@@ -492,6 +498,29 @@ select.modal-input option{background:#2c1a0e;}
         <input type="hidden" id="hero-edit-id">
       </div>
 
+      <!-- ══ TASKS ══ -->
+      <div class="screen" id="screen-tasks">
+        <div class="screen-hd">
+          <div class="screen-title">📋 ניהול משימות</div>
+          <button class="btn-primary" onclick="openNewTaskModal()">➕ משימה חדשה</button>
+        </div>
+        <div id="tasks-alerts-bar" style="display:none;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:.85rem;color:#fca5a5;"></div>
+        <div id="tasks-list"></div>
+        <div id="tasks-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין משימות עדיין. לחצי "➕ משימה חדשה" להתחלה.</div>
+      </div>
+
+      <!-- ══ TASK DETAIL ══ -->
+      <div class="screen" id="screen-task-detail">
+        <div class="screen-hd">
+          <div class="screen-title" id="task-detail-title">משימה</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" onclick="openCheckWorkModal()">📎 בדוק עבודה</button>
+            <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);" onclick="openTaskRubricView()">📑 מחוון</button>
+          </div>
+        </div>
+        <div id="task-detail-content"></div>
+      </div>
+
       <div class="screen" id="screen-profile">
         <div class="screen-hd">
           <div class="screen-title">👤 פרופיל אישי</div>
@@ -631,6 +660,88 @@ select.modal-input option{background:#2c1a0e;}
 </div><!-- /app -->
 
 <!-- ══ MODALS ══ -->
+
+<!-- NEW TASK MODAL -->
+<div class="modal-overlay" id="modal-new-task">
+  <div class="modal" style="max-width:560px;width:95%;">
+    <div class="modal-title">➕ משימה חדשה</div>
+    <div class="modal-field">
+      <div class="modal-label">שם המשימה</div>
+      <input class="modal-input" id="task-name" placeholder="למשל: פסקול של אומה">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">קבוצת לימוד</div>
+      <select class="modal-input" id="task-group"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="modal-field">
+        <div class="modal-label">סוג משימה</div>
+        <select class="modal-input" id="task-type">
+          <option value="עבודה">עבודה</option>
+          <option value="בוחן">בוחן</option>
+          <option value="מבחן">מבחן</option>
+          <option value="שיעורי בית">שיעורי בית</option>
+          <option value="פרויקט">פרויקט</option>
+          <option value="מצגת">מצגת</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">אופן עבודה</div>
+        <select class="modal-input" id="task-mode">
+          <option value="עצמי">עצמי</option>
+          <option value="זוגות">זוגות</option>
+          <option value="קבוצה של 3">קבוצה של 3</option>
+          <option value="קבוצה של 4">קבוצה של 4</option>
+          <option value="קבוצה של 5">קבוצה של 5</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="modal-field">
+        <div class="modal-label">תאריך הגשה לתלמידים</div>
+        <input class="modal-input" id="task-due" type="date">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">מועד אחרון לציונים</div>
+        <select class="modal-input" id="task-grade-deadline">
+          <option value="21">3 שבועות (ברירת מחדל)</option>
+          <option value="14">2 שבועות</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">הוראות המשימה</div>
+      <textarea class="modal-input" id="task-instructions" rows="4" placeholder="תארי את המשימה בפירוט — העוזר ישתמש בזה לבניית המחוון..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
+      <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="buildTaskRubric()">🤖 בנה מחוון</button>
+      <button class="modal-save" onclick="saveNewTask()">💾 שמור בלי מחוון</button>
+    </div>
+    <!-- מחוון שנבנה -->
+    <div id="task-rubric-preview" style="display:none;margin-top:16px;background:rgba(42,107,42,.1);border:1px solid rgba(42,107,42,.3);border-radius:10px;padding:14px;"></div>
+  </div>
+</div>
+
+<!-- CHECK WORK MODAL -->
+<div class="modal-overlay" id="modal-check-work">
+  <div class="modal" style="max-width:620px;width:95%;">
+    <div class="modal-title">📎 בדיקת עבודה</div>
+    <div class="modal-field">
+      <div class="modal-label">שם התלמיד/ה</div>
+      <input class="modal-input" id="check-student-name" placeholder="שם התלמיד/ה">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">הדבקי את תוכן העבודה</div>
+      <textarea class="modal-input" id="check-work-text" rows="8" placeholder="הדביקי כאן את טקסט העבודה..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
+      <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="checkWorkWithAI()">🤖 בדוק לפי מחוון</button>
+    </div>
+    <div id="check-work-result" style="display:none;margin-top:16px;"></div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="modal-subject">
   <div class="modal">
@@ -1430,6 +1541,313 @@ function showDetail(name) {
 // ══════════════════════════════════════
 // MODALS
 // ══════════════════════════════════════
+// ══ TASKS MANAGEMENT ══
+const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
+
+let currentTaskId=null;
+let tasks=[];
+
+function openTasksScreen(){
+  updateBreadcrumb([{label:'ניהול משימות'}]);
+  showScreen('screen-tasks');
+  loadTasks();
+}
+
+function loadTasks(){
+  db.ref('teacher/tasks').once('value',snap=>{
+    tasks=snap.val()?Object.entries(snap.val()).map(([id,v])=>({id,...v})):[];
+    renderTasksList();
+    checkTasksAlerts();
+  });
+}
+
+function renderTasksList(){
+  const list=document.getElementById('tasks-list');
+  const empty=document.getElementById('tasks-empty');
+  if(!tasks.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  // מיין לפי תאריך הגשה
+  const sorted=[...tasks].sort((a,b)=>new Date(a.due)-new Date(b.due));
+  list.innerHTML=sorted.map(t=>{
+    const dueDate=new Date(t.due);
+    const gradeDeadline=new Date(dueDate.getTime()+t.gradeDays*24*60*60*1000);
+    const now=new Date();
+    const daysLeft=Math.ceil((gradeDeadline-now)/(1000*60*60*24));
+    let urgency='';
+    if(daysLeft<=1) urgency='background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.4);';
+    else if(daysLeft<=3) urgency='background:rgba(234,88,12,.1);border-color:rgba(234,88,12,.3);';
+    else if(daysLeft<=7) urgency='background:rgba(202,138,4,.08);border-color:rgba(202,138,4,.25);';
+    const gradeStr=daysLeft>0?`⏰ ${daysLeft} ימים לציונים`:'🔴 עבר המועד';
+    const checked=t.grades?Object.keys(t.grades).length:0;
+    const group=groups.find(g=>g.id===t.groupId);
+    return `<div class="card" style="${urgency}cursor:pointer;margin-bottom:12px;" onclick="openTaskDetail('${t.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:.95rem;font-weight:700;margin-bottom:4px;">${t.name}</div>
+          <div style="font-size:.78rem;opacity:.6;">${group?.name||''} · ${t.type} · ${t.mode}</div>
+          <div style="font-size:.75rem;opacity:.5;margin-top:3px;">הגשה: ${new Date(t.due).toLocaleDateString('he-IL')} · ${gradeStr}</div>
+        </div>
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--gold);">${checked}</div>
+          <div style="font-size:.68rem;opacity:.5;">נבדקו</div>
+          ${t.rubric?'<div style="font-size:.7rem;color:#6ee7a0;margin-top:3px;">✓ מחוון</div>':'<div style="font-size:.7rem;color:#888;margin-top:3px;">ללא מחוון</div>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function checkTasksAlerts(){
+  const now=new Date();
+  const urgent=tasks.filter(t=>{
+    const gradeDeadline=new Date(new Date(t.due).getTime()+t.gradeDays*24*60*60*1000);
+    const days=Math.ceil((gradeDeadline-now)/(1000*60*60*24));
+    return days<=7 && days>=0;
+  });
+  const bar=document.getElementById('tasks-alerts-bar');
+  const badge=document.getElementById('tasks-alert-badge');
+  if(!urgent.length){if(bar)bar.style.display='none';if(badge)badge.style.display='none';return;}
+  if(badge){badge.style.display='flex';badge.textContent=urgent.length;}
+  if(bar){
+    bar.style.display='block';
+    bar.innerHTML='⚠️ משימות הדורשות ציונים בקרוב: '+urgent.map(t=>{
+      const days=Math.ceil((new Date(new Date(t.due).getTime()+t.gradeDays*24*60*60*1000)-now)/(1000*60*60*24));
+      return `<b>${t.name}</b> (${days} ימים)`;
+    }).join(' · ');
+  }
+}
+
+function openNewTaskModal(){
+  // מלא קבוצות
+  const sel=document.getElementById('task-group');
+  sel.innerHTML=groups.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  // תאריך ברירת מחדל — שבועיים מהיום
+  const d=new Date();d.setDate(d.getDate()+14);
+  document.getElementById('task-due').value=d.toISOString().split('T')[0];
+  document.getElementById('task-rubric-preview').style.display='none';
+  document.getElementById('task-rubric-preview').innerHTML='';
+  document.getElementById('task-name').value='';
+  document.getElementById('task-instructions').value='';
+  document.getElementById('modal-new-task').style.display='flex';
+}
+
+async function buildTaskRubric(){
+  const name=document.getElementById('task-name').value.trim();
+  const instructions=document.getElementById('task-instructions').value.trim();
+  const type=document.getElementById('task-type').value;
+  const mode=document.getElementById('task-mode').value;
+  if(!name||!instructions){alert('נא למלא שם משימה והוראות לפני בניית המחוון.');return;}
+  const btn=document.querySelector('#modal-new-task .modal-save');
+  const prevText=btn?.textContent;
+  if(btn)btn.textContent='⏳ בונה מחוון...';
+  const prompt=`בנה מחוון להערכה למשימה הבאה:
+שם: ${name}
+סוג: ${type}
+אופן עבודה: ${mode}
+הוראות: ${instructions}
+
+בנה מחוון בפורמט JSON בלבד:
+{
+  "criteria": [
+    {"name": "שם הקריטריון", "maxPoints": מספר, "description": "תיאור קצר"}
+  ],
+  "totalPoints": סה"כ נקודות,
+  "notes": "הערות כלליות"
+}
+עד 6 קריטריונים. סה"כ 100 נקודות.`;
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני ללא טקסט נוסף.',
+        messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    const text=d.content?.[0]?.text||'';
+    const clean=text.replace(/```json|```/g,'').trim();
+    const rubric=JSON.parse(clean);
+    // שמור
+    document.getElementById('task-rubric-preview')._rubric=rubric;
+    // הצג
+    const preview=document.getElementById('task-rubric-preview');
+    preview.style.display='block';
+    preview.innerHTML=`<div style="font-size:.8rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">✅ מחוון נבנה — ${rubric.criteria.length} קריטריונים</div>`+
+      rubric.criteria.map(c=>`<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+        <span>${c.name}: <span style="opacity:.6">${c.description}</span></span>
+        <span style="color:var(--gold);font-weight:700;">${c.maxPoints} נק׳</span>
+      </div>`).join('')+
+      `<div style="font-size:.8rem;margin-top:8px;opacity:.5;">${rubric.notes||''}</div>`;
+  }catch(e){alert('שגיאה בבניית המחוון. נסי שוב.');}
+  if(btn)btn.textContent=prevText;
+}
+
+function saveNewTask(rubricFromModal){
+  const name=document.getElementById('task-name').value.trim();
+  const groupId=document.getElementById('task-group').value;
+  const type=document.getElementById('task-type').value;
+  const mode=document.getElementById('task-mode').value;
+  const due=document.getElementById('task-due').value;
+  const gradeDays=parseInt(document.getElementById('task-grade-deadline').value);
+  const instructions=document.getElementById('task-instructions').value.trim();
+  if(!name){alert('נא למלא שם משימה.');return;}
+  const rubric=document.getElementById('task-rubric-preview')._rubric||null;
+  const task={name,groupId,type,mode,due,gradeDays,instructions,rubric,createdAt:Date.now(),grades:{}};
+  const ref=db.ref('teacher/tasks').push(task);
+  closeModals();
+  showToast('✓ המשימה נשמרה');
+  loadTasks();
+}
+
+function openTaskDetail(taskId){
+  currentTaskId=taskId;
+  const task=tasks.find(t=>t.id===taskId);
+  if(!task)return;
+  document.getElementById('task-detail-title').textContent=task.name;
+  const group=groups.find(g=>g.id===task.groupId);
+  const dueDate=new Date(task.due);
+  const gradeDeadline=new Date(dueDate.getTime()+task.gradeDays*24*60*60*1000);
+  const content=document.getElementById('task-detail-content');
+  // רשימת תלמידים + ציונים
+  const students=group?.students||[];
+  const gradesHtml=students.map(s=>{
+    const g=task.grades?.[s.replace(/ /g,'_')]||{};
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;font-size:.88rem;">${s}</div>
+      <input type="number" min="0" max="100" value="${g.score||''}" placeholder="ציון"
+        style="width:70px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);text-align:center;padding:4px;font-family:'Heebo',sans-serif;"
+        onchange="saveStudentGrade('${taskId}','${s}',this.value)">
+      <div style="font-size:.75rem;opacity:.5;width:60px;">${g.score?'✓ נשמר':''}</div>
+    </div>`;
+  }).join('');
+  content.innerHTML=`
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:.82rem;">
+        <div><div style="opacity:.5;margin-bottom:3px;">קבוצה</div>${group?.name||'—'}</div>
+        <div><div style="opacity:.5;margin-bottom:3px;">סוג</div>${task.type} · ${task.mode}</div>
+        <div><div style="opacity:.5;margin-bottom:3px;">הגשה</div>${dueDate.toLocaleDateString('he-IL')}</div>
+        <div><div style="opacity:.5;margin-bottom:3px;">מועד אחרון לציונים</div>${gradeDeadline.toLocaleDateString('he-IL')}</div>
+        <div><div style="opacity:.5;margin-bottom:3px;">הוראות</div>${task.instructions||'—'}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>ציונים</span>
+        <button class="btn-primary" style="font-size:.75rem;padding:4px 12px;" onclick="exportGrades('${taskId}')">📥 ייצא</button>
+      </div>
+      ${gradesHtml||'<div style="opacity:.4;font-size:.85rem;">אין תלמידים בקבוצה</div>'}
+    </div>`;
+  updateBreadcrumb([{label:'ניהול משימות',fn:"openTasksScreen()"},{label:task.name}]);
+  showScreen('screen-task-detail');
+}
+
+function saveStudentGrade(taskId,studentName,score){
+  const key=studentName.replace(/ /g,'_');
+  db.ref('teacher/tasks/'+taskId+'/grades/'+key).set({score:parseInt(score),gradedAt:Date.now()});
+  // עדכן מקומי
+  const task=tasks.find(t=>t.id===taskId);
+  if(task){if(!task.grades)task.grades={};task.grades[key]={score:parseInt(score)};}
+  showToast('✓ ציון נשמר');
+}
+
+function openCheckWorkModal(){
+  document.getElementById('check-student-name').value='';
+  document.getElementById('check-work-text').value='';
+  document.getElementById('check-work-result').style.display='none';
+  document.getElementById('modal-check-work').style.display='flex';
+}
+
+async function checkWorkWithAI(){
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!task){alert('לא נמצאה משימה');return;}
+  if(!task.rubric){alert('אין מחוון למשימה זו. תחילה צרי מחוון.');return;}
+  const workText=document.getElementById('check-work-text').value.trim();
+  const studentName=document.getElementById('check-student-name').value.trim();
+  if(!workText){alert('נא להדביק את תוכן העבודה.');return;}
+  const btn=document.querySelector('#modal-check-work .modal-save');
+  if(btn)btn.textContent='⏳ בודק...';
+  const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description}`).join('\n');
+  const prompt=`בדוק את העבודה הבאה לפי המחוון:
+
+מחוון:
+${rubricText}
+
+עבודת התלמיד:
+${workText}
+
+ענה בפורמט JSON בלבד:
+{
+  "scores": [{"criterion": "שם הקריטריון", "score": ניקוד_שניתן, "maxScore": ניקוד_מקסימלי, "comment": "הערה קצרה"}],
+  "totalScore": סה"כ,
+  "verbalFeedback": "הערה מילולית כוללת (2-3 משפטים)",
+  "strengths": "נקודות חוזק",
+  "improvements": "מה לשפר"
+}`;
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
+        messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    const clean=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const result=JSON.parse(clean);
+    const resultEl=document.getElementById('check-work-result');
+    resultEl.style.display='block';
+    resultEl.innerHTML=`
+      <div style="background:rgba(42,107,42,.1);border:1px solid rgba(42,107,42,.3);border-radius:10px;padding:14px;">
+        <div style="font-size:1rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">
+          ציון מוצע: ${result.totalScore}/100
+        </div>
+        ${result.scores.map(s=>`<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+          <span>${s.criterion}: <span style="opacity:.6">${s.comment}</span></span>
+          <span style="color:var(--gold);">${s.score}/${s.maxScore}</span>
+        </div>`).join('')}
+        <div style="margin-top:10px;font-size:.82rem;line-height:1.6;">
+          <div style="color:#6ee7a0;margin-bottom:4px;">✓ חוזקות: ${result.strengths}</div>
+          <div style="color:#fca5a5;margin-bottom:4px;">⚠ לשיפור: ${result.improvements}</div>
+          <div style="opacity:.7;">${result.verbalFeedback}</div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button onclick="confirmGrade('${currentTaskId}','${studentName}',${result.totalScore})" 
+            class="btn-primary" style="font-size:.8rem;">✓ אשר ציון ${result.totalScore}</button>
+          <input type="number" id="manual-score" value="${result.totalScore}" min="0" max="100"
+            style="width:70px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);text-align:center;padding:4px;font-family:'Heebo',sans-serif;">
+          <button onclick="confirmGrade('${currentTaskId}','${studentName}',document.getElementById('manual-score').value)"
+            class="btn-primary" style="font-size:.8rem;background:rgba(212,168,67,.15);color:var(--gold);">שנה וישמר</button>
+        </div>
+      </div>`;
+  }catch(e){alert('שגיאה בבדיקה. נסי שוב.');}
+  if(btn)btn.textContent='🤖 בדוק לפי מחוון';
+}
+
+function confirmGrade(taskId,studentName,score){
+  saveStudentGrade(taskId,studentName,score);
+  closeModals();
+  openTaskDetail(taskId);
+}
+
+function openTaskRubricView(){
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!task?.rubric){showToast('אין מחוון למשימה זו');return;}
+  const r=task.rubric;
+  alert('מחוון: '+task.name+'\n\n'+r.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description}`).join('\n')+'\n\n'+r.notes);
+}
+
+function exportGrades(taskId){
+  const task=tasks.find(t=>t.id===taskId);
+  if(!task)return;
+  const group=groups.find(g=>g.id===task.groupId);
+  const rows=[['שם תלמיד','ציון','תאריך בדיקה']];
+  (group?.students||[]).forEach(s=>{
+    const key=s.replace(/ /g,'_');
+    const g=task.grades?.[key]||{};
+    rows.push([s,g.score||'',g.gradedAt?new Date(g.gradedAt).toLocaleDateString('he-IL'):'']);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=task.name+'_ציונים.csv';
+  a.click();
+}
+
 function closeModals() {
   document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
 }
