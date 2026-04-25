@@ -303,6 +303,9 @@ function saveHero() {
     ? 'דבר בסגנון ספרותי-היסטורי קצת יותר עשיר, כמו ביומן או במכתב, אך עדיין מובן.'
     : 'דבר בשפה עשירה, הצג דילמות ושאלות מורכבות. מתאים לתלמידים מתקדמים.';
   var fixedInstructions = '\n\nכללים קבועים: (1) ענה תמיד בגוף ראשון. (2) אם שואלים על אירועים אחרי שנת פטירתך — אמור: "זה כבר אחרי ימיי, איני יכול לדעת". (3) ' + toneNote + ' (4) ענה בקצרה — 2-4 משפטים.';
+  // Strip any existing fixed instructions before adding new ones
+  var rawSystem = document.getElementById('m-system').value.trim();
+  var cleanSystem = rawSystem.split('\n\nכללים קבועים:')[0].trim();
   var h = {
     id: id, name: name,
     years: document.getElementById('m-years').value.trim(),
@@ -310,7 +313,7 @@ function saveHero() {
     values: vals,
     image: document.getElementById('m-image').value.trim(),
     intro: document.getElementById('m-intro').value.trim(),
-    system: document.getElementById('m-system').value.trim() + fixedInstructions,
+    system: cleanSystem + fixedInstructions,
     tone: tone,
     available: document.getElementById('m-available').checked
   };
