@@ -1894,7 +1894,10 @@ function exportGrades(taskId){
 }
 
 function closeModals() {
-  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.classList.remove('open');
+    m.style.display='none';
+  });
 }
 
 function openAddSubject() {
