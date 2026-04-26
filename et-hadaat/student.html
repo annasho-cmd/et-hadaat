@@ -508,7 +508,18 @@ body::before{
     <!-- VIEW: HEROES CHAT -->
     <div class="view" id="view-heroes">
       <div class="view-header">
-        <button class="back-btn" onclick="showView('view-home')">→ חזרה</button>
+        <div style="width:60px;"></div>
+        <div style="flex:1;text-align:center;">
+          <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);">משוחחים עם גיבורים אמיתיים 🌟</div>
+        </div>
+        <div style="width:60px;"></div>
+      </div>
+      <div style="padding:8px 16px 0;">
+        <button onclick="showView('view-home')"
+          style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border:1px solid rgba(212,168,67,.3);border-radius:20px;background:rgba(212,168,67,.07);color:var(--gold);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:600;">
+          ← חזרה לדף הבית
+        </button>
+      </div>
         <div style="flex:1;text-align:center;">
           <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);">משוחחים עם גיבורים אמיתיים 🌟</div>
         </div>
