@@ -722,7 +722,7 @@ const ITEM_BANK=[
   {type:'drag_drop',  icon:'🔀',name:'סדר כרונולוגי',desc:'פעילות גרירה לפי סדר'},
   {type:'fill_table', icon:'📋',name:'טבלת מילוי',   desc:'המורה מגדירה עמודות ושורות — תאים לבחירה: מורה ממלאת / תלמיד ממלא'},
   {type:'sort_table', icon:'📊',name:'טבלת מיון',    desc:'המורה מגדירה עמודות ותוכן — תלמיד גורר או ממלא עצמאית'},
-  {type:'argue',      icon:'🖊️',name:'כתיבה טיעונית',desc:'תבנית כתיבה טיעונית מובנית — מונחית או עצמאית + בנק מילים'},
+  {type:'argue',      icon:'🖊️',name:'כתיבה טיעונית / דעה',cat:'writing',desc:'תבנית כתיבה טיעונית — פתיח, טענה, נימוקים, סיום. מובנית או עצמאית + בנק מילים.'},
   {type:'full_ans',   icon:'📝',name:'תשובה מלאה',   desc:'תבנית תשובה מלאה מובנית — מונחית או עצמאית + בנק מילים'},
   {type:'stickies',   icon:'🗒️',name:'פתקיות',        desc:'לוח שיתופי בזמן אמת'},
   {type:'wordcloud',  icon:'☁️',name:'ענן מילים',     desc:'ענן מילים שיתופי'},
@@ -2112,38 +2112,44 @@ function prevStep(){if(currentStep>0)goToStep(currentStep-1);}
 
 // ── BANK (accordion) ──
 const BANK_CATS=[
-  {id:'all', icon:'🧩', name:'כל הפריטים'},
+  {id:'questions',  icon:'📝', name:'שאלות ומשימות'},
+  {id:'writing',    icon:'✍️', name:'כתיבה ויצירה'},
+  {id:'media',      icon:'🎬', name:'מדיה'},
+  {id:'games',      icon:'🎮', name:'משחקי ידע ותחרות'},
+  {id:'discovery',  icon:'🔍', name:'גילוי, מיון והתאמה'},
 ];
 
 let bankData=[];
 
 function loadBankFromFirebase(cb){
-  // הבנק בבונה תמיד משתמש ברשימה המובנית — לא Firebase
-  bankData = ITEM_BANK.map((i,idx) => ({...i, cat:idx}));
+  bankData = ITEM_BANK.map(i=>({...i}));
   cb&&cb();
 }
 
 function renderBankAccordion(){
   const acc=document.getElementById('bank-accordion');
   if(!acc)return;
-  // סנן רק פריטים שיש להם type
-  const items=bankData.filter(item=>item.type);
-  const itemsHtml=items.map(item=>`
-    <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
-      onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
-      onmouseleave="hideBankTooltip()">
-      <span class="bank-cube-icon">${item.icon||'📄'}</span>
-      <div class="bank-cube-name">${item.name}</div>
-    </div>`).join('');
-  acc.innerHTML=`<div class="bank-cat-section">
-    <div class="bank-cat-header open" onclick="toggleBankCat(0,this)">
-      <span class="bank-cat-icon">🧩</span>
-      <span class="bank-cat-name">פריטים</span>
-      <span class="bank-cat-count">(${items.length})</span>
-      <span class="bank-cat-chevron open" id="bch-0">▼</span>
-    </div>
-    <div class="bank-cat-items open" id="bci-0">${itemsHtml}</div>
-  </div>`;
+  acc.innerHTML=BANK_CATS.map((cat,ci)=>{
+    const items=bankData.filter(it=>it.cat===cat.id&&it.type);
+    if(!items.length)return '';
+    return `<div class="bank-cat-section">
+      <div class="bank-cat-header${ci===0?' open':''}" onclick="toggleBankCat(${ci},this)">
+        <span class="bank-cat-icon">${cat.icon}</span>
+        <span class="bank-cat-name">${cat.name}</span>
+        <span class="bank-cat-count">(${items.length})</span>
+        <span class="bank-cat-chevron${ci===0?' open':''}" id="bch-${ci}">▼</span>
+      </div>
+      <div class="bank-cat-items${ci===0?' open':''}" id="bci-${ci}">
+        ${items.map(item=>`
+          <div class="bank-cube" onclick="selectBankItem('${item.id||item.type}')"
+            onmouseenter="showBankTooltip(event,'${item.id||item.type}')"
+            onmouseleave="hideBankTooltip()">
+            <span class="bank-cube-icon">${item.icon||'📄'}</span>
+            <div class="bank-cube-name">${item.name}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function toggleBankCat(ci,header){
@@ -3262,17 +3268,16 @@ function collectImagePopup(){ return JSON.parse(JSON.stringify(window._popupImag
 
 // ── WRITING POPUPS (argue + full_ans) ──
 const ARGUE_STRUCTURE=[
-  {key:'claim',label:'טענה',desc:'הצהרה ברורה על עמדתך'},
-  {key:'evidence1',label:'נימוק 1',desc:'ראיה ראשונה לטענה'},
-  {key:'evidence2',label:'נימוק 2',desc:'ראיה שנייה לטענה'},
-  {key:'counter',label:'טענת נגד + תשובה',desc:'הכר את הטענה הנגדית והפריך אותה'},
-  {key:'conclusion',label:'סיכום',desc:'חיזוק הטענה לאור הנימוקים'},
+  {key:'intro',    label:'פתיח',          desc:'הצגת הנושא — על מה ידובר בפסקה'},
+  {key:'claim',    label:'טענה / עמדה',   desc:'הטענה או העמדה שלך'},
+  {key:'arg1',     label:'טיעון / נימוק 1',desc:'הסבר + דוגמה לתמיכה בטענה'},
+  {key:'arg2',     label:'טיעון / נימוק 2',desc:'הסבר + דוגמה נוספת'},
+  {key:'conclusion',label:'סיום',         desc:'המלצה או מסקנה'},
 ];
 const FULL_ANS_STRUCTURE=[
-  {key:'intro',label:'פתיחה',desc:'הצגת הנושא ותשובתך הכללית'},
-  {key:'body1',label:'גוף 1 — פירוט ראשון',desc:'הסבר מפורט + דוגמה'},
-  {key:'body2',label:'גוף 2 — פירוט שני',desc:'הסבר מפורט + דוגמה'},
-  {key:'conclusion',label:'סיכום',desc:'מסקנה המשלבת את הנקודות'},
+  {key:'intro',    label:'פתיח',  desc:'הצגת הנושא ותשובתך הכללית'},
+  {key:'body',     label:'גוף',   desc:'פירוט, ראיות ודוגמאות'},
+  {key:'conclusion',label:'סיום', desc:'מסקנה וסיכום'},
 ];
 
 // בנק מילים קבוע — ניתן לשנות
@@ -3334,8 +3339,114 @@ function collectArguePopup(){ return JSON.parse(JSON.stringify(window._popupArgu
 function collectFullAnsPopup(){ return JSON.parse(JSON.stringify(window._popupArgueData||{})); }
 
 // ── STICKIES / WORDCLOUD POPUP ──
-function renderStickiesPopup(d){ window._popupStickyData=JSON.parse(JSON.stringify(d)); return renderStyleQuestionPopup(d,'_popupStickyData',['הטרמה','סיכום','סיעור מוחות','יצירה'],'כתבי את ההנחיה לפתקיות...'); }
-function renderWordcloudPopup(d){ window._popupStickyData=JSON.parse(JSON.stringify(d)); return renderStyleQuestionPopup(d,'_popupStickyData',['הטרמה','סיכום ורפלקציה','ניתוח טקסט','סיעור מוחות'],'כתבי את השאלה לענן המילים...'); }
+function renderStickiesPopup(d){
+  window._popupStickyData=JSON.parse(JSON.stringify(d||{}));
+  const layout=d.layout||'scattered';
+  const colorMode=d.colorMode||'student';
+  const color=d.color||'#f6d860';
+  const contentType=d.contentType||'text';
+  const anon=d.anonymous||false;
+  const styles=['הטרמה','סיכום','סיעור מוחות','יצירה'];
+  const selectedStyle=d.style||'הטרמה';
+  return `<div style="margin-bottom:10px;">
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון הפעילות:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+      ${styles.map(s=>`<button onclick="setStickyStyle('${s}')" id="sstyle-${s.replace(/\s/g,'_')}"
+        style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;
+        border:1px solid ${selectedStyle===s?'var(--gold)':'var(--border)'};
+        background:${selectedStyle===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)'};
+        color:${selectedStyle===s?'#f0c060':'var(--parch)'};">${s}</button>`).join('')}
+    </div>
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">הוראה לתלמידים <span style="opacity:.5;">(תופיע באמצע הלוח)</span>:</div>
+    <textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:9px;outline:none;resize:vertical;direction:rtl;margin-bottom:12px;"
+      placeholder="מה הייתם עושים אם..." oninput="window._popupStickyData.instruction=this.value">${esc(d.instruction||'')}</textarea>
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">סגנון לוח:</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button onclick="setStickyProp('layout','scattered')" id="slayout-scattered"
+        style="padding:6px 14px;border-radius:7px;border:1px solid ${layout==='scattered'?'var(--gold)':'var(--border)'};background:${layout==='scattered'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">
+        🌪️ מפוזר
+      </button>
+      <button onclick="setStickyProp('layout','columns')" id="slayout-columns"
+        style="padding:6px 14px;border-radius:7px;border:1px solid ${layout==='columns'?'var(--gold)':'var(--border)'};background:${layout==='columns'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">
+        📋 עמודות
+      </button>
+    </div>
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">צבע פתקית:</div>
+    <div style="display:flex;gap:8px;margin-bottom:${colorMode==='teacher'?'8px':'14px'};">
+      <button onclick="setStickyProp('colorMode','student')" id="scolor-student"
+        style="padding:6px 14px;border-radius:7px;border:1px solid ${colorMode==='student'?'var(--gold)':'var(--border)'};background:${colorMode==='student'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">
+        🎨 תלמיד בוחר
+      </button>
+      <button onclick="setStickyProp('colorMode','teacher')" id="scolor-teacher"
+        style="padding:6px 14px;border-radius:7px;border:1px solid ${colorMode==='teacher'?'var(--gold)':'var(--border)'};background:${colorMode==='teacher'?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.82rem;">
+        🖌️ צבע אחיד
+      </button>
+    </div>
+    ${colorMode==='teacher'?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <input type="color" value="${color}" onchange="window._popupStickyData.color=this.value"
+        style="width:40px;height:32px;border:none;border-radius:6px;cursor:pointer;background:none;">
+      <span style="font-size:.78rem;opacity:.6;">בחרי צבע לכל הפתקיות</span>
+    </div>`:''}
+    <div style="font-size:.75rem;opacity:.6;margin-bottom:8px;">תוכן הפתקית:</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      ${[['text','📝 מלל'],['image','🖼️ תמונה'],['both','📝🖼️ מלל + תמונה']].map(([v,l])=>`
+        <button onclick="setStickyProp('contentType','${v}')"
+          style="padding:6px 12px;border-radius:7px;border:1px solid ${contentType===v?'var(--gold)':'var(--border)'};background:${contentType===v?'rgba(212,168,67,.15)':'transparent'};color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.8rem;">${l}</button>`).join('')}
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;">
+      <input type="checkbox" ${anon?'checked':''} onchange="window._popupStickyData.anonymous=this.checked"
+        style="width:16px;height:16px;accent-color:var(--gold);">
+      פתקיות אנונימיות (ללא שם תלמיד)
+    </label>
+  </div>`;
+}
+function setStickyStyle(s){
+  window._popupStickyData.style=s;
+  document.querySelectorAll('[id^="sstyle-"]').forEach(b=>{
+    const isSel=b.id==='sstyle-'+s.replace(/\s/g,'_');
+    b.style.borderColor=isSel?'var(--gold)':'var(--border)';
+    b.style.background=isSel?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)';
+    b.style.color=isSel?'#f0c060':'var(--parch)';
+  });
+}
+function setStickyProp(key,val){
+  window._popupStickyData[key]=val;
+  document.getElementById('item-popup-body').innerHTML=renderStickiesPopup(window._popupStickyData);
+}
+function renderWordcloudPopup(d){
+  window._popupWordcloudData=JSON.parse(JSON.stringify(d||{}));
+  const styles=['הטרמה','סיכום ורפלקציה','ניתוח טקסט','סיעור מוחות'];
+  const sel=d.style||'הטרמה';
+  const na=d.numAnswers||1;
+  const wpa=d.wordsPerAnswer||3;
+  return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
+    styles.map(s=>'<button onclick="setWordcloudStyle(\''+s+'\')" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;border:1px solid '+(sel===s?'var(--gold)':'var(--border)')+';background:'+(sel===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(sel===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
+    '</div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">שאלה / הנחיה:</div>'+
+    '<textarea rows="2" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:9px;outline:none;resize:vertical;direction:rtl;margin-bottom:12px;" placeholder="כתבי מילה אחת שמתאימה ל..." oninput="window._popupWordcloudData.question=this.value">'+esc(d.question||'')+'</textarea>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">'+
+    '<div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כמה תשובות לתלמיד:</div>'+
+    '<div style="display:flex;align-items:center;gap:8px;">'+
+    '<button onclick="window._popupWordcloudData.numAnswers=Math.max(1,(window._popupWordcloudData.numAnswers||1)-1);document.getElementById(\'wc-num\').textContent=window._popupWordcloudData.numAnswers;document.getElementById(\'wc-hint\').textContent=getWcHint();" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:rgba(212,168,67,.1);color:var(--parch);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">−</button>'+
+    '<span id="wc-num" style="font-size:1.1rem;font-weight:700;color:var(--gold);min-width:24px;text-align:center;">'+na+'</span>'+
+    '<button onclick="window._popupWordcloudData.numAnswers=Math.min(10,(window._popupWordcloudData.numAnswers||1)+1);document.getElementById(\'wc-num\').textContent=window._popupWordcloudData.numAnswers;document.getElementById(\'wc-hint\').textContent=getWcHint();" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:rgba(212,168,67,.1);color:var(--parch);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">+</button>'+
+    '</div></div>'+
+    '<div><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">כמה מילים בכל תשובה:</div>'+
+    '<div style="display:flex;align-items:center;gap:8px;">'+
+    '<button onclick="window._popupWordcloudData.wordsPerAnswer=Math.max(1,(window._popupWordcloudData.wordsPerAnswer||3)-1);document.getElementById(\'wc-words\').textContent=window._popupWordcloudData.wordsPerAnswer;document.getElementById(\'wc-hint\').textContent=getWcHint();" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:rgba(212,168,67,.1);color:var(--parch);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">−</button>'+
+    '<span id="wc-words" style="font-size:1.1rem;font-weight:700;color:var(--gold);min-width:24px;text-align:center;">'+wpa+'</span>'+
+    '<button onclick="window._popupWordcloudData.wordsPerAnswer=Math.min(10,(window._popupWordcloudData.wordsPerAnswer||3)+1);document.getElementById(\'wc-words\').textContent=window._popupWordcloudData.wordsPerAnswer;document.getElementById(\'wc-hint\').textContent=getWcHint();" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:rgba(212,168,67,.1);color:var(--parch);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">+</button>'+
+    '</div></div></div>'+
+    '<div id="wc-hint" style="font-size:.73rem;opacity:.45;background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.1);border-radius:8px;padding:8px 10px;">💡 כל תלמיד יגיש '+na+' תשוב'+(na===1?'ה':'ות')+', כל תשובה עד '+wpa+' מיל'+(wpa===1?'ה':'ים')+'</div></div>';
+}
+function getWcHint(){
+  const na=window._popupWordcloudData.numAnswers||1;
+  const wpa=window._popupWordcloudData.wordsPerAnswer||3;
+  return '💡 כל תלמיד יגיש '+na+' תשוב'+(na===1?'ה':'ות')+', כל תשובה עד '+wpa+' מיל'+(wpa===1?'ה':'ים');
+}
+function setWordcloudStyle(s){
+  window._popupWordcloudData.style=s;
+  document.getElementById('item-popup-body').innerHTML=renderWordcloudPopup(window._popupWordcloudData);
+}
 function renderStyleQuestionPopup(d,varName,styles,ph){
   return '<div style="margin-bottom:10px;"><div style="font-size:.75rem;opacity:.6;margin-bottom:6px;">סגנון:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">'+
     styles.map(s=>'<button onclick="selectPopupStyle(this,\''+varName+'\')" data-val="'+s+'" style="padding:5px 12px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:\'Heebo\',sans-serif;border:1px solid var(--border);background:'+(d.style===s?'rgba(212,168,67,.25)':'rgba(253,245,224,.05)')+';color:'+(d.style===s?'#f0c060':'var(--parch)')+';">'+s+'</button>').join('')+
@@ -3343,7 +3454,7 @@ function renderStyleQuestionPopup(d,varName,styles,ph){
     '<textarea rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:8px;color:#fdf5e0;font-family:\'Heebo\',sans-serif;font-size:.9rem;padding:10px;outline:none;resize:vertical;direction:rtl;" placeholder="'+ph+'" oninput="window.'+varName+'.question=this.value">'+esc(d.question||'')+'</textarea></div>';
 }
 function collectStickiesPopup(){ return JSON.parse(JSON.stringify(window._popupStickyData||{})); }
-function collectWordcloudPopup(){ return JSON.parse(JSON.stringify(window._popupStickyData||{})); }
+function collectWordcloudPopup(){ return JSON.parse(JSON.stringify(window._popupWordcloudData||{})); }
 
 // ── SIMPLE POPUP (discussion, summary) ──
 function renderSimpleQuestionPopup(d,ph){
