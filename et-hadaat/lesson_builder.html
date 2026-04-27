@@ -699,12 +699,8 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 </div>
 
 <script>
-console.log('🔧 script started');
 const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
-try{
-  firebase.initializeApp(FB_CFG);
-  console.log('🔧 firebase initialized');
-}catch(e){console.error('🔧 firebase init error:',e);}
+firebase.initializeApp(FB_CFG);
 const db=firebase.database();
 
 let currentSubject=null,currentUnit=null,currentLessonIdx=null,lessonData={},activeRow=null,teacherData=null;
@@ -808,7 +804,6 @@ function openLessonBoard(){
 
 // ── INIT ──
 window.onload=function(){
-  console.log('🔧 onload fired');
   renderAvatars();
   buildLessonSetup();
   renderBankItems();
@@ -821,7 +816,6 @@ window.onload=function(){
 
   // timeout — אם Firebase לא עונה ב-8 שניות
   const fbTimeout=setTimeout(()=>{
-    console.log('🔧 firebase timeout fired');
     const grid=document.getElementById('subject-grid');
     if(grid&&grid.querySelector('.loading-msg')){
       grid.innerHTML='<div class="empty-msg" style="color:#f87171;">⚠️ לא ניתן להתחבר ל-Firebase.<br><small style="opacity:.6;">בדקי חיבור לאינטרנט.</small><br><button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="window.location.reload()">🔄 נסי שוב</button></div>';
@@ -829,7 +823,6 @@ window.onload=function(){
   },8000);
 
   db.ref('teacher').once('value',snap=>{
-    console.log('🔧 firebase snap received, val=', snap.val());
     clearTimeout(fbTimeout);
     teacherData=snap.val()||{};
     try{localStorage.setItem('et_hadaat_teacher',JSON.stringify(teacherData));}catch(e){}
