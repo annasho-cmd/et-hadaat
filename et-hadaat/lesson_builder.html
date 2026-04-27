@@ -17,6 +17,8 @@
   --border2:rgba(212,168,67,0.38);
   --green:#22863a;
   --intro-c:#0d2e1a;--body-c:#0d1e2e;
+  --close-c:#2e0d0d;--enrich-c:#1a0d2e;
+}
 /* ── ENRICHMENT TEMPLATES ── */
 .enrich-template{background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.25);border-radius:12px;margin-bottom:14px;overflow:hidden;}
 .enrich-template-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;}
@@ -48,9 +50,6 @@
 .topic-edit-input{flex:1;background:none;border:none;border-bottom:1.5px solid var(--border);color:var(--gold2);font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;outline:none;padding:2px 4px;}
 .topic-edit-input:focus{border-bottom-color:var(--gold);}
 .topic-edit-btn{padding:4px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;}
-
-  --close-c:#2e0d0d;--enrich-c:#1a0d2e;
-}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direction:rtl;min-height:100vh;}
@@ -805,13 +804,38 @@ function openLessonBoard(){
 
 // ── INIT ──
 window.onload=function(){
-  db.ref('teacher').once('value',snap=>{
-    teacherData=snap.val()||{};
-    renderSubjects();
-  });
   renderAvatars();
   buildLessonSetup();
   renderBankItems();
+
+  // הצג נתונים מ-cache מיידית אם קיים
+  const cached=localStorage.getItem('et_hadaat_teacher');
+  if(cached){
+    try{teacherData=JSON.parse(cached);renderSubjects();}catch(e){}
+  }
+
+  // timeout — אם Firebase לא עונה ב-8 שניות
+  const fbTimeout=setTimeout(()=>{
+    const grid=document.getElementById('subject-grid');
+    if(grid&&grid.querySelector('.loading-msg')){
+      grid.innerHTML='<div class="empty-msg" style="color:#f87171;">⚠️ לא ניתן להתחבר ל-Firebase.<br><small style="opacity:.6;">בדקי חיבור לאינטרנט.</small><br><button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="window.location.reload()">🔄 נסי שוב</button></div>';
+    }
+  },8000);
+
+  db.ref('teacher').once('value',snap=>{
+    clearTimeout(fbTimeout);
+    teacherData=snap.val()||{};
+    try{localStorage.setItem('et_hadaat_teacher',JSON.stringify(teacherData));}catch(e){}
+    renderSubjects();
+  }).catch(err=>{
+    clearTimeout(fbTimeout);
+    console.error('Firebase error:',err);
+    const grid=document.getElementById('subject-grid');
+    if(grid){
+      if(teacherData&&teacherData.subjects){renderSubjects();}
+      else{grid.innerHTML='<div class="empty-msg" style="color:#f87171;">⚠️ שגיאת התחברות ל-Firebase.<br><small style="opacity:.6;">'+(err.message||'')+'</small><br><button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="window.location.reload()">🔄 נסי שוב</button></div>';}
+    }
+  });
 };
 
 // ── SCREEN 1 ──
