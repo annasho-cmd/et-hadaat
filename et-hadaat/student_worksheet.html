@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>שיעור לתלמידים — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --bg:#0a0602;--surface:rgba(44,26,14,.9);
+  --border:rgba(212,168,67,.18);--border2:rgba(212,168,67,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--parch);min-height:100vh;direction:rtl;}
+
+/* TOP BAR */
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn-back{padding:6px 14px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--parch);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;}
+.btn-save{padding:7px 18px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;border:none;cursor:pointer;}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 49px);}
+.main-area{flex:1;overflow-y:auto;padding:20px;}
+.side-panel{width:280px;border-right:1px solid var(--border);display:flex;flex-direction:column;background:rgba(10,5,2,.6);overflow:hidden;}
+
+/* SAVE STATUS */
+.save-status{font-size:.75rem;color:#d4a843;opacity:.7;padding:0 8px;}
+
+/* SIDE TABS */
+.side-tabs{display:flex;border-bottom:1px solid var(--border);}
+.side-tab{flex:1;padding:10px 8px;text-align:center;font-size:.78rem;cursor:pointer;opacity:.5;border-bottom:2px solid transparent;transition:all .2s;}
+.side-tab.active{opacity:1;border-bottom-color:var(--gold);color:var(--gold2);}
+.side-tab-body{flex:1;overflow-y:auto;padding:10px;}
+
+/* BANK */
+.bank-cat-section{margin-bottom:8px;}
+.bank-cat-header{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:700;background:rgba(212,168,67,.06);border:1px solid transparent;}
+.bank-cat-header.open{border-color:rgba(212,168,67,.15);}
+.bank-cat-name{flex:1;}
+.bank-cat-count{font-size:.7rem;opacity:.4;}
+.bank-cat-chevron{font-size:.7rem;transition:transform .2s;display:inline-block;}
+.bank-cat-chevron.open{transform:rotate(0deg);}
+.bank-cat-chevron:not(.open){transform:rotate(-90deg);}
+.bank-cat-items{display:none;padding:6px 0;}
+.bank-cat-items.open{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.bank-cube{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:8px 6px;cursor:pointer;text-align:center;transition:all .15s;user-select:none;}
+.bank-cube:hover{background:rgba(212,168,67,.12);border-color:var(--gold);}
+.bank-cube-icon{font-size:1.3rem;display:block;margin-bottom:3px;}
+.bank-cube-name{font-size:.68rem;line-height:1.2;opacity:.8;}
+.bank-hint{font-size:.75rem;opacity:.45;text-align:center;padding:10px;border:1px dashed rgba(212,168,67,.2);border-radius:8px;margin-bottom:10px;line-height:1.5;}
+
+/* AI */
+.ai-messages{display:flex;flex-direction:column;gap:8px;padding-bottom:10px;}
+.ai-msg{padding:8px 11px;border-radius:10px;font-size:.82rem;line-height:1.5;max-width:100%;direction:rtl;}
+.ai-msg.assistant{background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.2);}
+.ai-msg.user{background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.25);align-self:flex-end;}
+.ai-input-wrap{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border);}
+.ai-input{flex:1;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;padding:6px 10px;outline:none;direction:rtl;}
+.ai-send{padding:6px 12px;background:rgba(212,168,67,.15);border:1px solid rgba(212,168,67,.3);border-radius:6px;color:var(--gold);cursor:pointer;font-size:.82rem;}
+
+/* PAGE CARDS */
+.page-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:16px;overflow:hidden;transition:border-color .2s;}
+.page-card.selected{border-color:var(--gold);}
+.page-card-header{padding:10px 16px;display:flex;align-items:center;gap:10px;background:rgba(212,168,67,.05);border-bottom:1px solid var(--border);}
+.page-num{font-size:.8rem;font-weight:700;color:var(--gold);background:rgba(212,168,67,.15);padding:3px 10px;border-radius:10px;}
+.page-card-body{padding:14px 16px;}
+.page-text-area{width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(212,168,67,.12);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:10px 12px;resize:vertical;min-height:80px;outline:none;margin-bottom:12px;}
+.items-label{font-size:.75rem;opacity:.5;margin-bottom:8px;}
+.item-slot{padding:10px 14px;border-radius:8px;border:1px dashed rgba(212,168,67,.2);background:rgba(253,245,224,.02);cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;margin-bottom:7px;transition:all .15s;}
+.item-slot:hover{border-color:rgba(212,168,67,.4);background:rgba(212,168,67,.05);}
+.item-slot.filled{border-color:rgba(212,168,67,.35);background:rgba(212,168,67,.07);}
+.item-slot.active-select{border-color:var(--gold);background:rgba(212,168,67,.12);animation:pulse .8s ease infinite alternate;}
+@keyframes pulse{from{box-shadow:0 0 0 0 rgba(212,168,67,.3);}to{box-shadow:0 0 0 6px rgba(212,168,67,.0);}}
+
+/* ADD PAGE BTN */
+.add-page-btn{width:100%;padding:13px;background:rgba(212,168,67,.05);border:1px dashed rgba(212,168,67,.25);border-radius:12px;color:#d4a843;font-family:'Heebo',sans-serif;font-size:.9rem;cursor:pointer;font-weight:700;margin-bottom:20px;transition:all .15s;}
+.add-page-btn:hover{background:rgba(212,168,67,.1);border-color:var(--gold);}
+
+/* POPUP */
+.popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.popup-box{background:#2c1a0e;border:2px solid var(--gold);border-radius:14px;padding:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;}
+.popup-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);margin-bottom:16px;}
+.popup-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.btn-cancel{padding:7px 16px;border:1px solid var(--border2);border-radius:7px;background:transparent;color:var(--parch);cursor:pointer;font-family:'Heebo',sans-serif;}
+.btn-ok{padding:7px 18px;border-radius:7px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;font-family:'Heebo',sans-serif;font-weight:700;border:none;cursor:pointer;}
+
+/* INPUT */
+.inp{width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.88rem;padding:8px 10px;outline:none;margin-bottom:10px;}
+.lbl{font-size:.75rem;opacity:.6;margin-bottom:5px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="btn-back" onclick="goBack()">→ חזרה לבונה</button>
+  <div class="topbar-title" id="ws-title">שיעור לתלמידים</div>
+  <span class="save-status" id="save-status">נשמר</span>
+  <button class="btn-save" onclick="saveWorksheet()">💾 שמור</button>
+</div>
+
+<div class="layout">
+
+  <!-- MAIN AREA -->
+  <div class="main-area" id="main-area">
+    <!-- דף פתיחה -->
+    <div class="page-card" id="intro-card">
+      <div class="page-card-header">
+        <span class="page-num">📖 דף פתיחה</span>
+        <span style="font-size:.75rem;opacity:.4;">יוצג לתלמידים כדף ראשון — נתוני היחידה והשיעור מוצגים אוטומטית</span>
+      </div>
+      <div class="page-card-body">
+        <div class="lbl">הקדמה — מלל חופשי (יופיע מעל נתוני היחידה):</div>
+        <textarea class="page-text-area" id="intro-text" placeholder="כתבי הקשר, שאלה מעוררת עניין, רקע..." rows="3"
+          oninput="wsData.introText=this.value;markUnsaved()"></textarea>
+        <div class="lbl">תמונה (קישור, אופציונלי):</div>
+        <input class="inp" id="intro-img" placeholder="https://..." style="direction:ltr;"
+          oninput="wsData.introImg=this.value;markUnsaved()">
+      </div>
+    </div>
+
+    <!-- דפי תחנות -->
+    <div id="pages-wrap"></div>
+
+    <button class="add-page-btn" onclick="addPage()">+ הוסף דף חדש</button>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side-panel">
+    <div class="side-tabs">
+      <div class="side-tab active" id="tab-bank" onclick="switchTab('bank')">📦 בנק פריטים</div>
+      <div class="side-tab" id="tab-ai" onclick="switchTab('ai')">🤖 עוזר הוראה</div>
+    </div>
+
+    <div id="panel-bank" class="side-tab-body">
+      <div class="bank-hint" id="bank-hint">לחצי על שורת פריט בדף, ואז בחרי פריט מהבנק</div>
+      <div id="bank-accordion"></div>
+    </div>
+
+    <div id="panel-ai" class="side-tab-body" style="display:none;flex-direction:column;">
+      <div class="ai-messages" id="ai-messages">
+        <div class="ai-msg assistant">שלום! אני עוזר ההוראה. אוכל לעזור לך לנסח שאלות, להוסיף הסבר, או לבדוק התאמה למטרות.</div>
+      </div>
+    </div>
+    <div id="ai-input-area" style="display:none;">
+      <div class="ai-input-wrap">
+        <input class="ai-input" id="ai-input" placeholder="שאלי אותי..." onkeydown="if(event.key==='Enter')sendAI()">
+        <button class="ai-send" onclick="sendAI()">שלח</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM POPUP -->
+<div class="popup-overlay" id="item-popup">
+  <div class="popup-box">
+    <div class="popup-title" id="item-popup-title">פריט</div>
+    <div id="item-popup-body"></div>
+    <div class="popup-btns">
+      <button class="btn-cancel" onclick="closePopup()">ביטול</button>
+      <button class="btn-ok" onclick="confirmItem()">✓ הוסף לדף</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB);
+const db=firebase.database();
+const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
+
+const params=new URLSearchParams(window.location.search);
+const subjectId=params.get('subject');
+const unitId=params.get('unit');
+const lessonIdx=parseInt(params.get('lesson')||'0');
+
+let wsData={introText:'',introImg:'',pages:[]};
+let unitData=null;
+let lessonMeta=null;
+let _pendingSlot=null; // {pi, si}
+let _pendingCallback=null;
+
+// ── INIT ──
+window.onload=async function(){
+  // טען נתוני יחידה ושיעור
+  const snap=await db.ref(`teacher/subjects/${subjectId}/units/${unitId}`).once('value');
+  unitData=snap.val()||{};
+  lessonMeta=(unitData.lessons||[])[lessonIdx]||{};
+  document.getElementById('ws-title').textContent=
+    `📄 ${lessonMeta.topic||'שיעור '+(lessonIdx+1)} — שיעור לתלמידים`;
+
+  // טען worksheet קיים
+  const wsSnap=await db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}/worksheet`).once('value');
+  const saved=wsSnap.val();
+  if(saved){
+    wsData=saved;
+    document.getElementById('intro-text').value=wsData.introText||'';
+    document.getElementById('intro-img').value=wsData.introImg||'';
+  }
+  if(!wsData.pages||!wsData.pages.length) wsData.pages=[{text:'',items:[null,null,null]}];
+  renderPages();
+  renderBank();
+};
+
+// ── PAGES ──
+function renderPages(){
+  const wrap=document.getElementById('pages-wrap');
+  wrap.innerHTML=wsData.pages.map((page,pi)=>renderPageCard(page,pi)).join('');
+}
+
+function renderPageCard(page,pi){
+  const items=[0,1,2].map(si=>{
+    const item=(page.items||[])[si];
+    if(item){
+      return `<div class="item-slot filled" id="slot-${pi}-${si}" onclick="activateSlot(${pi},${si})">
+        <span style="font-size:1rem;">${getIcon(item.type)}</span>
+        <span style="font-size:.83rem;color:var(--gold);flex:1;">${getName(item.type)}</span>
+        <span style="font-size:.72rem;opacity:.5;">${esc((item.content||item.question||'').substring(0,40))}</span>
+        <button onclick="event.stopPropagation();clearSlot(${pi},${si})"
+          style="padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.72rem;">✕</button>
+      </div>`;
+    }
+    return `<div class="item-slot" id="slot-${pi}-${si}" onclick="activateSlot(${pi},${si})">
+      <span style="opacity:.3;font-size:.82rem;">+ לחצי לבחירת פריט מהבנק</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="page-card" id="page-${pi}">
+    <div class="page-card-header">
+      <span class="page-num">📄 דף ${pi+1}</span>
+      <span style="flex:1;"></span>
+      ${pi>0?`<button onclick="removePage(${pi})"
+        style="padding:3px 10px;background:rgba(139,32,32,.18);border:1px solid rgba(139,32,32,.25);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;font-family:Heebo,sans-serif;">✕ מחק</button>`:''}
+    </div>
+    <div class="page-card-body">
+      <div class="lbl">מלל חופשי <span style="opacity:.5;">(הסבר, מקור, הקשר)</span></div>
+      <textarea class="page-text-area" placeholder="כתבי הסבר, מקור, שאלה מנחה..." rows="4"
+        oninput="wsData.pages[${pi}].text=this.value;markUnsaved()">${esc(page.text||'')}</textarea>
+      <div class="items-label">פריטים (עד 3) — לחצי על שורה ואז בחרי מהבנק:</div>
+      ${items}
+    </div>
+  </div>`;
+}
+
+function addPage(){
+  wsData.pages.push({text:'',items:[null,null,null]});
+  renderPages();
+  markUnsaved();
+  // גלול לדף החדש
+  setTimeout(()=>{
+    const last=document.getElementById('page-'+(wsData.pages.length-1));
+    if(last)last.scrollIntoView({behavior:'smooth'});
+  },100);
+}
+
+function removePage(pi){
+  if(!confirm('למחוק דף זה?'))return;
+  wsData.pages.splice(pi,1);
+  renderPages();
+  markUnsaved();
+}
+
+function activateSlot(pi,si){
+  // בטל סלוט קודם
+  document.querySelectorAll('.item-slot.active-select').forEach(el=>el.classList.remove('active-select'));
+  _pendingSlot={pi,si};
+  const slot=document.getElementById('slot-'+pi+'-'+si);
+  if(slot)slot.classList.add('active-select');
+  switchTab('bank');
+  document.getElementById('bank-hint').textContent=`בחרי פריט לדף ${pi+1}, שורה ${si+1}`;
+  document.getElementById('bank-hint').style.color='#d4a843';
+}
+
+function clearSlot(pi,si){
+  wsData.pages[pi].items[si]=null;
+  renderPages();
+  markUnsaved();
+}
+
+// ── BANK ──
+const BANK=[
+  {cat:'questions',icon:'📝',name:'שאלות ומשימות',items:[
+    {type:'entry_card',icon:'🚪',name:'כרטיס כניסה'},
+    {type:'exit_card',icon:'🎫',name:'כרטיס יציאה'},
+    {type:'question',icon:'❓',name:'שאלה פתוחה'},
+    {type:'mc_q',icon:'🔘',name:'שאלת רב-ברירה'},
+    {type:'tf_q',icon:'✅',name:'נכון/לא נכון'},
+    {type:'sources',icon:'📜',name:'קריאת מקורות'},
+  ]},
+  {cat:'writing',icon:'✍️',name:'כתיבה ויצירה',items:[
+    {type:'argue',icon:'🖊️',name:'כתיבה טיעונית/דעה'},
+    {type:'full_ans',icon:'📝',name:'תשובה מלאה'},
+    {type:'stickies',icon:'🗒️',name:'פתקיות'},
+    {type:'wordcloud',icon:'☁️',name:'ענן מילים'},
+  ]},
+  {cat:'media',icon:'🎬',name:'מדיה',items:[
+    {type:'video',icon:'▶️',name:'סרטון'},
+    {type:'image',icon:'🖼️',name:'תמונה / מפה'},
+  ]},
+  {cat:'discovery',icon:'🔍',name:'גילוי ומיון',items:[
+    {type:'fill_table',icon:'📋',name:'טבלת מילוי'},
+    {type:'sort_table',icon:'📊',name:'טבלת מיון'},
+    {type:'drag_drop',icon:'🔢',name:'סדר כרונולוגי'},
+    {type:'timeline',icon:'📅',name:'ציר זמן'},
+    {type:'match_line',icon:'↔️',name:'מתיחת קו'},
+  ]},
+];
+
+function renderBank(){
+  const acc=document.getElementById('bank-accordion');
+  acc.innerHTML=BANK.map((cat,ci)=>`
+    <div class="bank-cat-section">
+      <div class="bank-cat-header${ci===0?' open':''}" onclick="toggleCat(${ci},this)">
+        <span>${cat.icon}</span>
+        <span class="bank-cat-name">${cat.name}</span>
+        <span class="bank-cat-count">(${cat.items.length})</span>
+        <span class="bank-cat-chevron${ci===0?' open':''}" id="bch-${ci}">▼</span>
+      </div>
+      <div class="bank-cat-items${ci===0?' open':''}" id="bci-${ci}">
+        ${cat.items.map(it=>`
+          <div class="bank-cube" onclick="bankClick('${it.type}','${esc(it.name)}')">
+            <span class="bank-cube-icon">${it.icon}</span>
+            <div class="bank-cube-name">${it.name}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleCat(ci,header){
+  const el=document.getElementById('bci-'+ci);
+  const ch=document.getElementById('bch-'+ci);
+  const open=el.classList.toggle('open');
+  header.classList.toggle('open',open);
+  if(ch)ch.classList.toggle('open',open);
+}
+
+function bankClick(type,name){
+  if(!_pendingSlot){
+    alert('לחצי תחילה על שורת פריט בדף');
+    return;
+  }
+  // פתח פופאפ פשוט
+  openItemPopup(type,name);
+}
+
+// ── ITEM POPUP ──
+let _currentItemType='';
+let _currentItemData={};
+
+function openItemPopup(type,name){
+  _currentItemType=type;
+  _currentItemData={type};
+  document.getElementById('item-popup-title').textContent=name;
+  document.getElementById('item-popup-body').innerHTML=buildItemForm(type);
+  document.getElementById('item-popup').style.display='flex';
+}
+
+function buildItemForm(type){
+  const ta=(ph,key,rows=3)=>`<div class="lbl">${ph}:</div><textarea class="inp" rows="${rows}" style="margin-bottom:10px;" oninput="_currentItemData.${key}=this.value"></textarea>`;
+  const inp=(ph,key)=>`<div class="lbl">${ph}:</div><input class="inp" placeholder="${ph}..." oninput="_currentItemData.${key}=this.value">`;
+
+  if(type==='question'||type==='mc_q'||type==='tf_q'||type==='entry_card'||type==='exit_card'){
+    return ta('השאלה לתלמידים','question')+
+      (type==='mc_q'?[1,2,3,4].map(i=>`<div class="lbl">אפשרות ${i}:</div><input class="inp" oninput="_currentItemData.opt${i}=this.value">`).join('')+'<div class="lbl">תשובה נכונה (1-4):</div><input class="inp" type="number" min="1" max="4" style="width:80px;" oninput="_currentItemData.correct=this.value">':'');
+  }
+  if(type==='sources'){
+    return inp('כותרת המקור','title')+ta('טקסט המקור (עד 15 שורות)','text',6)+ta('שאלה מלווה','question',2);
+  }
+  if(type==='video'){
+    return `<div class="lbl">קישור YouTube / Drive:</div><input class="inp" style="direction:ltr;" placeholder="https://..." oninput="_currentItemData.url=this.value">`+ta('שאלה לאחר הצפייה (אופציונלי)','question',2);
+  }
+  if(type==='image'){
+    return `<div class="lbl">קישור לתמונה:</div><input class="inp" style="direction:ltr;" placeholder="https://..." oninput="_currentItemData.url=this.value">`+inp('כיתוב / הנחיה','caption');
+  }
+  if(type==='fill_table'||type==='sort_table'){
+    return ta('עמודות הטבלה (מופרדות בפסיק)','cols',1)+ta('תוכן / פריטים','content',3);
+  }
+  if(type==='argue'||type==='full_ans'){
+    return ta('הנושא / השאלה','prompt',2)+
+      `<div class="lbl">סגנון:</div><select class="inp" onchange="_currentItemData.style=this.value"><option>מובנית</option><option>עצמאית</option></select>`;
+  }
+  if(type==='drag_drop'||type==='timeline'){
+    return ta('פריטים לסידור (כל אחד בשורה)','items',5);
+  }
+  if(type==='match_line'){
+    return ta('עמודה שמאל (כל פריט בשורה)','left',4)+ta('עמודה ימין (כל פריט בשורה)','right',4);
+  }
+  if(type==='wordcloud'||type==='stickies'){
+    return ta('ההנחיה / השאלה','question',2);
+  }
+  return ta('הנחיה לתלמידים','question',3);
+}
+
+function closePopup(){
+  document.getElementById('item-popup').style.display='none';
+  _currentItemType='';
+}
+
+function confirmItem(){
+  if(!_pendingSlot)return;
+  const {pi,si}=_pendingSlot;
+  if(!wsData.pages[pi].items)wsData.pages[pi].items=[null,null,null];
+  wsData.pages[pi].items[si]={..._currentItemData};
+  renderPages();
+  markUnsaved();
+  closePopup();
+  _pendingSlot=null;
+  document.getElementById('bank-hint').textContent='לחצי על שורת פריט בדף, ואז בחרי פריט מהבנק';
+  document.getElementById('bank-hint').style.color='';
+}
+
+// ── AI ──
+function switchTab(tab){
+  document.querySelectorAll('.side-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-bank').style.display=tab==='bank'?'block':'none';
+  document.getElementById('panel-ai').style.display=tab==='ai'?'flex':'none';
+  document.getElementById('ai-input-area').style.display=tab==='ai'?'block':'none';
+}
+
+async function sendAI(){
+  const inp=document.getElementById('ai-input');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  addAIMsg(msg,'user');
+  const topic=lessonMeta.topic||'';
+  const reply=await callAI('אתה עוזר הוראה מנוסה. ענה בעברית, קצר ומועיל.',
+    `נושא השיעור: "${topic}"\n${msg}`);
+  addAIMsg(reply,'assistant');
+}
+
+function addAIMsg(text,role){
+  const msgs=document.getElementById('ai-messages');
+  const d=document.createElement('div');
+  d.className='ai-msg '+role;
+  d.textContent=text;
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+async function callAI(sys,msg){
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+        system:sys,messages:[{role:'user',content:msg}]})});
+    const d=await r.json();
+    return d.content?.[0]?.text||'שגיאה בתשובה';
+  }catch(e){return 'שגיאה בחיבור לעוזר';}
+}
+
+// ── SAVE / LOAD ──
+function markUnsaved(){
+  document.getElementById('save-status').textContent='שינויים לא שמורים';
+}
+
+async function saveWorksheet(){
+  document.getElementById('save-status').textContent='⏳ שומר...';
+  await db.ref(`teacher/subjects/${subjectId}/units/${unitId}/lessons/${lessonIdx}/worksheet`)
+    .set(wsData);
+  document.getElementById('save-status').textContent='✓ נשמר';
+}
+
+function goBack(){
+  const p=new URLSearchParams(window.location.search);
+  window.location.href='lesson_builder.html?'+p.toString();
+}
+
+// ── HELPERS ──
+function getIcon(type){
+  for(const cat of BANK){
+    const it=cat.items.find(i=>i.type===type);
+    if(it)return it.icon;
+  }
+  return '📄';
+}
+function getName(type){
+  for(const cat of BANK){
+    const it=cat.items.find(i=>i.type===type);
+    if(it)return it.name;
+  }
+  return type;
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
