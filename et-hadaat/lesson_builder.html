@@ -1395,6 +1395,111 @@ function renderLessonStructure(){
 
 }
 
+// ── ENRICHMENT TEMPLATES ──
+const ENRICH_TEMPLATES=[
+  {id:'pairs',    icon:'🃏', title:'זוגות — מושג והגדרה',   sub:'זוגות מושג + הגדרה',
+   games:['memory','match_line','flashcards','klue'],
+   ph1:'מושג / מילה', ph2:'הגדרה / הסבר'},
+  {id:'qa',       icon:'❓', title:'שאלה ותשובה',           sub:'שאלות עם תשובות',
+   games:['trivia','quiz_game','crackers','lucky_wheel','bingo'],
+   ph1:'שאלה', ph2:'תשובה'},
+  {id:'sequence', icon:'📅', title:'סדר כרונולוגי / שלבים', sub:'פריטים לסידור',
+   games:['drag_drop','timeline'],
+   ph1:'פריט / אירוע', ph2:'שנה / תיאור (אופציונלי)'},
+  {id:'categories',icon:'🗂️',title:'מיון לקטגוריות',       sub:'פריטים + קטגוריות',
+   games:['sort_table','klue'],
+   ph1:'פריט', ph2:'קטגוריה'},
+];
+
+function renderEnrichmentTemplates(){
+  const c=document.getElementById('enrich-templates');
+  if(!c)return;
+  const enrich=lessonData.enrichment||{};
+  c.innerHTML=ENRICH_TEMPLATES.map((tmpl,ti)=>{
+    const pairs=enrich[tmpl.id]||[];
+    const selectedGames=enrich[tmpl.id+'SelectedGames']||[];
+    const isOpen=ti===0;
+    const pairsHtml=pairs.length
+      ? pairs.map((p,pi)=>`
+          <div class="enrich-pair-row">
+            <span class="enrich-pair-num">${pi+1}</span>
+            <input class="enrich-pair-input" placeholder="${tmpl.ph1}" value="${(p.a||'').replace(/"/g,'&quot;')}"
+              oninput="setEnrichPair('${tmpl.id}',${pi},'a',this.value)">
+            <input class="enrich-pair-input" placeholder="${tmpl.ph2}" value="${(p.b||'').replace(/"/g,'&quot;')}"
+              oninput="setEnrichPair('${tmpl.id}',${pi},'b',this.value)">
+            <button onclick="removeEnrichPair('${tmpl.id}',${pi})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;padding:0 4px;">✕</button>
+          </div>`).join('')
+      : `<div style="font-size:.76rem;opacity:.3;font-style:italic;padding:6px 0;">עוד לא נוספו זוגות</div>`;
+    const gamesHtml=tmpl.games.map(g=>{
+      const item=ITEM_BANK.find(b=>b.type===g);
+      if(!item)return '';
+      const on=selectedGames.includes(g)?'selected':'';
+      return `<div class="enrich-game-chip ${on}" onclick="toggleEnrichGame('${tmpl.id}','${g}',this)">${item.icon||''} ${item.name}</div>`;
+    }).join('');
+    return `<div class="enrich-template">
+      <div class="enrich-template-header" onclick="toggleEnrichTemplate(${ti})">
+        <span class="enrich-template-icon">${tmpl.icon}</span>
+        <div>
+          <div class="enrich-template-title">${tmpl.title}</div>
+          <div class="enrich-template-sub">${pairs.length} זוגות · ${selectedGames.length} משחקים</div>
+        </div>
+        <span style="opacity:.4;font-size:.7rem;">${isOpen?'▲':'▼'}</span>
+      </div>
+      <div class="enrich-template-body${isOpen?' open':''}" id="enrich-body-${ti}">
+        <div class="enrich-pairs-list" id="enrich-pairs-${tmpl.id}">${pairsHtml}</div>
+        <button class="enrich-add-btn" onclick="addEnrichPair('${tmpl.id}')">+ הוסף זוג</button>
+        <div class="enrich-games-title">בחרי משחקים להעשרה:</div>
+        <div class="enrich-games-list">${gamesHtml}</div>
+        <button class="enrich-save-btn" onclick="saveEnrichTemplate('${tmpl.id}')">💾 שמור תבנית</button>
+        ${selectedGames.length?`<div class="enrich-saved-games">${selectedGames.map(g=>{const it=ITEM_BANK.find(b=>b.type===g);return it?`<span class="enrich-saved-chip">${it.icon||''} ${it.name}</span>`:''}).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleEnrichTemplate(ti){
+  const body=document.getElementById('enrich-body-'+ti);
+  if(body)body.classList.toggle('open');
+}
+
+function setEnrichPair(tmplId,pi,key,val){
+  if(!lessonData.enrichment)lessonData.enrichment={};
+  if(!lessonData.enrichment[tmplId])lessonData.enrichment[tmplId]=[];
+  if(!lessonData.enrichment[tmplId][pi])lessonData.enrichment[tmplId][pi]={};
+  lessonData.enrichment[tmplId][pi][key]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+
+function addEnrichPair(tmplId){
+  if(!lessonData.enrichment)lessonData.enrichment={};
+  if(!Array.isArray(lessonData.enrichment[tmplId]))lessonData.enrichment[tmplId]=[];
+  lessonData.enrichment[tmplId].push({a:'',b:''});
+  renderEnrichmentTemplates();
+  setSaveStatus('שינויים לא שמורים');
+}
+
+function removeEnrichPair(tmplId,pi){
+  if(lessonData.enrichment&&Array.isArray(lessonData.enrichment[tmplId])){
+    lessonData.enrichment[tmplId].splice(pi,1);
+    renderEnrichmentTemplates();
+    setSaveStatus('שינויים לא שמורים');
+  }
+}
+
+function toggleEnrichGame(tmplId,game,el){
+  if(!lessonData.enrichment)lessonData.enrichment={};
+  const key=tmplId+'SelectedGames';
+  if(!Array.isArray(lessonData.enrichment[key]))lessonData.enrichment[key]=[];
+  const idx=lessonData.enrichment[key].indexOf(game);
+  if(idx>=0){lessonData.enrichment[key].splice(idx,1);el.classList.remove('selected');}
+  else{lessonData.enrichment[key].push(game);el.classList.add('selected');}
+  setSaveStatus('שינויים לא שמורים');
+}
+
+function saveEnrichTemplate(tmplId){
+  saveLesson();
+}
+
 function renderSimpleRows(containerId,rows,section){
   // legacy fallback — redirect to new renderer
   renderSectionStations(containerId, lessonData[section==='closing'?'closing':section==='intro'?'intro':'stations'], section==='closing'?'closing':section==='intro'?'intro':'body');
