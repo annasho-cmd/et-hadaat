@@ -192,6 +192,33 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='sources'){
+    const d=slot.sourcesData||{};
+    const qs=d.questions||[];
+    let sourceHtml='';
+    if(d.mode==='image'){
+      sourceHtml=`<img src="${esc(d.imageUrl||'')}" style="max-width:100%;max-height:380px;border-radius:8px;object-fit:contain;">`;
+    } else {
+      const lines=(d.text||'').split('\n').slice(0,15);
+      sourceHtml=lines.map((line,i)=>`
+        <div style="display:flex;gap:10px;line-height:1.85;font-size:.95rem;">
+          <span style="min-width:22px;color:var(--gold);opacity:.4;font-size:.75rem;padding-top:3px;">${i+1}</span>
+          <span>${esc(line)||'&nbsp;'}</span>
+        </div>`).join('');
+    }
+    const qHtml=qs.map((q,qi)=>`
+      <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+        <div style="font-size:.7rem;color:var(--gold);opacity:.5;margin-bottom:4px;">שאלה ${qi+1}</div>
+        <div style="font-size:.9rem;">${esc(q.question)}</div>
+      </div>`).join('');
+    inner=`<div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;min-height:300px;">
+      <div style="flex:1;padding:16px;border-left:1px solid var(--border);overflow-y:auto;">${sourceHtml}</div>
+      <div style="width:40%;padding:14px;overflow-y:auto;background:rgba(253,245,224,.03);">
+        <div style="font-size:.72rem;opacity:.35;margin-bottom:10px;">שאלות</div>
+        ${qHtml||'<div style="opacity:.3;">אין שאלות</div>'}
+      </div>
+    </div>`;
+
   } else if(slot.type==='sort_table'&&slot.tableData){
     const td=slot.tableData;
     const colsHtml=td.cols.map(c=>`<th>${esc(c.name)}</th>`).join('');

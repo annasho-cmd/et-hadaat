@@ -1771,6 +1771,85 @@ function buildSlotEditor(slot, section, si, sli, uid){
   const isUrl=slot.type==='video'||slot.type==='image';
 
   // ── כתיבה טיעונית / תשובה מלאה ──
+  // ── קריאת מקורות ──
+  if(slot.type==='sources'){
+    const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
+    const qs=d.questions||[];
+    const qHtml=qs.map((q,qi)=>`
+      <div style="background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <select class="inline-field" style="min-height:0;padding:4px 8px;width:130px;"
+            onchange="updateSourceQ('${section}',${si},${sli},${qi},'type',this.value)">
+            <option value="open" ${q.type==='open'||!q.type?'selected':''}>פתוחה</option>
+            <option value="mc" ${q.type==='mc'?'selected':''}>רב-ברירה</option>
+            <option value="tf" ${q.type==='tf'?'selected':''}>נכון/לא נכון</option>
+          </select>
+          <span style="font-size:.75rem;opacity:.4;">שאלה ${qi+1}</span>
+          <button onclick="removeSourceQ('${section}',${si},${sli},${qi})"
+            style="margin-right:auto;padding:2px 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;font-size:.75rem;">✕</button>
+        </div>
+        <textarea class="inline-field" style="margin-bottom:6px;font-size:.82rem;" placeholder="כתבי את השאלה..."
+          onchange="updateSourceQ('${section}',${si},${sli},${qi},'question',this.value)">${esc(q.question||'')}</textarea>
+        ${q.type==='mc'?`
+          ${(q.options||['','','','']).map((o,oi)=>`
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+              <input type="radio" name="src-mc-${uid}-${qi}" ${q.correct===oi?'checked':''}
+                onchange="updateSourceQ('${section}',${si},${sli},${qi},'correct',${oi})"
+                style="width:14px;height:14px;cursor:pointer;">
+              <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.8rem;"
+                placeholder="אפשרות ${oi+1}" value="${esc(o)}"
+                onchange="updateSourceQOption('${section}',${si},${sli},${qi},${oi},this.value)">
+            </div>`).join('')}`:''}
+        ${q.type==='tf'?`
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <button onclick="updateSourceQ('${section}',${si},${sli},${qi},'tfCorrect',true)"
+              style="flex:1;padding:5px;border-radius:6px;border:2px solid ${q.tfCorrect===true?'#22c55e':'var(--border)'};background:${q.tfCorrect===true?'rgba(34,197,94,.12)':'transparent'};color:${q.tfCorrect===true?'#22c55e':'var(--parch)'};cursor:pointer;font-size:.8rem;font-family:Heebo,sans-serif;">✅ נכון</button>
+            <button onclick="updateSourceQ('${section}',${si},${sli},${qi},'tfCorrect',false)"
+              style="flex:1;padding:5px;border-radius:6px;border:2px solid ${q.tfCorrect===false?'#f87171':'var(--border)'};background:${q.tfCorrect===false?'rgba(248,129,113,.12)':'transparent'};color:${q.tfCorrect===false?'#f87171':'var(--parch)'};cursor:pointer;font-size:.8rem;font-family:Heebo,sans-serif;">❌ לא נכון</button>
+          </div>`:''}
+        ${q.type==='open'||!q.type?`
+          <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.8rem;" placeholder="מחוון / תשובת דוגמא (אופציונלי)"
+            value="${esc(q.rubric||'')}"
+            onchange="updateSourceQ('${section}',${si},${sli},${qi},'rubric',this.value)">`:''}
+      </div>`).join('');
+
+    const textSection=d.mode==='text'?`
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הדבק טקסט (עד 15 שורות):</div>
+      <textarea class="inline-field" style="min-height:140px;font-size:.82rem;line-height:1.7;" placeholder="הדבק כאן את הטקסט..."
+        onchange="updateSourceField('${section}',${si},${sli},'text',this.value)">${esc(d.text)}</textarea>`:`
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">קישור לתמונה (URL / Google Drive):</div>
+      <input class="inline-field" style="min-height:0;padding:6px 10px;margin-bottom:8px;" placeholder="https://... או קישור Drive"
+        value="${esc(d.imageUrl)}"
+        oninput="updateSourceField('${section}',${si},${sli},'imageUrl',this.value);convertDriveLink('src-img-${uid}')">
+      <div style="font-size:.72rem;opacity:.4;margin-bottom:8px;">💡 לקישור Drive: שתף ← "כל מי שיש לו קישור" ← העתק קישור</div>
+      ${d.imageUrl?`<img src="${esc(d.imageUrl)}" style="max-width:100%;max-height:120px;border-radius:6px;object-fit:contain;margin-bottom:8px;" onerror="this.style.display='none'">`:''}`;
+
+    return `<div class="inline-editor-title">📜 קריאת מקורות</div>
+      <div style="display:flex;gap:12px;margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;">
+          <input type="radio" name="src-mode-${uid}" ${d.mode==='text'?'checked':''}
+            onchange="updateSourceField('${section}',${si},${sli},'mode','text');renderLessonStructure()"> טקסט
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;">
+          <input type="radio" name="src-mode-${uid}" ${d.mode==='image'?'checked':''}
+            onchange="updateSourceField('${section}',${si},${sli},'mode','image');renderLessonStructure()"> תמונה
+        </label>
+      </div>
+      ${textSection}
+      <div style="margin-top:12px;">
+        <div style="font-size:.75rem;opacity:.5;margin-bottom:8px;">שאלות (עד 5):</div>
+        <div id="src-qs-${uid}">${qHtml}</div>
+        ${qs.length<5?`<button onclick="addSourceQ('${section}',${si},${sli})"
+          style="width:100%;padding:7px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף שאלה</button>`:''}
+      </div>
+      <div class="editor-btns" style="margin-top:10px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveSourcesData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
+  // ── קריאת מקורות סוף ──
   // ── שאלה פתוחה ──
   if(slot.type==='question'||slot.type==='open_q'){
     const d=slot.questionData||{question:'',showOnBoard:false,showNames:true,checkAnswers:false,sampleAnswer:''};
@@ -1956,6 +2035,45 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── SOURCES HELPERS ──
+function updateSourceField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.sourcesData)slot.sourcesData={mode:'text',text:'',imageUrl:'',questions:[]};
+  slot.sourcesData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateSourceQ(section,si,sli,qi,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.sourcesData)slot.sourcesData={mode:'text',text:'',imageUrl:'',questions:[]};
+  if(!slot.sourcesData.questions[qi])slot.sourcesData.questions[qi]={type:'open',question:'',rubric:'',options:['','','',''],correct:0,tfCorrect:true};
+  slot.sourcesData.questions[qi][field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateSourceQOption(section,si,sli,qi,oi,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.sourcesData?.questions[qi])return;
+  if(!slot.sourcesData.questions[qi].options)slot.sourcesData.questions[qi].options=['','','',''];
+  slot.sourcesData.questions[qi].options[oi]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addSourceQ(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.sourcesData)slot.sourcesData={mode:'text',text:'',imageUrl:'',questions:[]};
+  if(slot.sourcesData.questions.length>=5)return;
+  slot.sourcesData.questions.push({type:'open',question:'',rubric:'',options:['','','',''],correct:0,tfCorrect:true});
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function removeSourceQ(section,si,sli,qi){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.sourcesData.questions.splice(qi,1);
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveSourcesData(section,si,sli){
+  saveLesson();flash('✓ נשמר');
+}
+
 // ── QUESTION HELPERS ──
 function updateQField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
