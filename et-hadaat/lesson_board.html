@@ -192,6 +192,21 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='stickies'){
+    const d=slot.stickiesData||{boardName:'לוח שיתופי',instruction:''};
+    const boardId=`stickies_${subjectId}_${unitId}_${lessonIdx}_${allStations.findIndex(s=>s.slots.includes(slot))}_${allStations.find(s=>s.slots.includes(slot))?.slots.indexOf(slot)||0}`;
+    const boardUrl=window.location.href.replace('lesson_board.html','sticky_board.html')+'?boardId='+boardId+'&name='+encodeURIComponent(d.boardName||'לוח שיתופי');
+    inner=`<div style="text-align:center;padding:32px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🗒️</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">${esc(d.boardName||'לוח שיתופי')}</div>
+      ${d.instruction?`<div style="font-size:.85rem;opacity:.6;margin-bottom:16px;">${esc(d.instruction)}</div>`:'<div style="margin-bottom:16px;"></div>'}
+      <button onclick="window.open('${boardUrl}','_blank','width=1100,height=750')"
+        style="padding:12px 28px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:12px;font-family:Heebo,sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;">
+        🗒️ פתח לוח שיתופי
+      </button>
+      <div style="font-size:.75rem;opacity:.4;margin-top:10px;">הפתקיות מתעדכנות בזמן אמת</div>
+    </div>`;
+
   } else if(slot.type==='lucky_wheel'){
     const d=slot.wheelData||{mode:'names'};
     const modeLabels={names:'👥 שמות תלמידים',questions:'❓ שאלות / נושאים',numbers:'🔢 מספרים',teams:'🏆 קבוצות עבודה'};

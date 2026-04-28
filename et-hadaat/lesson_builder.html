@@ -1771,6 +1771,28 @@ function buildSlotEditor(slot, section, si, sli, uid){
   const isUrl=slot.type==='video'||slot.type==='image';
 
   // ── כתיבה טיעונית / תשובה מלאה ──
+  // ── פתקיות ──
+  if(slot.type==='stickies'){
+    const d=slot.stickiesData||{boardName:'',instruction:'',showNames:true};
+    return `<div class="inline-editor-title">🗒️ פתקיות ולוח שיתופי</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">שם הלוח:</div>
+      <input class="inline-field" style="min-height:0;padding:6px 10px;margin-bottom:10px;" placeholder="למשל: מחשבות פתיחה, סיכום השיעור..."
+        value="${esc(d.boardName)}"
+        onchange="updateStickiesField('${section}',${si},${sli},'boardName',this.value)">
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הוראה לתלמידים:</div>
+      <textarea class="inline-field" style="min-height:70px;margin-bottom:10px;" placeholder="למשל: כתבו מילה אחת שמסכמת את השיעור..."
+        onchange="updateStickiesField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;margin-bottom:4px;">
+        <input type="checkbox" ${d.showNames?'checked':''} style="width:15px;height:15px;"
+          onchange="updateStickiesField('${section}',${si},${sli},'showNames',this.checked)">
+        <span>הצג שם תלמיד על הפתקית</span>
+      </label>
+      <div class="editor-btns" style="margin-top:10px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveStickiesData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── גלגל המזל ──
   if(slot.type==='lucky_wheel'){
     const d=slot.wheelData||{mode:'names',items:[],maxNumber:20,numTeams:3,aiItems:''};
@@ -2084,6 +2106,15 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── STICKIES HELPERS ──
+function updateStickiesField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.stickiesData)slot.stickiesData={boardName:'',instruction:'',showNames:true};
+  slot.stickiesData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveStickiesData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── WHEEL HELPERS ──
 function updateWheelField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;

@@ -42,6 +42,11 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .slots-wrap.simultaneous{display:flex;flex-direction:column;}
 
 /* SLOT ITEM */
+.sticky-colors{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.sticky-color-btn{width:32px;height:32px;border-radius:6px;border:3px solid transparent;cursor:pointer;transition:all .15s;}
+.sticky-color-btn.selected{border-color:#fff;transform:scale(1.15);}
+.sticky-preview{border-radius:10px;padding:14px;min-height:90px;margin-bottom:10px;direction:rtl;}
+.sticky-preview textarea{background:transparent;border:none;width:100%;resize:none;font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;min-height:70px;color:#1c1208;}
 .slot-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;width:100%;}
 /* ── sources split layout ── */
 .sources-wrap{display:flex;gap:0;height:calc(100vh - 180px);min-height:400px;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
@@ -478,6 +483,40 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── פתקיות ──
+  if(slot.type==='stickies'){
+    const d=slot.stickiesData||{boardName:'',instruction:'',showNames:true};
+    const boardId=`stickies_${subjectId}_${unitId}_${lessonIdx}_${stIdx}_${sli}`;
+    const COLORS=["#fde68a", "#86efac", "#93c5fd", "#f9a8d4", "#c4b5fd", "#fdba74", "#6ee7b7", "#fca5a5"];
+    const uid=`sticky-${stIdx}-${sli}`;
+    const colorBtns=COLORS.map((c,i)=>`
+      <div class="sticky-color-btn ${i===0?'selected':''}" style="background:${c};"
+        onclick="selectStickyColor('${uid}','${c}',this)" data-color="${c}"></div>`).join('');
+    html+=`<div style="font-size:.88rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">${esc(d.boardName||'לוח שיתופי')}</div>
+      ${d.instruction?`<div style="font-size:.82rem;opacity:.7;margin-bottom:12px;">${esc(d.instruction)}</div>`:''}
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">בחר/י צבע פתקית:</div>
+      <div class="sticky-colors" id="colors-${uid}">${colorBtns}</div>
+      <div class="sticky-preview" id="preview-${uid}" style="background:${COLORS[0]};">
+        <textarea id="text-${uid}" placeholder="כתוב/כתבי כאן..."
+          oninput="document.getElementById('preview-${uid}').style.background=document.querySelector('#colors-${uid} .selected')?.dataset.color||'${COLORS[0]}'"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+        <button onclick="uploadStickyImage('${uid}')"
+          style="padding:6px 12px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:7px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.8rem;cursor:pointer;">
+          📎 הוסף תמונה
+        </button>
+        <input type="file" id="img-${uid}" accept="image/*" style="display:none;" onchange="handleStickyImage(this,'${uid}')">
+        <span id="img-name-${uid}" style="font-size:.75rem;opacity:.5;"></span>
+      </div>
+      <div id="img-preview-${uid}" style="margin-bottom:8px;"></div>
+      <button class="btn-submit" onclick="postSticky('${stIdx}','${sli}','${uid}','${boardId}',${JSON.stringify(d).replace(/'/g,"\\'")})">
+        📌 הצג על הלוח
+      </button>
+      <span class="answer-saved" id="saved-${stIdx}-${sli}" style="display:none;">✅ הפתקית הוצגה!</span>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── שאלה פתוחה ──
   if(slot.type==='question'||slot.type==='open_q'){
     const d=slot.questionData||{question:'',checkAnswers:false,sampleAnswer:''};
@@ -889,6 +928,60 @@ function showError(msg){
 function extractYT(url){
   const m=url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
   return m?m[1]:null;
+}
+
+function selectStickyColor(uid,color,el){
+  document.querySelectorAll(`#colors-${uid} .sticky-color-btn`).forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('preview-'+uid).style.background=color;
+}
+
+function uploadStickyImage(uid){
+  document.getElementById('img-'+uid).click();
+}
+
+function handleStickyImage(input,uid){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('img-name-'+uid).textContent='מעלה...';
+  const fd=new FormData();
+  fd.append('file',file);
+  fd.append('upload_preset','w8rzehkl');
+  fetch('https://api.cloudinary.com/v1_1/da6mdtjhh/image/upload',{method:'POST',body:fd})
+    .then(r=>r.json()).then(data=>{
+      const url=data.secure_url;
+      document.getElementById('img-name-'+uid).textContent='✓ תמונה הועלתה';
+      document.getElementById('img-preview-'+uid).innerHTML=`<img src="${url}" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:contain;">`;
+      input.dataset.uploadedUrl=url;
+    }).catch(()=>document.getElementById('img-name-'+uid).textContent='שגיאה בהעלאה');
+}
+
+async function postSticky(stIdx,sli,uid,boardId,boardData){
+  const text=document.getElementById('text-'+uid)?.value.trim();
+  if(!text){alert('יש לכתוב טקסט על הפתקית');return;}
+  const color=document.querySelector(`#colors-${uid} .selected`)?.dataset.color||'#fde68a';
+  const imgInput=document.getElementById('img-'+uid);
+  const imageUrl=imgInput?.dataset.uploadedUrl||'';
+  const note={
+    student:studentName||'אנונימי',
+    text,color,imageUrl,
+    ts:Date.now(),
+    bonus:0
+  };
+  await db.ref(`stickies/${boardId}/notes`).push(note);
+  // שמור meta פעם אחת
+  await db.ref(`stickies/${boardId}/meta`).set({
+    name:boardData.boardName||'לוח שיתופי',
+    instruction:boardData.instruction||'',
+    showNames:boardData.showNames!==false,
+    createdAt:Date.now(),
+    lessonRef:`${subjectId}/${unitId}/${lessonIdx}`
+  });
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',3000);}
+  document.getElementById('text-'+uid).value='';
+  document.getElementById('img-preview-'+uid).innerHTML='';
+  if(imgInput)imgInput.dataset.uploadedUrl='';
+  document.getElementById('img-name-'+uid).textContent='';
 }
 
 function chooseSrcMC(stIdx,sli,qi,chosen,correct){
