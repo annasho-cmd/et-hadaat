@@ -2345,6 +2345,208 @@ function toggleBankCat(ci,header){
 
 function renderBankItems(){renderBankAccordion();}
 
+// ── MISSING CORE FUNCTIONS ──
+
+// HTML escape helper
+function esc(str){
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Save status display
+function setSaveStatus(msg){
+  const el=document.getElementById('save-status');
+  if(!el)return;
+  el.textContent=msg||'';
+  el.classList.toggle('saved',!msg||msg.includes('נשמר')&&!msg.includes('לא'));
+}
+
+// Side tab switcher
+function switchSideTab(tab){
+  const bankPanel=document.getElementById('panel-bank');
+  const aiPanel=document.getElementById('panel-ai');
+  const aiInputRow=document.getElementById('ai-input-row');
+  const tabBank=document.getElementById('tab-bank');
+  const tabAI=document.getElementById('tab-ai');
+  if(!bankPanel)return;
+  const showAI=tab==='ai';
+  bankPanel.style.display=showAI?'none':'block';
+  if(aiPanel)aiPanel.style.display=showAI?'block':'none';
+  if(aiInputRow)aiInputRow.style.display=showAI?'flex':'none';
+  if(tabBank){tabBank.classList.toggle('active',!showAI);}
+  if(tabAI){tabAI.classList.toggle('active',showAI);}
+}
+
+// Show/hide AI thinking indicator
+function showThinking(show){
+  const el=document.getElementById('ai-thinking');
+  if(el)el.style.display=show?'block':'none';
+}
+
+// Core AI call via Cloudflare proxy
+async function callAI(systemPrompt, userMsg, history){
+  try{
+    const messages=[
+      ...(history||[]),
+      {role:'user',content:userMsg}
+    ];
+    const res=await fetch(AI_PROXY,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:1200,
+        system:systemPrompt,
+        messages
+      })
+    });
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    const data=await res.json();
+    return data.content?.[0]?.text||'(אין תשובה)';
+  }catch(e){
+    console.error('AI error:',e);
+    return 'שגיאה בפנייה ל-AI: '+e.message;
+  }
+}
+
+// Build lesson context for AI
+function buildLessonContext(){
+  const topic=document.getElementById('b-topic-input')?.value||currentUnit?.name||'';
+  const goals=document.getElementById('b-goals')?.value||lessonData.goals||'';
+  const unitGoal=currentUnit?.unitGoal||'';
+  return `אתה עוזר הוראה מקצועי.
+יחידה: "${currentUnit?.name||''}"${unitGoal?'\nמטרת-על: '+unitGoal:''}
+שיעור: "${topic}"${goals?'\nמטרות: '+goals:''}
+ענה בעברית, קצר וממוקד.`;
+}
+
+// AI for lesson goals
+async function askGoalsAI(){
+  switchSideTab('ai');
+  const topic=document.getElementById('b-topic-input')?.value||'';
+  const msg=`עזרי לי לנסח מטרות שיעור לנושא: "${topic}". כתבי 3 מטרות ברורות ומדידות עם פועל הוראה.`;
+  addMsg('ai-messages',msg,'user');
+  showThinking(true);
+  const reply=await callAI(buildLessonContext(),msg,aiHistory);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  aiHistory.push({role:'user',content:msg},{role:'assistant',content:reply});
+}
+
+// AI skeleton generator
+async function generateLessonSkeleton(){
+  switchSideTab('ai');
+  const topic=document.getElementById('b-topic-input')?.value||'';
+  const goals=document.getElementById('b-goals')?.value||'';
+  const msg=`הכיני שלד שיעור לנושא: "${topic}"${goals?'\nמטרות: '+goals:''}.
+כתבי הצעה קצרה לכל חלק: פתיח (מה לפתוח איתו), גוף (2-3 פעילויות עיקריות), סיום (איך לסיים).`;
+  addMsg('ai-messages',msg,'user');
+  showThinking(true);
+  const reply=await callAI(buildLessonContext(),msg,aiHistory);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  aiHistory.push({role:'user',content:msg},{role:'assistant',content:reply});
+}
+
+// AI goals alignment check
+async function checkGoalsAlignment(){
+  switchSideTab('ai');
+  const goals=document.getElementById('b-goals')?.value||'';
+  if(!goals){addMsg('ai-messages','יש להזין מטרות שיעור תחילה.','assistant');return;}
+  const msg=`בדקי האם פעילויות השיעור מתיישבות עם המטרות: "${goals}". מה חסר? מה ניתן לשפר?`;
+  addMsg('ai-messages',msg,'user');
+  showThinking(true);
+  const reply=await callAI(buildLessonContext(),msg,aiHistory);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  aiHistory.push({role:'user',content:msg},{role:'assistant',content:reply});
+}
+
+// Send AI message from input box
+async function sendAI(){
+  const inp=document.getElementById('ai-input');
+  if(!inp)return;
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  addMsg('ai-messages',msg,'user');
+  showThinking(true);
+  const reply=await callAI(buildLessonContext(),msg,aiHistory);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  aiHistory.push({role:'user',content:msg},{role:'assistant',content:reply});
+  if(aiHistory.length>20)aiHistory=aiHistory.slice(-20);
+}
+
+// AI for specific row/slot
+async function askRowAI(uid,section,si,sli){
+  switchSideTab('ai');
+  const slot=getSlot(section,si,sli);
+  const bankItem=slot?.type?bankData.find(b=>(b.id||b.type)===slot.type):null;
+  const sNames={intro:'פתיח',body:'גוף',closing:'סיום',enrichmentStations:'העשרה'};
+  const msg=slot?.type
+    ?`עזרי לי למלא פריט מסוג "${bankItem?.name||slot.type}" בתחנה ${si+1} של ${sNames[section]||section}.`
+    :`הצעי פריט מתאים לתחנה ${si+1} של ${sNames[section]||section} בשיעור זה.`;
+  addMsg('ai-messages',msg,'user');
+  showThinking(true);
+  const reply=await callAI(buildLessonContext(),msg,aiHistory);
+  showThinking(false);
+  addMsg('ai-messages',reply,'assistant');
+  aiHistory.push({role:'user',content:msg},{role:'assistant',content:reply});
+}
+
+// Save lesson to Firebase
+async function saveLesson(){
+  if(!currentUnit||currentLessonIdx===null)return;
+  const topic=document.getElementById('b-topic-input')?.value||'';
+  const goals=document.getElementById('b-goals')?.value||'';
+  if(topic) {
+    if(!currentUnit.lessons[currentLessonIdx])currentUnit.lessons[currentLessonIdx]={};
+    currentUnit.lessons[currentLessonIdx].topic=topic;
+    currentUnit.lessons[currentLessonIdx].name=topic;
+  }
+  lessonData.goals=goals;
+  currentUnit.lessons[currentLessonIdx].data=lessonData;
+  currentUnit.lessons[currentLessonIdx].status='ready';
+  setSaveStatus('שומר...');
+  try{
+    await db.ref(`teacher/subjects/${currentSubject.id}/units/${currentUnit.id}`).set(currentUnit);
+    setSaveStatus('✅ נשמר');
+    setTimeout(()=>setSaveStatus(''),3000);
+    // update cache
+    try{localStorage.setItem('et_hadaat_teacher',JSON.stringify(teacherData));}catch(e){}
+  }catch(e){
+    setSaveStatus('⚠️ שגיאה בשמירה');
+    console.error('save error:',e);
+  }
+}
+
+// Topic edit save
+function saveTopicEdit(){
+  const val=document.getElementById('b-topic-input')?.value||'';
+  if(currentUnit?.lessons?.[currentLessonIdx])
+    currentUnit.lessons[currentLessonIdx].topic=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+
+// Item popup (placeholder — opens inline editor for complex types)
+const POPUP_EDITORS={};
+function openItemPopup(typeOrId, section, si, data){
+  // fallback: open the slot editor inline
+  const arr=section==='enrichmentStations'?lessonData.enrichmentStations
+    :section==='intro'?lessonData.intro
+    :section==='closing'?lessonData.closing
+    :lessonData.stations;
+  if(arr&&arr[si]){
+    if(!Array.isArray(arr[si].items))arr[si].items=[arr[si].item||null,null,null];
+    const target=window._popupSlotTarget;
+    const idx=target?target.slotIdx:arr[si].items.findIndex(x=>!x);
+    const finalIdx=idx>=0?idx:0;
+    arr[si].items[finalIdx]={type:typeOrId,...(data||{})};
+    renderLessonStructure();
+    setSaveStatus('שינויים לא שמורים');
+  }
+}
+
 // ── STUDENT WORKSHEET LINK ──
 function openStudentWorksheet(){
   const params = new URLSearchParams(window.location.search);
