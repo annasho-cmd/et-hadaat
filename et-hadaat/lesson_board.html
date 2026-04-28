@@ -192,6 +192,27 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='lucky_wheel'){
+    const d=slot.wheelData||{mode:'names'};
+    const modeLabels={names:'👥 שמות תלמידים',questions:'❓ שאלות / נושאים',numbers:'🔢 מספרים',teams:'🏆 קבוצות עבודה'};
+    const wheelParams=encodeURIComponent(JSON.stringify({
+      mode:d.mode,
+      items:d.items||[],
+      maxNumber:d.maxNumber||20,
+      numTeams:d.numTeams||3,
+      subjectId,unitId,lessonIdx,classCode
+    }));
+    const wheelUrl=window.location.href.replace('lesson_board.html','lucky_wheel.html')+'?data='+wheelParams;
+    inner=`<div style="text-align:center;padding:40px 20px;">
+      <div style="font-size:3rem;margin-bottom:16px;">🎡</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:6px;">גלגל המזל</div>
+      <div style="font-size:.85rem;opacity:.5;margin-bottom:24px;">${modeLabels[d.mode]||d.mode}</div>
+      <button onclick="window.open('${wheelUrl}','_blank','width=900,height=700')"
+        style="padding:12px 32px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:12px;font-family:Heebo,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">
+        🎡 פתח גלגל
+      </button>
+    </div>`;
+
   } else if(slot.type==='sources'){
     const d=slot.sourcesData||{};
     const qs=d.questions||[];

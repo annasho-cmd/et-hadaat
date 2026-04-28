@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>גלגל המזל — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,0.9);--border:rgba(212,168,67,0.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;display:flex;flex-direction:column;align-items:center;}
+.topbar{width:100%;background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.main{display:flex;gap:24px;padding:24px;width:100%;max-width:960px;align-items:flex-start;flex-wrap:wrap;}
+.wheel-section{flex:1;min-width:280px;display:flex;flex-direction:column;align-items:center;}
+.canvas-wrap{position:relative;display:inline-block;}
+canvas{display:block;}
+.spin-btn{margin-top:20px;padding:14px 40px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:30px;font-family:'Heebo',sans-serif;font-size:1.1rem;font-weight:700;cursor:pointer;transition:all .15s;}
+.spin-btn:hover{opacity:.9;transform:scale(1.03);}
+.spin-btn:disabled{opacity:.5;cursor:default;transform:none;}
+.result-display{margin-top:16px;min-height:60px;text-align:center;}
+.result-text{font-family:'Frank Ruhl Libre',serif;font-size:1.6rem;font-weight:700;color:var(--gold2);animation:popIn .3s ease;}
+@keyframes popIn{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+.side-panel{width:260px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;}
+.side-title{font-size:.78rem;font-weight:700;color:var(--gold);opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.item-list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;}
+.item-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;font-size:.85rem;}
+.item-chip.removed{opacity:.25;text-decoration:line-through;}
+.item-num{min-width:20px;height:20px;border-radius:50%;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--gold);}
+.team-result{background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;}
+.team-name{font-weight:700;color:var(--gold);margin-bottom:6px;font-size:.88rem;}
+.team-members{font-size:.82rem;opacity:.8;line-height:1.7;}
+.btn-reset{width:100%;margin-top:12px;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn-reset:hover{background:rgba(253,245,224,.06);}
+.btn-save-teams{width:100%;margin-top:8px;padding:8px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;}
+.pointer{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:24px solid var(--gold2);filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🎡 גלגל המזל</div>
+  <div id="mode-label" style="font-size:.82rem;opacity:.5;"></div>
+  <button onclick="window.close()" style="padding:5px 14px;background:none;border:1px solid var(--border);color:var(--parch);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;">✕ סגור</button>
+</div>
+
+<div class="main">
+  <div class="wheel-section">
+    <div class="canvas-wrap">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="400" height="400"></canvas>
+    </div>
+    <button class="spin-btn" id="spin-btn" onclick="spin()">סובב 🎡</button>
+    <div class="result-display" id="result-display"></div>
+  </div>
+  <div class="side-panel">
+    <div class="side-title" id="side-title">פריטים</div>
+    <div class="item-list" id="item-list"></div>
+    <button class="btn-reset" onclick="resetWheel()">🔄 אפס גלגל</button>
+    <button class="btn-save-teams" id="btn-save-teams" style="display:none;" onclick="saveTeams()">💾 שמור קבוצות</button>
+    <div id="save-msg" style="font-size:.75rem;text-align:center;margin-top:6px;color:#6ee7a0;display:none;">✅ הקבוצות נשמרו</div>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+// ── LOAD CONFIG ──
+const params=new URLSearchParams(window.location.search);
+let config={mode:'names',items:[],maxNumber:20,numTeams:3};
+try{config=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+
+const COLORS=['#c9703a','#3a7ac9','#3ac97a','#c93a7a','#c9c03a','#7a3ac9','#3ac9c0','#c9853a','#853ac9','#3a85c9'];
+let items=[];
+let spinning=false;
+let currentAngle=0;
+let teamsResult=null;
+
+const modeLabels={names:'👥 שמות תלמידים',questions:'❓ שאלות',numbers:'🔢 מספרים',teams:'🏆 קבוצות עבודה'};
+document.getElementById('mode-label').textContent=modeLabels[config.mode]||'';
+
+// ── INIT ──
+window.onload=async function(){
+  if(config.mode==='names'||config.mode==='teams'){
+    // טען שמות מ-Firebase
+    if(config.classCode){
+      const snap=await db.ref(`teacher/groups/${config.classCode}/students`).once('value');
+      const data=snap.val()||{};
+      items=Object.keys(data).map(k=>k.replace(/_/g,' '));
+    }
+    // fallback
+    if(!items.length) items=['תלמיד 1','תלמיד 2','תלמיד 3','תלמיד 4','תלמיד 5'];
+
+    if(config.mode==='teams'){
+      buildTeams();
+      return;
+    }
+  } else if(config.mode==='numbers'){
+    const max=Math.min(config.maxNumber||20,40);
+    items=Array.from({length:max},(_,i)=>String(i+1));
+  } else {
+    items=(config.items||[]).filter(Boolean);
+    if(!items.length)items=['פריט 1','פריט 2','פריט 3'];
+  }
+
+  drawWheel();
+  renderList();
+};
+
+// ── TEAMS MODE ──
+function buildTeams(){
+  const n=Math.min(Math.max(config.numTeams||3,2),8);
+  const shuffled=[...items].sort(()=>Math.random()-.5);
+  teamsResult=Array.from({length:n},(_,i)=>({name:`קבוצה ${i+1}`,members:[]}));
+  shuffled.forEach((s,i)=>teamsResult[i%n].members.push(s));
+
+  document.getElementById('spin-btn').style.display='none';
+  document.getElementById('side-title').textContent='חלוקה לקבוצות';
+  document.getElementById('btn-save-teams').style.display='block';
+
+  const list=document.getElementById('item-list');
+  list.innerHTML=teamsResult.map(t=>`
+    <div class="team-result">
+      <div class="team-name">${t.name}</div>
+      <div class="team-members">${t.members.join(' · ')}</div>
+    </div>`).join('');
+
+  // Draw static wheel with team colors
+  const canvas=document.getElementById('wheel');
+  const ctx=canvas.getContext('2d');
+  const cx=canvas.width/2,cy=canvas.height/2,r=cx-10;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  teamsResult.forEach((t,i)=>{
+    const start=(i/n)*Math.PI*2-Math.PI/2;
+    const end=((i+1)/n)*Math.PI*2-Math.PI/2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,end);ctx.closePath();
+    ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=2;ctx.stroke();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate((start+end)/2);
+    ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='bold 16px Heebo,sans-serif';
+    ctx.fillText(t.name,r-14,5);ctx.restore();
+  });
+}
+
+async function saveTeams(){
+  if(!teamsResult||!config.subjectId)return;
+  const path=`teacher/subjects/${config.subjectId}/units/${config.unitId}/lessons/${config.lessonIdx}/teams`;
+  await db.ref(path).set(teamsResult.reduce((a,t,i)=>{a['team_'+(i+1)]={name:t.name,members:t.members};return a;},{}));
+  const msg=document.getElementById('save-msg');
+  msg.style.display='block';
+  setTimeout(()=>msg.style.display='none',3000);
+}
+
+// ── WHEEL DRAWING ──
+function drawWheel(angle){
+  const canvas=document.getElementById('wheel');
+  const ctx=canvas.getContext('2d');
+  const cx=canvas.width/2,cy=canvas.height/2,r=cx-10;
+  const n=items.length;
+  const rot=angle||currentAngle;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  items.forEach((item,i)=>{
+    const start=rot+(i/n)*Math.PI*2-Math.PI/2;
+    const end=rot+((i+1)/n)*Math.PI*2-Math.PI/2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,end);ctx.closePath();
+    ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=2;ctx.stroke();
+
+    // טקסט
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate((start+end)/2);
+    ctx.textAlign='right';
+    ctx.fillStyle='#fff';
+    const fontSize=n>12?11:n>8?13:15;
+    ctx.font=`bold ${fontSize}px Heebo,sans-serif`;
+    const label=item.length>14?item.slice(0,13)+'…':item;
+    ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=3;
+    ctx.fillText(label,r-10,fontSize/3);
+    ctx.restore();
+  });
+
+  // center circle
+  ctx.beginPath();ctx.arc(cx,cy,20,0,Math.PI*2);
+  ctx.fillStyle='#1a0f05';ctx.fill();
+  ctx.strokeStyle=COLORS[0];ctx.lineWidth=3;ctx.stroke();
+}
+
+// ── SPIN ──
+function spin(){
+  if(spinning||items.length<2)return;
+  spinning=true;
+  document.getElementById('spin-btn').disabled=true;
+  document.getElementById('result-display').innerHTML='';
+
+  const extraSpins=(5+Math.random()*5)*Math.PI*2;
+  const finalAngle=currentAngle+extraSpins;
+  const duration=3000+Math.random()*1000;
+  const start=performance.now();
+  const startAngle=currentAngle;
+
+  function easeOut(t){return 1-Math.pow(1-t,4);}
+
+  function frame(now){
+    const t=Math.min((now-start)/duration,1);
+    currentAngle=startAngle+extraSpins*easeOut(t);
+    drawWheel(currentAngle);
+    if(t<1){requestAnimationFrame(frame);}
+    else{
+      currentAngle=finalAngle;
+      spinning=false;
+      document.getElementById('spin-btn').disabled=false;
+      showResult();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function showResult(){
+  // חשב איזה פריט מצביע החץ
+  const n=items.length;
+  const normalized=((-(currentAngle-Math.PI/2))%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+  const idx=Math.floor(normalized/(Math.PI*2/n))%n;
+  const winner=items[idx];
+
+  document.getElementById('result-display').innerHTML=`<div class="result-text">🎉 ${winner}</div>`;
+
+  // הסר מהגלגל
+  items.splice(idx,1);
+  if(items.length>0){drawWheel();}
+  else{
+    document.getElementById('spin-btn').disabled=true;
+    document.getElementById('result-display').innerHTML+='<div style="font-size:.8rem;opacity:.5;margin-top:8px;">כל הפריטים הוגרלו</div>';
+  }
+  renderList(winner);
+}
+
+function renderList(lastWinner){
+  const allItems=config.mode==='numbers'
+    ?Array.from({length:config.maxNumber||20},(_,i)=>String(i+1))
+    :config.mode==='names'||config.mode==='teams'?[]
+    :(config.items||[]);
+  const remaining=new Set(items);
+
+  document.getElementById('item-list').innerHTML=(
+    config.mode==='numbers'
+      ?Array.from({length:config.maxNumber||20},(_,i)=>String(i+1))
+      :config.items||items
+  ).map((item,i)=>`
+    <div class="item-chip ${remaining.has(item)?'':'removed'}">
+      <span class="item-num">${i+1}</span>
+      <span>${item}</span>
+      ${item===lastWinner?'<span style="margin-right:auto;font-size:.7rem;color:var(--gold);">← נבחר</span>':''}
+    </div>`).join('');
+}
+
+function resetWheel(){
+  if(config.mode==='numbers'){
+    items=Array.from({length:Math.min(config.maxNumber||20,40)},(_,i)=>String(i+1));
+  } else if(config.mode==='names'){
+    window.location.reload();
+    return;
+  } else {
+    items=(config.items||[]).filter(Boolean);
+  }
+  currentAngle=0;
+  drawWheel();
+  renderList();
+  document.getElementById('result-display').innerHTML='';
+  document.getElementById('spin-btn').disabled=false;
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

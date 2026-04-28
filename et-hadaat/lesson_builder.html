@@ -1771,6 +1771,55 @@ function buildSlotEditor(slot, section, si, sli, uid){
   const isUrl=slot.type==='video'||slot.type==='image';
 
   // ── כתיבה טיעונית / תשובה מלאה ──
+  // ── גלגל המזל ──
+  if(slot.type==='lucky_wheel'){
+    const d=slot.wheelData||{mode:'names',items:[],maxNumber:20,numTeams:3,aiItems:''};
+    const modesHtml=[
+      {v:'names',  l:'👥 שמות תלמידים'},
+      {v:'questions',l:'❓ שאלות / נושאים'},
+      {v:'numbers',l:'🔢 מספרים'},
+      {v:'teams',  l:'🏆 קבוצות עבודה'},
+    ].map(m=>`<option value="${m.v}" ${d.mode===m.v?'selected':''}>${m.l}</option>`).join('');
+
+    const itemsArea=d.mode==='questions'?`
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">שאלות / נושאים (כל אחד בשורה):</div>
+      <textarea class="inline-field" style="min-height:100px;font-size:.82rem;" placeholder="למשל:
+מה הייתה סיבת המלחמה?
+מי היה המנהיג?
+מה היו התוצאות?"
+        onchange="updateWheelField('${section}',${si},${sli},'items',this.value.split('\n').filter(Boolean))">${esc((d.items||[]).join('\n'))}</textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="generateWheelItems('${section}',${si},${sli},'${uid}')">🤖 הצע שאלות</button>
+      </div>
+      <div id="wheel-ai-${uid}" style="display:none;background:rgba(212,168,67,.06);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px;font-size:.82rem;"></div>`
+    :d.mode==='numbers'?`
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:.82rem;">מ-1 עד:</div>
+        <input class="inline-field" type="number" min="2" max="40" style="min-height:0;padding:5px 8px;width:80px;"
+          value="${d.maxNumber||20}" onchange="updateWheelField('${section}',${si},${sli},'maxNumber',parseInt(this.value))">
+      </div>`
+    :d.mode==='teams'?`
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:.82rem;">מספר קבוצות:</div>
+        <input class="inline-field" type="number" min="2" max="8" style="min-height:0;padding:5px 8px;width:70px;"
+          value="${d.numTeams||3}" onchange="updateWheelField('${section}',${si},${sli},'numTeams',parseInt(this.value))">
+      </div>
+      <div style="font-size:.72rem;opacity:.4;margin-top:6px;">האפליקציה תגריל את שמות התלמידים לקבוצות ותשמור את התוצאה</div>`
+    :`<div style="font-size:.78rem;opacity:.5;padding:8px;background:rgba(212,168,67,.06);border-radius:7px;">
+        שמות התלמידים ייטענו אוטומטית מהקבוצה המשויכת לשיעור
+      </div>`;
+
+    return `<div class="inline-editor-title">🎡 גלגל המזל</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">סגנון הגלגל:</div>
+      <select class="inline-field" style="min-height:0;padding:6px 10px;margin-bottom:12px;"
+        onchange="updateWheelField('${section}',${si},${sli},'mode',this.value);renderLessonStructure()">${modesHtml}</select>
+      ${itemsArea}
+      <div class="editor-btns" style="margin-top:12px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveWheelData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── קריאת מקורות ──
   if(slot.type==='sources'){
     const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
@@ -2035,6 +2084,32 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── WHEEL HELPERS ──
+function updateWheelField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.wheelData)slot.wheelData={mode:'names',items:[],maxNumber:20,numTeams:3};
+  slot.wheelData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveWheelData(section,si,sli){saveLesson();flash('✓ נשמר');}
+async function generateWheelItems(section,si,sli,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const topic=document.getElementById('b-topic-input')?.value||currentUnit?.name||'';
+  const el=document.getElementById('wheel-ai-'+uid);
+  if(el){el.style.display='block';el.textContent='מייצר שאלות...';}
+  const reply=await callAI(
+    'אתה עוזר הוראה. ענה בעברית בלבד.',
+    `הצע 8 שאלות קצרות לגלגל המזל בנושא: "${topic}". כתוב רשימה ממוספרת בלבד, שאלה אחת בכל שורה, ללא הסברים.`,
+    []
+  );
+  const lines=reply.split('\n').map(l=>l.replace(/^\d+[\.\)]\s*/,'')).filter(Boolean).slice(0,8);
+  if(!slot.wheelData)slot.wheelData={mode:'questions',items:[]};
+  slot.wheelData.items=lines;
+  if(el){el.textContent=lines.join('\n');}
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+
 // ── SOURCES HELPERS ──
 function updateSourceField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
