@@ -77,6 +77,7 @@ const subjectId=params.get('subject');
 const unitId=params.get('unit');
 const lessonIdx=parseInt(params.get('lesson')||'0');
 const initStep=parseInt(params.get('step')||'0');
+const classCode=params.get('class')||'';
 
 let lessonData=null;
 let allStations=[];
@@ -205,20 +206,88 @@ function buildSlotHTML(slot){
   } else if(slot.type==='mc_q'&&slot.mcData){
     const mc=slot.mcData;
     const opts=mc.options.filter(Boolean).map((o,i)=>`
-      <div style="padding:10px 16px;margin-bottom:8px;border:1px solid var(--border);border-radius:10px;font-size:1rem;">
-        ${i===mc.correct?'✅ ':''}${esc(o)}
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;margin-bottom:8px;border:1px solid var(--border);border-radius:10px;font-size:1rem;">
+        <span style="min-width:22px;opacity:.5;">${String.fromCharCode(65+i)}.</span>
+        <span style="flex:1;">${esc(o)}</span>
+        ${!mc.isSurvey&&i===mc.correct?'<span style="color:#22c55e;">✅</span>':''}
+        ${mc.showOnBoard?`<div id="mc-bar-${i}" style="display:flex;align-items:center;gap:6px;min-width:120px;">
+          <div style="flex:1;height:8px;background:rgba(212,168,67,.15);border-radius:4px;overflow:hidden;">
+            <div class="mc-fill-${i}" style="height:100%;background:var(--gold);border-radius:4px;width:0%;transition:width .4s;"></div>
+          </div>
+          <span class="mc-count-${i}" style="font-size:.75rem;opacity:.6;min-width:20px;">0</span>
+        </div>`:''}
       </div>`).join('');
-    inner=`<div class="slot-content" style="margin-bottom:16px;">${esc(mc.question)}</div>${opts}
-      <div style="font-size:.75rem;opacity:.4;margin-top:8px;">התלמידים בוחרים בטאבלט</div>`;
+    const liveId=`mc-live-${Math.random().toString(36).slice(2,7)}`;
+    inner=`<div class="slot-content" style="margin-bottom:16px;font-size:1.1rem;">${esc(mc.question)}</div>
+      <div id="${liveId}">${opts}</div>
+      <div style="font-size:.75rem;opacity:.4;margin-top:8px;" id="${liveId}-count">ממתין לתשובות...</div>`;
+    if(mc.showOnBoard&&classCode){
+      // listener יתווסף אחרי שה-HTML ייכנס לדף
+      setTimeout(()=>{
+        const stIdx=allStations.findIndex(s=>s.slots.includes(slot));
+        const sli=allStations.find(s=>s.slots.includes(slot))?.slots.indexOf(slot)||0;
+        const path=`studentAnswers/${classCode}`;
+        db.ref(path).on('value',snap=>{
+          const students=snap.val()||{};
+          const counts=Array(mc.options.length).fill(0);
+          let total=0;
+          Object.values(students).forEach(student=>{
+            const key=Object.keys(student?.['lesson_'+lessonIdx]||{}).find(k=>k.includes('station_'));
+            const ans=student?.['lesson_'+lessonIdx]?.[key];
+            if(ans?.answer!==undefined){counts[parseInt(ans.answer)]++;total++;}
+          });
+          const countEl=document.getElementById(liveId+'-count');
+          if(countEl)countEl.textContent=total+' תלמידים ענו';
+          mc.options.forEach((_,i)=>{
+            const fill=document.querySelector('.mc-fill-'+i);
+            const count=document.querySelector('.mc-count-'+i);
+            if(fill)fill.style.width=(total?Math.round(counts[i]/total*100):0)+'%';
+            if(count)count.textContent=counts[i];
+          });
+        });
+      },200);
+    }
 
   } else if(slot.type==='tf_q'&&slot.tfData){
     const tf=slot.tfData;
-    inner=`<div class="slot-content" style="margin-bottom:16px;">${esc(tf.question)}</div>
-      <div style="display:flex;gap:12px;">
-        <div style="flex:1;padding:12px;border:2px solid ${tf.correct===true?'#22c55e':'var(--border)'};border-radius:10px;text-align:center;font-size:1.1rem;font-weight:700;color:${tf.correct===true?'#22c55e':'var(--parch)'};">✅ נכון</div>
-        <div style="flex:1;padding:12px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};border-radius:10px;text-align:center;font-size:1.1rem;font-weight:700;color:${tf.correct===false?'#f87171':'var(--parch)'};">❌ לא נכון</div>
+    const liveId=`tf-live-${Math.random().toString(36).slice(2,7)}`;
+    inner=`<div class="slot-content" style="margin-bottom:16px;font-size:1.1rem;">${esc(tf.question)}</div>
+      <div style="display:flex;gap:12px;margin-bottom:8px;" id="${liveId}">
+        <div style="flex:1;padding:14px;border:2px solid ${!tf.isSurvey&&tf.correct===true?'#22c55e':'var(--border)'};border-radius:10px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:700;color:${!tf.isSurvey&&tf.correct===true?'#22c55e':'var(--parch)'};">✅ נכון</div>
+          ${tf.showOnBoard?`<div style="margin-top:8px;height:8px;background:rgba(34,197,94,.15);border-radius:4px;overflow:hidden;"><div id="tf-bar-true" style="height:100%;background:#22c55e;width:0%;transition:width .4s;"></div></div><div id="tf-count-true" style="font-size:.8rem;margin-top:4px;opacity:.7;">0</div>`:''}
+        </div>
+        <div style="flex:1;padding:14px;border:2px solid ${!tf.isSurvey&&tf.correct===false?'#f87171':'var(--border)'};border-radius:10px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:700;color:${!tf.isSurvey&&tf.correct===false?'#f87171':'var(--parch)'};">❌ לא נכון</div>
+          ${tf.showOnBoard?`<div style="margin-top:8px;height:8px;background:rgba(248,129,113,.15);border-radius:4px;overflow:hidden;"><div id="tf-bar-false" style="height:100%;background:#f87171;width:0%;transition:width .4s;"></div></div><div id="tf-count-false" style="font-size:.8rem;margin-top:4px;opacity:.7;">0</div>`:''}
+        </div>
       </div>
-      <div style="font-size:.75rem;opacity:.4;margin-top:8px;">התלמידים בוחרים בטאבלט ${tf.isSurvey?'(סקר)':''}</div>`;
+      <div style="font-size:.75rem;opacity:.4;" id="${liveId}-count">${tf.showOnBoard?'ממתין לתשובות...':'התלמידים בוחרים בטאבלט'}</div>`;
+    if(tf.showOnBoard&&classCode){
+      setTimeout(()=>{
+        db.ref(`studentAnswers/${classCode}`).on('value',snap=>{
+          const students=snap.val()||{};
+          let trueCount=0,falseCount=0;
+          Object.values(students).forEach(student=>{
+            const lesson=student?.['lesson_'+lessonIdx]||{};
+            Object.values(lesson).forEach(ans=>{
+              if(ans?.answer==='true')trueCount++;
+              else if(ans?.answer==='false')falseCount++;
+            });
+          });
+          const total=trueCount+falseCount;
+          ['true','false'].forEach(v=>{
+            const c=v==='true'?trueCount:falseCount;
+            const bar=document.getElementById('tf-bar-'+v);
+            const count=document.getElementById('tf-count-'+v);
+            if(bar)bar.style.width=(total?Math.round(c/total*100):0)+'%';
+            if(count)count.textContent=c;
+          });
+          const countEl=document.getElementById(liveId+'-count');
+          if(countEl&&total)countEl.textContent=total+' תלמידים ענו';
+        });
+      },200);
+    }
 
   } else if((slot.type==='argue'||slot.type==='full_ans')&&slot.argueData){
     const d=slot.argueData;

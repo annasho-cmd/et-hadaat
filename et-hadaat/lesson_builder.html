@@ -1699,12 +1699,13 @@ function buildSlotEditor(slot, section, si, sli, uid){
 
   // ── שאלות רב-ברירה ──
   if(slot.type==='mc_q'){
-    const mc=slot.mcData||{question:'',options:['','','',''],correct:0};
+    const mc=slot.mcData||{question:'',options:['','','',''],correct:0,isSurvey:false,showOnBoard:false};
     const optHtml=mc.options.map((o,oi)=>`
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
         <input type="radio" name="mc-correct-${uid}" value="${oi}" ${mc.correct===oi?'checked':''}
           onchange="updateMcCorrect('${section}',${si},${sli},${oi})"
-          style="width:16px;height:16px;cursor:pointer;" title="סמני כתשובה נכונה">
+          style="width:16px;height:16px;cursor:pointer;" title="סמני כתשובה נכונה"
+          ${mc.isSurvey?'disabled':''}>
         <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;"
           placeholder="אפשרות ${oi+1}" value="${esc(o)}"
           onchange="updateMcOption('${section}',${si},${sli},${oi},this.value)">
@@ -1714,6 +1715,18 @@ function buildSlotEditor(slot, section, si, sli, uid){
       <textarea class="inline-field" style="margin-bottom:8px;" placeholder="כתבי את השאלה..."
         onchange="updateMcQuestion('${section}',${si},${sli},this.value)">${esc(mc.question)}</textarea>
       ${optHtml}
+      <div style="display:flex;flex-direction:column;gap:6px;margin:10px 0;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+          <input type="checkbox" ${mc.isSurvey?'checked':''} style="width:15px;height:15px;"
+            onchange="updateMcField('${section}',${si},${sli},'isSurvey',this.checked)">
+          <span>סקר (ללא תשובה נכונה)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+          <input type="checkbox" ${mc.showOnBoard?'checked':''} style="width:15px;height:15px;"
+            onchange="updateMcField('${section}',${si},${sli},'showOnBoard',this.checked)">
+          <span>הצג תוצאות כסקר על הלוח</span>
+        </label>
+      </div>
       <div class="editor-btns">
         <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
         <button class="btn btn-ghost btn-sm" onclick="askRowAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
@@ -1744,6 +1757,11 @@ function buildSlotEditor(slot, section, si, sli, uid){
             style="flex:1;padding:7px;border-radius:7px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};background:${tf.correct===false?'rgba(248,129,113,.15)':'transparent'};color:${tf.correct===false?'#f87171':'var(--parch)'};cursor:pointer;font-weight:700;font-family:Heebo,sans-serif;">❌ לא נכון</button>
         </div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;margin-top:8px;">
+        <input type="checkbox" ${tf.showOnBoard?'checked':''} style="width:15px;height:15px;"
+          onchange="updateTfField('${section}',${si},${sli},'showOnBoard',this.checked)">
+        <span>הצג תוצאות כסקר על הלוח</span>
+      </label>
       <div class="editor-btns" style="margin-top:8px;">
         <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
         <button class="btn btn-gold btn-sm" onclick="saveTfData('${section}',${si},${sli})">שמור ✓</button>
@@ -1926,6 +1944,18 @@ function saveTfData(section,si,sli){
   saveLesson();flash('✓ נשמר');
 }
 
+function updateMcField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.mcData)slot.mcData={question:'',options:['','','',''],correct:0,isSurvey:false,showOnBoard:false};
+  slot.mcData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateTfField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.tfData)slot.tfData={question:'',correct:true,isSurvey:false,showOnBoard:false};
+  slot.tfData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
 // ── QUESTION HELPERS ──
 function updateQField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
