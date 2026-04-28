@@ -531,7 +531,7 @@ body::before{
       </div>
       <div id="heroes-chat-area" style="display:none;flex-direction:column;height:calc(100vh - 120px);">
         <div style="display:flex;align-items:center;gap:10px;padding:10px 0 12px;border-bottom:1px solid rgba(212,168,67,.15);margin-bottom:12px;">
-          <button onclick="backToHeroesGrid()" style="font-size:.8rem;padding:5px 12px;border:1px solid rgba(212,168,67,.3);border-radius:7px;background:transparent;color:var(--parch);cursor:pointer;">→ רשימה</button>
+          <button onclick="backToHeroesGrid()" style="font-size:.82rem;padding:7px 14px;border:1.5px solid rgba(239,159,39,.5);border-radius:20px;background:rgba(239,159,39,.12);color:#EF9F27;cursor:pointer;font-weight:600;font-family:'Heebo',sans-serif;">← החלף דמות</button>
           <img id="hc-photo" src="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,168,67,.3);">
           <div>
             <div id="hc-name" style="font-weight:700;font-size:.95rem;color:var(--gold2);"></div>
@@ -1497,28 +1497,59 @@ async function sendHeroMsg() {
   var text = input.value.trim();
   if (!text || !heroCurrentChar) return;
   input.value = '';
+  input.disabled = true;
+
   addHeroBubble(text, 'user');
-  heroHistory.push({ role: 'user', content: text });
+  // push user message AFTER we know we're sending
+  var userMsg = { role: 'user', content: text };
+  heroHistory.push(userMsg);
+
   var typing = addHeroBubble('...', 'char');
   typing.style.fontStyle = 'italic';
   typing.style.opacity = '.5';
-  try {
-    var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: heroCurrentChar.system || ('אתה ' + heroCurrentChar.name + '. ענה בגוף ראשון בעברית פשוטה.'), messages: heroHistory })
-    });
-    var data = await res.json();
-    var reply = data.content[0].text || 'מצטערת, נסה שוב.';
-    typing.parentElement.remove();
-    addHeroBubble(reply, 'char');
-    heroHistory.push({ role: 'assistant', content: reply });
-    var sName = studentName || 'אנונימי';
-    db.ref('heroes/chats/' + heroCurrentChar.id + '/' + Date.now()).set({ student: sName, question: text, answer: reply, ts: Date.now() });
-  } catch(e) {
-    typing.parentElement.remove();
-    addHeroBubble('שגיאת חיבור. נסה שוב.', 'char');
+
+  var success = false;
+  for (var attempt = 0; attempt < 2; attempt++) {
+    try {
+      var res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: heroCurrentChar.system || ('אתה ' + heroCurrentChar.name + '. ענה בגוף ראשון בעברית פשוטה.'),
+          messages: heroHistory
+        })
+      });
+      if (!res.ok) throw new Error('status ' + res.status);
+      var data = await res.json();
+      var reply = (data.content && data.content[0] && data.content[0].text) || 'מצטערת, נסה שוב.';
+      typing.parentElement.remove();
+      addHeroBubble(reply, 'char');
+      heroHistory.push({ role: 'assistant', content: reply });
+      // keep history manageable
+      if (heroHistory.length > 30) heroHistory = heroHistory.slice(-30);
+      var sName = studentName || 'אנונימי';
+      db.ref('heroes/chats/' + heroCurrentChar.id + '/' + Date.now()).set({ student: sName, question: text, answer: reply, ts: Date.now() });
+      success = true;
+      break;
+    } catch(e) {
+      if (attempt === 0) {
+        // wait 1.5s and retry
+        await new Promise(function(r){ setTimeout(r, 1500); });
+      }
+    }
   }
+
+  if (!success) {
+    // remove the user message from history so next attempt works
+    heroHistory.pop();
+    typing.parentElement.remove();
+    addHeroBubble('⚠️ לא הצלחתי להתחבר. לחץ שלח שוב.', 'char');
+    input.value = text; // return text to input
+  }
+  input.disabled = false;
+  input.focus();
 }
 
 // Called when view-heroes is shown
