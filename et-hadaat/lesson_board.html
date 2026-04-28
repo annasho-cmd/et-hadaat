@@ -114,7 +114,7 @@ function buildStations(){
   ['intro','stations','closing'].forEach((key,ki)=>{
     const section=['intro','body','closing'][ki];
     if(d[key]) d[key].forEach((st,si)=>{
-      const slots=(st.slots||[]).filter(s=>s.type&&(s.content||s.tableData));
+      const slots=(st.slots||st.items||[]).filter(s=>s&&s.type&&(s.content||s.tableData||s.mcData||s.tfData||s.argueData));
       if(slots.length) allStations.push({section,si,slots});
     });
   });
@@ -172,16 +172,22 @@ function renderStation(){
 }
 
 function buildSlotHTML(slot){
-  const LABELS={entry:'🚪 כרטיס כניסה',exit:'🎫 כרטיס יציאה',open_q:'❓ שאלה פתוחה',
-    sources:'📜 קריאת מקורות',image:'🖼️ תמונה',video:'▶️ סרטון',sort_table:'📊 טבלת מיון',
-    mc_q:'🔘 רב-ברירה',tf_q:'✅ נכון/לא נכון'};
+  const LABELS={
+    entry:'🚪 כרטיס כניסה', entry_card:'🚪 כרטיס כניסה',
+    exit:'🎫 כרטיס יציאה',  exit_card:'🎫 כרטיס יציאה',
+    open_q:'❓ שאלה פתוחה', question:'❓ שאלה פתוחה',
+    sources:'📜 קריאת מקורות',
+    image:'🖼️ תמונה', video:'▶️ סרטון',
+    sort_table:'📊 טבלת מיון', fill_table:'📋 טבלת מילוי',
+    mc_q:'🔘 רב-ברירה', tf_q:'✅ נכון/לא נכון',
+    argue:'🖊️ כתיבה טיעונית', full_ans:'📝 תשובה מלאה',
+  };
 
   let inner='';
 
   if(slot.type==='sort_table'&&slot.tableData){
     const td=slot.tableData;
     const colsHtml=td.cols.map(c=>`<th>${esc(c.name)}</th>`).join('');
-    // על הלוח — טבלה ריקה עם כותרות בלבד
     const rows=Math.ceil((td.items?.length||8)/td.cols.length)||3;
     let emptyRows='';
     for(let r=0;r<rows;r++){
@@ -189,18 +195,42 @@ function buildSlotHTML(slot){
     }
     inner=`<div style="font-size:.78rem;opacity:.4;margin-bottom:8px;">התלמידים ממיינים בטאבלט שלהם</div>
       <table class="sort-table-display"><thead><tr>${colsHtml}</tr></thead><tbody>${emptyRows}</tbody></table>`;
+
+  } else if(slot.type==='mc_q'&&slot.mcData){
+    const mc=slot.mcData;
+    const opts=mc.options.filter(Boolean).map((o,i)=>`
+      <div style="padding:10px 16px;margin-bottom:8px;border:1px solid var(--border);border-radius:10px;font-size:1rem;">
+        ${i===mc.correct?'✅ ':''}${esc(o)}
+      </div>`).join('');
+    inner=`<div class="slot-content" style="margin-bottom:16px;">${esc(mc.question)}</div>${opts}
+      <div style="font-size:.75rem;opacity:.4;margin-top:8px;">התלמידים בוחרים בטאבלט</div>`;
+
+  } else if(slot.type==='tf_q'&&slot.tfData){
+    const tf=slot.tfData;
+    inner=`<div class="slot-content" style="margin-bottom:16px;">${esc(tf.question)}</div>
+      <div style="display:flex;gap:12px;">
+        <div style="flex:1;padding:12px;border:2px solid ${tf.correct===true?'#22c55e':'var(--border)'};border-radius:10px;text-align:center;font-size:1.1rem;font-weight:700;color:${tf.correct===true?'#22c55e':'var(--parch)'};">✅ נכון</div>
+        <div style="flex:1;padding:12px;border:2px solid ${tf.correct===false?'#f87171':'var(--border)'};border-radius:10px;text-align:center;font-size:1.1rem;font-weight:700;color:${tf.correct===false?'#f87171':'var(--parch)'};">❌ לא נכון</div>
+      </div>
+      <div style="font-size:.75rem;opacity:.4;margin-top:8px;">התלמידים בוחרים בטאבלט ${tf.isSurvey?'(סקר)':''}</div>`;
+
+  } else if((slot.type==='argue'||slot.type==='full_ans')&&slot.argueData){
+    const d=slot.argueData;
+    inner=`<div class="slot-content" style="margin-bottom:12px;">${esc(d.prompt)}</div>
+      <div style="font-size:.82rem;opacity:.5;">סגנון: ${esc(d.style||'מובנית')} ${d.showWordBank&&d.wordBank?'· עם בנק מילים':''}</div>
+      <div style="font-size:.75rem;opacity:.4;margin-top:8px;">התלמידים כותבים בטאבלט</div>`;
+
   } else if(slot.type==='image'){
-    // תמיכה בקישורי Google Drive
     let src=esc(slot.content||'');
-    // המרה אוטומטית של קישור Drive
     const m=(slot.content||'').match(/\/file\/d\/([^\/\?]+)/);
     if(m) src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
-    inner=`<img class="slot-image" src="${src}" alt="תמונה"
-      onerror="this.onerror=null;this.src='https://via.placeholder.com/600x400?text=לא+ניתן+לטעון+תמונה';">`;
+    inner=`<img class="slot-image" src="${src}" alt="תמונה" onerror="this.onerror=null;this.style.opacity='.3';">`;
+
   } else if(slot.type==='video'){
     const m=(slot.content||'').match(/(?:v=|youtu\.be\/)([^&\s]+)/);
     inner=m?`<iframe width="100%" height="360" src="https://www.youtube.com/embed/${m[1]}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`
       :`<div style="opacity:.4;">${esc(slot.content||'')}</div>`;
+
   } else if(slot.content){
     inner=`<div class="slot-content">${esc(slot.content).replace(/\n/g,'<br>')}</div>`;
   }

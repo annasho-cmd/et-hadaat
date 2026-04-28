@@ -161,15 +161,19 @@ let teacherAnswers={}; // תשובות דוגמא של המורה
 const SECTION_LABELS={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום',enrichment:'⭐ העשרה'};
 const ITEM_TYPES={
   entry:{label:'🚪 כרטיס כניסה',hasAnswer:true},
+  entry_card:{label:'🚪 כרטיס כניסה',hasAnswer:true},
   exit:{label:'🎫 כרטיס יציאה',hasAnswer:true},
+  exit_card:{label:'🎫 כרטיס יציאה',hasAnswer:true},
   open_q:{label:'❓ שאלה פתוחה',hasAnswer:true},
-  question:{label:'❓ שאלה',hasAnswer:true},
+  question:{label:'❓ שאלה פתוחה',hasAnswer:true},
   text:{label:'',hasAnswer:false},
   sources:{label:'📜 קריאת מקורות',hasAnswer:false},
   image:{label:'🖼️ תמונה',hasAnswer:false},
   video:{label:'▶️ סרטון',hasAnswer:false},
   mc_q:{label:'🔘 רב-ברירה',hasAnswer:true},
   tf_q:{label:'✅ נכון/לא נכון',hasAnswer:true},
+  argue:{label:'🖊️ כתיבה טיעונית',hasAnswer:true},
+  full_ans:{label:'📝 תשובה מלאה',hasAnswer:true},
   fill_table:{label:'📋 טבלת מילוי',hasAnswer:false},
 };
 
@@ -315,6 +319,45 @@ function buildSlotBlock(slot,stIdx,sli){
 
   if(slot.type==='fill_table'){
     return buildFillTable(slot, stIdx, sli);
+  }
+
+  // ── כתיבה טיעונית / תשובה מלאה ──
+  if(slot.type==='argue'||slot.type==='full_ans'){
+    const d=slot.argueData||{prompt:'',style:'מובנית',wordBank:'',showWordBank:false};
+    const uid=`ans-${stIdx}-${sli}`;
+    const savedAnswer=answers[`${stIdx}-${sli}`]||'';
+    const isStructured=d.style==='מובנית';
+    let writeArea='';
+    if(isStructured){
+      const sections=slot.type==='argue'
+        ?['פתיחה — הצגת עמדתך','גוף — נימוקים ודוגמאות','סיום — סיכום וחיזוק הטענה']
+        :['היגד מכליל — רעיון מרכזי','פירוט ודוגמאות','מסקנה'];
+      writeArea=sections.map((sec,i)=>`
+        <div style="margin-bottom:10px;">
+          <div style="font-size:.72rem;font-weight:700;color:var(--gold);opacity:.7;margin-bottom:4px;">${sec}</div>
+          <textarea class="answer-area" id="${uid}-${i}" rows="3"
+            placeholder="כתוב/כתבי כאן..."
+            oninput="autoSaveArgue('${stIdx}','${sli}','${uid}')">${esc((savedAnswer?JSON.parse(savedAnswer):[{}])[i]?.text||'')}</textarea>
+        </div>`).join('');
+    } else {
+      writeArea=`<textarea class="answer-area" id="${uid}" rows="6"
+        placeholder="כתוב/כתבי את תשובתך כאן...">${esc(savedAnswer)}</textarea>`;
+    }
+    const wordBankHtml=d.showWordBank&&d.wordBank
+      ?`<div style="margin-bottom:12px;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:.7rem;font-weight:700;color:var(--gold);opacity:.6;margin-bottom:6px;">בנק מילים</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${d.wordBank.split(',').map(w=>w.trim()).filter(Boolean).map(w=>`<span style="padding:3px 10px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.2);border-radius:12px;font-size:.8rem;cursor:pointer;color:var(--parch);" onclick="insertWord(this,'${uid}${isStructured?'-0':''}','${w.trim()}')">${esc(w.trim())}</span>`).join('')}</div>
+        </div>`:'';
+    html+=`<div class="source-text">${esc(d.prompt)}</div>
+      <div style="font-size:.8rem;opacity:.5;margin:6px 0 12px;">ענה/י על השאלה</div>
+      ${wordBankHtml}
+      ${writeArea}
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+        <button class="btn-submit" onclick="saveArgueAnswer('${stIdx}','${sli}','${uid}',${isStructured},${sections?sections.length:0})">שמור תשובה ✓</button>
+        <span class="answer-saved" id="saved-${stIdx}-${sli}">✅ נשמר</span>
+      </div>`;
+    block.innerHTML=html;
+    return block;
   }
 
   if(slot.type==='image'){
@@ -718,6 +761,28 @@ function showError(msg){
 function extractYT(url){
   const m=url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
   return m?m[1]:null;
+}
+
+function insertWord(el,uid,word){
+  const ta=document.getElementById(uid);
+  if(!ta)return;
+  const pos=ta.selectionStart;
+  ta.value=ta.value.slice(0,pos)+word+' '+ta.value.slice(pos);
+  ta.focus();
+  ta.selectionStart=ta.selectionEnd=pos+word.length+1;
+}
+
+function saveArgueAnswer(stIdx,sli,uid,isStructured,numSections){
+  let val;
+  if(isStructured&&numSections>0){
+    val=JSON.stringify(Array.from({length:numSections},(_,i)=>({text:document.getElementById(uid+'-'+i)?.value||''})));
+  } else {
+    val=document.getElementById(uid)?.value||'';
+  }
+  answers[`${stIdx}-${sli}`]=val;
+  db.ref(answersPath+`/${stIdx}-${sli}`).set(val);
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2000);}
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

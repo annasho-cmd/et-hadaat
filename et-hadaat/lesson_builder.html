@@ -2416,6 +2416,36 @@ function toggleBankCat(ci,header){
   if(chevron)chevron.classList.toggle('open',open);
 }
 
+// ── BANK TOOLTIP ──
+let _tooltipEl=null;
+function showBankTooltip(event,typeOrId){
+  hideBankTooltip();
+  const item=bankData.find(b=>(b.id||b.type)===typeOrId);
+  if(!item||!item.desc)return;
+  const tt=document.createElement('div');
+  tt.className='bank-tooltip';
+  let html=`<div class="bank-tooltip-title">${item.icon||''} ${item.name}</div>`;
+  if(item.desc) html+=`<div class="bank-tooltip-desc">${item.desc}</div>`;
+  if(item.styles&&item.styles.length){
+    html+=item.styles.slice(0,3).map(s=>`
+      <div class="bank-tooltip-style">
+        <div class="bank-tooltip-style-name">${s.name}</div>
+        ${s.desc?`<div class="bank-tooltip-style-desc">${s.desc}</div>`:''}
+      </div>`).join('');
+  }
+  tt.innerHTML=html;
+  document.body.appendChild(tt);
+  _tooltipEl=tt;
+  const r=event.currentTarget.getBoundingClientRect();
+  const left=Math.max(8,r.left-tt.offsetWidth-8);
+  const top=Math.min(window.innerHeight-tt.offsetHeight-8,r.top);
+  tt.style.left=left+'px';
+  tt.style.top=top+'px';
+}
+function hideBankTooltip(){
+  if(_tooltipEl){_tooltipEl.remove();_tooltipEl=null;}
+}
+
 function renderBankItems(){renderBankAccordion();}
 
 // ── MISSING CORE FUNCTIONS ──
