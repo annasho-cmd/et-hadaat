@@ -283,8 +283,19 @@ function clearSlot(pi,si){
   markUnsaved();
 }
 
-// ── BANK ──
-const BANK=[
+// ── BANK — נטען מ-Firebase (item_bank) ──
+const BANK_CAT_IDS=['questions','writing','media','games','discovery','enrichment'];
+const BANK_CATS=[
+  {id:'questions',  icon:'📝', name:'שאלות ומשימות'},
+  {id:'writing',    icon:'✍️', name:'כתיבה ויצירה'},
+  {id:'media',      icon:'🎬', name:'מדיה'},
+  {id:'games',      icon:'🎮', name:'משחקי ידע ותחרות'},
+  {id:'discovery',  icon:'🔍', name:'גילוי, מיון והתאמה'},
+  {id:'enrichment', icon:'🌟', name:'קרון העשרה'},
+];
+
+// Fallback אם Firebase ריק
+const BANK_FALLBACK=[
   {cat:'questions',icon:'📝',name:'שאלות ומשימות',items:[
     {type:'question',   icon:'❓', name:'שאלה פתוחה'},
     {type:'mc_q',       icon:'🔘', name:'שאלת רב-ברירה'},
@@ -299,23 +310,23 @@ const BANK=[
     {type:'argue',      icon:'🖊️', name:'כתיבה טיעונית / דעה'},
     {type:'dialogue',   icon:'💬', name:'דו-שיח בין דמויות'},
     {type:'newspaper',  icon:'📰', name:'עיתון וירטואלי'},
-    {type:'stickies',   icon:'🗒️', name:'פתקיות ולוח שיתופי'},
+    {type:'stickies',   icon:'🗒️', name:'פתקיות'},
     {type:'wordcloud',  icon:'☁️', name:'ענן מילים'},
     {type:'debate',     icon:'⚖️', name:'דיבייט דיגיטלי'},
     {type:'full_ans',   icon:'📝', name:'כתיבת תשובה מלאה'},
   ]},
   {cat:'media',icon:'🎬',name:'מדיה',items:[
     {type:'video',icon:'▶️', name:'סרטונים'},
-    {type:'image',icon:'🖼️', name:'תמונות (קריקטורה / מפות / תרשימים)'},
+    {type:'image',icon:'🖼️', name:'תמונות'},
   ]},
   {cat:'games',icon:'🎮',name:'משחקי ידע ותחרות',items:[
     {type:'escape_room', icon:'🔐', name:'חדר בריחה'},
-    {type:'trivia',      icon:'🎯', name:'טריוויה — סגנונות שונים'},
+    {type:'trivia',      icon:'🎯', name:'טריוויה'},
     {type:'crackers',    icon:'💥', name:'פיצוחים'},
     {type:'nine_squares',icon:'⬜', name:'תשע בריבוע'},
     {type:'bingo',       icon:'🎰', name:'בינגו'},
     {type:'cipher',      icon:'🔏', name:'כתב סתרים'},
-    {type:'flashcards',  icon:'📇', name:'כרטיסיות — שאלה תשובה'},
+    {type:'flashcards',  icon:'📇', name:'כרטיסיות'},
     {type:'quiz_game',   icon:'📋', name:'קוויז'},
     {type:'track_game',  icon:'🎲', name:'משחק מסלול'},
     {type:'jeopardy',    icon:'🏆', name:"ג'פרדי"},
@@ -324,10 +335,10 @@ const BANK=[
   ]},
   {cat:'discovery',icon:'🔍',name:'גילוי, מיון והתאמה',items:[
     {type:'what_connects',icon:'🔗', name:'מיון — מה הקשר?'},
-    {type:'klue',         icon:'🔀', name:'מיון וגרירה — קלו'},
-    {type:'timeline',     icon:'📅', name:'מיון וגרירה — ציר הזמן'},
-    {type:'drag_drop',    icon:'🔢', name:'מיון וגרירה — רצף אירועים'},
-    {type:'fill_sentence',icon:'📝', name:'מיון וגרירה — השלמת משפטים'},
+    {type:'klue',         icon:'🔀', name:'קלו'},
+    {type:'timeline',     icon:'📅', name:'ציר זמן'},
+    {type:'drag_drop',    icon:'🔢', name:'סדר כרונולוגי'},
+    {type:'fill_sentence',icon:'📝', name:'השלמת משפטים'},
     {type:'reveal_img',   icon:'🖼️', name:'גלה את התמונה'},
     {type:'zoom_img',     icon:'🔎', name:'זום תמונה'},
     {type:'puzzle',       icon:'🧩', name:'פאזל'},
@@ -335,17 +346,58 @@ const BANK=[
     {type:'match_line',   icon:'↔️', name:'מתיחת קו'},
     {type:'crossword',    icon:'📐', name:'תשבץ'},
     {type:'wordsearch',   icon:'🔤', name:'תפזורת'},
-    {type:'riddle_draw',  icon:'✏️', name:'חידות בציורים — מהו המושג?'},
+    {type:'riddle_draw',  icon:'✏️', name:'חידות בציורים'},
     {type:'reveal_word',  icon:'🔍', name:'גלה את המושג'},
-    {type:'hidden_img',   icon:'🕵️', name:'גלה את הפרטים המסתתרים בתמונה'},
-    {type:'sort_table',   icon:'📊', name:'טבלת מיון — מה הקשר?'},
+    {type:'hidden_img',   icon:'🕵️', name:'גלה פרטים מסתתרים'},
+    {type:'sort_table',   icon:'📊', name:'טבלת מיון'},
     {type:'fill_table',   icon:'📋', name:'טבלת מילוי'},
   ]},
 ];
 
-function renderBank(){
+let bankItems=[];
+
+function loadAndRenderBank(){
+  db.ref('teacher/itemBank').once('value', snap=>{
+    const saved=snap.val();
+    if(saved && Object.keys(saved).length>0){
+      bankItems=Object.values(saved).map(item=>({
+        ...item,
+        type: item.id||item.type,
+        cat: typeof item.cat==='number' ? BANK_CAT_IDS[item.cat]||'questions' : item.cat
+      }));
+      renderBankFromItems();
+    } else {
+      renderBankFromFallback();
+    }
+  }).catch(()=>renderBankFromFallback());
+}
+
+function renderBankFromItems(){
   const acc=document.getElementById('bank-accordion');
-  acc.innerHTML=BANK.map((cat,ci)=>`
+  acc.innerHTML=BANK_CATS.map((cat,ci)=>{
+    const items=bankItems.filter(it=>it.cat===cat.id);
+    if(!items.length)return '';
+    return `<div class="bank-cat-section">
+      <div class="bank-cat-header${ci===0?' open':''}" onclick="toggleCat(${ci},this)">
+        <span>${cat.icon}</span>
+        <span class="bank-cat-name">${cat.name}</span>
+        <span class="bank-cat-count">(${items.length})</span>
+        <span class="bank-cat-chevron${ci===0?' open':''}" id="bch-${ci}">▼</span>
+      </div>
+      <div class="bank-cat-items${ci===0?' open':''}" id="bci-${ci}">
+        ${items.map(it=>`
+          <div class="bank-cube" onclick="bankClick('${it.type||it.id}','${esc(it.name)}')">
+            <span class="bank-cube-icon">${it.icon||'📄'}</span>
+            <div class="bank-cube-name">${it.name}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderBankFromFallback(){
+  const acc=document.getElementById('bank-accordion');
+  acc.innerHTML=BANK_FALLBACK.map((cat,ci)=>`
     <div class="bank-cat-section">
       <div class="bank-cat-header${ci===0?' open':''}" onclick="toggleCat(${ci},this)">
         <span>${cat.icon}</span>
@@ -362,6 +414,8 @@ function renderBank(){
       </div>
     </div>`).join('');
 }
+
+function renderBank(){ loadAndRenderBank(); }
 
 function toggleCat(ci,header){
   const el=document.getElementById('bci-'+ci);
@@ -413,8 +467,25 @@ function buildItemForm(type){
     return ta('עמודות הטבלה (מופרדות בפסיק)','cols',1)+ta('תוכן / פריטים','content',3);
   }
   if(type==='argue'||type==='full_ans'){
-    return ta('הנושא / השאלה','prompt',2)+
-      `<div class="lbl">סגנון:</div><select class="inp" onchange="_currentItemData.style=this.value"><option>מובנית</option><option>עצמאית</option></select>`;
+    return `<div class="lbl">הנושא / השאלה לתלמיד:</div>
+      <textarea class="inp" rows="2" style="margin-bottom:10px;" oninput="_currentItemData.prompt=this.value"></textarea>
+      <div class="lbl">סגנון:</div>
+      <select class="inp" style="margin-bottom:10px;" onchange="_currentItemData.style=this.value">
+        <option>מובנית</option><option>עצמאית</option>
+      </select>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem;color:#fdf5e0;">
+          <input type="checkbox" id="wb-toggle" style="width:15px;height:15px;"
+            onchange="_currentItemData.showWordBank=this.checked;document.getElementById('wb-section').style.display=this.checked?'block':'none';">
+          <span>הצג בנק מילים לתלמיד</span>
+        </label>
+      </div>
+      <div id="wb-section" style="display:none;">
+        <div class="lbl">מילים / ביטויים (מופרדים בפסיק):</div>
+        <textarea class="inp" rows="2" style="font-size:.82rem;"
+          placeholder="למשל: לדעתי, מכיוון ש, לפיכך, לעומת זאת..."
+          oninput="_currentItemData.wordBank=this.value"></textarea>
+      </div>`;
   }
   if(type==='drag_drop'||type==='timeline'){
     return ta('פריטים לסידור (כל אחד בשורה)','items',5);

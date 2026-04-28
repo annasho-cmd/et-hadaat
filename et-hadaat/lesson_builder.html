@@ -1751,6 +1751,41 @@ function buildSlotEditor(slot, section, si, sli, uid){
   }
 
   const isUrl=slot.type==='video'||slot.type==='image';
+
+  // ── כתיבה טיעונית / תשובה מלאה ──
+  if(slot.type==='argue'||slot.type==='full_ans'){
+    const d=slot.argueData||{prompt:'',style:'מובנית',wordBank:'',showWordBank:false};
+    return `<div class="inline-editor-title">${bankItem?.icon||'🖊️'} ${bankItem?.name||slot.type}</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:8px;">הנושא / השאלה לתלמיד:</div>
+      <textarea class="inline-field" style="margin-bottom:10px;" placeholder="למשל: כתבי דעתך על..." 
+        onchange="updateArgueField('${section}',${si},${sli},'prompt',this.value)">${esc(d.prompt)}</textarea>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <div style="font-size:.75rem;opacity:.5;">סגנון:</div>
+        <select class="inline-field" style="min-height:0;padding:5px 8px;flex:1;"
+          onchange="updateArgueField('${section}',${si},${sli},'style',this.value)">
+          <option ${d.style==='מובנית'?'selected':''}>מובנית</option>
+          <option ${d.style==='עצמאית'?'selected':''}>עצמאית</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${d.showWordBank?'8':'2'}px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;">
+          <input type="checkbox" ${d.showWordBank?'checked':''} style="width:15px;height:15px;"
+            onchange="toggleArgueWordBank('${section}',${si},${sli},'${uid}',this.checked)">
+          <span>הצג בנק מילים לתלמיד</span>
+        </label>
+      </div>
+      <div id="wordbank-${uid}" style="display:${d.showWordBank?'block':'none'};">
+        <div style="font-size:.72rem;opacity:.45;margin-bottom:4px;">מילים / ביטויים (מופרדים בפסיק):</div>
+        <textarea class="inline-field" style="margin-bottom:8px;font-size:.8rem;" 
+          placeholder="למשל: לדעתי, מכיוון ש, לפיכך, לעומת זאת..."
+          onchange="updateArgueField('${section}',${si},${sli},'wordBank',this.value)">${esc(d.wordBank)}</textarea>
+      </div>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveArgueData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
   const field=isUrl
     ?`<input class="inline-field" id="ef-${uid}" style="min-height:0;resize:none;"
         placeholder="${slot.type==='video'?'קישור YouTube...':'קישור לתמונה...'}"
@@ -1849,6 +1884,25 @@ function updateTfSurvey(section,si,sli,val,uid){
   if(correctDiv)correctDiv.style.display=val?'none':'';
 }
 function saveTfData(section,si,sli){
+  saveLesson();flash('✓ נשמר');
+}
+
+// ── ARGUE / FULL_ANS HELPERS ──
+function updateArgueField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.argueData)slot.argueData={prompt:'',style:'מובנית',wordBank:'',showWordBank:false};
+  slot.argueData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function toggleArgueWordBank(section,si,sli,uid,show){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.argueData)slot.argueData={prompt:'',style:'מובנית',wordBank:'',showWordBank:false};
+  slot.argueData.showWordBank=show;
+  const wb=document.getElementById('wordbank-'+uid);
+  if(wb)wb.style.display=show?'block':'none';
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveArgueData(section,si,sli){
   saveLesson();flash('✓ נשמר');
 }
 function getSlot(section,si,sli){
@@ -2300,13 +2354,32 @@ const BANK_CATS=[
   {id:'media',      icon:'🎬', name:'מדיה'},
   {id:'games',      icon:'🎮', name:'משחקי ידע ותחרות'},
   {id:'discovery',  icon:'🔍', name:'גילוי, מיון והתאמה'},
+  {id:'enrichment', icon:'🌟', name:'קרון העשרה'},
 ];
+
+// מיפוי מספר קטגוריה (item_bank) → מחרוזת (lesson_builder)
+const BANK_CAT_IDS=['questions','writing','media','games','discovery','enrichment'];
 
 let bankData=[];
 
 function loadBankFromFirebase(cb){
-  bankData = ITEM_BANK.map(i=>({...i}));
-  cb&&cb();
+  db.ref('teacher/itemBank').once('value', snap=>{
+    const saved=snap.val();
+    if(saved && Object.keys(saved).length>0){
+      bankData=Object.values(saved).map(item=>({
+        ...item,
+        type: item.id||item.type,
+        cat: typeof item.cat==='number' ? BANK_CAT_IDS[item.cat]||'questions' : item.cat
+      }));
+    } else {
+      // Fallback לרשימה הקשוחה אם Firebase ריק
+      bankData=ITEM_BANK.map(i=>({...i}));
+    }
+    cb&&cb();
+  }).catch(()=>{
+    bankData=ITEM_BANK.map(i=>({...i}));
+    cb&&cb();
+  });
 }
 
 function renderBankAccordion(){
