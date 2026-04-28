@@ -151,12 +151,17 @@ const isPreview=params.get('preview')==='1';
 
 // נתיב תשובות המורה ב-Firebase
 const teacherAnswersPath=`teacherAnswers/${subjectId}/${unitId}/lesson_${lessonIdx}`;
+const answersPath=`studentAnswers/${subjectId}/${unitId}/lesson_${lessonIdx}/${encodeURIComponent(studentName||'preview')}`;
+const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
 
 let lessonData=null;
 let allStations=[];
 let currentStation=0;
 let answers={};
-let teacherAnswers={}; // תשובות דוגמא של המורה
+let teacherAnswers={};
+let agentConfig={avatar:'🤖',name:'עוזר'};
+// טעינת סוכן הלמידה מ-localStorage
+try{const ag=localStorage.getItem('agent_'+classCode+'_'+studentName);if(ag)agentConfig=JSON.parse(ag);}catch(e){}
 
 const SECTION_LABELS={intro:'🌅 פתיח',body:'🚂 גוף השיעור',closing:'🌇 סיום',enrichment:'⭐ העשרה'};
 const ITEM_TYPES={
@@ -369,6 +374,27 @@ function buildSlotBlock(slot,stIdx,sli){
       :`<div style="opacity:.4;font-size:.85rem;">קישור וידאו: ${esc(slot.content||'')}</div>`;
   } else if(slot.content){
     html+=`<div class="source-text">${slot.content.replace(/\n/g,'<br>')}</div>`;
+  }
+
+  // ── שאלה פתוחה ──
+  if(slot.type==='question'||slot.type==='open_q'){
+    const d=slot.questionData||{question:'',checkAnswers:false,sampleAnswer:''};
+    const uid=`ans-${stIdx}-${sli}`;
+    const savedAnswer=answers[`${stIdx}-${sli}`]||'';
+    html+=`<div class="source-text">${esc(d.question||slot.content||'')}</div>
+      <div style="font-size:.8rem;opacity:.5;margin:6px 0 12px;">ענה/י על השאלה</div>
+      <textarea class="answer-area" id="${uid}" rows="5"
+        placeholder="כתוב/כתבי את תשובתך כאן...">${esc(savedAnswer)}</textarea>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn-submit" onclick="saveQAnswer('${stIdx}','${sli}','${uid}',${JSON.stringify(d).replace(/'/g,'\\'')})">שמור תשובה ✓</button>
+        <span class="answer-saved" id="saved-${stIdx}-${sli}" style="display:none;">✅ נשמר</span>
+        <button onclick="openAgent('${stIdx}','${sli}',\`${esc(d.question||slot.content||'')}\`)"
+          style="margin-right:auto;padding:6px 12px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.3);border-radius:20px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:.8rem;cursor:pointer;">
+          ${agentConfig.avatar||'🤖'} שאל/י את הסוכן
+        </button>
+      </div>`;
+    block.innerHTML=html;
+    return block;
   }
 
   // ── רב-ברירה ──
@@ -761,6 +787,83 @@ function showError(msg){
 function extractYT(url){
   const m=url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
   return m?m[1]:null;
+}
+
+function saveQAnswer(stIdx,sli,uid,questionData){
+  const val=document.getElementById(uid)?.value||'';
+  answers[`${stIdx}-${sli}`]=val;
+  db.ref(answersPath+`/${stIdx}-${sli}`).set({
+    text:val,student:studentName,ts:Date.now(),
+    showOnBoard:questionData?.showOnBoard||false,
+    showNames:questionData?.showNames!==false
+  });
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2500);}
+}
+
+let _agentPanel=null;
+let _agentHistory=[];
+
+function openAgent(stIdx,sli,question){
+  if(_agentPanel){_agentPanel.remove();_agentPanel=null;return;}
+  const panel=document.createElement('div');
+  panel.style.cssText='position:fixed;bottom:0;left:0;right:0;max-height:55vh;background:#1a0f05;border-top:1px solid rgba(109,40,217,.4);display:flex;flex-direction:column;z-index:200;font-family:Heebo,sans-serif;';
+  const avatar=agentConfig.avatar||'\u{1F916}';
+  const name=agentConfig.name||'\u05E1\u05D5\u05DB\u05DF \u05D4\u05DC\u05DE\u05D9\u05D3\u05D4';
+  panel.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(109,40,217,.2);">
+      <span style="font-size:1.2rem;">${avatar}</span>
+      <span style="font-weight:700;font-size:.9rem;color:#c4b5fd;">${name}</span>
+      <button onclick="this.closest('[style]').remove();_agentPanel=null;"
+        style="margin-right:auto;background:none;border:none;color:#c4b5fd;cursor:pointer;font-size:1rem;">✕</button>
+    </div>
+    <div id="agent-msgs" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+      <div style="background:rgba(109,40,217,.12);border:1px solid rgba(109,40,217,.2);border-radius:10px;padding:10px 12px;font-size:.85rem;color:#e9d5ff;">שלום! אני כאן לעזור לך לחשוב. מה מעסיק אותך בשאלה?</div>
+    </div>
+    <div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid rgba(109,40,217,.2);">
+      <textarea id="agent-input" rows="2" placeholder="שאל/י אותי..."
+        style="flex:1;resize:none;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.3);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:8px;outline:none;"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAgent(this.dataset.q);}"></textarea>
+      <button onclick="sendAgent(document.getElementById('agent-input').dataset.q)"
+        style="padding:8px 14px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem;">↑</button>
+    </div>`;
+  document.body.appendChild(panel);
+  _agentPanel=panel;
+  const inp=document.getElementById('agent-input');
+  inp.dataset.q=question;
+  inp.focus();
+}
+
+async function sendAgent(question){
+  const inp=document.getElementById('agent-input');
+  if(!inp)return;
+  const msg=inp.value.trim();if(!msg)return;
+  inp.value='';
+  const msgs=document.getElementById('agent-msgs');
+  const userBubble=document.createElement('div');
+  userBubble.style.cssText='background:rgba(253,245,224,.08);border:1px solid rgba(253,245,224,.12);border-radius:10px;padding:10px 12px;font-size:.85rem;color:#fdf5e0;align-self:flex-end;max-width:80%;';
+  userBubble.textContent=msg;
+  msgs.appendChild(userBubble);
+  const thinking=document.createElement('div');
+  thinking.style.cssText='font-size:.78rem;opacity:.4;font-style:italic;';
+  thinking.textContent='חושב...';
+  msgs.appendChild(thinking);
+  msgs.scrollTop=msgs.scrollHeight;
+  _agentHistory.push({role:'user',content:msg});
+  try{
+    const sys=`אתה סוכן למידה תומך. השאלה בשיעור: "${question}". שם התלמיד: "${studentName}". אל תתן תשובות ישירות — שאל שאלות שיעזרו לתלמיד להגיע לתובנות בעצמו. ענה בעברית פשוטה, משפטים קצרים.`;
+    const res=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:sys,messages:_agentHistory})});
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'לא הצלחתי להתחבר.';
+    thinking.remove();
+    const ab=document.createElement('div');
+    ab.style.cssText='background:rgba(109,40,217,.12);border:1px solid rgba(109,40,217,.2);border-radius:10px;padding:10px 12px;font-size:.85rem;color:#e9d5ff;';
+    ab.textContent=reply;
+    msgs.appendChild(ab);
+    _agentHistory.push({role:'assistant',content:reply});
+    if(_agentHistory.length>20)_agentHistory=_agentHistory.slice(-20);
+  }catch(e){thinking.textContent='שגיאת חיבור. נסה שוב.';}
+  msgs.scrollTop=msgs.scrollHeight;
 }
 
 function insertWord(el,uid,word){

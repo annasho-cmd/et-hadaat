@@ -185,7 +185,13 @@ function buildSlotHTML(slot){
 
   let inner='';
 
-  if(slot.type==='sort_table'&&slot.tableData){
+  if(slot.type==='question'||slot.type==='open_q'){
+    const d=slot.questionData||{};
+    const q=d.question||slot.content||'';
+    inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
+      <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
+
+  } else if(slot.type==='sort_table'&&slot.tableData){
     const td=slot.tableData;
     const colsHtml=td.cols.map(c=>`<th>${esc(c.name)}</th>`).join('');
     const rows=Math.ceil((td.items?.length||8)/td.cols.length)||3;

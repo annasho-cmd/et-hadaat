@@ -1753,8 +1753,47 @@ function buildSlotEditor(slot, section, si, sli, uid){
   const isUrl=slot.type==='video'||slot.type==='image';
 
   // ── כתיבה טיעונית / תשובה מלאה ──
+  // ── שאלה פתוחה ──
+  if(slot.type==='question'||slot.type==='open_q'){
+    const d=slot.questionData||{question:'',showOnBoard:false,showNames:true,checkAnswers:false,sampleAnswer:''};
+    return `<div class="inline-editor-title">❓ שאלה פתוחה</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">השאלה לתלמיד:</div>
+      <textarea class="inline-field" style="margin-bottom:12px;" placeholder="למשל: מה לדעתך גרם ל...?"
+        onchange="updateQField('${section}',${si},${sli},'question',this.value)">${esc(d.question)}</textarea>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+          <input type="checkbox" ${d.showOnBoard?'checked':''} style="width:15px;height:15px;"
+            onchange="toggleQOption('${section}',${si},${sli},'${uid}','showOnBoard',this.checked)">
+          <span>הצג תשובות תלמידים על הלוח</span>
+        </label>
+        <div id="board-opts-${uid}" style="display:${d.showOnBoard?'flex':'none'};gap:16px;padding-right:22px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;">
+            <input type="radio" name="names-${uid}" ${d.showNames?'checked':''} onchange="updateQField('${section}',${si},${sli},'showNames',true)"> עם שם תלמיד
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;">
+            <input type="radio" name="names-${uid}" ${!d.showNames?'checked':''} onchange="updateQField('${section}',${si},${sli},'showNames',false)"> ללא שם
+          </label>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+          <input type="checkbox" ${d.checkAnswers?'checked':''} style="width:15px;height:15px;"
+            onchange="toggleQOption('${section}',${si},${sli},'${uid}','checkAnswers',this.checked)">
+          <span>בדיקת תשובות תלמידים</span>
+        </label>
+        <div id="check-opts-${uid}" style="display:${d.checkAnswers?'block':'none'};padding-right:22px;">
+          <div style="font-size:.72rem;opacity:.5;margin-bottom:4px;">תשובת דוגמא או מילות מפתח (מופרדות בפסיק):</div>
+          <textarea class="inline-field" style="font-size:.8rem;min-height:60px;"
+            placeholder="למשל: סיבה כלכלית, משבר, מנהיגות..."
+            onchange="updateQField('${section}',${si},${sli},'sampleAnswer',this.value)">${esc(d.sampleAnswer)}</textarea>
+        </div>
+      </div>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-ghost btn-sm" onclick="askSlotAI('${uid}','${section}',${si},${sli})">🤖 עוזר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveQData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   if(slot.type==='argue'||slot.type==='full_ans'){
-    const d=slot.argueData||{prompt:'',style:'מובנית',wordBank:'',showWordBank:false};
     return `<div class="inline-editor-title">${bankItem?.icon||'🖊️'} ${bankItem?.name||slot.type}</div>
       <div style="font-size:.75rem;opacity:.5;margin-bottom:8px;">הנושא / השאלה לתלמיד:</div>
       <textarea class="inline-field" style="margin-bottom:10px;" placeholder="למשל: כתבי דעתך על..." 
@@ -1884,6 +1923,28 @@ function updateTfSurvey(section,si,sli,val,uid){
   if(correctDiv)correctDiv.style.display=val?'none':'';
 }
 function saveTfData(section,si,sli){
+  saveLesson();flash('✓ נשמר');
+}
+
+// ── QUESTION HELPERS ──
+function updateQField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.questionData)slot.questionData={question:'',showOnBoard:false,showNames:true,checkAnswers:false,sampleAnswer:''};
+  slot.questionData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function toggleQOption(section,si,sli,uid,field,val){
+  updateQField(section,si,sli,field,val);
+  if(field==='showOnBoard'){
+    const el=document.getElementById('board-opts-'+uid);
+    if(el)el.style.display=val?'flex':'none';
+  }
+  if(field==='checkAnswers'){
+    const el=document.getElementById('check-opts-'+uid);
+    if(el)el.style.display=val?'block':'none';
+  }
+}
+function saveQData(section,si,sli){
   saveLesson();flash('✓ נשמר');
 }
 
