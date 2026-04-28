@@ -3,250 +3,151 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ענן מילים — לוח הקרנה</title>
-<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<title>ענן מילים — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--border:rgba(212,168,67,0.22);}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{
-  font-family:'Heebo',sans-serif;
-  background:radial-gradient(ellipse at center,#0d1b2a 0%,#060d14 100%);
-  color:white;min-height:100vh;overflow:hidden;
-  display:flex;flex-direction:column;
-}
-
-.board-header{
-  padding:20px 32px 10px;
-  display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid rgba(255,255,255,.06);
-  flex-shrink:0;
-}
-.board-title{
-  font-family:'Frank Ruhl Libre',serif;
-  font-size:1rem;font-weight:700;
-  color:rgba(255,255,255,.4);
-}
-.question-display{
-  font-family:'Frank Ruhl Libre',serif;
-  font-size:1.6rem;font-weight:700;
-  color:#f0c060;text-align:center;
-  padding:16px 32px 8px;
-  flex-shrink:0;
-}
-.stats-bar{
-  display:flex;gap:20px;justify-content:center;
-  padding:4px 0 8px;flex-shrink:0;
-}
-.stat{font-size:.78rem;color:rgba(255,255,255,.35);}
-.stat span{color:rgba(255,255,255,.7);font-weight:700;}
-
-.cloud-area{
-  flex:1;position:relative;overflow:hidden;
-}
-
-.word-item{
-  position:absolute;
-  font-family:'Frank Ruhl Libre',serif;
-  font-weight:700;
-  cursor:default;
-  transition:all 0.8s cubic-bezier(0.34,1.56,0.64,1);
-  white-space:nowrap;
-  text-shadow:0 2px 8px rgba(0,0,0,0.5);
-  user-select:none;
-}
-
-.waiting{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  text-align:center;opacity:.3;
-}
-.waiting-icon{font-size:3rem;margin-bottom:12px;}
-.waiting-text{font-size:1rem;}
-
-/* Colors palette */
-.c0{color:#60a5fa;}
-.c1{color:#f0c060;}
-.c2{color:#86efac;}
-.c3{color:#f472b6;}
-.c4{color:#a78bfa;}
-.c5{color:#67e8f9;}
-.c6{color:#fcd34d;}
-.c7{color:#fb923c;}
-.c8{color:#4ade80;}
-.c9{color:#e879f9;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);direction:rtl;overflow:hidden;height:100vh;display:flex;flex-direction:column;}
+.topbar{background:rgba(10,5,2,.95);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.question-bar{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.count-badge{font-size:.78rem;opacity:.5;white-space:nowrap;}
+.btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.78rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.canvas-area{flex:1;position:relative;overflow:hidden;}
+canvas{position:absolute;inset:0;}
+.empty-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.25;font-size:1.1rem;gap:8px;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 </style>
 </head>
 <body>
 
-<div class="board-header">
-  <div class="board-title">☁️ ענן מילים</div>
-  <div class="stats-bar">
-    <div class="stat">תלמידים: <span id="s-students">0</span></div>
-    <div class="stat">מילים: <span id="s-words">0</span></div>
-    <div class="stat">תשובות: <span id="s-total">0</span></div>
-  </div>
+<div class="topbar">
+  <div class="question-bar" id="question-display">☁️ ענן מילים</div>
+  <div class="live-dot"></div>
+  <span class="count-badge" id="count-badge">0 תשובות</span>
+  <button class="btn" onclick="clearWords()" style="color:#f87171;border-color:rgba(248,129,113,.3);">🗑 נקה</button>
+  <button class="btn" onclick="window.close()">✕</button>
 </div>
 
-<div class="question-display" id="question-display">ממתין לשאלה מהמורה...</div>
-
-<div class="cloud-area" id="cloud-area">
-  <div class="waiting" id="waiting">
-    <div class="waiting-icon">☁️</div>
-    <div class="waiting-text">ממתין לתשובות תלמידים...</div>
+<div class="canvas-area" id="canvas-area">
+  <canvas id="wc-canvas"></canvas>
+  <div class="empty-msg" id="empty-msg">
+    <span class="spin" style="font-size:2rem;">⏳</span>
+    ממתין לתשובות התלמידים...
   </div>
 </div>
 
 <script>
-const FB = {
-  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
-  authDomain:"et-hadaat.firebaseapp.com",
-  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
-  projectId:"et-hadaat",
-  storageBucket:"et-hadaat.firebasestorage.app",
-  messagingSenderId:"141400405468",
-  appId:"1:141400405468:web:c1090c52477d14a159cb19"
-};
-try{firebase.initializeApp(FB);}catch(e){}
-const db = firebase.database();
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
 
-let wordPositions = {}; // word -> {x,y,colorClass,el}
-let currentSessionId = null;
+const params=new URLSearchParams(window.location.search);
+const boardId=params.get('boardId')||'wc_default';
+const question=decodeURIComponent(params.get('q')||'');
 
-// Color classes cycle
-const COLORS = ['c0','c1','c2','c3','c4','c5','c6','c7','c8','c9'];
-let colorIdx = 0;
+if(question) document.getElementById('question-display').textContent='☁️ '+question;
 
-function getColor(word){
-  // Consistent color per word
-  let hash = 0;
-  for(let i=0;i<word.length;i++) hash = word.charCodeAt(i) + ((hash<<5)-hash);
-  return 'c' + Math.abs(hash % 10);
-}
+const COLORS=['#f0c060','#86efac','#93c5fd','#f9a8d4','#c4b5fd','#fdba74','#6ee7b7','#fca5a5','#fde68a','#a5f3fc','#d8b4fe','#fb923c'];
 
-// Listen to active session
-db.ref('wordcloud/active').on('value', snap => {
-  const d = snap.val();
-  if(d && d.active && d.sessionId){
-    currentSessionId = d.sessionId;
-    document.getElementById('question-display').textContent = d.question || '';
-    listenToWords(d.sessionId);
-  } else {
-    document.getElementById('question-display').textContent = 'ממתין לשאלה מהמורה...';
-  }
+let freq={};
+let animFrame=null;
+
+// ── LISTEN ──
+db.ref(`wordclouds/${boardId}/words`).on('value',snap=>{
+  const data=snap.val()||{};
+  freq={};
+  Object.values(data).forEach(entry=>{
+    const w=(entry.word||'').trim().toLowerCase();
+    if(w) w.split(/\s+/).forEach(part=>{
+      if(part.length>1) freq[part]=(freq[part]||0)+1;
+    });
+  });
+  const total=Object.values(data).length;
+  document.getElementById('count-badge').textContent=total+' תשובות';
+  const emptyEl=document.getElementById('empty-msg');
+  if(Object.keys(freq).length){emptyEl.style.display='none';}else{emptyEl.style.display='flex';}
+  if(animFrame)cancelAnimationFrame(animFrame);
+  animFrame=requestAnimationFrame(drawCloud);
 });
 
-function listenToWords(sessionId){
-  db.ref('wordcloud/sessions/' + sessionId + '/words').on('value', snap => {
-    const data = snap.val() || {};
-    buildCloud(data);
-  });
-}
+// ── DRAW ──
+function drawCloud(){
+  const canvas=document.getElementById('wc-canvas');
+  const area=document.getElementById('canvas-area');
+  const W=area.offsetWidth,H=area.offsetHeight;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
 
-function buildCloud(data){
-  // Count words
-  const wordCount = {};
-  const studentSet = new Set();
-  Object.values(data).forEach(entry => {
-    if(!entry.word)return;
-    const w = entry.word.trim();
-    if(!w)return;
-    wordCount[w] = (wordCount[w]||0)+1;
-    if(entry.name) studentSet.add(entry.name);
-  });
+  const words=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,60);
+  if(!words.length)return;
 
-  const total = Object.values(data).length;
-  document.getElementById('s-students').textContent = studentSet.size;
-  document.getElementById('s-words').textContent = Object.keys(wordCount).length;
-  document.getElementById('s-total').textContent = total;
+  const maxFreq=words[0][1];
+  const minSize=Math.max(14,H/20);
+  const maxSize=Math.min(H/2.5,W/5);
+  const placed=[];
 
-  const area = document.getElementById('cloud-area');
-  const waiting = document.getElementById('waiting');
+  // ציור ספירלה מהמרכז החוצה
+  function tryPlace(word,size){
+    ctx.font=`bold ${size}px Heebo,sans-serif`;
+    const tw=ctx.measureText(word).width;
+    const th=size;
+    const cx=W/2,cy=H/2;
+    let angle=Math.random()*Math.PI*2;
+    let radius=0;
+    const step=2.5;
 
-  if(!Object.keys(wordCount).length){
-    waiting.style.display = 'block';
-    return;
+    for(let i=0;i<400;i++){
+      const x=cx+radius*Math.cos(angle)-tw/2;
+      const y=cy+radius*Math.sin(angle)+th/3;
+      if(x>8&&x+tw<W-8&&y-th>8&&y<H-8){
+        const ok=!placed.some(p=>!(x+tw+6<p.x||x>p.x+p.w+6||y-th-4>p.y+p.h||y+4<p.y));
+        if(ok){
+          placed.push({x,y:y-th,w:tw,h:th});
+          return {x,y};
+        }
+      }
+      angle+=0.25;
+      radius+=step*0.08;
+    }
+    return null;
   }
-  waiting.style.display = 'none';
 
-  const maxCount = Math.max(...Object.values(wordCount));
-  const W = area.offsetWidth || window.innerWidth;
-  const H = area.offsetHeight || window.innerHeight - 120;
-
-  // Remove words that no longer exist
-  Object.keys(wordPositions).forEach(w => {
-    if(!wordCount[w]){
-      wordPositions[w].el?.remove();
-      delete wordPositions[w];
-    }
-  });
-
-  // Add/update words
-  Object.entries(wordCount).forEach(([word, count]) => {
-    const fontSize = Math.round(18 + (count / maxCount) * 64);
-    const colorClass = getColor(word);
-
-    if(wordPositions[word]){
-      // Update size
-      const el = wordPositions[word].el;
-      el.style.fontSize = fontSize + 'px';
-    } else {
-      // New word — find position
-      const el = document.createElement('div');
-      el.className = 'word-item ' + colorClass;
-      el.textContent = word;
-      el.style.fontSize = fontSize + 'px';
-      el.style.opacity = '0';
-
-      // Place randomly — avoid center
-      const x = 40 + Math.random() * (W - 200);
-      const y = 40 + Math.random() * (H - 80);
-      el.style.left = x + 'px';
-      el.style.top = y + 'px';
-
-      area.appendChild(el);
-      wordPositions[word] = {x, y, el};
-
-      // Fade in
-      setTimeout(() => el.style.opacity = '1', 50);
-    }
-  });
-
-  // Redistribute positions based on count
-  redistributeWords(wordCount, maxCount, W, H);
-}
-
-function redistributeWords(wordCount, maxCount, W, H){
-  const sorted = Object.entries(wordCount).sort((a,b)=>b[1]-a[1]);
-  const total = sorted.length;
-
-  sorted.forEach(([word, count], i) => {
-    const pos = wordPositions[word];
+  words.forEach(([word,count],i)=>{
+    const ratio=count/maxFreq;
+    const size=Math.round(minSize+ratio*(maxSize-minSize));
+    const pos=tryPlace(word,size);
     if(!pos)return;
 
-    // Bigger words drift toward center, smaller toward edges
-    const ratio = count / maxCount;
-    const centerX = W/2, centerY = H/2;
-    const spread = 1 - ratio * 0.5;
-
-    // Spiral-ish layout
-    const angle = (i / total) * Math.PI * 6;
-    const radius = spread * Math.min(W,H) * 0.35;
-    const x = Math.max(20, Math.min(W-150, centerX + Math.cos(angle) * radius * (0.3 + Math.random()*0.7)));
-    const y = Math.max(20, Math.min(H-60,  centerY + Math.sin(angle) * radius * (0.3 + Math.random()*0.7)));
-
-    pos.el.style.left = x + 'px';
-    pos.el.style.top = y + 'px';
-    pos.x = x; pos.y = y;
+    ctx.save();
+    ctx.font=`bold ${size}px Heebo,sans-serif`;
+    // צל עדין
+    ctx.shadowColor='rgba(0,0,0,.5)';
+    ctx.shadowBlur=6;
+    ctx.fillStyle=COLORS[i%COLORS.length];
+    // opacity לפי דירוג
+    ctx.globalAlpha=0.5+ratio*0.5;
+    ctx.fillText(word,pos.x,pos.y+size);
+    ctx.restore();
   });
 }
 
-// Resize handler
-window.addEventListener('resize', () => {
-  if(currentSessionId){
-    db.ref('wordcloud/sessions/' + currentSessionId + '/words').once('value', snap => {
-      buildCloud(snap.val() || {});
-    });
-  }
+function clearWords(){
+  if(!confirm('למחוק את כל התשובות?'))return;
+  db.ref(`wordclouds/${boardId}/words`).remove();
+}
+
+// עדכן בשינוי גודל חלון
+window.addEventListener('resize',()=>{
+  if(animFrame)cancelAnimationFrame(animFrame);
+  animFrame=requestAnimationFrame(drawCloud);
 });
 </script>
 </body>

@@ -192,6 +192,20 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='wordcloud'){
+    const d=slot.wordcloudData||{question:''};
+    const boardId=`wc_${subjectId}_${unitId}_${lessonIdx}_${allStations.findIndex(s=>s.slots.includes(slot))}_${allStations.find(s=>s.slots.includes(slot))?.slots.indexOf(slot)||0}`;
+    const wcUrl=window.location.href.replace('lesson_board.html','wordcloud_board.html')+'?boardId='+boardId+'&q='+encodeURIComponent(d.question||'');
+    inner=`<div style="text-align:center;padding:32px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">☁️</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:8px;">${esc(d.question||'ענן מילים')}</div>
+      <button onclick="window.open('${wcUrl}','_blank','width=1100,height=700')"
+        style="padding:12px 28px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:12px;font-family:Heebo,sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;">
+        ☁️ פתח ענן מילים
+      </button>
+      <div style="font-size:.75rem;opacity:.4;margin-top:10px;">מתעדכן בזמן אמת</div>
+    </div>`;
+
   } else if(slot.type==='stickies'){
     const d=slot.stickiesData||{boardName:'לוח שיתופי',instruction:''};
     const boardId=`stickies_${subjectId}_${unitId}_${lessonIdx}_${allStations.findIndex(s=>s.slots.includes(slot))}_${allStations.find(s=>s.slots.includes(slot))?.slots.indexOf(slot)||0}`;

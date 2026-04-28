@@ -42,6 +42,9 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .slots-wrap.simultaneous{display:flex;flex-direction:column;}
 
 /* SLOT ITEM */
+.wc-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.wc-canvas-wrap{margin-top:14px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;}
+.wc-empty{text-align:center;padding:40px;opacity:.3;font-size:.85rem;}
 .sticky-colors{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
 .sticky-color-btn{width:32px;height:32px;border-radius:6px;border:3px solid transparent;cursor:pointer;transition:all .15s;}
 .sticky-color-btn.selected{border-color:#fff;transform:scale(1.15);}
@@ -480,6 +483,32 @@ function buildSlotBlock(slot,stIdx,sli){
           ${leftHtml}
         </div>
       </div>`;
+    return block;
+  }
+
+  // ── ענן מילים ──
+  if(slot.type==='wordcloud'){
+    const d=slot.wordcloudData||{question:'',maxWords:2};
+    const wcId=`wc-${stIdx}-${sli}`;
+    const boardId=`wc_${subjectId}_${unitId}_${lessonIdx}_${stIdx}_${sli}`;
+    html+=`<div class="wc-input-wrap">
+      <div style="font-size:.9rem;font-weight:700;margin-bottom:4px;">${esc(d.question||'ענן מילים')}</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:10px;">הזן/י עד ${d.maxWords||2} מילים</div>
+      <div style="display:flex;gap:8px;">
+        <input id="wc-input-${wcId}" class="answer-area" style="min-height:0;padding:8px 12px;flex:1;resize:none;"
+          placeholder="${d.maxWords===1?'מילה אחת...':'עד שתי מילים...'}"
+          maxlength="${d.maxWords===1?20:40}">
+        <button class="btn-submit" style="white-space:nowrap;" onclick="submitWC('${wcId}','${boardId}','${esc(d.question)}',${d.maxWords||2})">שלח ☁️</button>
+      </div>
+      <span class="answer-saved" id="saved-${stIdx}-${sli}" style="display:none;margin-top:6px;">✅ נשמר</span>
+    </div>
+    <div class="wc-canvas-wrap" id="wc-wrap-${wcId}" style="height:200px;">
+      <div class="wc-empty" id="wc-empty-${wcId}">ממתין לתשובות...</div>
+      <canvas id="wc-canvas-${wcId}" style="width:100%;height:100%;"></canvas>
+    </div>`;
+    block.innerHTML=html;
+    // התחל להאזין לנתונים
+    setTimeout(()=>listenWC(wcId,boardId),100);
     return block;
   }
 
@@ -928,6 +957,83 @@ function showError(msg){
 function extractYT(url){
   const m=url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
   return m?m[1]:null;
+}
+
+// ── WORDCLOUD FUNCTIONS ──
+const WC_COLORS=['#f0c060','#86efac','#93c5fd','#f9a8d4','#c4b5fd','#fdba74','#6ee7b7','#fca5a5','#fde68a','#a5f3fc'];
+
+async function submitWC(wcId,boardId,question,maxWords){
+  const inp=document.getElementById('wc-input-'+wcId);
+  if(!inp)return;
+  const raw=inp.value.trim();
+  if(!raw)return;
+  // הגבל מספר מילים
+  const words=raw.split(/\s+/).slice(0,maxWords).join(' ');
+  inp.value='';
+  await db.ref(`wordclouds/${boardId}/words`).push({
+    word:words,student:studentName||'',ts:Date.now()
+  });
+  // שמור meta
+  db.ref(`wordclouds/${boardId}/meta`).set({question,createdAt:Date.now()});
+  const saved=document.getElementById('saved-'+wcId.replace('wc-',''));
+  if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2000);}
+}
+
+function listenWC(wcId,boardId){
+  db.ref(`wordclouds/${boardId}/words`).on('value',snap=>{
+    const data=snap.val()||{};
+    const freq={};
+    Object.values(data).forEach(entry=>{
+      const w=(entry.word||'').trim().toLowerCase();
+      if(w)freq[w]=(freq[w]||0)+1;
+    });
+    drawWordCloud(wcId,freq);
+  });
+}
+
+function drawWordCloud(wcId,freq){
+  const wrap=document.getElementById('wc-wrap-'+wcId);
+  const canvas=document.getElementById('wc-canvas-'+wcId);
+  const emptyEl=document.getElementById('wc-empty-'+wcId);
+  if(!canvas)return;
+  const words=Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+  if(!words.length){if(emptyEl)emptyEl.style.display='block';return;}
+  if(emptyEl)emptyEl.style.display='none';
+
+  const w=wrap.offsetWidth||600;
+  const h=wrap.offsetHeight||200;
+  canvas.width=w;
+  canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+
+  const maxFreq=words[0][1];
+  const minSize=14,maxSize=52;
+  const placed=[];
+
+  function overlaps(x,y,tw,th){
+    return placed.some(p=>!(x+tw<p.x||x>p.x+p.w||y+th<p.y||y>p.y+p.h));
+  }
+
+  words.forEach(([word,count],i)=>{
+    const size=Math.round(minSize+(count/maxFreq)*(maxSize-minSize));
+    ctx.font=`bold ${size}px Heebo,sans-serif`;
+    const tw=ctx.measureText(word).width+8;
+    const th=size+6;
+    let placed_=false;
+    // נסה למקם
+    for(let attempt=0;attempt<80;attempt++){
+      const x=Math.random()*(w-tw);
+      const y=Math.random()*(h-th)+th;
+      if(!overlaps(x,y-th,tw,th)){
+        ctx.fillStyle=WC_COLORS[i%WC_COLORS.length];
+        ctx.fillText(word,x,y);
+        placed.push({x,y:y-th,w:tw,h:th});
+        placed_=true;
+        break;
+      }
+    }
+  });
 }
 
 function selectStickyColor(uid,color,el){

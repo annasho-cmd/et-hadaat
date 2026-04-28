@@ -1771,6 +1771,27 @@ function buildSlotEditor(slot, section, si, sli, uid){
   const isUrl=slot.type==='video'||slot.type==='image';
 
   // ── כתיבה טיעונית / תשובה מלאה ──
+  // ── ענן מילים ──
+  if(slot.type==='wordcloud'){
+    const d=slot.wordcloudData||{question:'',maxWords:2};
+    return `<div class="inline-editor-title">☁️ ענן מילים</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">השאלה / הנחיה לתלמידים:</div>
+      <textarea class="inline-field" style="margin-bottom:10px;" placeholder="למשל: כתבו מילה אחת שמתארת את הנושא..."
+        onchange="updateWCField('${section}',${si},${sli},'question',this.value)">${esc(d.question)}</textarea>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <div style="font-size:.82rem;">מספר מילים מקסימלי לתלמיד:</div>
+        <select class="inline-field" style="min-height:0;padding:5px 8px;width:80px;"
+          onchange="updateWCField('${section}',${si},${sli},'maxWords',parseInt(this.value))">
+          <option value="1" ${d.maxWords===1||!d.maxWords?'selected':''}>1</option>
+          <option value="2" ${d.maxWords===2?'selected':''}>2</option>
+        </select>
+      </div>
+      <div class="editor-btns" style="margin-top:10px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveWCData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── פתקיות ──
   if(slot.type==='stickies'){
     const d=slot.stickiesData||{boardName:'',instruction:'',showNames:true};
@@ -2106,6 +2127,15 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── WORDCLOUD HELPERS ──
+function updateWCField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.wordcloudData)slot.wordcloudData={question:'',maxWords:2};
+  slot.wordcloudData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveWCData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── STICKIES HELPERS ──
 function updateStickiesField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
