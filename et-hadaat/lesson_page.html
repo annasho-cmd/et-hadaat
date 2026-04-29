@@ -66,6 +66,19 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .tl-bank-item{padding:5px 12px;background:rgba(44,26,14,.7);border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;cursor:grab;user-select:none;white-space:nowrap;}
 .tl-bank-item:active{cursor:grabbing;opacity:.6;}
 .tl-bank-item.used{opacity:.25;pointer-events:none;}
+.ml-wrap{position:relative;margin-top:10px;}
+.ml-table{display:flex;gap:0;position:relative;}
+.ml-col{flex:1;display:flex;flex-direction:column;gap:8px;}
+.ml-col-header{font-size:.72rem;font-weight:700;color:var(--gold);opacity:.6;text-align:center;padding:4px;text-transform:uppercase;letter-spacing:.05em;}
+.ml-item{padding:10px 12px;background:rgba(253,245,224,.06);border:2px solid var(--border);border-radius:8px;cursor:pointer;font-size:.88rem;text-align:center;transition:all .15s;position:relative;user-select:none;}
+.ml-item:hover{border-color:var(--gold);background:rgba(212,168,67,.08);}
+.ml-item.selected{border-color:var(--gold2);background:rgba(212,168,67,.15);box-shadow:0 0 0 2px rgba(212,168,67,.3);}
+.ml-item.matched-correct{border-color:#22c55e;background:rgba(34,197,94,.1);pointer-events:none;}
+.ml-item.matched-wrong{border-color:#f87171;background:rgba(248,129,113,.08);pointer-events:none;}
+.ml-item img{max-width:100%;max-height:60px;object-fit:contain;border-radius:5px;}
+.ml-svg{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:5;}
+.ml-mid{width:40px;flex-shrink:0;}
+.ml-score{text-align:center;padding:10px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:8px;margin-top:10px;font-size:.88rem;}
 .klue-text{line-height:2.4;font-size:.92rem;direction:rtl;word-spacing:4px;}
 .klue-blank{display:inline-flex;align-items:center;justify-content:center;min-width:80px;height:28px;border-bottom:2px solid var(--gold);background:rgba(212,168,67,.06);border-radius:4px 4px 0 0;margin:0 2px;padding:0 6px;vertical-align:middle;cursor:pointer;transition:all .15s;font-size:.88rem;color:var(--parch);}
 .klue-blank.drag-over{background:rgba(212,168,67,.2);border-color:var(--gold2);}
@@ -568,6 +581,57 @@ function buildSlotBlock(slot,stIdx,sli){
     block.innerHTML=html;
     // התחל להאזין לנתונים
     setTimeout(()=>listenWC(wcId,boardId),100);
+    return block;
+  }
+
+  // ── מתיחת קו ──
+  if(slot.type==='match_line'){
+    const d=slot.matchLineData||{instruction:'',headerA:'',headerB:'',pairs:[]};
+    const pairs=d.pairs.filter(p=>p.a?.value&&p.b?.value);
+    const uid=`ml-${stIdx}-${sli}`;
+
+    // ערבב כל עמודה בנפרד
+    const leftItems=[...pairs].map((p,i)=>({...p.a,origIdx:i})).sort(()=>Math.random()-.5);
+    const rightItems=[...pairs].map((p,i)=>({...p.b,origIdx:i})).sort(()=>Math.random()-.5);
+
+    const leftHtml=leftItems.map((item,li)=>`
+      <div class="ml-item" id="ml-L-${uid}-${li}" data-idx="${item.origIdx}" data-side="L" data-pos="${li}"
+        onclick="mlClick('${uid}',${stIdx},${sli},'L',${li},${item.origIdx})">
+        ${item.type==='image'
+          ?`<img src="${esc(item.value)}" onerror="this.parentElement.textContent='?'">`
+          :esc(item.value)}
+      </div>`).join('');
+
+    const rightHtml=rightItems.map((item,ri)=>`
+      <div class="ml-item" id="ml-R-${uid}-${ri}" data-idx="${item.origIdx}" data-side="R" data-pos="${ri}"
+        onclick="mlClick('${uid}',${stIdx},${sli},'R',${ri},${item.origIdx})">
+        ${item.type==='image'
+          ?`<img src="${esc(item.value)}" onerror="this.parentElement.textContent='?'">`
+          :esc(item.value)}
+      </div>`).join('');
+
+    html+=`<div style="font-size:.85rem;opacity:.65;margin-bottom:10px;">${esc(d.instruction||'חברו בין הצמדים המתאימים')}</div>
+      <div class="ml-wrap" id="ml-wrap-${uid}">
+        <svg class="ml-svg" id="ml-svg-${uid}"></svg>
+        <div class="ml-table">
+          <div class="ml-col">
+            ${d.headerA?`<div class="ml-col-header">${esc(d.headerA)}</div>`:''}
+            ${leftHtml}
+          </div>
+          <div class="ml-mid"></div>
+          <div class="ml-col">
+            ${d.headerB?`<div class="ml-col-header">${esc(d.headerB)}</div>`:''}
+            ${rightHtml}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-submit" onclick="mlCheck('${uid}',${pairs.length},${stIdx},${sli})">בדוק ✓</button>
+        <button onclick="mlReset('${uid}')" style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">אפס</button>
+      </div>
+      <div id="ml-score-${uid}" class="ml-score" style="display:none;"></div>`;
+    block.innerHTML=html;
+    window[`_mlData_${uid}`]={leftItems,rightItems,connections:{},selected:null,totalPairs:pairs.length};
     return block;
   }
 
@@ -1208,6 +1272,129 @@ function saveFillTableCell(tableId, stIdx, sli, showMsg){
       setTimeout(()=>saved.style.display='none',2000);
     }
   }
+}
+
+// ── MATCH LINE FUNCTIONS ──
+function mlClick(uid,stIdx,sli,side,pos,origIdx){
+  const data=window[`_mlData_${uid}`];if(!data)return;
+  const el=document.getElementById(`ml-${side}-${uid}-${pos}`);
+  if(el?.classList.contains('matched-correct')||el?.classList.contains('matched-wrong'))return;
+
+  if(!data.selected){
+    // בחר פריט ראשון
+    data.selected={side,pos,origIdx};
+    el?.classList.add('selected');
+  } else {
+    if(data.selected.side===side){
+      // אותה עמודה — החלף בחירה
+      document.getElementById(`ml-${data.selected.side}-${uid}-${data.selected.pos}`)?.classList.remove('selected');
+      data.selected={side,pos,origIdx};
+      el?.classList.add('selected');
+    } else {
+      // צד אחר — צור חיבור
+      const leftPos=side==='L'?pos:data.selected.pos;
+      const rightPos=side==='R'?pos:data.selected.pos;
+      const leftIdx=side==='L'?origIdx:data.selected.origIdx;
+      const rightIdx=side==='R'?origIdx:data.selected.origIdx;
+
+      // הסר חיבורים קודמים לאותן נקודות
+      Object.keys(data.connections).forEach(k=>{
+        const conn=data.connections[k];
+        if(conn.leftPos===leftPos||conn.rightPos===rightPos){
+          delete data.connections[k];
+        }
+      });
+      const key=`${leftPos}-${rightPos}`;
+      data.connections[key]={leftPos,rightPos,leftIdx,rightIdx};
+
+      // נקה בחירות
+      document.querySelectorAll(`[id^="ml-"][id*="${uid}"]`).forEach(e=>e.classList.remove('selected'));
+      data.selected=null;
+      mlDrawLines(uid);
+    }
+  }
+}
+
+function mlDrawLines(uid){
+  const data=window[`_mlData_${uid}`];if(!data)return;
+  const svg=document.getElementById(`ml-svg-${uid}`);
+  const wrap=document.getElementById(`ml-wrap-${uid}`);
+  if(!svg||!wrap)return;
+  const wRect=wrap.getBoundingClientRect();
+  svg.innerHTML='';
+  svg.setAttribute('viewBox',`0 0 ${wRect.width} ${wRect.height}`);
+
+  Object.entries(data.connections).forEach(([key,conn])=>{
+    const lEl=document.getElementById(`ml-L-${uid}-${conn.leftPos}`);
+    const rEl=document.getElementById(`ml-R-${uid}-${conn.rightPos}`);
+    if(!lEl||!rEl)return;
+    const lR=lEl.getBoundingClientRect();
+    const rR=rEl.getBoundingClientRect();
+    const x1=lR.right-wRect.left;
+    const y1=(lR.top+lR.bottom)/2-wRect.top;
+    const x2=rR.left-wRect.left;
+    const y2=(rR.top+rR.bottom)/2-wRect.top;
+    const mx=(x1+x2)/2;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','path');
+    line.setAttribute('d',`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+    line.setAttribute('stroke','rgba(212,168,67,.7)');
+    line.setAttribute('stroke-width','2.5');
+    line.setAttribute('fill','none');
+    line.setAttribute('stroke-linecap','round');
+    svg.appendChild(line);
+  });
+}
+
+function mlCheck(uid,totalPairs,stIdx,sli){
+  const data=window[`_mlData_${uid}`];if(!data)return;
+  let correct=0;
+  const svg=document.getElementById(`ml-svg-${uid}`);
+  const wrap=document.getElementById(`ml-wrap-${uid}`);
+  if(!svg||!wrap)return;
+  const wRect=wrap.getBoundingClientRect();
+  svg.innerHTML='';
+  svg.setAttribute('viewBox',`0 0 ${wRect.width} ${wRect.height}`);
+
+  Object.entries(data.connections).forEach(([key,conn])=>{
+    const isCorrect=conn.leftIdx===conn.rightIdx;
+    if(isCorrect)correct++;
+    const lEl=document.getElementById(`ml-L-${uid}-${conn.leftPos}`);
+    const rEl=document.getElementById(`ml-R-${uid}-${conn.rightPos}`);
+    if(lEl)lEl.classList.add(isCorrect?'matched-correct':'matched-wrong');
+    if(rEl)rEl.classList.add(isCorrect?'matched-correct':'matched-wrong');
+    if(lEl&&rEl){
+      const lR=lEl.getBoundingClientRect();
+      const rR=rEl.getBoundingClientRect();
+      const x1=lR.right-wRect.left,y1=(lR.top+lR.bottom)/2-wRect.top;
+      const x2=rR.left-wRect.left,y2=(rR.top+rR.bottom)/2-wRect.top;
+      const mx=(x1+x2)/2;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','path');
+      line.setAttribute('d',`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+      line.setAttribute('stroke',isCorrect?'#22c55e':'#f87171');
+      line.setAttribute('stroke-width','2.5');line.setAttribute('fill','none');
+      svg.appendChild(line);
+    }
+  });
+
+  const score=document.getElementById(`ml-score-${uid}`);
+  if(score){
+    score.style.display='block';
+    score.innerHTML=correct===totalPairs?`🎉 מצוין! כל ${totalPairs} הצמדים נכונים!`:`${correct} מתוך ${totalPairs} נכון`;
+    score.style.color=correct===totalPairs?'#22c55e':'var(--parch)';
+  }
+  db.ref(answersPath+`/${stIdx}-${sli}`).set({correct,total:totalPairs,ts:Date.now()}).catch(()=>{});
+}
+
+function mlReset(uid){
+  const data=window[`_mlData_${uid}`];if(!data)return;
+  data.connections={};data.selected=null;
+  document.querySelectorAll(`[id^="ml-L-${uid}-"],[id^="ml-R-${uid}-"]`).forEach(el=>{
+    el.classList.remove('selected','matched-correct','matched-wrong');
+  });
+  const svg=document.getElementById(`ml-svg-${uid}`);
+  if(svg)svg.innerHTML='';
+  const score=document.getElementById(`ml-score-${uid}`);
+  if(score)score.style.display='none';
 }
 
 // ── FILL SENTENCE FUNCTIONS ──

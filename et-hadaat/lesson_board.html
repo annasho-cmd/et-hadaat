@@ -192,6 +192,33 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='match_line'){
+    const d=slot.matchLineData||{instruction:'',headerA:'',headerB:'',pairs:[]};
+    const pairs=(d.pairs||[]).filter(p=>p.a?.value&&p.b?.value);
+    const leftHtml=pairs.map(p=>p.a?.type==='image'
+      ?`<div style="padding:5px;border:1px solid var(--border);border-radius:6px;"><img src="${esc(p.a.value)}" style="height:44px;width:66px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'"></div>`
+      :`<div style="padding:7px 12px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;font-size:.88rem;">${esc(p.a.value)}</div>`
+    ).join('');
+    const rightHtml=pairs.map(p=>p.b?.type==='image'
+      ?`<div style="padding:5px;border:1px solid var(--border);border-radius:6px;"><img src="${esc(p.b.value)}" style="height:44px;width:66px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'"></div>`
+      :`<div style="padding:7px 12px;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;font-size:.88rem;">${esc(p.b.value)}</div>`
+    ).join('');
+    inner=`<div style="font-size:.88rem;opacity:.6;margin-bottom:12px;">${esc(d.instruction||'חברו בין הצמדים המתאימים')}</div>
+      <div style="display:flex;gap:16px;">
+        <div style="flex:1;">
+          ${d.headerA?`<div style="font-size:.72rem;color:var(--gold);opacity:.5;margin-bottom:6px;text-transform:uppercase;">${esc(d.headerA)}</div>`:''}
+          <div style="display:flex;flex-direction:column;gap:7px;">${leftHtml}</div>
+        </div>
+        <div style="width:30px;display:flex;flex-direction:column;justify-content:space-around;opacity:.3;">
+          ${pairs.map(()=>'<div>—</div>').join('')}
+        </div>
+        <div style="flex:1;">
+          ${d.headerB?`<div style="font-size:.72rem;color:var(--gold);opacity:.5;margin-bottom:6px;text-transform:uppercase;">${esc(d.headerB)}</div>`:''}
+          <div style="display:flex;flex-direction:column;gap:7px;">${rightHtml}</div>
+        </div>
+      </div>
+      <div style="font-size:.75rem;opacity:.4;margin-top:10px;">התלמידים מותחים קווים בטאבלט</div>`;
+
   } else if(slot.type==='memory'){
     const d=slot.memoryData||{cards:[],numPairs:6};
     inner=`<div style="text-align:center;padding:28px 20px;">

@@ -2178,6 +2178,57 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── מתיחת קו ──
+  if(slot.type==='match_line'){
+    const d=slot.matchLineData||{instruction:'',headerA:'',headerB:'',pairs:[{a:{type:'text',value:''},b:{type:'text',value:''}}]};
+    const pairs=d.pairs||[];
+
+    const pairsHtml=pairs.map((p,pi)=>`
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span style="min-width:20px;height:20px;border-radius:4px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${pi+1}</span>
+        <select class="inline-field" style="min-height:0;padding:3px 5px;width:80px;"
+          onchange="updateMLPair('${section}',${si},${sli},${pi},'typeA',this.value)">
+          <option value="text" ${p.a?.type!=='image'?'selected':''}>מילה</option>
+          <option value="image" ${p.a?.type==='image'?'selected':''}>תמונה</option>
+        </select>
+        <input class="inline-field" style="flex:1;min-height:0;padding:3px 7px;font-size:.8rem;"
+          placeholder="עמודה א׳..."
+          value="${esc(p.a?.value||'')}"
+          onchange="updateMLPair('${section}',${si},${sli},${pi},'valueA',this.value)">
+        <span style="opacity:.3;font-size:.85rem;">—</span>
+        <select class="inline-field" style="min-height:0;padding:3px 5px;width:80px;"
+          onchange="updateMLPair('${section}',${si},${sli},${pi},'typeB',this.value)">
+          <option value="text" ${p.b?.type!=='image'?'selected':''}>מילה</option>
+          <option value="image" ${p.b?.type==='image'?'selected':''}>תמונה</option>
+        </select>
+        <input class="inline-field" style="flex:1;min-height:0;padding:3px 7px;font-size:.8rem;"
+          placeholder="עמודה ב׳..."
+          value="${esc(p.b?.value||'')}"
+          onchange="updateMLPair('${section}',${si},${sli},${pi},'valueB',this.value)">
+        ${pairs.length>1?`<button onclick="removeMLPair('${section}',${si},${sli},${pi})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;padding:0 2px;">✕</button>`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">↔️ מתיחת קו</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="חברו בין הצמדים המתאימים..."
+        onchange="updateMLField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;font-size:.82rem;" placeholder="כותרת עמודה א׳ (אופציונלי)"
+          value="${esc(d.headerA||'')}" onchange="updateMLField('${section}',${si},${sli},'headerA',this.value)">
+        <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;font-size:.82rem;" placeholder="כותרת עמודה ב׳ (אופציונלי)"
+          value="${esc(d.headerB||'')}" onchange="updateMLField('${section}',${si},${sli},'headerB',this.value)">
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">צמדים (${pairs.length}/10):</div>
+      <div id="ml-pairs-${uid}">${pairsHtml}</div>
+      ${pairs.length<10?`<button onclick="addMLPair('${section}',${si},${sli})"
+        style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף צמד</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveMLData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── משחק זיכרון ──
   if(slot.type==='memory'){
     const d=slot.memoryData||{instruction:'',cards:[{type:'text',value:'',match:''}],numPairs:6,allowDuel:true};
@@ -2635,6 +2686,35 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── MATCH_LINE HELPERS ──
+function updateMLField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.matchLineData)slot.matchLineData={instruction:'',headerA:'',headerB:'',pairs:[]};
+  slot.matchLineData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateMLPair(section,si,sli,pi,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.matchLineData)slot.matchLineData={instruction:'',headerA:'',headerB:'',pairs:[]};
+  if(!slot.matchLineData.pairs[pi])slot.matchLineData.pairs[pi]={a:{type:'text',value:''},b:{type:'text',value:''}};
+  const side=field.endsWith('A')?'a':'b';
+  const key=field.startsWith('type')?'type':'value';
+  slot.matchLineData.pairs[pi][side][key]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addMLPair(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.matchLineData)slot.matchLineData={instruction:'',headerA:'',headerB:'',pairs:[]};
+  if(slot.matchLineData.pairs.length>=10)return;
+  slot.matchLineData.pairs.push({a:{type:'text',value:''},b:{type:'text',value:''}});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeMLPair(section,si,sli,pi){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.matchLineData.pairs.splice(pi,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function saveMLData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── MEMORY HELPERS ──
 function updateMemoryField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
