@@ -45,6 +45,16 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .wc-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
 .wc-canvas-wrap{margin-top:14px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;}
 .wc-empty{text-align:center;padding:40px;opacity:.3;font-size:.85rem;}
+.klue-text{line-height:2.4;font-size:.92rem;direction:rtl;word-spacing:4px;}
+.klue-blank{display:inline-flex;align-items:center;justify-content:center;min-width:80px;height:28px;border-bottom:2px solid var(--gold);background:rgba(212,168,67,.06);border-radius:4px 4px 0 0;margin:0 2px;padding:0 6px;vertical-align:middle;cursor:pointer;transition:all .15s;font-size:.88rem;color:var(--parch);}
+.klue-blank.drag-over{background:rgba(212,168,67,.2);border-color:var(--gold2);}
+.klue-blank.filled{background:rgba(34,197,94,.1);border-color:#22c55e;cursor:default;}
+.klue-blank.wrong{background:rgba(248,129,113,.1);border-color:#f87171;}
+.klue-bank{display:flex;flex-wrap:wrap;gap:7px;padding:10px;background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;min-height:44px;}
+.klue-chip{padding:5px 12px;background:rgba(44,26,14,.7);border:1.5px solid var(--border);border-radius:16px;font-size:.85rem;cursor:grab;user-select:none;transition:all .15s;}
+.klue-chip:active{cursor:grabbing;opacity:.6;}
+.klue-chip.used{opacity:.25;pointer-events:none;}
+.klue-score{text-align:center;padding:10px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:8px;margin-top:10px;font-size:.88rem;}
 .wc2-area{margin-top:10px;}
 .wc2-cards-bank{display:flex;flex-wrap:wrap;gap:8px;min-height:60px;padding:10px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;}
 .wc2-card{padding:8px 14px;background:rgba(44,26,14,.7);border:1.5px solid var(--border);border-radius:8px;cursor:grab;font-size:.88rem;user-select:none;transition:all .15s;display:flex;align-items:center;gap:6px;}
@@ -540,6 +550,55 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── קלו ──
+  if(slot.type==='klue'){
+    const d=slot.klueData||{text:'',hiddenWords:[],useBank:true};
+    const words=(d.text||'').split(/\s+/).filter(Boolean);
+    const hiddenIdxs=new Set(d.hiddenWords||[]);
+    const uid=`klue-${stIdx}-${sli}`;
+    const useBank=d.useBank!==false;
+
+    // בנק מילים מעורבב
+    const bankWords=[...hiddenIdxs].map(wi=>({wi,word:words[wi]?.replace(/[.,;:!?״"'()\[\]]/g,'')||''}))
+      .sort(()=>Math.random()-.5);
+
+    const bankHtml=useBank
+      ? `<div style="font-size:.72rem;opacity:.4;margin-bottom:6px;">בנק מילים — גרור למקום הנכון</div>
+         <div class="klue-bank" id="klue-bank-${uid}">
+           ${bankWords.map((bw,bi)=>`
+             <div class="klue-chip" id="klue-chip-${uid}-${bi}"
+               draggable="true" data-word="${esc(bw.word)}" data-wi="${bw.wi}" data-bi="${bi}"
+               ondragstart="klueDragStart(event,'${uid}',${bi})"
+               ontouchstart="klueTouchStart(event,'${uid}',${bi})"
+               ontouchmove="klueTouchMove(event,'${uid}')"
+               ontouchend="klueTouchEnd(event,'${uid}')">${esc(bw.word)}</div>`).join('')}
+         </div>` : '';
+
+    // בנה טקסט עם ריבועים
+    const textHtml=words.map((w,wi)=>{
+      if(!hiddenIdxs.has(wi))return `<span>${esc(w)} </span>`;
+      const blankId=`klue-blank-${uid}-${wi}`;
+      return `<span class="klue-blank" id="${blankId}"
+        data-wi="${wi}" data-correct="${esc(w.replace(/[.,;:!?״"'()\[\]]/g,''))}"
+        ondragover="if(event.preventDefault)event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="klueDrop(event,'${uid}',${wi})">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>${esc(w.replace(/[^ ]/g,'').padEnd(0))} </span>`;
+    }).join('');
+
+    html+=`${bankHtml}
+      <div class="klue-text">${textHtml}</div>
+      ${!useBank?`<div id="klue-hint-${uid}" style="display:none;margin:8px 0;padding:8px 12px;background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.3);border-radius:8px;font-size:.82rem;color:#c4b5fd;"></div>`:''}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn-submit" onclick="klueCheck('${uid}',${useBank})">בדוק ✓</button>
+        <button onclick="klueReset('${uid}')" style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">אפס</button>
+        ${!useBank?`<button onclick="klueHint('${uid}','${esc(d.text||'')}',${stIdx},${sli})" style="padding:7px 14px;background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.3);border-radius:8px;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">💡 רמז מהסוכן</button>`:''}
+      </div>
+      <div id="klue-score-${uid}" style="display:none;" class="klue-score"></div>`;
+    block.innerHTML=html;
+    window[`_klueData_${uid}`]={words,hiddenIdxs,bankWords,filled:{}};
+    return block;
+  }
+
   // ── מה הקשר? ──
   if(slot.type==='what_connects'){
     const d=slot.whatConnectsData||{instruction:'',cards:[],numPairs:2};
@@ -893,6 +952,145 @@ function saveFillTableCell(tableId, stIdx, sli, showMsg){
       setTimeout(()=>saved.style.display='none',2000);
     }
   }
+}
+
+// ── KLUE FUNCTIONS ──
+let _klueDrag={uid:null,bi:null};
+
+function klueDragStart(e,uid,bi){
+  _klueDrag={uid,bi};
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=document.getElementById(`klue-chip-${uid}-${bi}`);if(el)el.style.opacity='.4';},0);
+}
+function klueDrop(e,uid,wi){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const data=window[`_klueData_${uid}`];if(!data)return;
+  const {bi}=_klueDrag;
+  if(bi===null)return;
+  const bw=data.bankWords[bi];
+  kluePlaceWord(uid,wi,bw.word,bi);
+  const el=document.getElementById(`klue-chip-${uid}-${bi}`);
+  if(el)el.style.opacity='';
+}
+
+let _klueTouch={uid:null,bi:null,clone:null};
+function klueTouchStart(e,uid,bi){
+  _klueTouch={uid,bi,clone:null};
+  const el=e.currentTarget;const rect=el.getBoundingClientRect();
+  const clone=el.cloneNode(true);
+  clone.style.cssText=`position:fixed;width:${rect.width}px;opacity:.8;z-index:999;pointer-events:none;top:${rect.top}px;left:${rect.left}px;margin:0;`;
+  document.body.appendChild(clone);_klueTouch.clone=clone;
+}
+function klueTouchMove(e,uid){
+  e.preventDefault();if(!_klueTouch.clone)return;
+  const t=e.touches[0];
+  _klueTouch.clone.style.top=(t.clientY-18)+'px';
+  _klueTouch.clone.style.left=(t.clientX-_klueTouch.clone.offsetWidth/2)+'px';
+  document.querySelectorAll(`[id^="klue-blank-${uid}-"]`).forEach(b=>b.classList.remove('drag-over'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  el?.closest('[id^="klue-blank-"]')?.classList.add('drag-over');
+}
+function klueTouchEnd(e,uid){
+  if(_klueTouch.clone){_klueTouch.clone.remove();_klueTouch.clone=null;}
+  const t=e.changedTouches[0];
+  document.querySelectorAll(`[id^="klue-blank-${uid}-"]`).forEach(b=>b.classList.remove('drag-over'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const blank=el?.closest('[id^="klue-blank-"]');
+  if(blank){
+    const wi=parseInt(blank.dataset.wi);
+    kluePlaceWord(uid,wi,window[`_klueData_${uid}`]?.bankWords[_klueTouch.bi]?.word,_klueTouch.bi);
+  }
+}
+
+function kluePlaceWord(uid,wi,word,bi){
+  const data=window[`_klueData_${uid}`];if(!data||word===undefined)return;
+  // החזר מילה קיימת לבנק
+  if(data.filled[wi]!==undefined){
+    const prevBi=data.filled[wi].bi;
+    const prevChip=document.getElementById(`klue-chip-${uid}-${prevBi}`);
+    if(prevChip)prevChip.classList.remove('used');
+  }
+  data.filled[wi]={word,bi};
+  const chip=document.getElementById(`klue-chip-${uid}-${bi}`);
+  if(chip)chip.classList.add('used');
+  const blank=document.getElementById(`klue-blank-${uid}-${wi}`);
+  if(blank){
+    blank.classList.add('filled');
+    blank.textContent=word;
+    blank.onclick=()=>klueRemoveFromBlank(uid,wi);
+  }
+}
+
+function klueRemoveFromBlank(uid,wi){
+  const data=window[`_klueData_${uid}`];if(!data)return;
+  const entry=data.filled[wi];if(!entry)return;
+  delete data.filled[wi];
+  const chip=document.getElementById(`klue-chip-${uid}-${entry.bi}`);
+  if(chip)chip.classList.remove('used');
+  const blank=document.getElementById(`klue-blank-${uid}-${wi}`);
+  if(blank){
+    blank.classList.remove('filled','wrong');
+    blank.innerHTML='&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+    blank.onclick=null;
+  }
+}
+
+function klueCheck(uid,useBank){
+  const data=window[`_klueData_${uid}`];if(!data)return;
+  let correct=0,total=data.hiddenIdxs.size;
+  data.hiddenIdxs.forEach(wi=>{
+    const blank=document.getElementById(`klue-blank-${uid}-${wi}`);
+    if(!blank)return;
+    const correct_word=(data.words[wi]||'').replace(/[.,;:!?״"'()\[\]]/g,'').trim().toLowerCase();
+    let student_word='';
+    if(useBank){student_word=(data.filled[wi]?.word||'').trim().toLowerCase();}
+    else{student_word=(blank.querySelector('input')?.value||blank.textContent||'').trim().toLowerCase();}
+    const isCorrect=student_word===correct_word;
+    if(isCorrect){correct++;blank.classList.add('filled');blank.classList.remove('wrong');}
+    else{blank.classList.add('wrong');blank.classList.remove('filled');}
+  });
+  const score=document.getElementById(`klue-score-${uid}`);
+  if(score){
+    score.style.display='block';
+    score.innerHTML=correct===total?`🎉 מצוין! כל ${total} המילים נכונות!`:`${correct} מתוך ${total} נכון`;
+    score.style.color=correct===total?'#22c55e':'var(--parch)';
+  }
+}
+
+function klueReset(uid){
+  const data=window[`_klueData_${uid}`];if(!data)return;
+  data.filled={};
+  data.hiddenIdxs.forEach(wi=>{
+    const blank=document.getElementById(`klue-blank-${uid}-${wi}`);
+    if(blank){blank.classList.remove('filled','wrong');blank.innerHTML='&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';blank.onclick=null;}
+  });
+  data.bankWords.forEach((_,bi)=>{
+    const chip=document.getElementById(`klue-chip-${uid}-${bi}`);
+    if(chip)chip.classList.remove('used');
+  });
+  const score=document.getElementById(`klue-score-${uid}`);
+  if(score)score.style.display='none';
+}
+
+async function klueHint(uid,fullText,stIdx,sli){
+  const data=window[`_klueData_${uid}`];if(!data)return;
+  // מצא ריבוע ריק ראשון
+  let emptyWi=null;
+  for(const wi of data.hiddenIdxs){if(!data.filled[wi]){emptyWi=wi;break;}}
+  if(emptyWi===null){return;}
+  const hintEl=document.getElementById(`klue-hint-${uid}`);
+  if(hintEl)hintEl.style.display='block';
+  if(hintEl)hintEl.textContent='הסוכן חושב...';
+  const context=data.words.slice(Math.max(0,emptyWi-4),emptyWi+5).join(' ');
+  const sys=`אתה סוכן למידה. תן רמז אחד קצר (משפט אחד) שיעזור לתלמיד למצוא את המילה החסרה בטקסט הבא: "${context}". אל תאמר את המילה עצמה. ענה בעברית.`;
+  try{
+    const res=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:80,system:sys,messages:[{role:'user',content:'רמז בבקשה'}]})});
+    const d2=await res.json();
+    const hint=d2.content?.[0]?.text||'נסה לחשוב על ההקשר של המשפט';
+    if(hintEl)hintEl.textContent='💡 '+hint;
+  }catch(e){if(hintEl)hintEl.textContent='לא ניתן להתחבר לסוכן כרגע';}
 }
 
 // ── WHAT CONNECTS DRAG ──

@@ -192,6 +192,17 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='klue'){
+    const d=slot.klueData||{text:'',hiddenWords:[]};
+    const words=(d.text||'').split(/\s+/).filter(Boolean);
+    const hiddenSet=new Set(d.hiddenWords||[]);
+    const textHtml=words.map((w,wi)=>hiddenSet.has(wi)
+      ?`<span style="display:inline-block;min-width:70px;border-bottom:2px solid var(--gold);margin:0 2px;color:rgba(0,0,0,0);">____</span>`
+      :`<span>${esc(w)} </span>`
+    ).join('');
+    inner=`<div style="line-height:2.2;font-size:1rem;direction:rtl;">${textHtml}</div>
+      <div style="font-size:.75rem;opacity:.4;margin-top:10px;">התלמידים ממלאים בטאבלט ${d.useBank!==false?'(עם בנק מילים)':'(עצמאי)'}</div>`;
+
   } else if(slot.type==='what_connects'){
     const d=slot.whatConnectsData||{instruction:'',cards:[],numPairs:2};
     const cards=(d.cards||[]).filter(c=>c.value);

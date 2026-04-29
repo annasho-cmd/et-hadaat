@@ -229,6 +229,9 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direct
 
 .inline-editor{background:rgba(10,5,2,.7);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-top:4px;margin-bottom:6px;}
 .inline-editor-title{font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:8px;opacity:.75;}
+.klue-word{cursor:pointer;padding:1px 3px;border-radius:3px;transition:all .12s;}
+.klue-word:hover{background:rgba(212,168,67,.2);}
+.klue-word.klue-hidden{background:rgba(109,40,217,.2);color:#c4b5fd;border:1px dashed rgba(109,40,217,.4);border-radius:4px;}
 .inline-field{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:8px 12px;outline:none;margin-bottom:8px;resize:vertical;min-height:60px;}
 .inline-field:focus{border-color:var(--gold);}
 .inline-field::placeholder{opacity:.3;}
@@ -1936,6 +1939,57 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── קלו ──
+  if(slot.type==='klue'){
+    const d=slot.klueData||{text:'',hiddenWords:[],useBank:true};
+    const words=(d.text||'').split(/\s+/).filter(Boolean);
+    const hidden=new Set(d.hiddenWords||[]);
+
+    const textHtml=words.length
+      ? `<div style="line-height:2.2;font-size:.88rem;direction:rtl;">`+
+        words.map((w,wi)=>{
+          const clean=w.replace(/[.,;:!?״"'()\[\]]/g,'');
+          const isHidden=hidden.has(wi);
+          return isHidden
+            ? `<span class="klue-word klue-hidden" data-wi="${wi}" data-word="${esc(clean)}"
+                onclick="restoreKlueWord('${section}',${si},${sli},${wi},'${uid}')"
+                title="לחץ להחזרה">[${esc(clean)}]</span> `
+            : `<span class="klue-word" data-wi="${wi}" data-word="${esc(clean)}"
+                onclick="hideKlueWord('${section}',${si},${sli},${wi},'${uid}')"
+                title="לחץ להסתרה">${esc(w)}</span> `;
+        }).join('')+`</div>`
+      : `<div style="opacity:.3;font-size:.82rem;">הדבק טקסט למעלה כדי לסמן מילים</div>`;
+
+    const bankPreview=d.hiddenWords?.length
+      ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${
+          d.hiddenWords.map(wi=>{
+            const w=(words[wi]||'').replace(/[.,;:!?״"'()\[\]]/g,'');
+            return `<span style="padding:3px 10px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:12px;font-size:.8rem;">${esc(w)}</span>`;
+          }).join('')
+        }</div>`
+      : '';
+
+    return `<div class="inline-editor-title">🔀 קלו — מילוי חסר</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הדבק טקסט (עד 15 שורות):</div>
+      <textarea class="inline-field" style="min-height:100px;font-size:.82rem;margin-bottom:10px;" placeholder="הדבק כאן את הטקסט..."
+        onchange="updateKlueText('${section}',${si},${sli},this.value,'${uid}')">${esc(d.text)}</textarea>
+      ${words.length?`<div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">לחץ על מילה להסתרה | לחץ על מילה מוסתרת להחזרה:</div>
+      <div style="background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">${textHtml}</div>`:''}
+      ${d.hiddenWords?.length?`<div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">בנק מילים (${d.hiddenWords.length} מילים):</div>${bankPreview}`:''}
+      <div style="display:flex;align-items:center;gap:8px;margin:10px 0;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;">
+          <input type="checkbox" ${d.useBank!==false?'checked':''} style="width:15px;height:15px;"
+            onchange="updateKlueField('${section}',${si},${sli},'useBank',this.checked)">
+          <span>השתמש בבנק מילים</span>
+        </label>
+        <span style="font-size:.75rem;opacity:.4;">(אחרת התלמיד כותב עצמאית)</span>
+      </div>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveKlueData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── קריאת מקורות ──
   if(slot.type==='sources'){
     const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
@@ -2200,6 +2254,36 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── KLUE HELPERS ──
+function updateKlueText(section,si,sli,val,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.klueData)slot.klueData={text:'',hiddenWords:[],useBank:true};
+  slot.klueData.text=val;
+  slot.klueData.hiddenWords=[];
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateKlueField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.klueData)slot.klueData={text:'',hiddenWords:[],useBank:true};
+  slot.klueData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function hideKlueWord(section,si,sli,wi,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.klueData.hiddenWords)slot.klueData.hiddenWords=[];
+  if(!slot.klueData.hiddenWords.includes(wi))slot.klueData.hiddenWords.push(wi);
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function restoreKlueWord(section,si,sli,wi,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.klueData.hiddenWords=slot.klueData.hiddenWords.filter(w=>w!==wi);
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveKlueData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── WHAT_CONNECTS HELPERS ──
 function updateWCField2(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
