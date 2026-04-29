@@ -192,6 +192,23 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='puzzle'){
+    const d=slot.puzzleData||{images:[]};
+    const imgs=(d.images||[]).filter(img=>img.url);
+    inner=`<div style="text-align:center;padding:28px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:10px;">🧩</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">פאזל</div>
+      <div style="font-size:.85rem;opacity:.5;margin-bottom:12px;">${imgs.length} פאזל — התלמידים עונים שאלות ובונים</div>
+      ${imgs.length?`<div style="display:flex;gap:8px;justify-content:center;">
+        ${imgs.slice(0,3).map(img=>{
+          let src=img.url;
+          const m=src.match(/\/file\/d\/([^\/\?]+)/);
+          if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+          return `<img src="${esc(src)}" style="height:70px;width:105px;object-fit:cover;border-radius:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+        }).join('')}
+      </div>`:''}
+    </div>`;
+
   } else if(slot.type==='zoom_img'){
     const d=slot.zoomData||{images:[]};
     const zoomParams=encodeURIComponent(JSON.stringify(d));

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>פאזל — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,.92);--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);height:100vh;display:flex;flex-direction:column;direction:rtl;overflow:hidden;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.8rem;cursor:pointer;}
+
+.main{flex:1;display:flex;overflow:hidden;}
+
+/* PUZZLE SIDE */
+.puzzle-side{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px;}
+.puzzle-title{font-size:.75rem;font-weight:700;color:var(--gold);opacity:.55;text-transform:uppercase;letter-spacing:.06em;}
+.puzzle-grid{display:grid;gap:3px;position:relative;}
+.puzzle-cell{border:2px dashed rgba(212,168,67,.2);border-radius:6px;overflow:hidden;position:relative;transition:all .2s;}
+.puzzle-cell.filled{border-style:solid;border-color:var(--gold);}
+.puzzle-cell.drag-over{border-color:var(--gold2);background:rgba(212,168,67,.12);}
+.puzzle-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.cell-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:rgba(212,168,67,.3);font-weight:700;}
+
+/* HAND */
+.hand-area{min-height:70px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:8px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;width:100%;max-width:500px;}
+.hand-piece{border:2px solid var(--gold);border-radius:6px;overflow:hidden;cursor:grab;transition:transform .15s;box-shadow:0 2px 10px rgba(0,0,0,.4);}
+.hand-piece:active{cursor:grabbing;transform:scale(.95);}
+.hand-piece img{display:block;}
+.hand-piece.dragging{opacity:.5;}
+
+/* QUESTION SIDE */
+.q-side{width:340px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.q-header{padding:12px 16px;border-bottom:1px solid var(--border);}
+.q-progress{font-size:.75rem;opacity:.45;margin-top:4px;}
+.progress-bar{height:4px;background:rgba(212,168,67,.12);border-radius:2px;margin-top:6px;}
+.progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .4s;}
+.q-body{flex:1;overflow-y:auto;padding:14px;}
+.q-card{background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:11px;padding:13px;}
+.q-num{font-size:.7rem;color:var(--gold);opacity:.55;margin-bottom:5px;}
+.q-text{font-size:.9rem;line-height:1.6;margin-bottom:11px;}
+.q-opt{display:block;width:100%;padding:8px 13px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-size:.85rem;font-family:'Heebo',sans-serif;background:none;color:var(--parch);text-align:right;margin-bottom:6px;transition:all .15s;}
+.q-opt:hover{background:rgba(212,168,67,.1);border-color:var(--gold);}
+.q-opt.correct{border-color:#22c55e;background:rgba(34,197,94,.15);pointer-events:none;}
+.q-opt.wrong{border-color:#f87171;background:rgba(248,129,113,.1);pointer-events:none;}
+.q-opt.disabled{pointer-events:none;opacity:.5;}
+.result-msg{text-align:center;padding:8px;border-radius:7px;font-size:.85rem;font-weight:700;margin-top:8px;}
+.result-correct{background:rgba(34,197,94,.12);color:#22c55e;}
+.result-wrong{background:rgba(248,129,113,.1);color:#f87171;}
+.victory-card{text-align:center;padding:20px;}
+.victory-emoji{font-size:3rem;margin-bottom:10px;}
+
+/* img nav */
+.img-nav{display:flex;gap:6px;}
+.img-dot{width:8px;height:8px;border-radius:50%;background:rgba(212,168,67,.3);cursor:pointer;}
+.img-dot.active{background:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🧩 פאזל</div>
+  <span id="score-badge" style="font-size:.78rem;opacity:.45;"></span>
+  <div class="img-nav" id="img-nav"></div>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="q-side">
+    <div class="q-header">
+      <div style="font-size:.82rem;font-weight:700;color:var(--gold);">ענה נכון → קבל חלק → בנה את הפאזל</div>
+      <div class="q-progress" id="q-progress"></div>
+      <div class="progress-bar"><div class="progress-fill" id="q-progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="q-body" id="q-body">
+      <div style="text-align:center;padding:30px;opacity:.3;">טוען...</div>
+    </div>
+  </div>
+
+  <div class="puzzle-side">
+    <div class="puzzle-title" id="puzzle-label">תבנית הפאזל</div>
+    <div class="puzzle-grid" id="puzzle-grid"></div>
+    <div style="font-size:.72rem;opacity:.35;text-align:center;">גרור חלקים למקום הנכון</div>
+    <div class="hand-area" id="hand-area">
+      <div style="opacity:.3;font-size:.8rem;align-self:center;">חלקי הפאזל שקיבלת יופיעו כאן</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+const params=new URLSearchParams(window.location.search);
+let puzzleData={images:[]};
+try{puzzleData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+const studentName=params.get('student')||'תלמיד';
+const savePath=params.get('savePath')||null;
+
+let currentImg=0;
+let state={};
+
+window.onload=function(){
+  if(!puzzleData.images?.length)return;
+  buildNav();
+  initPuzzle(0);
+};
+
+function initPuzzle(ii){
+  currentImg=ii;
+  const img=puzzleData.images[ii];
+  if(!img)return;
+  if(!state[ii]){
+    const qs=[...(img.questions||[])];
+    const pieces=img.pieces||6;
+    state[ii]={questions:qs,qIdx:0,pieces,placed:[],inHand:[],total:pieces,correct:0};
+  }
+  buildGrid(img);
+  updateHand();
+  updateNav();
+  renderQuestion();
+}
+
+// ── GRID ──
+function buildGrid(img){
+  const st=state[currentImg];
+  const pieces=st.pieces;
+  const cols=3;
+  const rows=pieces/cols;
+  const grid=document.getElementById('puzzle-grid');
+  const size=Math.min(Math.floor((window.innerWidth-380)/cols),Math.floor((window.innerHeight-160)/rows));
+  grid.style.gridTemplateColumns=`repeat(${cols},${size}px)`;
+  grid.style.gridTemplateRows=`repeat(${rows},${size}px)`;
+  grid.innerHTML='';
+
+  let src=img.url||'';
+  const m=src.match(/\/file\/d\/([^\/\?]+)/);
+  if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+
+  for(let i=0;i<pieces;i++){
+    const cell=document.createElement('div');
+    cell.className='puzzle-cell'+(st.placed.includes(i)?' filled':'');
+    cell.id=`cell-${i}`;
+    cell.style.width=size+'px';
+    cell.style.height=size+'px';
+
+    if(st.placed.includes(i)){
+      // חשב את הבג'קגראונד פוזישן
+      const col=i%cols;
+      const row=Math.floor(i/cols);
+      const img2=document.createElement('img');
+      img2.src=src;
+      img2.style.cssText=`width:${size*cols}px;height:${size*rows}px;object-fit:cover;margin-right:${-col*size}px;margin-bottom:${-row*size}px;`;
+      cell.appendChild(img2);
+    } else {
+      cell.innerHTML=`<div class="cell-num">${i+1}</div>`;
+      cell.ondragover=e=>{e.preventDefault();cell.classList.add('drag-over');};
+      cell.ondragleave=()=>cell.classList.remove('drag-over');
+      cell.ondrop=e=>{e.preventDefault();cell.classList.remove('drag-over');dropOnCell(i,src,size,cols,rows);};
+      // touch
+      cell.ontouchstart=null;
+    }
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('puzzle-label').textContent=`🧩 פאזל — ${st.placed.length}/${pieces} חלקים`;
+  document.getElementById('score-badge').textContent=`${st.placed.length}/${pieces} מוצב`;
+}
+
+// ── HAND ──
+function updateHand(){
+  const st=state[currentImg];
+  const img=puzzleData.images[currentImg];
+  let src=img?.url||'';
+  const m=src.match(/\/file\/d\/([^\/\?]+)/);
+  if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+
+  const hand=document.getElementById('hand-area');
+  if(!st.inHand.length){
+    hand.innerHTML='<div style="opacity:.3;font-size:.8rem;align-self:center;">ענה נכון לקבל חלקים</div>';
+    return;
+  }
+  const pieces=st.pieces;
+  const cols=3;const rows=pieces/cols;
+  const psize=60;
+
+  hand.innerHTML=st.inHand.map(pi=>`
+    <div class="hand-piece" id="hand-${pi}"
+      draggable="true" data-pi="${pi}"
+      ondragstart="handDragStart(event,${pi})"
+      ontouchstart="handTouchStart(event,${pi})"
+      ontouchmove="handTouchMove(event)"
+      ontouchend="handTouchEnd(event,'${src}',${psize},${cols},${rows})"
+      style="width:${psize}px;height:${psize}px;overflow:hidden;">
+      <img src="${src}" style="width:${psize*cols}px;height:${psize*rows}px;object-fit:cover;
+        margin-right:${-(pi%cols)*psize}px;margin-bottom:${-Math.floor(pi/cols)*psize}px;"
+        draggable="false" onerror="this.style.opacity='.3'">
+    </div>`).join('');
+}
+
+let _drag={pi:null};
+let _touch={pi:null,clone:null,src:null,psize:null,cols:null,rows:null};
+
+function handDragStart(e,pi){
+  _drag.pi=pi;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>document.getElementById(`hand-${pi}`)?.classList.add('dragging'),0);
+}
+function dropOnCell(cellIdx,src,size,cols,rows){
+  if(_drag.pi===null)return;
+  tryPlace(_drag.pi,cellIdx,src,size,cols,rows);
+  document.getElementById(`hand-${_drag.pi}`)?.classList.remove('dragging');
+  _drag.pi=null;
+}
+function handTouchStart(e,pi){
+  _touch.pi=pi;
+  const el=e.currentTarget;const rect=el.getBoundingClientRect();
+  const clone=el.cloneNode(true);
+  clone.style.cssText=`position:fixed;width:${rect.width}px;height:${rect.height}px;opacity:.85;z-index:999;pointer-events:none;top:${rect.top}px;left:${rect.left}px;border-radius:6px;overflow:hidden;`;
+  document.body.appendChild(clone);_touch.clone=clone;
+}
+function handTouchMove(e){
+  e.preventDefault();if(!_touch.clone)return;
+  const t=e.touches[0];
+  _touch.clone.style.top=(t.clientY-30)+'px';
+  _touch.clone.style.left=(t.clientX-30)+'px';
+  document.querySelectorAll('.puzzle-cell').forEach(c=>c.classList.remove('drag-over'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  el?.closest('.puzzle-cell')?.classList.add('drag-over');
+}
+function handTouchEnd(e,src,psize,cols,rows){
+  if(_touch.clone){_touch.clone.remove();_touch.clone=null;}
+  document.querySelectorAll('.puzzle-cell').forEach(c=>c.classList.remove('drag-over'));
+  const t=e.changedTouches[0];
+  const cell=document.elementFromPoint(t.clientX,t.clientY)?.closest('.puzzle-cell');
+  if(cell){
+    const cellIdx=parseInt(cell.id.split('-')[1]);
+    const st=state[currentImg];
+    const size=cell.offsetWidth;
+    tryPlace(_touch.pi,cellIdx,src,size,cols,Math.ceil(st.pieces/cols));
+  }
+  _touch.pi=null;
+}
+
+function tryPlace(pi,cellIdx,src,size,cols,rows){
+  const st=state[currentImg];
+  if(!st.inHand.includes(pi))return;
+  if(pi===cellIdx){
+    // נכון!
+    st.inHand=st.inHand.filter(p=>p!==pi);
+    st.placed.push(pi);
+    const cell=document.getElementById(`cell-${cellIdx}`);
+    if(cell){
+      cell.classList.add('filled');
+      cell.innerHTML='';
+      cell.ondragover=null;cell.ondragleave=null;cell.ondrop=null;
+      const img=document.createElement('img');
+      img.src=src;
+      img.style.cssText=`width:${size*cols}px;height:${size*rows}px;object-fit:cover;margin-right:${-(pi%cols)*size}px;margin-bottom:${-Math.floor(pi/cols)*size}px;`;
+      cell.appendChild(img);
+      showPlaceEffect(cell,true);
+    }
+    updateHand();
+    document.getElementById('puzzle-label').textContent=`🧩 פאזל — ${st.placed.length}/${st.pieces} חלקים`;
+    document.getElementById('score-badge').textContent=`${st.placed.length}/${st.pieces} מוצב`;
+    if(st.placed.length===st.pieces)showVictory();
+  } else {
+    // שגוי — אפקט ויחזור ליד
+    const cell=document.getElementById(`cell-${cellIdx}`);
+    if(cell)showPlaceEffect(cell,false);
+  }
+}
+
+function showPlaceEffect(cell,correct){
+  const orig=cell.style.borderColor;
+  cell.style.borderColor=correct?'#22c55e':'#f87171';
+  cell.style.background=correct?'rgba(34,197,94,.15)':'rgba(248,129,113,.1)';
+  setTimeout(()=>{
+    if(!correct){cell.style.borderColor='';cell.style.background='';}
+  },600);
+}
+
+// ── QUESTIONS ──
+function renderQuestion(){
+  const st=state[currentImg];
+  const body=document.getElementById('q-body');
+  const done=st.questions.filter((_,i)=>!st.questions[i]||i<st.qIdx).length;
+  const total=st.questions.length;
+  document.getElementById('q-progress').textContent=`שאלה ${Math.min(st.qIdx+1,total)} מתוך ${total}`;
+  document.getElementById('q-progress-fill').style.width=Math.round((st.placed.length/st.pieces)*100)+'%';
+
+  if(st.qIdx>=st.questions.length||st.placed.length===st.pieces){
+    if(st.placed.length===st.pieces){showVictory();return;}
+    body.innerHTML=`<div style="text-align:center;padding:20px;opacity:.5;">
+      <div style="font-size:2rem;margin-bottom:8px;">🎯</div>
+      כל השאלות הסתיימו!<br>מקם את החלקים שבידך בתבנית.
+    </div>`;
+    return;
+  }
+
+  const q=st.questions[st.qIdx];
+  body.innerHTML=`<div class="q-card">
+    <div class="q-num">שאלה ${st.qIdx+1}</div>
+    <div class="q-text">${esc(q.question)}</div>
+    <div id="q-opts">${q.type==='mc'?buildMCOpts(q):buildTFOpts(q)}</div>
+    <div id="q-result"></div>
+  </div>`;
+}
+
+function buildMCOpts(q){
+  return (q.options||[]).filter(Boolean).map((o,oi)=>`
+    <button class="q-opt" onclick="answerQ(${oi===(q.correct||0)},this,'mc',${oi},${q.correct||0})">${esc(o)}</button>`).join('');
+}
+function buildTFOpts(q){
+  return `<button class="q-opt" onclick="answerQ(${q.tfCorrect===true},this,'tf',true,${q.tfCorrect})">✅ נכון</button>
+    <button class="q-opt" onclick="answerQ(${q.tfCorrect===false},this,'tf',false,${q.tfCorrect})">❌ לא נכון</button>`;
+}
+
+function answerQ(isCorrect,clickedBtn,type,chosen,correct){
+  // נעל כל האפשרויות
+  document.querySelectorAll('.q-opt').forEach((btn,i)=>{
+    btn.classList.add('disabled');
+    const isThisCorrect=type==='mc'?i===correct:(i===0?correct===true:correct===false);
+    if(isThisCorrect)btn.classList.add('correct');
+    else if(btn===clickedBtn&&!isCorrect)btn.classList.add('wrong');
+  });
+  const st=state[currentImg];
+  const resultEl=document.getElementById('q-result');
+  if(isCorrect){
+    if(resultEl)resultEl.innerHTML='<div class="result-msg result-correct">🎉 נכון! קיבלת חלק פאזל!</div>';
+    // תן חלק — הבא שלא מוצב
+    const nextPiece=Array.from({length:st.pieces},(_,i)=>i).find(p=>!st.placed.includes(p)&&!st.inHand.includes(p));
+    if(nextPiece!==undefined){
+      st.inHand.push(nextPiece);
+      setTimeout(()=>{updateHand();},600);
+    }
+    st.qIdx++;
+    setTimeout(renderQuestion,1200);
+  } else {
+    if(resultEl)resultEl.innerHTML='<div class="result-msg result-wrong">❌ לא נכון. השאלה עוברת לסוף...</div>';
+    const q=st.questions.splice(st.qIdx,1)[0];
+    st.questions.push(q);
+    setTimeout(renderQuestion,1200);
+  }
+}
+
+function showVictory(){
+  const st=state[currentImg];
+  const hasNext=currentImg<puzzleData.images.length-1;
+  if(savePath){
+    db.ref(savePath+`/img${currentImg}`).set({placed:st.placed.length,total:st.pieces,student:studentName,ts:Date.now()});
+  }
+  document.getElementById('q-body').innerHTML=`<div class="victory-card">
+    <div class="victory-emoji">🎉</div>
+    <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:8px;">הפאזל הושלם!</div>
+    <div style="font-size:.85rem;opacity:.6;">כל ${st.pieces} החלקים במקומם</div>
+    ${hasNext?`<button onclick="initPuzzle(${currentImg+1})"
+      style="margin-top:16px;padding:10px 22px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+      לפאזל הבא →
+    </button>`:''}
+    ${!hasNext?`<button onclick="window.close()"
+      style="margin-top:16px;padding:10px 22px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+      סיום ✓
+    </button>`:''}
+  </div>`;
+}
+
+function buildNav(){
+  const nav=document.getElementById('img-nav');
+  if(puzzleData.images.length<=1){nav.style.display='none';return;}
+  nav.innerHTML=puzzleData.images.map((_,ii)=>`
+    <div class="img-dot${ii===0?' active':''}" id="pdot-${ii}" onclick="initPuzzle(${ii})"></div>`).join('');
+}
+function updateNav(){
+  document.querySelectorAll('.img-dot').forEach((d,i)=>d.classList.toggle('active',i===currentImg));
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

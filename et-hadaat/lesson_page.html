@@ -571,6 +571,25 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── פאזל ──
+  if(slot.type==='puzzle'){
+    const d=slot.puzzleData||{images:[]};
+    const puzzleParams=encodeURIComponent(JSON.stringify(d));
+    const savePath=`${answersPath}/${stIdx}-${sli}`;
+    const puzzleUrl=window.location.href.replace(/[^/]*$/,'puzzle.html')+'?data='+puzzleParams+'&student='+encodeURIComponent(studentName||'')+'&savePath='+encodeURIComponent(savePath);
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🧩</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">פאזל</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${d.images?.length||0} פאזל — ענה נכון וקבל חלקים לבניית התמונה</div>
+      <button onclick="window.open('${puzzleUrl}','_blank','width=900,height=640')"
+        style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+        פתח פאזל 🧩
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── זום תמונה ──
   if(slot.type==='zoom_img'){
     const d=slot.zoomData||{images:[]};
