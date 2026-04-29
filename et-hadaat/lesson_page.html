@@ -45,6 +45,20 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .wc-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
 .wc-canvas-wrap{margin-top:14px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;}
 .wc-empty{text-align:center;padding:40px;opacity:.3;font-size:.85rem;}
+.dd-wrap{display:flex;gap:12px;margin-top:10px;}
+.dd-bank{flex:1;min-height:200px;}
+.dd-targets{flex:1;}
+.dd-item{background:rgba(253,245,224,.08);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:grab;font-size:.88rem;line-height:1.5;transition:all .15s;user-select:none;}
+.dd-item:active{cursor:grabbing;opacity:.7;}
+.dd-item.dragging{opacity:.4;border-style:dashed;}
+.dd-item.correct{border-color:#22c55e;background:rgba(34,197,94,.12);cursor:default;}
+.dd-item.wrong{border-color:#f87171;background:rgba(248,129,113,.1);cursor:default;}
+.dd-slot{min-height:52px;border:2px dashed rgba(212,168,67,.25);border-radius:8px;padding:6px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;transition:background .15s;}
+.dd-slot.drag-over{background:rgba(212,168,67,.1);border-color:var(--gold);}
+.dd-slot-num{min-width:22px;height:22px;border-radius:5px;background:rgba(212,168,67,.15);color:var(--gold);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.dd-slot-content{flex:1;font-size:.88rem;}
+.dd-score{text-align:center;padding:12px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:10px;margin-top:10px;font-size:.9rem;}
+@media(max-width:600px){.dd-wrap{flex-direction:column;}}
 .sticky-colors{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
 .sticky-color-btn{width:32px;height:32px;border-radius:6px;border:3px solid transparent;cursor:pointer;transition:all .15s;}
 .sticky-color-btn.selected{border-color:#fff;transform:scale(1.15);}
@@ -512,6 +526,53 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── רצף אירועים ──
+  if(slot.type==='drag_drop'){
+    const d=slot.dragDropData||{instruction:'',sentences:[]};
+    const sents=d.sentences.filter(Boolean);
+    if(!sents.length){html+='<div style="opacity:.4;">אין משפטים מוגדרים</div>';block.innerHTML=html;return block;}
+    // ערבב סדר
+    const shuffled=[...sents].map((s,i)=>({text:s,origIdx:i})).sort(()=>Math.random()-.5);
+    const uid=`dd-${stIdx}-${sli}`;
+    const bankHtml=shuffled.map((item,i)=>`
+      <div class="dd-item" id="dd-item-${uid}-${i}"
+        draggable="true" data-orig="${item.origIdx}" data-idx="${i}"
+        ondragstart="ddDragStart(event,'${uid}',${i})"
+        ontouchstart="ddTouchStart(event,'${uid}',${i})"
+        ontouchmove="ddTouchMove(event,'${uid}')"
+        ontouchend="ddTouchEnd(event,'${uid}')">
+        ${esc(item.text)}
+      </div>`).join('');
+    const slotsHtml=sents.map((_,i)=>`
+      <div class="dd-slot" id="dd-slot-${uid}-${i}"
+        ondragover="ddDragOver(event)" ondragleave="ddDragLeave(event)"
+        ondrop="ddDrop(event,'${uid}',${i})">
+        <span class="dd-slot-num">${i+1}</span>
+        <span class="dd-slot-content" id="dd-slot-text-${uid}-${i}"></span>
+      </div>`).join('');
+
+    html+=`<div style="font-size:.85rem;opacity:.65;margin-bottom:10px;">${esc(d.instruction||'סדרו את האירועים לפי הסדר הכרונולוגי')}</div>
+      <div class="dd-wrap">
+        <div>
+          <div style="font-size:.72rem;opacity:.4;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">משפטים לסידור</div>
+          <div id="dd-bank-${uid}">${bankHtml}</div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;opacity:.4;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">גררו לסדר הנכון</div>
+          <div id="dd-targets-${uid}">${slotsHtml}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-submit" onclick="checkDD('${uid}',${sents.length})">בדוק ✓</button>
+        <button onclick="resetDD('${uid}')" style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">אפס</button>
+      </div>
+      <div id="dd-score-${uid}" style="display:none;" class="dd-score"></div>`;
+    block.innerHTML=html;
+    // שמור נתוני ההגרלה לצורך בדיקה
+    window[`_ddData_${uid}`]={shuffled,total:sents.length,slots:{}};
+    return block;
+  }
+
   // ── פתקיות ──
   if(slot.type==='stickies'){
     const d=slot.stickiesData||{boardName:'',instruction:'',showNames:true};
@@ -957,6 +1018,137 @@ function showError(msg){
 function extractYT(url){
   const m=url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
   return m?m[1]:null;
+}
+
+// ── DRAG & DROP ──
+let _ddDragging={uid:null,itemIdx:null};
+
+function ddDragStart(e,uid,idx){
+  _ddDragging={uid,itemIdx:idx};
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=document.getElementById(`dd-item-${uid}-${idx}`);if(el)el.classList.add('dragging');},0);
+}
+function ddDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function ddDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function ddDrop(e,uid,slotIdx){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const {itemIdx}=_ddDragging;
+  if(itemIdx===null)return;
+  placeItemInSlot(uid,itemIdx,slotIdx);
+}
+
+// Touch support
+let _touchItem=null;
+let _touchClone=null;
+function ddTouchStart(e,uid,idx){
+  _ddDragging={uid,itemIdx:idx};
+  const el=e.currentTarget;
+  const rect=el.getBoundingClientRect();
+  _touchClone=el.cloneNode(true);
+  _touchClone.style.cssText=`position:fixed;width:${rect.width}px;opacity:.8;z-index:999;pointer-events:none;top:${rect.top}px;left:${rect.left}px;margin:0;`;
+  document.body.appendChild(_touchClone);
+  el.classList.add('dragging');
+}
+function ddTouchMove(e,uid){
+  e.preventDefault();
+  if(!_touchClone)return;
+  const t=e.touches[0];
+  _touchClone.style.top=(t.clientY-30)+'px';
+  _touchClone.style.left=(t.clientX-_touchClone.offsetWidth/2)+'px';
+  // highlight slot under finger
+  document.querySelectorAll(`[id^="dd-slot-${uid}-"]`).forEach(s=>s.classList.remove('drag-over'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const slot=el?.closest('[id^="dd-slot-"]');
+  if(slot)slot.classList.add('drag-over');
+}
+function ddTouchEnd(e,uid){
+  if(_touchClone){_touchClone.remove();_touchClone=null;}
+  const t=e.changedTouches[0];
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const slot=el?.closest('[id^="dd-slot-"]');
+  document.querySelectorAll(`[id^="dd-slot-${uid}-"]`).forEach(s=>s.classList.remove('drag-over'));
+  if(slot){
+    const slotIdx=parseInt(slot.id.split('-').pop());
+    placeItemInSlot(uid,_ddDragging.itemIdx,slotIdx);
+  }
+  const itemEl=document.getElementById(`dd-item-${uid}-${_ddDragging.itemIdx}`);
+  if(itemEl)itemEl.classList.remove('dragging');
+}
+
+function placeItemInSlot(uid,itemIdx,slotIdx){
+  const data=window[`_ddData_${uid}`];if(!data)return;
+  const item=data.shuffled[itemIdx];
+  // אם המשבצת תפוסה — החזר את הפריט הישן לבנק
+  const prev=data.slots[slotIdx];
+  if(prev!==undefined){
+    const prevEl=document.getElementById(`dd-item-${uid}-${prev}`);
+    if(prevEl)prevEl.style.display='flex';
+  }
+  // אם הפריט כבר מונח במשבצת אחרת — פנה אותה
+  Object.entries(data.slots).forEach(([si,ii])=>{
+    if(parseInt(ii)===itemIdx){delete data.slots[si];
+      document.getElementById(`dd-slot-text-${uid}-${si}`).textContent='';
+      document.getElementById(`dd-slot-${uid}-${si}`).dataset.itemIdx='';}
+  });
+  data.slots[slotIdx]=itemIdx;
+  const slotTextEl=document.getElementById(`dd-slot-text-${uid}-${slotIdx}`);
+  if(slotTextEl)slotTextEl.textContent=item.text;
+  const itemEl=document.getElementById(`dd-item-${uid}-${itemIdx}`);
+  if(itemEl)itemEl.style.display='none';
+}
+
+function checkDD(uid,total){
+  const data=window[`_ddData_${uid}`];if(!data)return;
+  let correct=0;
+  for(let i=0;i<total;i++){
+    const itemIdx=data.slots[i];
+    const slot=document.getElementById(`dd-slot-${uid}-${i}`);
+    const slotText=document.getElementById(`dd-slot-text-${uid}-${i}`);
+    if(itemIdx===undefined){
+      if(slot)slot.style.borderColor='#f87171';
+      continue;
+    }
+    const item=data.shuffled[itemIdx];
+    const isCorrect=item.origIdx===i;
+    if(isCorrect){correct++;if(slot){slot.style.borderColor='#22c55e';slot.style.background='rgba(34,197,94,.08)';}}
+    else{if(slot){slot.style.borderColor='#f87171';slot.style.background='rgba(248,129,113,.08)';}}
+  }
+  const score=document.getElementById(`dd-score-${uid}`);
+  if(score){
+    score.style.display='block';
+    score.innerHTML=correct===total
+      ?`🎉 מצוין! כל ${total} המשפטים בסדר הנכון!`
+      :`${correct} מתוך ${total} נכון — נסה שוב`;
+    score.style.color=correct===total?'#22c55e':'var(--parch)';
+  }
+  // שמור תוצאה
+  db.ref(answersPath+`/${stIdx||0}-${sli||0}`).set({correct,total,ts:Date.now()}).catch(()=>{});
+}
+
+function resetDD(uid){
+  const data=window[`_ddData_${uid}`];if(!data)return;
+  data.slots={};
+  // החזר כל הפריטים לבנק
+  data.shuffled.forEach((_,i)=>{
+    const el=document.getElementById(`dd-item-${uid}-${i}`);
+    if(el){el.style.display='flex';el.classList.remove('correct','wrong','dragging');}
+  });
+  // נקה משבצות
+  Object.keys(data.slots).forEach(si=>{
+    const el=document.getElementById(`dd-slot-text-${uid}-${si}`);
+    if(el)el.textContent='';
+    const slot=document.getElementById(`dd-slot-${uid}-${si}`);
+    if(slot){slot.style.borderColor='';slot.style.background='';}
+  });
+  // נקה ציון
+  const score=document.getElementById(`dd-score-${uid}`);
+  if(score)score.style.display='none';
+  // רענן לגמרי
+  data.slots={};
+  document.querySelectorAll(`[id^="dd-slot-text-${uid}-"]`).forEach(el=>el.textContent='');
+  document.querySelectorAll(`[id^="dd-slot-${uid}-"]`).forEach(el=>{el.style.borderColor='';el.style.background='';});
+  document.querySelectorAll(`[id^="dd-item-${uid}-"]`).forEach(el=>el.style.display='');
 }
 
 // ── WORDCLOUD FUNCTIONS ──

@@ -192,6 +192,26 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='drag_drop'){
+    const d=slot.dragDropData||{instruction:'',sentences:[]};
+    const sents=d.sentences.filter(Boolean);
+    inner=`<div style="font-size:.88rem;opacity:.65;margin-bottom:12px;">${esc(d.instruction||'סדרו את האירועים לפי הסדר הכרונולוגי')}</div>
+      <div style="display:flex;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:.72rem;opacity:.4;margin-bottom:8px;">משפטים מבולגנים</div>
+          ${[...sents].sort(()=>Math.random()-.5).map(s=>`
+            <div style="background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:7px;font-size:.88rem;">${esc(s)}</div>`).join('')}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:.72rem;opacity:.4;margin-bottom:8px;">סדר נכון</div>
+          ${sents.map((_,i)=>`
+            <div style="border:2px dashed rgba(212,168,67,.25);border-radius:7px;padding:9px 12px;margin-bottom:7px;min-height:42px;display:flex;align-items:center;gap:8px;">
+              <span style="min-width:20px;height:20px;border-radius:4px;background:rgba(212,168,67,.15);color:var(--gold);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;">${i+1}</span>
+              <span style="opacity:.3;font-size:.8rem;">התלמיד ממיין בטאבלט</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
   } else if(slot.type==='wordcloud'){
     const d=slot.wordcloudData||{question:''};
     const boardId=`wc_${subjectId}_${unitId}_${lessonIdx}_${allStations.findIndex(s=>s.slots.includes(slot))}_${allStations.find(s=>s.slots.includes(slot))?.slots.indexOf(slot)||0}`;

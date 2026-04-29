@@ -1863,6 +1863,34 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── מיון וגרירה — רצף אירועים ──
+  if(slot.type==='drag_drop'){
+    const d=slot.dragDropData||{instruction:'',sentences:['']};
+    const sents=d.sentences||[''];
+    const sentHtml=sents.map((s,i)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="min-width:22px;height:22px;border-radius:5px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</span>
+        <input class="inline-field" style="flex:1;min-height:0;padding:5px 8px;font-size:.82rem;"
+          placeholder="משפט ${i+1}..." value="${esc(s)}"
+          onchange="updateDDSentence('${section}',${si},${sli},${i},this.value)">
+        ${sents.length>1?`<button onclick="removeDDSentence('${section}',${si},${sli},${i})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem;padding:0 4px;">✕</button>`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🔢 רצף אירועים</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה לתלמידים:</div>
+      <textarea class="inline-field" style="margin-bottom:10px;min-height:50px;" placeholder="למשל: סדרו את האירועים לפי הסדר הכרונולוגי..."
+        onchange="updateDDField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">המשפטים לפי הסדר הנכון (עד 10):</div>
+      <div id="dd-sents-${uid}">${sentHtml}</div>
+      ${sents.length<10?`<button onclick="addDDSentence('${section}',${si},${sli})"
+        style="width:100%;padding:6px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף משפט</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveDDData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── קריאת מקורות ──
   if(slot.type==='sources'){
     const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
@@ -2127,6 +2155,35 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── DRAG_DROP HELPERS ──
+function updateDDField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.dragDropData)slot.dragDropData={instruction:'',sentences:['']};
+  slot.dragDropData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateDDSentence(section,si,sli,idx,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.dragDropData)slot.dragDropData={instruction:'',sentences:['']};
+  slot.dragDropData.sentences[idx]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addDDSentence(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.dragDropData)slot.dragDropData={instruction:'',sentences:['']};
+  if(slot.dragDropData.sentences.length>=10)return;
+  slot.dragDropData.sentences.push('');
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function removeDDSentence(section,si,sli,idx){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.dragDropData.sentences.splice(idx,1);
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveDDData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── WORDCLOUD HELPERS ──
 function updateWCField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
