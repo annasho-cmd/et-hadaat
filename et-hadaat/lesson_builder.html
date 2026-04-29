@@ -2178,6 +2178,50 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── זום תמונה ──
+  if(slot.type==='zoom_img'){
+    const d=slot.zoomData||{images:[{url:'',title:'',topic:''}]};
+    const images=d.images||[{url:'',title:'',topic:''}];
+
+    const imgsHtml=images.map((img,ii)=>`
+      <div style="background:rgba(44,26,14,.4);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:.8rem;font-weight:700;color:var(--gold);">תמונה ${ii+1}</span>
+          ${images.length>1?`<button onclick="removeZoomImg('${section}',${si},${sli},${ii})"
+            style="margin-right:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕</button>`:''}
+        </div>
+        <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.82rem;margin-bottom:5px;"
+          placeholder="קישור לתמונה (URL / Drive)..."
+          value="${esc(img.url||'')}" id="zoom-url-${uid}-${ii}"
+          onchange="updateZoomImg('${section}',${si},${sli},${ii},'url',this.value)">
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <button onclick="openZoomUpload('zoom-url-${uid}-${ii}','${section}',${si},${sli},${ii})"
+            style="padding:5px 12px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:7px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.78rem;cursor:pointer;">
+            📁 העלה מהמחשב
+          </button>
+          <input type="file" id="zoom-file-${uid}-${ii}" accept="image/*" style="display:none;"
+            onchange="handleZoomUpload(this,'zoom-url-${uid}-${ii}','${section}',${si},${sli},${ii})">
+        </div>
+        ${img.url?`<img src="${esc(img.url)}" style="max-width:100%;max-height:80px;border-radius:6px;object-fit:contain;margin-bottom:6px;" onerror="this.style.display='none'">`:''}
+        <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.82rem;margin-bottom:5px;"
+          placeholder="נושא / כותרת לתמונה (המורה רואה)..."
+          value="${esc(img.topic||'')}"
+          onchange="updateZoomImg('${section}',${si},${sli},${ii},'topic',this.value)">
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🔎 זום תמונה</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:10px;">
+        האפליקציה מתחילה בזום-אין מקסימלי. כל לחיצה של המורה → זום-אאוט. עד 10 שלבים.
+      </div>
+      ${imgsHtml}
+      ${images.length<5?`<button onclick="addZoomImg('${section}',${si},${sli})"
+        style="width:100%;padding:6px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:10px;">+ הוסף תמונה</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveZoomData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── קריאת מקורות ──
   if(slot.type==='sources'){
     const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
@@ -2442,6 +2486,49 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── ZOOM_IMG HELPERS ──
+function updateZoomImg(section,si,sli,ii,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.zoomData)slot.zoomData={images:[{url:'',topic:''}]};
+  if(!slot.zoomData.images[ii])slot.zoomData.images[ii]={url:'',topic:''};
+  slot.zoomData.images[ii][field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addZoomImg(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.zoomData)slot.zoomData={images:[]};
+  if(slot.zoomData.images.length>=5)return;
+  slot.zoomData.images.push({url:'',topic:''});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeZoomImg(section,si,sli,ii){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.zoomData.images.splice(ii,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function openZoomUpload(inputId,section,si,sli,ii){
+  const fileInput=document.getElementById(inputId.replace('zoom-url','zoom-file'));
+  if(fileInput)fileInput.click();
+}
+async function handleZoomUpload(input,inputId,section,si,sli,ii){
+  const file=input.files[0];if(!file)return;
+  const fd=new FormData();fd.append('file',file);fd.append('upload_preset','w8rzehkl');
+  const btn=document.querySelector(`[onclick="openZoomUpload('${inputId}','${section}',${si},${sli},${ii})"]`);
+  if(btn)btn.textContent='⏳ מעלה...';
+  try{
+    const res=await fetch('https://api.cloudinary.com/v1_1/da6mdtjhh/image/upload',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.secure_url){
+      updateZoomImg(section,si,sli,ii,'url',data.secure_url);
+      const el=document.getElementById(inputId);
+      if(el)el.value=data.secure_url;
+      renderLessonStructure();
+    }
+    if(btn)btn.textContent='📁 העלה מהמחשב';
+  }catch(e){if(btn)btn.textContent='📁 העלה מהמחשב';alert('שגיאה בהעלאה');}
+}
+function saveZoomData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── REVEAL_IMG HELPERS ──
 function updateRevealImg(section,si,sli,ii,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;

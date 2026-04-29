@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>זום תמונה — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--border:rgba(212,168,67,0.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);height:100vh;display:flex;flex-direction:column;direction:rtl;overflow:hidden;}
+
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;cursor:pointer;font-weight:600;transition:all .15s;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.btn-zoom{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;font-size:1rem;padding:10px 28px;}
+.btn-answer{background:rgba(34,197,94,.15);border-color:#22c55e;color:#22c55e;}
+.btn-next{background:rgba(212,168,67,.15);border-color:var(--gold);color:var(--gold);}
+
+.main{flex:1;display:flex;gap:0;overflow:hidden;}
+
+/* IMAGE AREA */
+.img-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;position:relative;}
+.img-viewport{position:relative;overflow:hidden;border-radius:12px;width:100%;max-width:700px;max-height:calc(100vh - 140px);}
+.zoom-img{width:100%;height:100%;object-fit:cover;display:block;transform-origin:center center;transition:transform .6s cubic-bezier(.25,.46,.45,.94);}
+
+/* CONTROLS */
+.controls{width:280px;background:rgba(44,26,14,.85);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px;gap:14px;flex-shrink:0;}
+.control-title{font-size:.75rem;font-weight:700;color:var(--gold);opacity:.6;text-transform:uppercase;letter-spacing:.06em;}
+.zoom-counter{text-align:center;padding:14px;background:rgba(212,168,67,.06);border:1px solid var(--border);border-radius:10px;}
+.zoom-count-num{font-family:'Frank Ruhl Libre',serif;font-size:2.5rem;font-weight:700;color:var(--gold2);line-height:1;}
+.zoom-count-label{font-size:.75rem;opacity:.45;margin-top:4px;}
+.zoom-steps{display:flex;gap:4px;margin-top:8px;}
+.zoom-step{flex:1;height:6px;border-radius:3px;background:rgba(212,168,67,.15);}
+.zoom-step.done{background:var(--gold);}
+.topic-box{padding:10px 12px;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;font-size:.82rem;opacity:.7;}
+.answer-box{padding:10px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px;font-size:.9rem;font-weight:700;color:#22c55e;display:none;}
+.img-nav{display:flex;gap:6px;justify-content:center;margin-top:6px;}
+.img-dot{width:9px;height:9px;border-radius:50%;background:rgba(212,168,67,.3);cursor:pointer;transition:all .15s;}
+.img-dot.active{background:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🔎 זום תמונה</div>
+  <button class="btn btn-zoom" id="btn-zoom" onclick="zoomOut()">🔎 זום אאוט</button>
+  <button class="btn btn-answer" id="btn-answer" onclick="showAnswer()" style="display:none;">✅ הצג תשובה</button>
+  <button class="btn btn-next" id="btn-next" onclick="nextImage()" style="display:none;">לתמונה הבאה →</button>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="controls">
+    <div class="control-title">מצב זום</div>
+    <div class="zoom-counter">
+      <div class="zoom-count-num" id="zoom-num">0</div>
+      <div class="zoom-count-label">לחיצות זום</div>
+      <div class="zoom-steps" id="zoom-steps"></div>
+    </div>
+
+    <div class="control-title" style="margin-top:4px;">נושא (לעיני המורה)</div>
+    <div class="topic-box" id="topic-box">—</div>
+
+    <div class="answer-box" id="answer-box"></div>
+
+    <div style="font-size:.75rem;opacity:.35;line-height:1.6;margin-top:auto;">
+      לחץ "זום אאוט" לגילוי הדרגתי<br>
+      עד 10 לחיצות לגילוי מלא<br>
+      לחץ "הצג תשובה" אם ניחשו
+    </div>
+
+    <div class="img-nav" id="img-nav"></div>
+  </div>
+
+  <div class="img-area">
+    <div class="img-viewport" id="img-viewport">
+      <img id="zoom-img" class="zoom-img" src="" alt="תמונה" onerror="this.style.opacity='.3'">
+    </div>
+  </div>
+</div>
+
+<script>
+const params=new URLSearchParams(window.location.search);
+let zoomData={images:[]};
+try{zoomData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+
+const MAX_ZOOM=8; // כפולת זום מקסימלית
+const MAX_STEPS=10;
+let currentImg=0;
+let zoomLevel=0; // 0 = הכי מוקרב, 10 = מלא
+
+window.onload=function(){
+  if(!zoomData.images?.length)return;
+  buildNav();
+  loadImage(0);
+};
+
+function loadImage(ii){
+  currentImg=ii;
+  zoomLevel=0;
+  const img=zoomData.images[ii];
+  let src=img?.url||'';
+  const m=src.match(/\/file\/d\/([^\/\?]+)/);
+  if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+  document.getElementById('zoom-img').src=src;
+  document.getElementById('topic-box').textContent=img?.topic||'—';
+  document.getElementById('answer-box').style.display='none';
+  document.getElementById('answer-box').textContent='';
+  document.getElementById('btn-answer').style.display='inline';
+  document.getElementById('btn-next').style.display=ii<zoomData.images.length-1?'none':'none';
+  applyZoom();
+  buildSteps();
+  updateNav();
+}
+
+function applyZoom(){
+  const img=document.getElementById('zoom-img');
+  const scale=MAX_ZOOM-((MAX_ZOOM-1)/MAX_STEPS)*zoomLevel;
+  img.style.transform=`scale(${Math.max(1,scale)})`;
+  document.getElementById('zoom-num').textContent=zoomLevel;
+  buildSteps();
+  if(zoomLevel>=MAX_STEPS){
+    document.getElementById('btn-zoom').disabled=true;
+    document.getElementById('btn-zoom').style.opacity='.4';
+  } else {
+    document.getElementById('btn-zoom').disabled=false;
+    document.getElementById('btn-zoom').style.opacity='1';
+  }
+}
+
+function zoomOut(){
+  if(zoomLevel>=MAX_STEPS)return;
+  zoomLevel++;
+  applyZoom();
+}
+
+function showAnswer(){
+  // גלה תמונה מלאה
+  zoomLevel=MAX_STEPS;
+  applyZoom();
+  const img=zoomData.images[currentImg];
+  const ansBox=document.getElementById('answer-box');
+  ansBox.style.display='block';
+  ansBox.textContent='✅ '+(img?.topic||'התמונה התגלתה');
+  document.getElementById('btn-answer').style.display='none';
+  const hasNext=currentImg<zoomData.images.length-1;
+  if(hasNext)document.getElementById('btn-next').style.display='inline';
+}
+
+function nextImage(){
+  if(currentImg<zoomData.images.length-1){
+    loadImage(currentImg+1);
+    document.getElementById('btn-next').style.display='none';
+  }
+}
+
+function buildSteps(){
+  const wrap=document.getElementById('zoom-steps');
+  wrap.innerHTML=Array.from({length:MAX_STEPS},(_,i)=>`
+    <div class="zoom-step${i<zoomLevel?' done':''}"></div>`).join('');
+}
+
+function buildNav(){
+  const nav=document.getElementById('img-nav');
+  if(zoomData.images.length<=1){nav.style.display='none';return;}
+  nav.innerHTML=zoomData.images.map((_,ii)=>`
+    <div class="img-dot${ii===0?' active':''}" id="zdot-${ii}" onclick="loadImage(${ii})"></div>`).join('');
+}
+function updateNav(){
+  document.querySelectorAll('.img-dot').forEach((d,i)=>d.classList.toggle('active',i===currentImg));
+}
+</script>
+</body>
+</html>

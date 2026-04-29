@@ -571,6 +571,23 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── זום תמונה ──
+  if(slot.type==='zoom_img'){
+    const d=slot.zoomData||{images:[]};
+    const zoomParams=encodeURIComponent(JSON.stringify(d));
+    const zoomUrl=window.location.href.replace(/[^/]*$/, 'zoom_image.html')+'?data='+zoomParams;
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🔎</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">זום תמונה</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${d.images?.length||0} תמונות · נוהל על ידי המורה על הלוח</div>
+      <div style="font-size:.82rem;opacity:.55;padding:10px;background:rgba(212,168,67,.06);border-radius:8px;">
+        פעילות זו מנוהלת על ידי המורה ומוקרנת על הלוח.<br>קבל/י הוראות מהמורה.
+      </div>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── גלה את התמונה ──
   if(slot.type==='reveal_img'){
     const d=slot.revealData||{images:[]};
