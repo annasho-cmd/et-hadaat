@@ -2178,6 +2178,68 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── משחק זיכרון ──
+  if(slot.type==='memory'){
+    const d=slot.memoryData||{instruction:'',cards:[{type:'text',value:'',match:''}],numPairs:6,allowDuel:true};
+    const cards=d.cards||[];
+
+    const cardsHtml=cards.map((c,ci)=>`
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span style="min-width:20px;height:20px;border-radius:4px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ci+1}</span>
+        <select class="inline-field" style="min-height:0;padding:3px 6px;width:90px;"
+          onchange="updateMemoryCard('${section}',${si},${sli},${ci},'typeA',this.value)">
+          <option value="text" ${c.typeA!=='image'?'selected':''}>מילה</option>
+          <option value="image" ${c.typeA==='image'?'selected':''}>תמונה</option>
+        </select>
+        <input class="inline-field" style="flex:1;min-height:0;padding:3px 7px;font-size:.8rem;"
+          placeholder="${c.typeA==='image'?'קישור/URL...':'מושג / מילה...'}"
+          value="${esc(c.valueA||'')}"
+          onchange="updateMemoryCard('${section}',${si},${sli},${ci},'valueA',this.value)">
+        <span style="opacity:.4;font-size:.8rem;">↔</span>
+        <select class="inline-field" style="min-height:0;padding:3px 6px;width:90px;"
+          onchange="updateMemoryCard('${section}',${si},${sli},${ci},'typeB',this.value)">
+          <option value="text" ${c.typeB!=='image'?'selected':''}>מילה</option>
+          <option value="image" ${c.typeB==='image'?'selected':''}>תמונה</option>
+        </select>
+        <input class="inline-field" style="flex:1;min-height:0;padding:3px 7px;font-size:.8rem;"
+          placeholder="${c.typeB==='image'?'קישור/URL...':'הגדרה / זוג...'}"
+          value="${esc(c.valueB||'')}"
+          onchange="updateMemoryCard('${section}',${si},${sli},${ci},'valueB',this.value)">
+        ${cards.length>2?`<button onclick="removeMemoryCard('${section}',${si},${sli},${ci})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;padding:0 2px;">✕</button>`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🃏 משחק זיכרון</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        כל שורה = צמד כרטיסיות. הכרטיסיות הפוכות — התלמיד מוצא צמדים.
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="מצאו את כל הצמדים..."
+        onchange="updateMemoryField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:.8rem;opacity:.6;">צמדים לפני ניצחון:</span>
+        <input class="inline-field" type="number" min="2" max="10" style="min-height:0;padding:4px 8px;width:65px;"
+          value="${d.numPairs||6}" onchange="updateMemoryField('${section}',${si},${sli},'numPairs',parseInt(this.value))">
+        <span style="font-size:.75rem;opacity:.4;">(מתוך ${cards.length} צמדים)</span>
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;display:flex;justify-content:space-between;">
+        <span>צמדים (${cards.length}/10):</span>
+        <span style="opacity:.5;">כרטיסיה א׳ ↔ כרטיסיה ב׳</span>
+      </div>
+      <div id="mem-cards-${uid}">${cardsHtml}</div>
+      ${cards.length<10?`<button onclick="addMemoryCard('${section}',${si},${sli})"
+        style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף צמד</button>`:''}
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;margin-bottom:4px;">
+        <input type="checkbox" ${d.allowDuel!==false?'checked':''} style="width:15px;height:15px;"
+          onchange="updateMemoryField('${section}',${si},${sli},'allowDuel',this.checked)">
+        <span>אפשר משחק ראש בראש</span>
+      </label>
+      <div class="editor-btns" style="margin-top:10px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveMemoryData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── פאזל ──
   if(slot.type==='puzzle'){
     const d=slot.puzzleData||{images:[{url:'',pieces:6,questions:[]}]};
@@ -2573,6 +2635,31 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── MEMORY HELPERS ──
+function updateMemoryField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.memoryData)slot.memoryData={instruction:'',cards:[],numPairs:6,allowDuel:true};
+  slot.memoryData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateMemoryCard(section,si,sli,ci,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.memoryData.cards[ci])slot.memoryData.cards[ci]={typeA:'text',valueA:'',typeB:'text',valueB:''};
+  slot.memoryData.cards[ci][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function addMemoryCard(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.memoryData)slot.memoryData={instruction:'',cards:[],numPairs:6,allowDuel:true};
+  if(slot.memoryData.cards.length>=10)return;
+  slot.memoryData.cards.push({typeA:'text',valueA:'',typeB:'text',valueB:''});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeMemoryCard(section,si,sli,ci){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.memoryData.cards.splice(ci,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function saveMemoryData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── PUZZLE HELPERS ──
 function updatePuzzleImg(section,si,sli,ii,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;

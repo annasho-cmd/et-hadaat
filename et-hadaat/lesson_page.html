@@ -571,6 +571,24 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── משחק זיכרון ──
+  if(slot.type==='memory'){
+    const d=slot.memoryData||{cards:[],numPairs:6};
+    const memParams=encodeURIComponent(JSON.stringify(d));
+    const memUrl=window.location.href.replace(/[^/]*/,'memory_game.html')+'?data='+memParams;
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🃏</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">משחק זיכרון</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${d.cards?.length||0} צמדים${d.allowDuel!==false?' · ניתן לשחק ראש בראש':''}</div>
+      <button onclick="window.open('${memUrl}','_blank','width=800,height=640')"
+        style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+        פתח משחק זיכרון 🃏
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── פאזל ──
   if(slot.type==='puzzle'){
     const d=slot.puzzleData||{images:[]};

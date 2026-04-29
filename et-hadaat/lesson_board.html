@@ -192,6 +192,16 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='memory'){
+    const d=slot.memoryData||{cards:[],numPairs:6};
+    inner=`<div style="text-align:center;padding:28px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:10px;">🃏</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">משחק זיכרון</div>
+      <div style="font-size:.85rem;opacity:.5;">${d.cards?.length||0} צמדים · ${d.numPairs||6} צמדים לניצחון</div>
+      ${d.allowDuel!==false?`<div style="font-size:.78rem;opacity:.4;margin-top:6px;">ניתן לשחק ראש בראש</div>`:''}
+      <div style="font-size:.75rem;opacity:.35;margin-top:8px;">התלמידים פותחים בטאבלט</div>
+    </div>`;
+
   } else if(slot.type==='puzzle'){
     const d=slot.puzzleData||{images:[]};
     const imgs=(d.images||[]).filter(img=>img.url);

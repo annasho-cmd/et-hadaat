@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>משחק זיכרון — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,.92);--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;font-weight:700;}
+
+/* SETUP SCREEN */
+.setup-screen{max-width:480px;margin:40px auto;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;}
+.setup-title{font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:16px;text-align:center;}
+.mode-btns{display:flex;gap:10px;margin-bottom:20px;}
+.mode-btn{flex:1;padding:14px;border-radius:12px;border:2px solid var(--border);background:rgba(253,245,224,.04);cursor:pointer;text-align:center;transition:all .15s;}
+.mode-btn:hover,.mode-btn.active{border-color:var(--gold);background:rgba(212,168,67,.1);}
+.mode-btn-icon{font-size:1.8rem;margin-bottom:6px;}
+.mode-btn-label{font-size:.85rem;font-weight:700;}
+.mode-btn-sub{font-size:.72rem;opacity:.5;margin-top:2px;}
+.player-input{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;padding:8px 12px;outline:none;margin-bottom:8px;}
+.player-input:focus{border-color:var(--gold);}
+
+/* SCOREBOARD */
+.scoreboard{display:flex;gap:12px;padding:10px 20px;background:rgba(44,26,14,.5);border-bottom:1px solid var(--border);}
+.score-card{flex:1;padding:10px 14px;border-radius:10px;border:2px solid var(--border);text-align:center;transition:all .2s;}
+.score-card.active-turn{border-color:var(--gold);background:rgba(212,168,67,.1);}
+.score-name{font-size:.8rem;font-weight:700;color:var(--gold);}
+.score-num{font-family:'Frank Ruhl Libre',serif;font-size:1.8rem;font-weight:700;color:var(--gold2);}
+.score-label{font-size:.7rem;opacity:.45;}
+
+/* GAME GRID */
+.game-area{padding:16px 20px;}
+.instruction{font-size:.85rem;opacity:.6;margin-bottom:12px;text-align:center;}
+.cards-grid{display:grid;gap:10px;justify-content:center;}
+.card{perspective:600px;cursor:pointer;}
+.card-inner{position:relative;width:100%;height:100%;transition:transform .4s;transform-style:preserve-3d;}
+.card.flipped .card-inner{transform:rotateY(180deg);}
+.card.matched .card-inner{transform:rotateY(180deg);opacity:.6;pointer-events:none;}
+.card-face{position:absolute;inset:0;border-radius:10px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;padding:8px;}
+.card-back{background:linear-gradient(135deg,rgba(44,26,14,.9),rgba(26,15,5,.9));border:2px solid var(--border);font-size:1.5rem;}
+.card-front{background:rgba(253,245,224,.08);border:2px solid var(--gold);transform:rotateY(180deg);font-size:.88rem;font-weight:600;text-align:center;line-height:1.4;}
+.card-front img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;}
+.card.matched .card-front{border-color:#22c55e;background:rgba(34,197,94,.1);}
+
+/* VICTORY */
+.victory-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;display:flex;align-items:center;justify-content:center;}
+.victory-box{background:#1a0f05;border:1px solid var(--border);border-radius:20px;padding:32px;text-align:center;max-width:380px;width:90%;}
+.victory-emoji{font-size:3.5rem;margin-bottom:12px;}
+.victory-title{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;color:var(--gold2);margin-bottom:8px;}
+.victory-sub{font-size:.9rem;opacity:.6;margin-bottom:20px;}
+.victory-scores{display:flex;gap:12px;justify-content:center;margin-bottom:20px;}
+.vs-card{padding:12px 20px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:10px;text-align:center;}
+.vs-name{font-size:.8rem;color:var(--gold);margin-bottom:4px;}
+.vs-num{font-size:1.8rem;font-weight:700;color:var(--gold2);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🃏 משחק זיכרון</div>
+  <span id="moves-badge" style="font-size:.78rem;opacity:.45;"></span>
+  <button class="btn" onclick="showSetup()">🔄 התחל מחדש</button>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<!-- SETUP -->
+<div id="setup-screen" class="setup-screen">
+  <div class="setup-title">🃏 משחק זיכרון</div>
+  <div id="game-instruction" style="font-size:.85rem;opacity:.6;text-align:center;margin-bottom:16px;"></div>
+  <div class="mode-btns">
+    <div class="mode-btn active" id="mode-solo" onclick="selectMode('solo')">
+      <div class="mode-btn-icon">👤</div>
+      <div class="mode-btn-label">משחק יחיד</div>
+      <div class="mode-btn-sub">שחק לבד</div>
+    </div>
+    <div class="mode-btn" id="mode-duel" onclick="selectMode('duel')" style="display:none;">
+      <div class="mode-btn-icon">👥</div>
+      <div class="mode-btn-label">ראש בראש</div>
+      <div class="mode-btn-sub">שני שחקנים</div>
+    </div>
+  </div>
+  <div id="solo-inputs">
+    <input class="player-input" id="p1-name" placeholder="שם שחקן..." value="">
+  </div>
+  <div id="duel-inputs" style="display:none;">
+    <input class="player-input" id="p1-name-duel" placeholder="שחקן 1 — שם...">
+    <input class="player-input" id="p2-name-duel" placeholder="שחקן 2 — שם...">
+  </div>
+  <button class="btn btn-gold" style="width:100%;padding:12px;font-size:.95rem;" onclick="startGame()">
+    התחל משחק 🃏
+  </button>
+</div>
+
+<!-- GAME -->
+<div id="game-screen" style="display:none;">
+  <div class="scoreboard" id="scoreboard"></div>
+  <div class="game-area">
+    <div class="instruction" id="turn-instruction"></div>
+    <div class="cards-grid" id="cards-grid"></div>
+  </div>
+</div>
+
+<!-- VICTORY -->
+<div class="victory-overlay" id="victory-overlay" style="display:none;">
+  <div class="victory-box">
+    <div class="victory-emoji" id="v-emoji">🎉</div>
+    <div class="victory-title" id="v-title"></div>
+    <div class="victory-sub" id="v-sub"></div>
+    <div class="victory-scores" id="v-scores"></div>
+    <button class="btn btn-gold" style="padding:10px 28px;" onclick="showSetup()">שחק שוב</button>
+    <button class="btn" style="margin-right:8px;" onclick="window.close()">סיום</button>
+  </div>
+</div>
+
+<script>
+const params=new URLSearchParams(window.location.search);
+let memData={cards:[],numPairs:6,instruction:'',allowDuel:true};
+try{memData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+
+let mode='solo';
+let players=[];
+let currentTurn=0;
+let cards=[];
+let flipped=[];
+let matched=[];
+let moves=0;
+let scores=[0,0];
+let canFlip=true;
+
+window.onload=function(){
+  document.getElementById('game-instruction').textContent=memData.instruction||'מצא את כל הצמדים!';
+  if(memData.allowDuel!==false){
+    document.getElementById('mode-duel').style.display='block';
+  }
+};
+
+function selectMode(m){
+  mode=m;
+  document.getElementById('mode-solo').classList.toggle('active',m==='solo');
+  document.getElementById('mode-duel').classList.toggle('active',m==='duel');
+  document.getElementById('solo-inputs').style.display=m==='solo'?'block':'none';
+  document.getElementById('duel-inputs').style.display=m==='duel'?'block':'none';
+}
+
+function startGame(){
+  const rawCards=(memData.cards||[]).filter(c=>c.valueA&&c.valueB);
+  if(!rawCards.length){alert('אין כרטיסיות מוגדרות');return;}
+  const numPairs=Math.min(memData.numPairs||6,rawCards.length);
+  const selectedPairs=rawCards.slice(0,numPairs);
+
+  if(mode==='solo'){
+    const n=document.getElementById('p1-name').value.trim()||'שחקן';
+    players=[{name:n,score:0}];
+  } else {
+    const n1=document.getElementById('p1-name-duel').value.trim()||'שחקן 1';
+    const n2=document.getElementById('p2-name-duel').value.trim()||'שחקן 2';
+    players=[{name:n1,score:0},{name:n2,score:0}];
+  }
+
+  // בנה קלף לכל צד של צמד
+  const deck=[];
+  selectedPairs.forEach((pair,pi)=>{
+    deck.push({id:`${pi}-A`,pairId:pi,type:pair.typeA||'text',value:pair.valueA});
+    deck.push({id:`${pi}-B`,pairId:pi,type:pair.typeB||'text',value:pair.valueB});
+  });
+  // ערבב
+  cards=deck.sort(()=>Math.random()-.5);
+  flipped=[];matched=[];moves=0;scores=[0,0];currentTurn=0;canFlip=true;
+
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('game-screen').style.display='block';
+  document.getElementById('victory-overlay').style.display='none';
+
+  buildScoreboard();
+  buildGrid(numPairs*2);
+}
+
+function buildScoreboard(){
+  const sb=document.getElementById('scoreboard');
+  sb.innerHTML=players.map((p,i)=>`
+    <div class="score-card${i===currentTurn?' active-turn':''}" id="score-card-${i}">
+      <div class="score-name">${esc(p.name)}</div>
+      <div class="score-num">${p.score}</div>
+      <div class="score-label">צמדים</div>
+    </div>`).join('');
+  document.getElementById('turn-instruction').textContent=mode==='duel'
+    ?`תור: ${esc(players[currentTurn].name)}`
+    :`מצא את כל הצמדים!`;
+}
+
+function buildGrid(total){
+  const grid=document.getElementById('cards-grid');
+  const cols=total<=8?4:total<=12?4:5;
+  const cardW=Math.min(120,Math.floor((window.innerWidth-60)/cols));
+  const cardH=Math.round(cardW*0.75);
+  grid.style.gridTemplateColumns=`repeat(${cols},${cardW}px)`;
+
+  grid.innerHTML=cards.map((card,i)=>`
+    <div class="card" id="card-${i}" onclick="flipCard(${i})" style="width:${cardW}px;height:${cardH}px;">
+      <div class="card-inner">
+        <div class="card-face card-back">🃏</div>
+        <div class="card-face card-front" style="font-size:${card.type==='image'?'0':'.85rem'};">
+          ${card.type==='image'
+            ?`<img src="${esc(card.value)}" onerror="this.parentElement.textContent='?'">`
+            :esc(card.value)}
+        </div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('moves-badge').textContent='';
+}
+
+function flipCard(i){
+  if(!canFlip)return;
+  if(matched.includes(i))return;
+  if(flipped.includes(i))return;
+  if(flipped.length>=2)return;
+
+  const el=document.getElementById(`card-${i}`);
+  el.classList.add('flipped');
+  flipped.push(i);
+
+  if(flipped.length===2){
+    canFlip=false;
+    moves++;
+    document.getElementById('moves-badge').textContent=`${moves} ניסיונות`;
+    setTimeout(checkMatch,700);
+  }
+}
+
+function checkMatch(){
+  const [a,b]=flipped;
+  const ca=cards[a],cb=cards[b];
+  if(ca.pairId===cb.pairId){
+    // צמד!
+    matched.push(a,b);
+    document.getElementById(`card-${a}`)?.classList.add('matched');
+    document.getElementById(`card-${b}`)?.classList.add('matched');
+    players[currentTurn].score++;
+    scores[currentTurn]++;
+    flipped=[];canFlip=true;
+    buildScoreboard();
+    document.getElementById(`score-card-${currentTurn}`)
+      .querySelector('.score-num').textContent=players[currentTurn].score;
+    if(matched.length===cards.length){setTimeout(showVictory,400);}
+  } else {
+    // לא צמד
+    setTimeout(()=>{
+      document.getElementById(`card-${a}`)?.classList.remove('flipped');
+      document.getElementById(`card-${b}`)?.classList.remove('flipped');
+      flipped=[];canFlip=true;
+      if(mode==='duel'){
+        currentTurn=1-currentTurn;
+        buildScoreboard();
+      }
+    },600);
+  }
+}
+
+function showVictory(){
+  const ov=document.getElementById('victory-overlay');
+  ov.style.display='flex';
+  if(mode==='solo'){
+    document.getElementById('v-emoji').textContent='🎉';
+    document.getElementById('v-title').textContent='כל הכבוד!';
+    document.getElementById('v-sub').textContent=`מצאת את כל הצמדים ב-${moves} ניסיונות`;
+    document.getElementById('v-scores').innerHTML=`
+      <div class="vs-card">
+        <div class="vs-name">${esc(players[0].name)}</div>
+        <div class="vs-num">${players[0].score} צמדים</div>
+      </div>`;
+  } else {
+    const winner=players[0].score>players[1].score?0:players[1].score>players[0].score?1:-1;
+    document.getElementById('v-emoji').textContent=winner===-1?'🤝':'🏆';
+    document.getElementById('v-title').textContent=winner===-1?'תיקו!':`${esc(players[winner].name)} ניצח/ה!`;
+    document.getElementById('v-sub').textContent=`${moves} ניסיונות`;
+    document.getElementById('v-scores').innerHTML=players.map((p,i)=>`
+      <div class="vs-card" style="${i===winner?'border-color:var(--gold);background:rgba(212,168,67,.15);':''}">
+        <div class="vs-name">${esc(p.name)}</div>
+        <div class="vs-num">${p.score}</div>
+      </div>`).join('');
+  }
+}
+
+function showSetup(){
+  document.getElementById('setup-screen').style.display='block';
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('victory-overlay').style.display='none';
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
