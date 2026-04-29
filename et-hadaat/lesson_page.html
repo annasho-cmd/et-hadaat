@@ -45,6 +45,27 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .wc-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
 .wc-canvas-wrap{margin-top:14px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;}
 .wc-empty{text-align:center;padding:40px;opacity:.3;font-size:.85rem;}
+.tl-wrap{overflow-x:auto;padding:10px 0 20px;}
+.tl-axis{position:relative;height:80px;display:flex;align-items:center;}
+.tl-line{position:absolute;top:50%;left:0;right:0;height:3px;background:var(--gold);border-radius:2px;}
+.tl-years{display:flex;position:relative;z-index:1;width:100%;}
+.tl-year-col{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;}
+.tl-tick{width:2px;height:14px;background:var(--gold);margin-bottom:4px;}
+.tl-year-label{font-size:.72rem;color:var(--gold);font-weight:700;white-space:nowrap;}
+.tl-year-box{padding:3px 8px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);border-radius:6px;font-size:.75rem;color:var(--gold);font-weight:700;min-width:48px;text-align:center;}
+.tl-year-blank{padding:3px 8px;background:rgba(253,245,224,.06);border:2px dashed rgba(212,168,67,.3);border-radius:6px;min-width:48px;min-height:26px;text-align:center;transition:all .15s;}
+.tl-year-blank.drag-over{background:rgba(212,168,67,.15);border-color:var(--gold);}
+.tl-year-blank.filled{border-style:solid;border-color:var(--gold);background:rgba(212,168,67,.1);}
+.tl-events-row{display:flex;margin-top:10px;}
+.tl-event-col{flex:1;min-height:50px;padding:0 4px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.tl-event-card{background:rgba(44,26,14,.8);border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:.78rem;text-align:center;line-height:1.4;width:100%;transition:all .15s;}
+.tl-event-blank{border:2px dashed rgba(212,168,67,.25);border-radius:7px;min-height:42px;width:100%;transition:all .15s;}
+.tl-event-blank.drag-over{background:rgba(212,168,67,.1);border-color:var(--gold);}
+.tl-event-blank.filled{border-style:solid;border-color:var(--gold);}
+.tl-bank{display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;margin-top:14px;min-height:50px;}
+.tl-bank-item{padding:5px 12px;background:rgba(44,26,14,.7);border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;cursor:grab;user-select:none;white-space:nowrap;}
+.tl-bank-item:active{cursor:grabbing;opacity:.6;}
+.tl-bank-item.used{opacity:.25;pointer-events:none;}
 .klue-text{line-height:2.4;font-size:.92rem;direction:rtl;word-spacing:4px;}
 .klue-blank{display:inline-flex;align-items:center;justify-content:center;min-width:80px;height:28px;border-bottom:2px solid var(--gold);background:rgba(212,168,67,.06);border-radius:4px 4px 0 0;margin:0 2px;padding:0 6px;vertical-align:middle;cursor:pointer;transition:all .15s;font-size:.88rem;color:var(--parch);}
 .klue-blank.drag-over{background:rgba(212,168,67,.2);border-color:var(--gold2);}
@@ -550,6 +571,166 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── השלמת משפטים ──
+  if(slot.type==='fill_sentence'){
+    const d=slot.fillSentenceData||{instruction:'',sentences:[],useBank:true};
+    const sents=(d.sentences||[]).filter(s=>s.text);
+    const useBank=d.useBank!==false;
+    const uid=`fs-${stIdx}-${sli}`;
+
+    // אסוף כל המילים לבנק ועורבב
+    const allAnswers=[];
+    sents.forEach((s,si2)=>{
+      (s.answers||[]).forEach((ans,bi)=>{
+        if(ans)allAnswers.push({si2,bi,word:ans});
+      });
+    });
+    const shuffledBank=[...allAnswers].sort(()=>Math.random()-.5);
+
+    const bankHtml=useBank&&shuffledBank.length
+      ?`<div style="font-size:.72rem;opacity:.4;margin-bottom:6px;">בנק מילים — גרור למקום הנכון</div>
+        <div class="klue-bank" id="fs-bank-${uid}">
+          ${shuffledBank.map((item,bk)=>`
+            <div class="klue-chip" id="fs-chip-${uid}-${bk}"
+              draggable="true" data-word="${esc(item.word)}" data-bk="${bk}"
+              ondragstart="fsDragStart(event,'${uid}',${bk})"
+              ontouchstart="fsTouchStart(event,'${uid}',${bk})"
+              ontouchmove="fsTouchMove(event,'${uid}')"
+              ontouchend="fsTouchEnd(event,'${uid}')">${esc(item.word)}</div>`).join('')}
+        </div>`:''
+    ;
+
+    const sentsHtml=sents.map((s,si2)=>{
+      const parts=s.text.split('___');
+      let sentHtml='<span>';
+      parts.forEach((part,pi)=>{
+        sentHtml+=esc(part);
+        if(pi<parts.length-1){
+          const blankId=`fs-blank-${uid}-${si2}-${pi}`;
+          if(useBank){
+            sentHtml+=`</span><span class="klue-blank" id="${blankId}"
+              data-si2="${si2}" data-pi="${pi}"
+              ondragover="event.preventDefault();this.classList.add('drag-over')"
+              ondragleave="this.classList.remove('drag-over')"
+              ondrop="fsDrop(event,'${uid}',${si2},${pi})">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>`;
+          } else {
+            sentHtml+=`</span><input id="${blankId}" class="answer-area"
+              style="min-height:0;padding:3px 8px;display:inline;width:100px;font-size:.88rem;vertical-align:middle;resize:none;"
+              placeholder="___"
+              oninput="fsInputChange('${uid}',${si2},${pi},this.value)"><span>`;
+          }
+        }
+      });
+      sentHtml+='</span>';
+      return `<div style="margin-bottom:12px;">
+        <div style="font-size:.7rem;color:var(--gold);opacity:.55;margin-bottom:4px;">משפט ${si2+1}</div>
+        <div class="klue-text" style="line-height:2.2;">${sentHtml}</div>
+        ${!useBank?`<button onclick="fsHint('${uid}',${si2},'${esc(s.text)}')"
+          style="margin-top:4px;padding:4px 10px;background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.3);border-radius:14px;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.75rem;cursor:pointer;">💡 רמז</button>
+        <div id="fs-hint-${uid}-${si2}" style="display:none;margin-top:4px;padding:6px 10px;background:rgba(109,40,217,.1);border-radius:7px;font-size:.8rem;color:#c4b5fd;"></div>`:''}
+      </div>`;
+    }).join('');
+
+    html+=`<div style="font-size:.85rem;opacity:.65;margin-bottom:10px;">${esc(d.instruction||'השלימו את המשפטים')}</div>
+      ${bankHtml}
+      <div id="fs-sents-${uid}">${sentsHtml}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn-submit" onclick="fsCheck('${uid}',${JSON.stringify(sents).replace(/'/g,"\'")},${useBank})">בדוק ✓</button>
+        <button onclick="fsReset('${uid}')" style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">אפס</button>
+      </div>
+      <div id="fs-score-${uid}" style="display:none;" class="klue-score"></div>`;
+    block.innerHTML=html;
+    window[`_fsData_${uid}`]={sents,shuffledBank,filled:{},inputs:{}};
+    return block;
+  }
+
+  // ── ציר זמן ──
+  if(slot.type==='timeline'){
+    const d=slot.timelineData||{startYear:1800,endYear:2000,interval:50,events:[],studentView:'all'};
+    const uid=`tl-${stIdx}-${sli}`;
+    const years=[];
+    for(let y=d.startYear;y<=d.endYear;y+=d.interval)years.push(y);
+    const events=(d.events||[]).filter(e=>e.text||e.year);
+    const sv=d.studentView||'all';
+
+    // קבע מה להסתיר
+    function shouldHideYear(ev){return sv==='events_only'||(sv==='custom'&&ev.hideYear);}
+    function shouldHideEvent(ev){return sv==='years_only'||(sv==='custom'&&ev.hideText);}
+
+    // אסוף פריטים להגרלה בבנק
+    const bankItems=[];
+    events.forEach((ev,ei)=>{
+      if(shouldHideYear(ev)&&ev.year) bankItems.push({type:'year',val:String(ev.year),ei});
+      if(shouldHideEvent(ev)&&ev.text) bankItems.push({type:'event',val:ev.text,ei});
+    });
+    const shuffledBank=[...bankItems].sort(()=>Math.random()-.5);
+
+    // בנה עמודות ציר
+    const yearColsHtml=years.map((y,yi)=>{
+      // אירועים שמשויכים לשנה זו
+      const colEvents=events.filter(ev=>ev.year===y||(ev.year>y&&ev.year<(years[yi+1]||Infinity)));
+      const yearDisplay=shouldHideYear({year:y,hideYear:false})
+        ?`<div class="tl-year-blank" id="tl-yrblank-${uid}-${yi}"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="tlDrop(event,'${uid}','year',${yi})"></div>`
+        :`<div class="tl-year-box">${y}</div>`;
+
+      return `<div class="tl-year-col">
+        <div class="tl-tick"></div>
+        ${yearDisplay}
+      </div>`;
+    }).join('');
+
+    // בנה שורת אירועים
+    const eventColsHtml=years.map((y,yi)=>{
+      const colEvents=events.filter((ev,ei)=>{
+        const yr=parseInt(ev.year)||0;
+        return yr===y||(yr>y&&yr<(years[yi+1]||Infinity));
+      });
+      const evHtml=colEvents.map((ev,li)=>{
+        const ei=events.indexOf(ev);
+        if(shouldHideEvent(ev)){
+          return `<div class="tl-event-blank" id="tl-evblank-${uid}-${ei}"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="tlDrop(event,'${uid}','event',${ei})"></div>`;
+        }
+        return `<div class="tl-event-card">${esc(ev.text)}</div>`;
+      }).join('');
+      return `<div class="tl-event-col">${evHtml}</div>`;
+    }).join('');
+
+    const bankHtml=shuffledBank.length
+      ?`<div style="font-size:.72rem;opacity:.4;margin-bottom:6px;">גרור לציר הזמן</div>
+        <div class="tl-bank" id="tl-bank-${uid}">
+          ${shuffledBank.map((item,bi)=>`
+            <div class="tl-bank-item" id="tl-bitem-${uid}-${bi}"
+              draggable="true" data-type="${item.type}" data-val="${esc(item.val)}" data-ei="${item.ei}" data-bi="${bi}"
+              ondragstart="tlDragStart(event,'${uid}',${bi})"
+              ontouchstart="tlTouchStart(event,'${uid}',${bi})"
+              ontouchmove="tlTouchMove(event,'${uid}')"
+              ontouchend="tlTouchEnd(event,'${uid}')">${esc(item.val)}</div>`).join('')}
+        </div>`:'';
+
+    html+=`<div class="tl-wrap">
+      <div class="tl-axis">
+        <div class="tl-line"></div>
+        <div class="tl-years" style="min-width:${Math.max(years.length*80,300)}px;">${yearColsHtml}</div>
+      </div>
+      <div class="tl-events-row" style="min-width:${Math.max(years.length*80,300)}px;">${eventColsHtml}</div>
+    </div>
+    ${bankHtml}
+    ${shuffledBank.length?`<div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn-submit" onclick="tlCheck('${uid}')">בדוק ✓</button>
+      <button onclick="tlReset('${uid}')" style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">אפס</button>
+    </div>`:''}
+    <div id="tl-score-${uid}" style="display:none;" class="klue-score"></div>`;
+    block.innerHTML=html;
+    window[`_tlData_${uid}`]={shuffledBank,filled:{},events,years};
+    return block;
+  }
+
   // ── קלו ──
   if(slot.type==='klue'){
     const d=slot.klueData||{text:'',hiddenWords:[],useBank:true};
@@ -952,6 +1133,253 @@ function saveFillTableCell(tableId, stIdx, sli, showMsg){
       setTimeout(()=>saved.style.display='none',2000);
     }
   }
+}
+
+// ── FILL SENTENCE FUNCTIONS ──
+let _fsDrag={uid:null,bk:null};
+let _fsTouch={uid:null,bk:null,clone:null};
+
+function fsDragStart(e,uid,bk){
+  _fsDrag={uid,bk};
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=document.getElementById(`fs-chip-${uid}-${bk}`);if(el)el.style.opacity='.4';},0);
+}
+function fsDrop(e,uid,si2,pi){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const {bk}=_fsDrag;if(bk===null)return;
+  const data=window[`_fsData_${uid}`];if(!data)return;
+  fsPlaceWord(uid,bk,si2,pi);
+  const el=document.getElementById(`fs-chip-${uid}-${bk}`);
+  if(el)el.style.opacity='';
+}
+function fsTouchStart(e,uid,bk){
+  _fsTouch={uid,bk,clone:null};
+  const el=e.currentTarget;const rect=el.getBoundingClientRect();
+  const clone=el.cloneNode(true);
+  clone.style.cssText=`position:fixed;width:${rect.width}px;opacity:.85;z-index:999;pointer-events:none;top:${rect.top}px;left:${rect.left}px;margin:0;`;
+  document.body.appendChild(clone);_fsTouch.clone=clone;
+}
+function fsTouchMove(e,uid){
+  e.preventDefault();if(!_fsTouch.clone)return;
+  const t=e.touches[0];
+  _fsTouch.clone.style.top=(t.clientY-18)+'px';
+  _fsTouch.clone.style.left=(t.clientX-_fsTouch.clone.offsetWidth/2)+'px';
+  document.querySelectorAll(`[id^="fs-blank-${uid}-"]`).forEach(b=>b.classList.remove('drag-over'));
+  document.elementFromPoint(t.clientX,t.clientY)?.closest('[id^="fs-blank-"]')?.classList.add('drag-over');
+}
+function fsTouchEnd(e,uid){
+  if(_fsTouch.clone){_fsTouch.clone.remove();_fsTouch.clone=null;}
+  const t=e.changedTouches[0];
+  document.querySelectorAll(`[id^="fs-blank-${uid}-"]`).forEach(b=>b.classList.remove('drag-over'));
+  const blank=document.elementFromPoint(t.clientX,t.clientY)?.closest('[id^="fs-blank-"]');
+  if(blank){
+    const parts=blank.id.split('-');
+    const pi=parseInt(parts.pop()),si2=parseInt(parts.pop());
+    fsPlaceWord(uid,_fsTouch.bk,si2,pi);
+  }
+}
+function fsPlaceWord(uid,bk,si2,pi){
+  const data=window[`_fsData_${uid}`];if(!data||bk===null)return;
+  const key=`${si2}-${pi}`;
+  // החזר קיים
+  if(data.filled[key]!==undefined){
+    const prevChip=document.getElementById(`fs-chip-${uid}-${data.filled[key]}`);
+    if(prevChip)prevChip.classList.remove('used');
+  }
+  data.filled[key]=bk;
+  const chip=document.getElementById(`fs-chip-${uid}-${bk}`);
+  if(chip)chip.classList.add('used');
+  const blank=document.getElementById(`fs-blank-${uid}-${si2}-${pi}`);
+  if(blank){
+    blank.classList.add('filled');
+    blank.textContent=data.shuffledBank[bk]?.word||'';
+    blank.onclick=()=>fsRemove(uid,key,si2,pi);
+  }
+}
+function fsRemove(uid,key,si2,pi){
+  const data=window[`_fsData_${uid}`];if(!data)return;
+  const bk=data.filled[key];
+  if(bk!==undefined){delete data.filled[key];
+    const chip=document.getElementById(`fs-chip-${uid}-${bk}`);
+    if(chip)chip.classList.remove('used');}
+  const blank=document.getElementById(`fs-blank-${uid}-${si2}-${pi}`);
+  if(blank){blank.classList.remove('filled','wrong');blank.innerHTML='&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';blank.onclick=null;}
+}
+function fsInputChange(uid,si2,pi,val){
+  const data=window[`_fsData_${uid}`];if(!data)return;
+  if(!data.inputs)data.inputs={};
+  data.inputs[`${si2}-${pi}`]=val.trim().toLowerCase();
+}
+function fsCheck(uid,sents,useBank){
+  const data=window[`_fsData_${uid}`];if(!data)return;
+  let correct=0,total=0;
+  sents.forEach((s,si2)=>{
+    (s.answers||[]).forEach((ans,pi)=>{
+      total++;
+      const correct_w=(ans||'').trim().toLowerCase();
+      let student_w='';
+      if(useBank){
+        const bk=data.filled[`${si2}-${pi}`];
+        student_w=bk!==undefined?(data.shuffledBank[bk]?.word||'').toLowerCase():'';
+      } else {
+        student_w=data.inputs?.[`${si2}-${pi}`]||document.getElementById(`fs-blank-${uid}-${si2}-${pi}`)?.value?.trim().toLowerCase()||'';
+      }
+      const blank=document.getElementById(`fs-blank-${uid}-${si2}-${pi}`);
+      const isOk=student_w===correct_w;
+      if(isOk){correct++;if(blank){blank.style.borderColor='#22c55e';blank.style.background='rgba(34,197,94,.1)';}}
+      else if(blank){blank.style.borderColor='#f87171';blank.style.background='rgba(248,129,113,.08)';}
+    });
+  });
+  const score=document.getElementById(`fs-score-${uid}`);
+  if(score){score.style.display='block';
+    score.innerHTML=correct===total?`🎉 מצוין! כל ${total} ההשלמות נכונות!`:`${correct} מתוך ${total} נכון`;
+    score.style.color=correct===total?'#22c55e':'var(--parch)';}
+}
+function fsReset(uid){
+  const data=window[`_fsData_${uid}`];if(!data)return;
+  data.filled={};data.inputs={};
+  document.querySelectorAll(`[id^="fs-chip-${uid}-"]`).forEach(el=>el.classList.remove('used'));
+  document.querySelectorAll(`[id^="fs-blank-${uid}-"]`).forEach(el=>{
+    el.classList.remove('filled','wrong');el.innerHTML='&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';el.onclick=null;
+    el.style.borderColor='';el.style.background='';
+    if(el.tagName==='INPUT')el.value='';
+  });
+  const score=document.getElementById(`fs-score-${uid}`);
+  if(score)score.style.display='none';
+}
+async function fsHint(uid,si2,text){
+  const hintEl=document.getElementById(`fs-hint-${uid}-${si2}`);
+  if(!hintEl)return;
+  hintEl.style.display='block';hintEl.textContent='הסוכן חושב...';
+  try{
+    const res=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:80,
+        system:'אתה סוכן למידה. תן רמז קצר (משפט אחד) למשפט עם מילה חסרה. אל תאמר את המילה עצמה. ענה בעברית.',
+        messages:[{role:'user',content:`רמז למשפט: "${text}"`}]})});
+    const d=await res.json();
+    hintEl.textContent='💡 '+(d.content?.[0]?.text||'נסה לחשוב על ההקשר');
+  }catch(e){hintEl.textContent='לא ניתן להתחבר לסוכן';}
+}
+
+// ── TIMELINE DRAG ──
+let _tlDrag={uid:null,bi:null};
+let _tlTouch={uid:null,bi:null,clone:null};
+
+function tlDragStart(e,uid,bi){
+  _tlDrag={uid,bi};
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=document.getElementById(`tl-bitem-${uid}-${bi}`);if(el)el.style.opacity='.4';},0);
+}
+function tlDrop(e,uid,slotType,idx){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const data=window[`_tlData_${uid}`];if(!data)return;
+  const {bi}=_tlDrag;if(bi===null)return;
+  const item=data.shuffledBank[bi];
+  if(item.type!==slotType)return; // סוג לא תואם
+  tlPlace(uid,bi,slotType,idx);
+  const el=document.getElementById(`tl-bitem-${uid}-${bi}`);
+  if(el)el.style.opacity='';
+}
+
+function tlTouchStart(e,uid,bi){
+  _tlTouch={uid,bi,clone:null};
+  const el=e.currentTarget;const rect=el.getBoundingClientRect();
+  const clone=el.cloneNode(true);
+  clone.style.cssText=`position:fixed;width:${rect.width}px;opacity:.85;z-index:999;pointer-events:none;top:${rect.top}px;left:${rect.left}px;margin:0;`;
+  document.body.appendChild(clone);_tlTouch.clone=clone;
+}
+function tlTouchMove(e,uid){
+  e.preventDefault();if(!_tlTouch.clone)return;
+  const t=e.touches[0];
+  _tlTouch.clone.style.top=(t.clientY-20)+'px';
+  _tlTouch.clone.style.left=(t.clientX-_tlTouch.clone.offsetWidth/2)+'px';
+  document.querySelectorAll(`[id^="tl-yrblank-${uid}-"],[id^="tl-evblank-${uid}-"]`).forEach(b=>b.classList.remove('drag-over'));
+  const target=document.elementFromPoint(t.clientX,t.clientY);
+  target?.closest('[id^="tl-yrblank-"],[id^="tl-evblank-"]')?.classList.add('drag-over');
+}
+function tlTouchEnd(e,uid){
+  if(_tlTouch.clone){_tlTouch.clone.remove();_tlTouch.clone=null;}
+  const t=e.changedTouches[0];
+  document.querySelectorAll(`[id^="tl-yrblank-${uid}-"],[id^="tl-evblank-${uid}-"]`).forEach(b=>b.classList.remove('drag-over'));
+  const target=document.elementFromPoint(t.clientX,t.clientY);
+  const slot=target?.closest('[id^="tl-yrblank-"],[id^="tl-evblank-"]');
+  if(slot){
+    const parts=slot.id.split('-');
+    const idx=parseInt(parts.pop());
+    const type=slot.id.includes('yrblank')?'year':'event';
+    tlPlace(uid,_tlTouch.bi,type,idx);
+  }
+}
+
+function tlPlace(uid,bi,slotType,idx){
+  const data=window[`_tlData_${uid}`];if(!data||bi===null)return;
+  const item=data.shuffledBank[bi];
+  if(item.type!==slotType)return;
+  const key=`${slotType}-${idx}`;
+  // החזר פריט קיים
+  if(data.filled[key]!==undefined){
+    const prevChip=document.getElementById(`tl-bitem-${uid}-${data.filled[key]}`);
+    if(prevChip)prevChip.classList.remove('used');
+  }
+  data.filled[key]=bi;
+  const chip=document.getElementById(`tl-bitem-${uid}-${bi}`);
+  if(chip)chip.classList.add('used');
+  const blankId=slotType==='year'?`tl-yrblank-${uid}-${idx}`:`tl-evblank-${uid}-${idx}`;
+  const blank=document.getElementById(blankId);
+  if(blank){
+    blank.classList.add('filled');
+    blank.textContent=item.val;
+    blank.onclick=()=>tlRemove(uid,key,blankId);
+  }
+}
+
+function tlRemove(uid,key,blankId){
+  const data=window[`_tlData_${uid}`];if(!data)return;
+  const bi=data.filled[key];
+  if(bi!==undefined){
+    delete data.filled[key];
+    const chip=document.getElementById(`tl-bitem-${uid}-${bi}`);
+    if(chip)chip.classList.remove('used');
+  }
+  const blank=document.getElementById(blankId);
+  if(blank){blank.classList.remove('filled');blank.textContent='';blank.onclick=null;}
+}
+
+function tlCheck(uid){
+  const data=window[`_tlData_${uid}`];if(!data)return;
+  let correct=0,total=data.shuffledBank.length;
+  data.shuffledBank.forEach((item,bi)=>{
+    const key=`${item.type}-${item.ei}`;
+    const filledBi=data.filled[key];
+    const blankId=item.type==='year'?`tl-yrblank-${uid}-???`:`tl-evblank-${uid}-${item.ei}`;
+    // מצא את המשבצת הנכונה
+    const blank=document.getElementById(item.type==='year'
+      ?`tl-yrblank-${uid}-${data.years.indexOf(parseInt(item.val))}`
+      :`tl-evblank-${uid}-${item.ei}`);
+    if(!blank)return;
+    const isCorrect=filledBi!==undefined&&data.shuffledBank[filledBi]?.val===item.val;
+    if(isCorrect){correct++;blank.style.borderColor='#22c55e';blank.style.background='rgba(34,197,94,.1)';}
+    else if(filledBi!==undefined){blank.style.borderColor='#f87171';blank.style.background='rgba(248,129,113,.08)';}
+  });
+  const score=document.getElementById(`tl-score-${uid}`);
+  if(score){
+    score.style.display='block';
+    score.innerHTML=correct===total?`🎉 מצוין! הציר שלם ונכון!`:`${correct} מתוך ${total} נכון`;
+    score.style.color=correct===total?'#22c55e':'var(--parch)';
+  }
+}
+
+function tlReset(uid){
+  const data=window[`_tlData_${uid}`];if(!data)return;
+  data.filled={};
+  document.querySelectorAll(`[id^="tl-bitem-${uid}-"]`).forEach(el=>el.classList.remove('used'));
+  document.querySelectorAll(`[id^="tl-yrblank-${uid}-"],[id^="tl-evblank-${uid}-"]`).forEach(el=>{
+    el.classList.remove('filled');el.textContent='';el.onclick=null;el.style.borderColor='';el.style.background='';
+  });
+  const score=document.getElementById(`tl-score-${uid}`);
+  if(score)score.style.display='none';
 }
 
 // ── KLUE FUNCTIONS ──

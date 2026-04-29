@@ -192,6 +192,56 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='fill_sentence'){
+    const d=slot.fillSentenceData||{instruction:'',sentences:[]};
+    const sents=(d.sentences||[]).filter(s=>s.text);
+    const sentsHtml=sents.map((s,si2)=>{
+      const parts=s.text.split('___');
+      let html='<span>';
+      parts.forEach((part,pi)=>{
+        html+=esc(part);
+        if(pi<parts.length-1)
+          html+='</span><span style="display:inline-block;min-width:70px;border-bottom:2px solid var(--gold);margin:0 3px;"></span><span>';
+      });
+      html+='</span>';
+      return `<div style="margin-bottom:10px;font-size:.92rem;line-height:2.2;">${html}</div>`;
+    }).join('');
+    inner=`<div style="font-size:.88rem;opacity:.6;margin-bottom:10px;">${esc(d.instruction||'השלימו את המשפטים')}</div>
+      ${sentsHtml}
+      <div style="font-size:.75rem;opacity:.4;">התלמידים ממלאים בטאבלט ${d.useBank!==false?'(עם בנק מילים)':'(עצמאי)'}</div>`;
+
+  } else if(slot.type==='timeline'){
+    const d=slot.timelineData||{startYear:1800,endYear:2000,interval:50,events:[]};
+    const years=[];
+    for(let y=d.startYear;y<=d.endYear;y+=d.interval)years.push(y);
+    const events=(d.events||[]).filter(e=>e.text||e.year);
+
+    const yearsHtml=years.map(y=>`
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:60px;">
+        <div style="width:2px;height:12px;background:var(--gold);"></div>
+        <div style="padding:3px 8px;background:rgba(212,168,67,.15);border:1px solid rgba(212,168,67,.3);border-radius:5px;font-size:.75rem;color:var(--gold);font-weight:700;white-space:nowrap;">${y}</div>
+      </div>`).join('');
+
+    const eventsHtml=years.map(y=>{
+      const colEvs=events.filter(ev=>{
+        const yr=parseInt(ev.year)||0;
+        return yr===y||(yr>y&&yr<(years[years.indexOf(y)+1]||Infinity));
+      });
+      return `<div style="flex:1;min-width:60px;padding:0 3px;">
+        ${colEvs.map(ev=>`<div style="background:rgba(44,26,14,.7);border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:.75rem;text-align:center;margin-bottom:4px;line-height:1.4;">${esc(ev.text||'')}</div>`).join('')}
+      </div>`;
+    }).join('');
+
+    inner=`<div style="overflow-x:auto;">
+      <div style="min-width:${Math.max(years.length*80,400)}px;">
+        <div style="position:relative;padding:10px 0;">
+          <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:var(--gold);border-radius:2px;"></div>
+          <div style="display:flex;position:relative;z-index:1;">${yearsHtml}</div>
+        </div>
+        <div style="display:flex;margin-top:8px;">${eventsHtml}</div>
+      </div>
+    </div>`;
+
   } else if(slot.type==='klue'){
     const d=slot.klueData||{text:'',hiddenWords:[]};
     const words=(d.text||'').split(/\s+/).filter(Boolean);

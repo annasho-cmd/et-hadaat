@@ -1990,6 +1990,116 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── ציר זמן ──
+  if(slot.type==='timeline'){
+    const d=slot.timelineData||{startYear:1800,endYear:2000,interval:50,events:[],studentView:'all'};
+    const events=d.events||[];
+    const years=[];
+    for(let y=d.startYear;y<=d.endYear;y+=d.interval)years.push(y);
+
+    const eventsHtml=events.map((ev,ei)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <input class="inline-field" type="number" style="min-height:0;padding:4px 7px;width:90px;" placeholder="שנה"
+          value="${ev.year||''}" onchange="updateTLEvent('${section}',${si},${sli},${ei},'year',parseInt(this.value))">
+        <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.82rem;" placeholder="תיאור האירוע..."
+          value="${esc(ev.text||'')}" onchange="updateTLEvent('${section}',${si},${sli},${ei},'text',this.value)">
+        <label style="display:flex;align-items:center;gap:4px;font-size:.75rem;cursor:pointer;white-space:nowrap;">
+          <input type="checkbox" ${ev.hideYear?'checked':''} onchange="updateTLEvent('${section}',${si},${sli},${ei},'hideYear',this.checked)">שנה?
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.75rem;cursor:pointer;white-space:nowrap;">
+          <input type="checkbox" ${ev.hideText?'checked':''} onchange="updateTLEvent('${section}',${si},${sli},${ei},'hideText',this.checked)">אירוע?
+        </label>
+        <button onclick="removeTLEvent('${section}',${si},${sli},${ei})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem;padding:0 3px;">✕</button>
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">📅 ציר זמן</div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:.8rem;opacity:.6;">מ-</span>
+          <input class="inline-field" type="number" style="min-height:0;padding:5px 8px;width:90px;"
+            value="${d.startYear}" onchange="updateTLField('${section}',${si},${sli},'startYear',parseInt(this.value));renderLessonStructure()">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:.8rem;opacity:.6;">עד-</span>
+          <input class="inline-field" type="number" style="min-height:0;padding:5px 8px;width:90px;"
+            value="${d.endYear}" onchange="updateTLField('${section}',${si},${sli},'endYear',parseInt(this.value));renderLessonStructure()">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:.8rem;opacity:.6;">מרווח-</span>
+          <select class="inline-field" style="min-height:0;padding:5px 8px;"
+            onchange="updateTLField('${section}',${si},${sli},'interval',parseInt(this.value));renderLessonStructure()">
+            ${[10,25,50,100,200,500].map(v=>`<option value="${v}" ${d.interval===v?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="font-size:.72rem;opacity:.4;margin-bottom:8px;">שנים על הציר: ${years.join(' · ')}</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">אירועים (סמן ✓ מה להסתיר מהתלמיד):</div>
+      <div id="tl-events-${uid}">${eventsHtml}</div>
+      ${events.length<20?`<button onclick="addTLEvent('${section}',${si},${sli})"
+        style="width:100%;padding:6px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:10px;">+ הוסף אירוע</button>`:''}
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">מה התלמיד רואה:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        ${[['all','הכל'],['years_only','שנים בלבד'],['events_only','אירועים בלבד'],['custom','לפי סימון ✓']].map(([v,l])=>`
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;">
+            <input type="radio" name="tl-view-${uid}" value="${v}" ${d.studentView===v?'checked':''}
+              onchange="updateTLField('${section}',${si},${sli},'studentView','${v}')"> ${l}
+          </label>`).join('')}
+      </div>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveTLData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
+  // ── השלמת משפטים ──
+  if(slot.type==='fill_sentence'){
+    const d=slot.fillSentenceData||{instruction:'',sentences:[{text:'',blanks:[]}],useBank:true};
+    const sents=d.sentences||[{text:'',blanks:[]}];
+
+    const sentsHtml=sents.map((s,si2)=>`
+      <div style="background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span style="min-width:22px;height:22px;border-radius:5px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${si2+1}</span>
+          <span style="font-size:.75rem;opacity:.5;">השתמש ב-___ לסימון מילה חסרה</span>
+          ${sents.length>1?`<button onclick="removeFS('${section}',${si},${sli},${si2})"
+            style="margin-right:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕</button>`:''}
+        </div>
+        <textarea class="inline-field" style="min-height:50px;font-size:.85rem;" 
+          placeholder="למשל: הקרב ב___ התחיל בשנת ___..."
+          onchange="updateFSSentence('${section}',${si},${sli},${si2},this.value)">${esc(s.text||'')}</textarea>
+        ${s.text&&s.text.includes('___')?`<div style="font-size:.72rem;opacity:.5;margin-top:4px;">
+          ${s.text.split('___').length-1} מילים חסרות — הזן את המילים הנכונות:
+        </div>
+        ${Array.from({length:s.text.split('___').length-1},(_,bi)=>`
+          <input class="inline-field" style="min-height:0;padding:4px 8px;font-size:.8rem;margin-top:4px;" 
+            placeholder="מילה ${bi+1} הנכונה"
+            value="${esc((s.answers||[])[bi]||'')}"
+            onchange="updateFSAnswer('${section}',${si},${sli},${si2},${bi},this.value)">`).join('')}`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">📝 השלמת משפטים</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה לתלמידים:</div>
+      <textarea class="inline-field" style="margin-bottom:10px;min-height:45px;" 
+        placeholder="למשל: השלימו את המשפטים עם המילים המתאימות..."
+        onchange="updateFSField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div style="font-size:.72rem;opacity:.45;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.2);border-radius:6px;padding:6px 10px;margin-bottom:10px;">
+        💡 כתוב ___ (שלושה קווים תחתיים) במקום כל מילה שרוצה להסתיר
+      </div>
+      <div id="fs-sents-${uid}">${sentsHtml}</div>
+      ${sents.length<10?`<button onclick="addFS('${section}',${si},${sli})"
+        style="width:100%;padding:6px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:10px;">+ הוסף משפט</button>`:''}
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;margin-bottom:4px;">
+        <input type="checkbox" ${d.useBank!==false?'checked':''} style="width:15px;height:15px;"
+          onchange="updateFSField('${section}',${si},${sli},'useBank',this.checked)">
+        <span>השתמש בבנק מילים</span>
+      </label>
+      <div class="editor-btns" style="margin-top:10px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveFSData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── קריאת מקורות ──
   if(slot.type==='sources'){
     const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
@@ -2254,6 +2364,72 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── FILL_SENTENCE HELPERS ──
+function updateFSField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.fillSentenceData)slot.fillSentenceData={instruction:'',sentences:[{text:'',answers:[]}],useBank:true};
+  slot.fillSentenceData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateFSSentence(section,si,sli,si2,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.fillSentenceData)slot.fillSentenceData={instruction:'',sentences:[],useBank:true};
+  if(!slot.fillSentenceData.sentences[si2])slot.fillSentenceData.sentences[si2]={text:'',answers:[]};
+  slot.fillSentenceData.sentences[si2].text=val;
+  // אפס תשובות אם מספר החסרים השתנה
+  const count=(val.match(/___/g)||[]).length;
+  slot.fillSentenceData.sentences[si2].answers=Array(count).fill('');
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateFSAnswer(section,si,sli,si2,bi,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.fillSentenceData.sentences[si2].answers)slot.fillSentenceData.sentences[si2].answers=[];
+  slot.fillSentenceData.sentences[si2].answers[bi]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addFS(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.fillSentenceData)slot.fillSentenceData={instruction:'',sentences:[],useBank:true};
+  slot.fillSentenceData.sentences.push({text:'',answers:[]});
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function removeFS(section,si,sli,si2){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.fillSentenceData.sentences.splice(si2,1);
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveFSData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
+// ── TIMELINE HELPERS ──
+function updateTLField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.timelineData)slot.timelineData={startYear:1800,endYear:2000,interval:50,events:[],studentView:'all'};
+  slot.timelineData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateTLEvent(section,si,sli,ei,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.timelineData.events[ei])slot.timelineData.events[ei]={year:'',text:'',hideYear:false,hideText:false};
+  slot.timelineData.events[ei][field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addTLEvent(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.timelineData.events.push({year:'',text:'',hideYear:false,hideText:false});
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function removeTLEvent(section,si,sli,ei){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.timelineData.events.splice(ei,1);
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveTLData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── KLUE HELPERS ──
 function updateKlueText(section,si,sli,val,uid){
   const slot=getSlot(section,si,sli);if(!slot)return;
