@@ -2100,6 +2100,84 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── גלה את התמונה ──
+  if(slot.type==='reveal_img'){
+    const d=slot.revealData||{images:[{url:'',pieces:6,questions:[]}]};
+    const images=d.images||[{url:'',pieces:6,questions:[]}];
+
+    const imgsHtml=images.map((img,ii)=>{
+      const qs=img.questions||[];
+      const qsHtml=qs.map((q,qi)=>`
+        <div style="background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:7px;padding:8px 10px;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <span style="min-width:20px;height:20px;border-radius:4px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;">${qi+1}</span>
+            <select class="inline-field" style="min-height:0;padding:3px 6px;width:120px;"
+              onchange="updateRevealQ('${section}',${si},${sli},${ii},${qi},'type',this.value);renderLessonStructure()">
+              <option value="tf" ${q.type==='tf'||!q.type?'selected':''}>נכון/לא נכון</option>
+              <option value="mc" ${q.type==='mc'?'selected':''}>רב-ברירה</option>
+            </select>
+            <button onclick="removeRevealQ('${section}',${si},${sli},${ii},${qi})"
+              style="margin-right:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕</button>
+          </div>
+          <input class="inline-field" style="min-height:0;padding:4px 8px;font-size:.82rem;margin-bottom:5px;"
+            placeholder="כתבי את השאלה..."
+            value="${esc(q.question||'')}"
+            onchange="updateRevealQ('${section}',${si},${sli},${ii},${qi},'question',this.value)">
+          ${q.type==='mc'?`
+            ${(q.options||['','','','']).map((o,oi)=>`
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+                <input type="radio" name="rev-mc-${uid}-${ii}-${qi}" ${q.correct===oi?'checked':''}
+                  onchange="updateRevealQ('${section}',${si},${sli},${ii},${qi},'correct',${oi})"
+                  style="width:13px;height:13px;">
+                <input class="inline-field" style="flex:1;min-height:0;padding:3px 7px;font-size:.78rem;"
+                  placeholder="אפשרות ${oi+1}" value="${esc(o)}"
+                  onchange="updateRevealQOption('${section}',${si},${sli},${ii},${qi},${oi},this.value)">
+              </div>`).join('')}`:`
+            <div style="display:flex;gap:8px;">
+              <button onclick="updateRevealQ('${section}',${si},${sli},${ii},${qi},'tfCorrect',true)"
+                style="flex:1;padding:4px;border-radius:5px;border:1.5px solid ${q.tfCorrect===true?'#22c55e':'var(--border)'};background:${q.tfCorrect===true?'rgba(34,197,94,.1)':'transparent'};cursor:pointer;font-size:.78rem;font-family:Heebo,sans-serif;color:${q.tfCorrect===true?'#22c55e':'var(--parch)'};">✅ נכון</button>
+              <button onclick="updateRevealQ('${section}',${si},${sli},${ii},${qi},'tfCorrect',false)"
+                style="flex:1;padding:4px;border-radius:5px;border:1.5px solid ${q.tfCorrect===false?'#f87171':'var(--border)'};background:${q.tfCorrect===false?'rgba(248,129,113,.1)':'transparent'};cursor:pointer;font-size:.78rem;font-family:Heebo,sans-serif;color:${q.tfCorrect===false?'#f87171':'var(--parch)'};">❌ לא נכון</button>
+            </div>`}
+        </div>`).join('');
+
+      return `<div style="background:rgba(44,26,14,.4);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:.8rem;font-weight:700;color:var(--gold);">תמונה ${ii+1}</span>
+          ${images.length>1?`<button onclick="removeRevealImg('${section}',${si},${sli},${ii})"
+            style="margin-right:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕ הסר תמונה</button>`:''}
+        </div>
+        <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.82rem;margin-bottom:6px;"
+          placeholder="קישור לתמונה (URL / Google Drive)..."
+          value="${esc(img.url||'')}"
+          onchange="updateRevealImg('${section}',${si},${sli},${ii},'url',this.value)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:.8rem;opacity:.6;">מספר חלקים:</span>
+          <button onclick="updateRevealImg('${section}',${si},${sli},${ii},'pieces',6);renderLessonStructure()"
+            style="padding:4px 12px;border-radius:14px;border:1px solid ${img.pieces===6?'var(--gold)':'var(--border)'};background:${img.pieces===6?'rgba(212,168,67,.15)':'transparent'};color:${img.pieces===6?'var(--gold)':'var(--parch)'};cursor:pointer;font-size:.82rem;font-family:Heebo,sans-serif;">6</button>
+          <button onclick="updateRevealImg('${section}',${si},${sli},${ii},'pieces',10);renderLessonStructure()"
+            style="padding:4px 12px;border-radius:14px;border:1px solid ${img.pieces===10?'var(--gold)':'var(--border)'};background:${img.pieces===10?'rgba(212,168,67,.15)':'transparent'};color:${img.pieces===10?'var(--gold)':'var(--parch)'};cursor:pointer;font-size:.82rem;font-family:Heebo,sans-serif;">10</button>
+        </div>
+        <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">שאלות (${qs.length}/${img.pieces||6}):</div>
+        <div>${qsHtml}</div>
+        ${qs.length<(img.pieces||6)?`<button onclick="addRevealQ('${section}',${si},${sli},${ii})"
+          style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף שאלה</button>`:''}
+      </div>`;
+    }).join('');
+
+    return `<div class="inline-editor-title">🖼️ גלה את התמונה</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:10px;">
+        כל תשובה נכונה מגלה חלק מהתמונה. ניתן להעלות עד 3 תמונות.
+      </div>
+      ${imgsHtml}
+      ${images.length<3?`<button onclick="addRevealImg('${section}',${si},${sli})"
+        style="width:100%;padding:7px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:8px;color:var(--gold);font-size:.82rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:10px;">+ הוסף תמונה</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveRevealData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── קריאת מקורות ──
   if(slot.type==='sources'){
     const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
@@ -2364,6 +2442,54 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── REVEAL_IMG HELPERS ──
+function updateRevealImg(section,si,sli,ii,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.revealData)slot.revealData={images:[{url:'',pieces:6,questions:[]}]};
+  if(!slot.revealData.images[ii])slot.revealData.images[ii]={url:'',pieces:6,questions:[]};
+  slot.revealData.images[ii][field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addRevealImg(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.revealData)slot.revealData={images:[]};
+  if(slot.revealData.images.length>=3)return;
+  slot.revealData.images.push({url:'',pieces:6,questions:[]});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeRevealImg(section,si,sli,ii){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.revealData.images.splice(ii,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function addRevealQ(section,si,sli,ii){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const img=slot.revealData.images[ii];if(!img)return;
+  if(!img.questions)img.questions=[];
+  if(img.questions.length>=img.pieces)return;
+  img.questions.push({type:'tf',question:'',tfCorrect:true,options:['','','',''],correct:0});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeRevealQ(section,si,sli,ii,qi){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.revealData.images[ii].questions.splice(qi,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function updateRevealQ(section,si,sli,ii,qi,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const q=slot.revealData.images[ii].questions[qi];if(!q)return;
+  q[field]=val;
+  if(field==='type')renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateRevealQOption(section,si,sli,ii,qi,oi,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const q=slot.revealData.images[ii].questions[qi];if(!q)return;
+  if(!q.options)q.options=['','','',''];
+  q.options[oi]=val;setSaveStatus('שינויים לא שמורים');
+}
+function saveRevealData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── FILL_SENTENCE HELPERS ──
 function updateFSField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;

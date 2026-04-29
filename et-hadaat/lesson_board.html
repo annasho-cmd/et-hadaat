@@ -192,6 +192,24 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='reveal_img'){
+    const d=slot.revealData||{images:[]};
+    const imgs=(d.images||[]).filter(img=>img.url);
+    inner=`<div style="text-align:center;padding:32px 20px;">
+      <div style="font-size:3rem;margin-bottom:12px;">🖼️</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">גלה את התמונה</div>
+      <div style="font-size:.85rem;opacity:.5;margin-bottom:20px;">${imgs.length} תמונה${imgs.length>1?'ות':''} · תלמידים עונים שאלות ומגלים</div>
+      ${imgs.length?`<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        ${imgs.slice(0,3).map((img,ii)=>{
+          let src=img.url||'';
+          const m=src.match(/\/file\/d\/([^\/\?]+)/);
+          if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+          return `<img src="${esc(src)}" style="height:80px;width:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+        }).join('')}
+      </div>`:''}
+      <div style="font-size:.75rem;opacity:.4;margin-top:12px;">התלמידים פותחים בטאבלט</div>
+    </div>`;
+
   } else if(slot.type==='fill_sentence'){
     const d=slot.fillSentenceData||{instruction:'',sentences:[]};
     const sents=(d.sentences||[]).filter(s=>s.text);

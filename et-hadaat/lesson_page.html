@@ -571,6 +571,27 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── גלה את התמונה ──
+  if(slot.type==='reveal_img'){
+    const d=slot.revealData||{images:[]};
+    const imgs=d.images||[];
+    const revealParams=encodeURIComponent(JSON.stringify(d));
+    const savePath=`${answersPath}/${stIdx}-${sli}`;
+    const revealUrl=window.location.href.replace(/[^/]*$\.html.*$/,'reveal_image.html')
+      +'?data='+revealParams+'&student='+encodeURIComponent(studentName||'')+'&savePath='+encodeURIComponent(savePath);
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🖼️</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">גלה את התמונה</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${imgs.length} תמונה${imgs.length>1?'ות':''} · ענה על שאלות וגלה מה מסתתר</div>
+      <button onclick="window.open('${revealUrl}','_blank','width=900,height=640')"
+        style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+        פתח פעילות 🖼️
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── השלמת משפטים ──
   if(slot.type==='fill_sentence'){
     const d=slot.fillSentenceData||{instruction:'',sentences:[],useBank:true};
