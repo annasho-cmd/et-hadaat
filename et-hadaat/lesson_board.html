@@ -192,6 +192,18 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='what_connects'){
+    const d=slot.whatConnectsData||{instruction:'',cards:[],numPairs:2};
+    const cards=(d.cards||[]).filter(c=>c.value);
+    const numPairs=d.numPairs||2;
+    const cardsHtml=cards.map(c=>c.type==='image'
+      ?`<div style="padding:4px;border:1px solid var(--border);border-radius:7px;display:inline-flex;"><img src="${esc(c.value)}" style="height:52px;width:76px;object-fit:cover;border-radius:5px;" onerror="this.style.display='none'"></div>`
+      :`<div style="padding:7px 12px;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:7px;font-size:.88rem;">${esc(c.value)}</div>`
+    ).join('');
+    inner=`<div style="font-size:.88rem;opacity:.65;margin-bottom:12px;">${esc(d.instruction||`מצאו ${numPairs} זוגות שיש ביניהן קשר`)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">${cardsHtml}</div>
+      <div style="font-size:.75rem;opacity:.4;">התלמידים מוצאים זוגות ומסבירים את הקשר בטאבלט</div>`;
+
   } else if(slot.type==='drag_drop'){
     const d=slot.dragDropData||{instruction:'',sentences:[]};
     const sents=d.sentences.filter(Boolean);

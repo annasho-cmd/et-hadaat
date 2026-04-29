@@ -45,6 +45,20 @@ body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-he
 .wc-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
 .wc-canvas-wrap{margin-top:14px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;}
 .wc-empty{text-align:center;padding:40px;opacity:.3;font-size:.85rem;}
+.wc2-area{margin-top:10px;}
+.wc2-cards-bank{display:flex;flex-wrap:wrap;gap:8px;min-height:60px;padding:10px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;}
+.wc2-card{padding:8px 14px;background:rgba(44,26,14,.7);border:1.5px solid var(--border);border-radius:8px;cursor:grab;font-size:.88rem;user-select:none;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.wc2-card:active{cursor:grabbing;opacity:.7;}
+.wc2-card img{height:48px;width:72px;object-fit:cover;border-radius:5px;}
+.wc2-card.used{opacity:.3;pointer-events:none;}
+.wc2-pair-row{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.wc2-pair-slots{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.wc2-slot{flex:1;min-width:90px;min-height:44px;border:2px dashed rgba(212,168,67,.25);border-radius:7px;padding:6px 10px;display:flex;align-items:center;justify-content:center;font-size:.82rem;transition:all .15s;position:relative;}
+.wc2-slot.has-card{border-style:solid;border-color:var(--gold);background:rgba(212,168,67,.06);}
+.wc2-slot.drag-over{background:rgba(212,168,67,.12);border-color:var(--gold);}
+.wc2-connection-input{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;padding:6px 10px;outline:none;}
+.wc2-connection-input:focus{border-color:var(--gold);}
+.wc2-remove-btn{position:absolute;top:2px;left:2px;background:none;border:none;color:#f87171;cursor:pointer;font-size:.7rem;padding:1px 4px;}
 .dd-wrap{display:flex;gap:12px;margin-top:10px;}
 .dd-bank{flex:1;min-height:200px;}
 .dd-targets{flex:1;}
@@ -526,6 +540,62 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── מה הקשר? ──
+  if(slot.type==='what_connects'){
+    const d=slot.whatConnectsData||{instruction:'',cards:[],numPairs:2};
+    const cards=(d.cards||[]).filter(c=>c.value);
+    const numPairs=Math.min(d.numPairs||2,10);
+    const uid=`wc2-${stIdx}-${sli}`;
+
+    // ערבב כרטיסיות
+    const shuffled=[...cards].sort(()=>Math.random()-.5);
+    const bankHtml=shuffled.map((c,i)=>`
+      <div class="wc2-card" id="wc2-card-${uid}-${i}"
+        draggable="true" data-ci="${i}"
+        ondragstart="wc2DragStart(event,'${uid}',${i})"
+        ontouchstart="wc2TouchStart(event,'${uid}',${i})"
+        ontouchmove="wc2TouchMove(event,'${uid}')"
+        ontouchend="wc2TouchEnd(event,'${uid}')">
+        ${c.type==='image'
+          ? `<img src="${esc(c.value)}" alt="כרטיסיה" onerror="this.style.display='none'">`
+          : esc(c.value)}
+      </div>`).join('');
+
+    const pairsHtml=Array.from({length:numPairs},(_,pi)=>`
+      <div class="wc2-pair-row" id="wc2-pair-${uid}-${pi}">
+        <div style="font-size:.7rem;opacity:.4;margin-bottom:6px;">זוג ${pi+1}</div>
+        <div class="wc2-pair-slots">
+          <div class="wc2-slot" id="wc2-slot-${uid}-${pi}-0"
+            ondragover="wc2DragOver(event)" ondragleave="wc2DragLeave(event)"
+            ondrop="wc2Drop(event,'${uid}',${pi},0)">
+            <span style="opacity:.3;font-size:.75rem;">גרור כרטיסיה</span>
+          </div>
+          <div class="wc2-slot" id="wc2-slot-${uid}-${pi}-1"
+            ondragover="wc2DragOver(event)" ondragleave="wc2DragLeave(event)"
+            ondrop="wc2Drop(event,'${uid}',${pi},1)">
+            <span style="opacity:.3;font-size:.75rem;">גרור כרטיסיה</span>
+          </div>
+        </div>
+        <input class="wc2-connection-input" placeholder="מה הקשר בין הכרטיסיות?"
+          oninput="wc2SaveData('${uid}',${numPairs})">
+      </div>`).join('');
+
+    html+=`<div style="font-size:.85rem;opacity:.65;margin-bottom:10px;">${esc(d.instruction||`מצאו ${numPairs} זוגות של כרטיסיות שיש ביניהן קשר והסבירו`)}</div>
+      <div class="wc2-area">
+        <div style="font-size:.72rem;opacity:.4;margin-bottom:6px;">כרטיסיות — גרור לזוגות</div>
+        <div class="wc2-cards-bank" id="wc2-bank-${uid}">${bankHtml}</div>
+        <div style="font-size:.72rem;opacity:.4;margin-bottom:8px;">זוגות שלי</div>
+        <div id="wc2-pairs-${uid}">${pairsHtml}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-submit" onclick="wc2Submit('${uid}',${numPairs})">שמור תשובות ✓</button>
+      </div>
+      <span class="answer-saved" id="saved-${stIdx}-${sli}" style="display:none;margin-top:6px;">✅ נשמר</span>`;
+    block.innerHTML=html;
+    window[`_wc2Data_${uid}`]={shuffled,slots:{},numPairs};
+    return block;
+  }
+
   // ── רצף אירועים ──
   if(slot.type==='drag_drop'){
     const d=slot.dragDropData||{instruction:'',sentences:[]};
@@ -823,6 +893,124 @@ function saveFillTableCell(tableId, stIdx, sli, showMsg){
       setTimeout(()=>saved.style.display='none',2000);
     }
   }
+}
+
+// ── WHAT CONNECTS DRAG ──
+let _wc2Dragging={uid:null,ci:null};
+
+function wc2DragStart(e,uid,ci){
+  _wc2Dragging={uid,ci};
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=document.getElementById(`wc2-card-${uid}-${ci}`);if(el)el.style.opacity='.4';},0);
+}
+function wc2DragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function wc2DragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function wc2Drop(e,uid,pi,si){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  wc2PlaceCard(uid,_wc2Dragging.ci,pi,si);
+  const el=document.getElementById(`wc2-card-${uid}-${_wc2Dragging.ci}`);
+  if(el)el.style.opacity='';
+}
+
+let _wc2Touch={uid:null,ci:null,clone:null};
+function wc2TouchStart(e,uid,ci){
+  _wc2Touch={uid,ci,clone:null};
+  const el=e.currentTarget;
+  const rect=el.getBoundingClientRect();
+  const clone=el.cloneNode(true);
+  clone.style.cssText=`position:fixed;width:${rect.width}px;opacity:.8;z-index:999;pointer-events:none;top:${rect.top}px;left:${rect.left}px;margin:0;`;
+  document.body.appendChild(clone);
+  _wc2Touch.clone=clone;
+}
+function wc2TouchMove(e,uid){
+  e.preventDefault();
+  if(!_wc2Touch.clone)return;
+  const t=e.touches[0];
+  _wc2Touch.clone.style.top=(t.clientY-24)+'px';
+  _wc2Touch.clone.style.left=(t.clientX-_wc2Touch.clone.offsetWidth/2)+'px';
+  document.querySelectorAll(`[id^="wc2-slot-${uid}-"]`).forEach(s=>s.classList.remove('drag-over'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  el?.closest('[id^="wc2-slot-"]')?.classList.add('drag-over');
+}
+function wc2TouchEnd(e,uid){
+  if(_wc2Touch.clone){_wc2Touch.clone.remove();_wc2Touch.clone=null;}
+  const t=e.changedTouches[0];
+  document.querySelectorAll(`[id^="wc2-slot-${uid}-"]`).forEach(s=>s.classList.remove('drag-over'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const slot=el?.closest('[id^="wc2-slot-"]');
+  if(slot){
+    const parts=slot.id.split('-');
+    const si=parseInt(parts.pop()),pi=parseInt(parts.pop());
+    wc2PlaceCard(uid,_wc2Touch.ci,pi,si);
+  }
+}
+
+function wc2PlaceCard(uid,ci,pi,si){
+  const data=window[`_wc2Data_${uid}`];if(!data||ci===null)return;
+  const card=data.shuffled[ci];
+  const key=`${pi}-${si}`;
+
+  // אם המשבצת תפוסה — החזר לבנק
+  const prev=data.slots[key];
+  if(prev!==undefined){
+    const prevEl=document.getElementById(`wc2-card-${uid}-${prev}`);
+    if(prevEl)prevEl.classList.remove('used');
+  }
+  // אם הכרטיס כבר מוצב — פנה
+  Object.entries(data.slots).forEach(([k,v])=>{
+    if(v===ci){
+      delete data.slots[k];
+      const [pp,ss]=k.split('-');
+      const slotEl=document.getElementById(`wc2-slot-${uid}-${pp}-${ss}`);
+      if(slotEl){slotEl.innerHTML='<span style="opacity:.3;font-size:.75rem;">גרור כרטיסיה</span>';slotEl.classList.remove('has-card');}
+    }
+  });
+  data.slots[key]=ci;
+  const cardEl=document.getElementById(`wc2-card-${uid}-${ci}`);
+  if(cardEl)cardEl.classList.add('used');
+  const slotEl=document.getElementById(`wc2-slot-${uid}-${pi}-${si}`);
+  if(slotEl){
+    slotEl.classList.add('has-card');
+    const imgOrText=card.type==='image'
+      ?`<img src="${card.value}" style="height:44px;width:66px;object-fit:cover;border-radius:5px;" onerror="this.style.display='none'"> `
+      :card.value;
+    slotEl.innerHTML=`<span style="font-size:.85rem;">${imgOrText}</span>
+      <button class="wc2-remove-btn" onclick="wc2RemoveCard('${uid}',${pi},${si})">✕</button>`;
+  }
+}
+
+function wc2RemoveCard(uid,pi,si){
+  const data=window[`_wc2Data_${uid}`];if(!data)return;
+  const key=`${pi}-${si}`;
+  const ci=data.slots[key];
+  if(ci!==undefined){
+    delete data.slots[key];
+    const cardEl=document.getElementById(`wc2-card-${uid}-${ci}`);
+    if(cardEl)cardEl.classList.remove('used');
+  }
+  const slotEl=document.getElementById(`wc2-slot-${uid}-${pi}-${si}`);
+  if(slotEl){slotEl.innerHTML='<span style="opacity:.3;font-size:.75rem;">גרור כרטיסיה</span>';slotEl.classList.remove('has-card');}
+}
+
+async function wc2Submit(uid,numPairs){
+  const data=window[`_wc2Data_${uid}`];if(!data)return;
+  const pairs=[];
+  for(let pi=0;pi<numPairs;pi++){
+    const c0=data.slots[`${pi}-0`];
+    const c1=data.slots[`${pi}-1`];
+    const conn=document.querySelector(`#wc2-pair-${uid}-${pi} .wc2-connection-input`)?.value||'';
+    pairs.push({
+      card0:c0!==undefined?data.shuffled[c0]?.value:'',
+      card1:c1!==undefined?data.shuffled[c1]?.value:'',
+      connection:conn
+    });
+  }
+  const key=`${uid.split('-')[1]}-${uid.split('-')[2]}`;
+  await db.ref(answersPath+'/'+key).set({pairs,ts:Date.now()});
+  const parts=uid.split('-');
+  const saved=document.getElementById(`saved-${parts[1]}-${parts[2]}`);
+  if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2500);}
 }
 
 // ── DRAG & DROP ──

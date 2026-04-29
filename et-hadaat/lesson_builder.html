@@ -1891,6 +1891,51 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── מיון — מה הקשר? ──
+  if(slot.type==='what_connects'){
+    const d=slot.whatConnectsData||{instruction:'',cards:[{type:'text',value:''}],numPairs:2};
+    const cards=d.cards||[{type:'text',value:''}];
+    const cardsHtml=cards.map((c,ci)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="min-width:22px;height:22px;border-radius:5px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ci+1}</span>
+        <select class="inline-field" style="min-height:0;padding:4px 6px;width:80px;"
+          onchange="updateWCCard('${section}',${si},${sli},${ci},'type',this.value);renderLessonStructure()">
+          <option value="text" ${c.type==='text'?'selected':''}>מילה</option>
+          <option value="image" ${c.type==='image'?'selected':''}>תמונה</option>
+        </select>
+        ${c.type==='image'
+          ? `<input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.8rem;" placeholder="קישור לתמונה / Drive"
+               value="${esc(c.value||'')}"
+               onchange="updateWCCard('${section}',${si},${sli},${ci},'value',this.value)">`
+          : `<input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.82rem;" placeholder="מושג / מילה..."
+               value="${esc(c.value||'')}"
+               onchange="updateWCCard('${section}',${si},${sli},${ci},'value',this.value)">`
+        }
+        ${cards.length>1?`<button onclick="removeWCCard('${section}',${si},${sli},${ci})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem;padding:0 4px;">✕</button>`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🔗 מה הקשר?</div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה לתלמידים:</div>
+      <textarea class="inline-field" style="margin-bottom:10px;min-height:50px;"
+        placeholder="מצאו ___ זוגות של כרטיסיות שיש ביניהן קשר והסבירו את הקשר"
+        onchange="updateWCField2('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="font-size:.82rem;">מספר זוגות שהתלמיד מוצא:</div>
+        <input class="inline-field" type="number" min="1" max="10" style="min-height:0;padding:5px 8px;width:65px;"
+          value="${d.numPairs||2}"
+          onchange="updateWCField2('${section}',${si},${sli},'numPairs',parseInt(this.value))">
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">כרטיסיות (עד 20):</div>
+      <div id="wc-cards-${uid}">${cardsHtml}</div>
+      ${cards.length<20?`<button onclick="addWCCard('${section}',${si},${sli})"
+        style="width:100%;padding:6px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף כרטיסיה</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveWCData2('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── קריאת מקורות ──
   if(slot.type==='sources'){
     const d=slot.sourcesData||{mode:'text',text:'',imageUrl:'',questions:[]};
@@ -2155,6 +2200,36 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── WHAT_CONNECTS HELPERS ──
+function updateWCField2(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.whatConnectsData)slot.whatConnectsData={instruction:'',cards:[{type:'text',value:''}],numPairs:2};
+  slot.whatConnectsData[field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function updateWCCard(section,si,sli,ci,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.whatConnectsData)slot.whatConnectsData={instruction:'',cards:[],numPairs:2};
+  if(!slot.whatConnectsData.cards[ci])slot.whatConnectsData.cards[ci]={type:'text',value:''};
+  slot.whatConnectsData.cards[ci][field]=val;
+  setSaveStatus('שינויים לא שמורים');
+}
+function addWCCard(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.whatConnectsData)slot.whatConnectsData={instruction:'',cards:[],numPairs:2};
+  if(slot.whatConnectsData.cards.length>=20)return;
+  slot.whatConnectsData.cards.push({type:'text',value:''});
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function removeWCCard(section,si,sli,ci){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.whatConnectsData.cards.splice(ci,1);
+  renderLessonStructure();
+  setSaveStatus('שינויים לא שמורים');
+}
+function saveWCData2(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── DRAG_DROP HELPERS ──
 function updateDDField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
