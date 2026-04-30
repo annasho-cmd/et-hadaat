@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>גלה את המושג — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,.92);--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;font-weight:700;}
+.main{max-width:680px;margin:0 auto;padding:20px;}
+.instruction{font-size:.88rem;opacity:.65;margin-bottom:16px;text-align:center;}
+.progress-dots{display:flex;gap:8px;justify-content:center;margin-bottom:18px;}
+.prog-dot{width:10px;height:10px;border-radius:50%;background:rgba(212,168,67,.2);transition:all .2s;}
+.prog-dot.active{background:var(--gold);transform:scale(1.2);}
+.prog-dot.done{background:#22c55e;}
+
+/* CONCEPT CARD */
+.concept-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;}
+.concept-num{font-size:.72rem;font-weight:700;color:var(--gold);opacity:.5;margin-bottom:8px;}
+
+/* IMAGE STRIP */
+.img-strip{display:flex;gap:8px;margin-bottom:14px;}
+.img-frame{flex:1;border-radius:10px;overflow:hidden;border:2px solid var(--border);position:relative;aspect-ratio:1;transition:all .3s;}
+.img-frame.current{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,.2);}
+.img-frame.revealed{border-color:#22c55e;}
+.img-frame.hidden-frame{background:rgba(253,245,224,.04);display:flex;align-items:center;justify-content:center;}
+.img-frame img{width:100%;height:100%;object-fit:cover;display:block;}
+.img-lock{font-size:1.5rem;opacity:.3;}
+.img-num{position:absolute;bottom:4px;right:6px;font-size:.68rem;background:rgba(0,0,0,.5);color:var(--gold);padding:1px 5px;border-radius:4px;}
+
+/* ANSWER */
+.answer-area{margin-top:4px;}
+.answer-label{font-size:.75rem;opacity:.5;margin-bottom:5px;}
+.answer-input{width:100%;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;padding:9px 12px;outline:none;direction:rtl;}
+.answer-input:focus{border-color:var(--gold);}
+.answer-input.correct{border-color:#22c55e;background:rgba(34,197,94,.1);}
+.answer-input.wrong-flash{border-color:#f87171;animation:wrongF .4s ease;}
+@keyframes wrongF{0%,100%{border-color:#f87171;}50%{border-color:rgba(248,129,113,.3);}}
+.feedback{text-align:center;padding:7px;border-radius:7px;font-size:.88rem;font-weight:700;margin-top:6px;min-height:30px;}
+.feedback.success{color:#22c55e;}
+.feedback.wrong{color:#f87171;}
+.check-btn{display:block;margin:8px auto 0;padding:8px 22px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+
+/* TEXTBOOK TASK */
+.textbook-task{background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.25);border-radius:12px;padding:14px;margin-top:12px;display:none;}
+.task-title{font-size:.82rem;font-weight:700;color:#c4b5fd;margin-bottom:10px;}
+.task-input{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:7px 10px;outline:none;margin-bottom:6px;}
+.task-input:focus{border-color:#a78bfa;}
+.task-save-btn{padding:6px 16px;background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);border-radius:7px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.task-saved{font-size:.75rem;color:#6ee7b7;margin-top:4px;display:none;}
+
+/* NAV */
+.nav-btns{display:flex;gap:8px;justify-content:center;margin-top:14px;}
+
+/* SUMMARY */
+.summary{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center;display:none;margin-top:10px;}
+.summary-emoji{font-size:3rem;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🔍 גלה את המושג</div>
+  <span id="score-badge" style="font-size:.78rem;opacity:.45;"></span>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="instruction" id="instruction"></div>
+  <div class="progress-dots" id="prog-dots"></div>
+  <div id="concepts-container"></div>
+  <div class="nav-btns" id="nav-btns" style="display:none;">
+    <button class="btn" id="btn-prev" onclick="prevConcept()">← הקודם</button>
+    <button class="btn btn-gold" id="btn-next" onclick="nextConcept()">הבא →</button>
+  </div>
+  <div class="summary" id="summary">
+    <div class="summary-emoji">🎉</div>
+    <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:6px;" id="summary-title">סיכום</div>
+    <div style="font-size:.88rem;opacity:.6;" id="summary-sub"></div>
+    <button class="btn btn-gold" style="margin-top:14px;" onclick="window.close()">סיום ✓</button>
+  </div>
+</div>
+
+<script>
+const params=new URLSearchParams(window.location.search);
+let rwData={concepts:[],instruction:''};
+try{rwData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+
+const concepts=(rwData.concepts||[]).filter(c=>c.answer&&(c.images||[]).some(Boolean));
+let state=concepts.map(()=>({imgIdx:0,solved:false,attempts:0}));
+let currentConcept=0;
+let correctCount=0;
+
+window.onload=function(){
+  document.getElementById('instruction').textContent=rwData.instruction||'גלו את המושג המוסתר';
+  if(!concepts.length){
+    document.getElementById('concepts-container').innerHTML='<div style="opacity:.4;text-align:center;padding:40px;">אין מושגים מוגדרים</div>';
+    return;
+  }
+  buildDots();
+  renderConcept(0);
+  if(concepts.length>1)document.getElementById('nav-btns').style.display='flex';
+};
+
+function buildDots(){
+  const dots=document.getElementById('prog-dots');
+  dots.innerHTML=concepts.map((_,i)=>`<div class="prog-dot${i===0?' active':''}" id="dot-${i}"></div>`).join('');
+}
+function updateDots(){
+  concepts.forEach((_,i)=>{
+    const dot=document.getElementById(`dot-${i}`);
+    if(state[i].solved)dot.className='prog-dot done';
+    else if(i===currentConcept)dot.className='prog-dot active';
+    else dot.className='prog-dot';
+  });
+  const solved=state.filter(s=>s.solved).length;
+  document.getElementById('score-badge').textContent=`${solved}/${concepts.length} גולו`;
+}
+
+function renderConcept(ci){
+  currentConcept=ci;
+  const c=concepts[ci];
+  const st=state[ci];
+  const container=document.getElementById('concepts-container');
+  const imgs=c.images||['','','',''];
+
+  // בנה תמונות
+  const stripHtml=imgs.map((url,ii)=>{
+    const isRevealed=ii<=st.imgIdx||st.solved;
+    const isCurrent=ii===st.imgIdx&&!st.solved;
+    let src=url||'';
+    const m=src.match(/\/file\/d\/([^\/\?]+)/);
+    if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+
+    if(isRevealed&&src){
+      return `<div class="img-frame${isCurrent?' current':' revealed'}">
+        <img src="${esc(src)}" onerror="this.parentElement.innerHTML='<div class=img-lock>🖼️</div>'">
+        <div class="img-num">${ii+1}</div>
+      </div>`;
+    } else if(isRevealed&&!src){
+      return `<div class="img-frame revealed hidden-frame"><span class="img-lock">🖼️</span><div class="img-num">${ii+1}</div></div>`;
+    } else {
+      return `<div class="img-frame hidden-frame"><span class="img-lock">🔒</span><div class="img-num">${ii+1}</div></div>`;
+    }
+  }).join('');
+
+  // משימת ספר לימוד — נפתחת כשמגיעים לתמונה האחרונה
+  const showTask=st.imgIdx>=3||st.solved;
+  const taskHtml=`<div class="textbook-task" id="task-${ci}" style="display:${showTask?'block':'none'};">
+    <div class="task-title">📚 מצאו את המושג "<strong>${esc(c.answer)}</strong>" בספר הלימוד:</div>
+    <input class="task-input" id="task-page-${ci}" placeholder="מספר עמוד..." type="number">
+    <input class="task-input" id="task-subtitle-${ci}" placeholder="כותרת משנה...">
+    <button class="task-save-btn" onclick="saveTextbookTask(${ci})">שמור ✓</button>
+    <div class="task-saved" id="task-saved-${ci}">✅ נשמר!</div>
+  </div>`;
+
+  container.innerHTML=`<div class="concept-card" id="concept-card-${ci}">
+    <div class="concept-num">מושג ${ci+1} מתוך ${concepts.length}</div>
+    <div class="img-strip">${stripHtml}</div>
+    ${!st.solved?`<div class="answer-area">
+      <div class="answer-label">מה המושג?</div>
+      <input class="answer-input" id="ans-${ci}" placeholder="כתבו את המושג..."
+        autocomplete="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter')checkRW(${ci})">
+      <div class="feedback" id="fb-${ci}"></div>
+      <button class="check-btn" onclick="checkRW(${ci})">בדוק ✓</button>
+    </div>`:`<div class="answer-area">
+      <div class="answer-input correct" style="cursor:default;">${esc(c.answer)} ✅</div>
+    </div>`}
+    ${taskHtml}
+  </div>`;
+  updateDots();
+}
+
+function checkRW(ci){
+  const c=concepts[ci];
+  const st=state[ci];
+  const inp=document.getElementById(`ans-${ci}`);
+  const val=(inp?.value||'').trim();
+  if(!val)return;
+  const isCorrect=val.toLowerCase()===c.answer.trim().toLowerCase();
+  if(isCorrect){
+    st.solved=true;
+    st.imgIdx=3;
+    correctCount++;
+    inp.value=c.answer;
+    inp.classList.add('correct');
+    const fb=document.getElementById(`fb-${ci}`);
+    if(fb){fb.textContent='🎉 נכון! '+esc(c.answer);fb.className='feedback success';}
+    setTimeout(()=>{renderConcept(ci);checkAllDone();},800);
+  } else {
+    st.attempts++;
+    inp.classList.add('wrong-flash');
+    setTimeout(()=>inp.classList.remove('wrong-flash'),500);
+    inp.value='';
+    const fb=document.getElementById(`fb-${ci}`);
+    // קדם תמונה
+    if(st.imgIdx<3){
+      st.imgIdx++;
+      if(fb){fb.textContent=`לא נכון. מוצגת תמונה ${st.imgIdx+1}`;fb.className='feedback wrong';}
+      setTimeout(()=>renderConcept(ci),600);
+    } else {
+      if(fb){fb.textContent='הגעת לתמונה האחרונה!';fb.className='feedback wrong';}
+      renderConcept(ci);
+    }
+  }
+}
+
+function saveTextbookTask(ci){
+  const page=document.getElementById(`task-page-${ci}`)?.value||'';
+  const subtitle=document.getElementById(`task-subtitle-${ci}`)?.value||'';
+  const saved=document.getElementById(`task-saved-${ci}`);
+  if(saved){saved.style.display='block';setTimeout(()=>saved.style.display='none',2000);}
+}
+
+function nextConcept(){
+  if(currentConcept<concepts.length-1){renderConcept(currentConcept+1);}
+  else{checkAllDone(true);}
+}
+function prevConcept(){
+  if(currentConcept>0)renderConcept(currentConcept-1);
+}
+function checkAllDone(force){
+  const allDone=force||state.every(s=>s.solved||s.imgIdx>=3);
+  if(!allDone)return;
+  const solved=state.filter(s=>s.solved).length;
+  const summary=document.getElementById('summary');
+  summary.style.display='block';
+  summary.scrollIntoView({behavior:'smooth'});
+  document.getElementById('summary-title').textContent=solved===concepts.length?'גיליתם הכל!':'סיכום:';
+  document.getElementById('summary-sub').textContent=`גיליתם נכון ${solved} מתוך ${concepts.length} מושגים`;
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

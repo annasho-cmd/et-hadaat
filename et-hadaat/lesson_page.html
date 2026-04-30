@@ -584,6 +584,24 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── גלה את המושג ──
+  if(slot.type==='reveal_word'){
+    const d=slot.revealWordData||{concepts:[]};
+    const rwParams=encodeURIComponent(JSON.stringify(d));
+    const rwUrl=window.location.href.replace(/[^/]*/,'reveal_word.html')+'?data='+rwParams;
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🔍</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">גלה את המושג</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${d.concepts?.filter(c=>c.answer).length||0} מושגים — 4 תמונות לכל מושג</div>
+      <button onclick="window.open('${rwUrl}','_blank','width=750,height=680')"
+        style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+        פתח פעילות 🔍
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── חידות בציורים ──
   if(slot.type==='riddle_draw'){
     const d=slot.riddleData||{riddles:[]};

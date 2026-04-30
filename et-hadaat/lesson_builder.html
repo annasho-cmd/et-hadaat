@@ -2178,6 +2178,53 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── גלה את המושג ──
+  if(slot.type==='reveal_word'){
+    const d=slot.revealWordData||{instruction:'',concepts:[{answer:'',images:['','','','']}]};
+    const concepts=d.concepts||[];
+
+    const conceptsHtml=concepts.map((c,ci)=>`
+      <div style="background:rgba(44,26,14,.4);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:.8rem;font-weight:700;color:var(--gold);">מושג ${ci+1}</span>
+          ${concepts.length>1?`<button onclick="removeRWConcept('${section}',${si},${sli},${ci})"
+            style="margin-right:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕</button>`:''}
+        </div>
+        <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.85rem;margin-bottom:8px;"
+          placeholder="המושג הנכון (תשובה)..."
+          value="${esc(c.answer||'')}"
+          onchange="updateRWConcept('${section}',${si},${sli},${ci},'answer',this.value)">
+        <div style="font-size:.72rem;opacity:.45;margin-bottom:6px;">4 תמונות — האחרונה תמיד מציגה את המושג:</div>
+        ${[0,1,2,3].map(ii=>`
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <span style="min-width:20px;font-size:.72rem;opacity:.5;">תמונה ${ii+1}${ii===3?' ★':''}</span>
+            <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.78rem;"
+              placeholder="${ii===3?'תמונת המושג (חובה)':'תמונה מכוונת...'} — URL / Drive"
+              value="${esc((c.images||[])[ii]||'')}" id="rw-url-${uid}-${ci}-${ii}"
+              onchange="updateRWImage('${section}',${si},${sli},${ci},${ii},this.value)">
+            <button onclick="document.getElementById('rw-file-${uid}-${ci}-${ii}').click()"
+              style="padding:3px 8px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.72rem;cursor:pointer;">📁</button>
+            <input type="file" id="rw-file-${uid}-${ci}-${ii}" accept="image/*" style="display:none;"
+              onchange="handleRWUpload(this,'rw-url-${uid}-${ci}-${ii}','${section}',${si},${sli},${ci},${ii})">
+          </div>`).join('')}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🔍 גלה את המושג</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        3 תמונות מכוונות + תמונת המושג. תשובה נכונה → קפיצה לתמונה האחרונה. תשובה שגויה → המשך בסדר.
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="גלו את המושג המוסתר..."
+        onchange="updateRWField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div id="rw-concepts-${uid}">${conceptsHtml}</div>
+      ${concepts.length<6?`<button onclick="addRWConcept('${section}',${si},${sli})"
+        style="width:100%;padding:6px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף מושג</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveRWData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── חידות בציורים ──
   if(slot.type==='riddle_draw'){
     const d=slot.riddleData||{instruction:'',riddles:[{url:'',answer:''}]};
@@ -2809,6 +2856,48 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── REVEAL_WORD HELPERS ──
+function updateRWField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.revealWordData)slot.revealWordData={instruction:'',concepts:[]};
+  slot.revealWordData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateRWConcept(section,si,sli,ci,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.revealWordData.concepts[ci])slot.revealWordData.concepts[ci]={answer:'',images:['','','','']};
+  slot.revealWordData.concepts[ci][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateRWImage(section,si,sli,ci,ii,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.revealWordData.concepts[ci].images)slot.revealWordData.concepts[ci].images=['','','',''];
+  slot.revealWordData.concepts[ci].images[ii]=val;setSaveStatus('שינויים לא שמורים');
+}
+function addRWConcept(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.revealWordData)slot.revealWordData={instruction:'',concepts:[]};
+  if(slot.revealWordData.concepts.length>=6)return;
+  slot.revealWordData.concepts.push({answer:'',images:['','','','']});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeRWConcept(section,si,sli,ci){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.revealWordData.concepts.splice(ci,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+async function handleRWUpload(input,inputId,section,si,sli,ci,ii){
+  const file=input.files[0];if(!file)return;
+  const fd=new FormData();fd.append('file',file);fd.append('upload_preset','w8rzehkl');
+  try{
+    const res=await fetch('https://api.cloudinary.com/v1_1/da6mdtjhh/image/upload',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.secure_url){
+      updateRWImage(section,si,sli,ci,ii,data.secure_url);
+      const el=document.getElementById(inputId);if(el)el.value=data.secure_url;
+    }
+  }catch(e){alert('שגיאה בהעלאה');}
+}
+function saveRWData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── RIDDLE_DRAW HELPERS ──
 function updateRiddleField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
