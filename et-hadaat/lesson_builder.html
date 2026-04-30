@@ -1895,6 +1895,65 @@ function buildSlotEditor(slot, section, si, sli, uid){
   }
 
   // ── מיון — מה הקשר? ──
+  // ── טבלת מילוי ──
+  if(slot.type==='fill_table'){
+    const d=slot.fillTableData||{instruction:'',cols:[{name:''}],rows:[{cells:[{value:'',studentFills:false}]}]};
+    const cols=d.cols||[{name:''}];
+    const rows=d.rows||[{cells:cols.map(()=>({value:'',studentFills:false}))}];
+
+    const colHeaders=`<div style="display:flex;gap:4px;margin-bottom:4px;">
+      ${cols.map((col,ci)=>`
+        <div style="flex:1;display:flex;align-items:center;gap:3px;">
+          <input class="inline-field" style="min-height:0;padding:3px 6px;font-size:.78rem;"
+            placeholder="עמודה ${ci+1}..." value="${esc(col.name||'')}"
+            onchange="updateFTCol('${section}',${si},${sli},${ci},this.value)">
+          ${cols.length>1?`<button onclick="removeFTCol('${section}',${si},${sli},${ci})"
+            style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.72rem;padding:0 1px;">✕</button>`:''}
+        </div>`).join('')}
+      ${cols.length<6?`<button onclick="addFTCol('${section}',${si},${sli})"
+        style="padding:3px 8px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:5px;color:var(--gold);font-size:.72rem;cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap;">+ עמודה</button>`:''}
+    </div>`;
+
+    const rowsHtml=rows.map((row,ri)=>`
+      <div style="display:flex;gap:4px;margin-bottom:4px;align-items:center;">
+        ${cols.map((_,ci)=>{
+          const cell=(row.cells||[])[ci]||{value:'',studentFills:false};
+          return `<div style="flex:1;background:${cell.studentFills?'rgba(109,40,217,.08)':'rgba(253,245,224,.04)'};border:1px solid ${cell.studentFills?'rgba(109,40,217,.3)':'var(--border)'};border-radius:5px;padding:4px;">
+            <div style="display:flex;align-items:center;gap:3px;margin-bottom:3px;">
+              <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:.68rem;opacity:.6;">
+                <input type="checkbox" ${cell.studentFills?'checked':''} style="width:12px;height:12px;"
+                  onchange="toggleFTStudentFills('${section}',${si},${sli},${ri},${ci},this.checked)">
+                תלמיד
+              </label>
+            </div>
+            ${!cell.studentFills?`<input class="inline-field" style="min-height:0;padding:3px 5px;font-size:.8rem;"
+              placeholder="תוכן..." value="${esc(cell.value||'')}"
+              onchange="updateFTCell('${section}',${si},${sli},${ri},${ci},this.value)">`
+            :`<div style="font-size:.72rem;opacity:.35;text-align:center;">ממלא תלמיד</div>`}
+          </div>`;
+        }).join('')}
+        <button onclick="removeFTRow('${section}',${si},${sli},${ri})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;flex-shrink:0;">✕</button>
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">📋 טבלת מילוי</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        תיבות סגולות = תלמיד ממלא. תיבות רגילות = מורה ממלאת מראש.
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="מלאו את הטבלה..."
+        onchange="updateFTField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">בנה טבלה (עד 6 עמודות, עד 10 שורות):</div>
+      ${colHeaders}
+      <div id="ft-rows-${uid}">${rowsHtml}</div>
+      ${rows.length<10?`<button onclick="addFTRow('${section}',${si},${sli})"
+        style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף שורה</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveFTData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   if(slot.type==='what_connects'){
     const d=slot.whatConnectsData||{instruction:'',cards:[{type:'text',value:''}],numPairs:2};
     const cards=d.cards||[{type:'text',value:''}];
@@ -3401,6 +3460,57 @@ function restoreKlueWord(section,si,sli,wi,uid){
 }
 function saveKlueData(section,si,sli){saveLesson();flash('✓ נשמר');}
 
+// ── FILL_TABLE HELPERS ──
+function updateFTField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.fillTableData)slot.fillTableData={instruction:'',cols:[{name:''}],rows:[]};
+  slot.fillTableData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateFTCol(section,si,sli,ci,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.fillTableData.cols[ci])slot.fillTableData.cols[ci]={name:''};
+  slot.fillTableData.cols[ci].name=val;setSaveStatus('שינויים לא שמורים');
+}
+function addFTCol(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(slot.fillTableData.cols.length>=6)return;
+  slot.fillTableData.cols.push({name:''});
+  // הוסף תא לכל שורה
+  slot.fillTableData.rows.forEach(r=>{
+    if(!r.cells)r.cells=[];
+    r.cells.push({value:'',studentFills:false});
+  });
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeFTCol(section,si,sli,ci){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.fillTableData.cols.splice(ci,1);
+  slot.fillTableData.rows.forEach(r=>{if(r.cells)r.cells.splice(ci,1);});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function addFTRow(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(slot.fillTableData.rows.length>=10)return;
+  slot.fillTableData.rows.push({cells:slot.fillTableData.cols.map(()=>({value:'',studentFills:false}))});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeFTRow(section,si,sli,ri){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.fillTableData.rows.splice(ri,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function updateFTCell(section,si,sli,ri,ci,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.fillTableData.rows[ri].cells[ci])slot.fillTableData.rows[ri].cells[ci]={value:'',studentFills:false};
+  slot.fillTableData.rows[ri].cells[ci].value=val;setSaveStatus('שינויים לא שמורים');
+}
+function toggleFTStudentFills(section,si,sli,ri,ci,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.fillTableData.rows[ri].cells[ci].studentFills=val;
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function saveFTData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── WHAT_CONNECTS HELPERS ──
 function updateWCField2(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
@@ -4096,31 +4206,36 @@ function toggleBankCat(ci,header){
 
 // ── BANK TOOLTIP ──
 let _tooltipEl=null;
+let _tooltipTimer=null;
 function showBankTooltip(event,typeOrId){
   hideBankTooltip();
-  const item=bankData.find(b=>(b.id||b.type)===typeOrId);
-  if(!item||!item.desc)return;
-  const tt=document.createElement('div');
-  tt.className='bank-tooltip';
-  let html=`<div class="bank-tooltip-title">${item.icon||''} ${item.name}</div>`;
-  if(item.desc) html+=`<div class="bank-tooltip-desc">${item.desc}</div>`;
-  if(item.styles&&item.styles.length){
-    html+=item.styles.slice(0,3).map(s=>`
-      <div class="bank-tooltip-style">
-        <div class="bank-tooltip-style-name">${s.name}</div>
-        ${s.desc?`<div class="bank-tooltip-style-desc">${s.desc}</div>`:''}
-      </div>`).join('');
-  }
-  tt.innerHTML=html;
-  document.body.appendChild(tt);
-  _tooltipEl=tt;
-  const r=event.currentTarget.getBoundingClientRect();
-  const left=Math.max(8,r.left-tt.offsetWidth-8);
-  const top=Math.min(window.innerHeight-tt.offsetHeight-8,r.top);
-  tt.style.left=left+'px';
-  tt.style.top=top+'px';
+  // עיכוב 600ms — רק אם המשתמש מרחף (לא לוחץ)
+  _tooltipTimer=setTimeout(()=>{
+    const item=bankData.find(b=>(b.id||b.type)===typeOrId);
+    if(!item||(!item.desc&&!item.styles?.length))return;
+    const tt=document.createElement('div');
+    tt.className='bank-tooltip';
+    let html=`<div class="bank-tooltip-title">${item.icon||''} ${item.name}</div>`;
+    if(item.desc) html+=`<div class="bank-tooltip-desc">${item.desc}</div>`;
+    if(item.styles?.length){
+      html+=item.styles.slice(0,3).map(s=>`
+        <div class="bank-tooltip-style">
+          <div class="bank-tooltip-style-name">${s.name}</div>
+          ${s.desc?`<div class="bank-tooltip-style-desc">${s.desc}</div>`:''}
+        </div>`).join('');
+    }
+    tt.innerHTML=html;
+    document.body.appendChild(tt);
+    _tooltipEl=tt;
+    const r=event.currentTarget.getBoundingClientRect();
+    const left=Math.max(8,r.left-tt.offsetWidth-8);
+    const top=Math.min(window.innerHeight-tt.offsetHeight-8,r.top);
+    tt.style.left=left+'px';
+    tt.style.top=top+'px';
+  },600);
 }
 function hideBankTooltip(){
+  if(_tooltipTimer){clearTimeout(_tooltipTimer);_tooltipTimer=null;}
   if(_tooltipEl){_tooltipEl.remove();_tooltipEl=null;}
 }
 

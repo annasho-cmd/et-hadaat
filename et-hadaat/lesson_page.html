@@ -1292,20 +1292,68 @@ function buildSortTable(slot, stIdx, sli){
 function buildFillTable(slot, stIdx, sli){
   const block=document.createElement('div');
   block.className='slot-block';
+
+  // תמיכה בשני מבני נתונים: ישן (tableData) וחדש (fillTableData)
+  const ftd=slot.fillTableData;
   const td=slot.tableData;
+
+  if(ftd&&ftd.cols&&ftd.rows){
+    // מבנה חדש
+    const tableId='ft-'+stIdx+'-'+sli;
+    const savedRaw=answers[stIdx+'-'+sli]||'';
+    let savedCells={};
+    try{if(savedRaw)savedCells=JSON.parse(savedRaw);}catch(e){}
+
+    const theadHtml='<tr>'+
+      ftd.cols.map(c=>`<th style="padding:7px 10px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.78rem;border:1px solid rgba(212,168,67,.2);">${esc(c.name||'')}</th>`).join('')+'</tr>';
+
+    const tbodyHtml=ftd.rows.map((row,ri)=>{
+      const cellsHtml=ftd.cols.map((_,ci)=>{
+        const cell=(row.cells||[])[ci]||{value:'',studentFills:false};
+        if(cell.studentFills){
+          const saved=savedCells[ri+'-'+ci]||'';
+          return `<td style="padding:5px;border:1px solid rgba(109,40,217,.25);background:rgba(109,40,217,.05);">
+            <textarea rows="2" id="${tableId}-${ri}-${ci}"
+              style="width:100%;background:transparent;border:1px solid rgba(109,40,217,.3);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:6px;outline:none;resize:vertical;min-height:44px;direction:rtl;"
+              placeholder="כתוב/כתבי כאן..."
+              oninput="saveFillTableCell('${tableId}',${stIdx},${sli})">${esc(saved)}</textarea>
+          </td>`;
+        }
+        return `<td style="padding:8px 10px;border:1px solid rgba(212,168,67,.15);font-size:.85rem;line-height:1.6;direction:rtl;vertical-align:top;">${esc(cell.value||'')}</td>`;
+      }).join('');
+      return '<tr>'+cellsHtml+'</tr>';
+    }).join('');
+
+    const hasStudentCells=ftd.rows.some(r=>(r.cells||[]).some(c=>c.studentFills));
+    block.innerHTML=
+      `<div style="font-size:.78rem;opacity:.5;margin-bottom:8px;">${esc(ftd.instruction||'')}</div>`+
+      '<div style="overflow-x:auto;">'+
+        `<table style="width:100%;border-collapse:collapse;" id="${tableId}">` +
+          `<thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody>`+
+        '</table>'+
+      '</div>'+
+      (hasStudentCells?
+        `<div style="margin-top:8px;display:flex;align-items:center;gap:10px;">
+          <button class="btn-submit" onclick="checkFillTable('${tableId}',${stIdx},${sli},${JSON.stringify(ftd).replace(/'/g,'\\\'')})">בדוק ✓</button>
+          <button onclick="saveFillTableCell('${tableId}',${stIdx},${sli},true)" style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">שמור</button>
+          <span class="answer-saved" id="saved-${stIdx}-${sli}" style="display:none;">✅ נשמר</span>
+        </div>`:
+        `<div style="font-size:.75rem;opacity:.4;margin-top:8px;">אין שדות למילוי</div>`);
+    return block;
+  }
+
+  // מבנה ישן (tableData)
   if(!td||!td.cols||!td.rows){
     block.innerHTML='<div style="opacity:.4;font-size:.85rem;">טבלת המילוי אינה מוגדרת</div>';
     return block;
   }
-
   const tableId='ft-'+stIdx+'-'+sli;
   const savedRaw=answers[stIdx+'-'+sli]||'';
   let savedCells={};
-  try{ if(savedRaw) savedCells=JSON.parse(savedRaw); }catch(e){}
+  try{if(savedRaw)savedCells=JSON.parse(savedRaw);}catch(e){}
 
   const theadHtml='<tr><th style="padding:7px 10px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.78rem;border:1px solid rgba(212,168,67,.2);width:32px;">#</th>'+
     td.cols.map(c=>'<th style="padding:7px 10px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.78rem;border:1px solid rgba(212,168,67,.2);">'+esc(c.name||'')+'</th>').join('')+'</tr>';
-
   const tbodyHtml=td.rows.map((row,ri)=>{
     const cellsHtml=td.cols.map((col,ci)=>{
       const key=ri+'-'+ci;
@@ -1316,8 +1364,7 @@ function buildFillTable(slot, stIdx, sli){
           '<textarea rows="2" id="'+tableId+'-'+ri+'-'+ci+'"'+
           ' style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.25);border-radius:6px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:6px 8px;outline:none;resize:vertical;min-height:48px;direction:rtl;"'+
           ' placeholder="כתוב/כתבי כאן..."'+
-          ' oninput="saveFillTableCell(''+tableId+'','+stIdx+','+sli+')">'+esc(saved)+'</textarea>'+
-          '</td>';
+          ' oninput="saveFillTableCell(\''+tableId+'\','+stIdx+','+sli+')">'+esc(saved)+'</textarea></td>';
       }
       return '<td style="padding:8px 10px;border:1px solid rgba(212,168,67,.15);font-size:.85rem;line-height:1.6;direction:rtl;vertical-align:top;">'+val.replace(/\n/g,'<br>')+'</td>';
     }).join('');
@@ -1326,17 +1373,37 @@ function buildFillTable(slot, stIdx, sli){
 
   block.innerHTML=
     '<div class="slot-type-label">📋 טבלת מילוי</div>'+
-    '<div style="overflow-x:auto;">'+
-      '<table style="width:100%;border-collapse:collapse;" id="'+tableId+'">'+
-        '<thead>'+theadHtml+'</thead>'+
-        '<tbody>'+tbodyHtml+'</tbody>'+
-      '</table>'+
-    '</div>'+
+    '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;" id="'+tableId+'">'+
+    '<thead>'+theadHtml+'</thead><tbody>'+tbodyHtml+'</tbody></table></div>'+
     '<div style="margin-top:8px;display:flex;align-items:center;gap:10px;">'+
-      '<button class="btn-submit" onclick="saveFillTableCell(''+tableId+'','+stIdx+','+sli+',true)">שמור ✓</button>'+
-      '<span class="answer-saved" id="saved-'+stIdx+'-'+sli+'">✅ נשמר</span>'+
-    '</div>';
+    '<button class="btn-submit" onclick="saveFillTableCell(\''+tableId+'\','+stIdx+','+sli+',true)">שמור ✓</button>'+
+    '<span class="answer-saved" id="saved-'+stIdx+'-'+sli+'" style="display:none;">✅ נשמר</span></div>';
   return block;
+}
+
+function checkFillTable(tableId,stIdx,sli,ftd){
+  const rows=ftd.rows||[];
+  let correct=0,total=0;
+  rows.forEach((row,ri)=>{
+    (row.cells||[]).forEach((cell,ci)=>{
+      if(!cell.studentFills)return;
+      total++;
+      const el=document.getElementById(`${tableId}-${ri}-${ci}`);
+      const val=(el?.value||'').trim().toLowerCase();
+      const expected=(cell.value||'').trim().toLowerCase();
+      const isOk=val===expected;
+      if(isOk){correct++;if(el){el.style.borderColor='#22c55e';el.style.background='rgba(34,197,94,.08)';}}
+      else if(val){if(el){el.style.borderColor='#f87171';el.style.background='rgba(248,129,113,.05)';}}
+    });
+  });
+  saveFillTableCell(tableId,stIdx,sli,false);
+  const saved=document.getElementById(`saved-${stIdx}-${sli}`);
+  if(saved){
+    saved.textContent=correct===total&&total>0?`✅ כל ${total} התאים נכונים!`:`${correct}/${total} נכון`;
+    saved.style.display='inline';
+    saved.style.color=correct===total?'#22c55e':'var(--parch)';
+    setTimeout(()=>saved.style.display='none',4000);
+  }
 }
 
 function saveFillTableCell(tableId, stIdx, sli, showMsg){

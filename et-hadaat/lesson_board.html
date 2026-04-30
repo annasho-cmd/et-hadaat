@@ -202,6 +202,28 @@ function buildSlotHTML(slot){
       <div style="font-size:.75rem;opacity:.35;margin-top:6px;">התלמידים פותרים בטאבלט</div>
     </div>`;
 
+  } else if(slot.type==='fill_table'){
+    const ftd=slot.fillTableData||slot.tableData;
+    if(ftd&&ftd.cols){
+      const colsHtml=ftd.cols.map(c=>`<th style="padding:7px 12px;background:rgba(44,26,14,.9);color:#f0c060;font-size:.82rem;border:1px solid rgba(212,168,67,.2);">${esc(c.name||'')}</th>`).join('');
+      const rowsHtml=(ftd.rows||[]).map(row=>{
+        const cells=(row.cells||[]).map((cell,ci)=>{
+          const isStudent=cell.studentFills;
+          return `<td style="padding:8px 10px;border:1px solid rgba(212,168,67,.15);font-size:.85rem;${isStudent?'background:rgba(109,40,217,.06);':''}">${isStudent?'<span style="opacity:.3;font-size:.8rem;">ממלא תלמיד</span>':esc(cell.value||'')}</td>`;
+        }).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      inner=`<div style="font-size:.85rem;opacity:.6;margin-bottom:10px;">${esc(ftd.instruction||'')}</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr>${colsHtml}</tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+    } else {
+      inner='<div style="opacity:.4;">טבלת המילוי אינה מוגדרת</div>';
+    }
+
   } else if(slot.type==='hidden_img'){
     const d=slot.hiddenImgData||{imageUrl:'',hotspots:[]};
     let src=d.imageUrl||'';
