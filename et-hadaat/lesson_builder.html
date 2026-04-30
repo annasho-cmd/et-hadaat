@@ -2178,6 +2178,65 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── גלה פרטים מסתתרים ──
+  if(slot.type==='hidden_img'){
+    const d=slot.hiddenImgData||{instruction:'',imageUrl:'',hotspots:[],question:''};
+    const hs=d.hotspots||[];
+
+    const hotspotsHtml=hs.map((h,hi)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+        <span style="min-width:20px;height:20px;border-radius:50%;background:rgba(212,168,67,.25);color:var(--gold);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${hi+1}</span>
+        <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.82rem;" placeholder="מילה / פרט..."
+          value="${esc(h.label||'')}" onchange="updateHIHotspot('${section}',${si},${sli},${hi},'label',this.value)">
+        <span style="font-size:.72rem;opacity:.4;">${h.x?`(${Math.round(h.x)}%, ${Math.round(h.y)}%)`:'לא סומן'}</span>
+        <button onclick="removeHIHotspot('${section}',${si},${sli},${hi})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;padding:0 2px;">✕</button>
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🕵️ גלה פרטים מסתתרים</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        העלי תמונה → הוסיפי מילים → שמרי → לחצי על התמונה לסימון מיקום כל מילה.
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="מצאו את המילים המוסתרות בתמונה..."
+        onchange="updateHIField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.82rem;margin-bottom:5px;"
+        placeholder="קישור לתמונה (URL / Drive)..."
+        value="${esc(d.imageUrl||'')}" id="hi-url-${uid}"
+        onchange="updateHIField('${section}',${si},${sli},'imageUrl',this.value);renderLessonStructure()">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <button onclick="document.getElementById('hi-file-${uid}').click()"
+          style="padding:5px 12px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:7px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.78rem;cursor:pointer;">
+          📁 העלה תמונה
+        </button>
+        <input type="file" id="hi-file-${uid}" accept="image/*" style="display:none;"
+          onchange="handleHIUpload(this,'hi-url-${uid}','${section}',${si},${sli})">
+      </div>
+      ${d.imageUrl?`
+      <div style="font-size:.72rem;opacity:.5;margin-bottom:6px;">לחצי על התמונה לסימון מיקום כל מילה:</div>
+      <div style="position:relative;display:inline-block;margin-bottom:10px;width:100%;">
+        <img src="${esc(d.imageUrl)}" id="hi-img-${uid}" style="width:100%;border-radius:8px;display:block;cursor:crosshair;"
+          onclick="addHIHotspotFromClick(event,'${section}',${si},${sli},'${uid}')"
+          onerror="this.style.display='none'">
+        ${hs.map((h,hi)=>h.x!=null?`
+          <div style="position:absolute;left:${h.x}%;top:${h.y}%;transform:translate(-50%,-50%);
+            width:24px;height:24px;border-radius:50%;background:rgba(212,168,67,.8);
+            display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#1c1208;
+            pointer-events:none;">${hi+1}</div>`:'').join('')}
+      </div>`:''}
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">מילים (${hs.length}/10) — לחצי על מספר בתמונה לשינוי מיקום:</div>
+      <div id="hi-hotspots-${uid}">${hotspotsHtml}</div>
+      ${hs.length<10?`<button onclick="addHIHotspot('${section}',${si},${sli})"
+        style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף מילה</button>`:''}
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">שאלה פתוחה לתלמיד (לאחר הסימון):</div>
+      <textarea class="inline-field" style="min-height:50px;" placeholder="מה למדתם מהתמונה? / מה מעניין אתכם?"
+        onchange="updateHIField('${section}',${si},${sli},'question',this.value)">${esc(d.question||'')}</textarea>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveHIData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── גלה את המושג ──
   if(slot.type==='reveal_word'){
     const d=slot.revealWordData||{instruction:'',concepts:[{answer:'',images:['','','','']}]};
@@ -2856,6 +2915,60 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── HIDDEN_IMG HELPERS ──
+function updateHIField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.hiddenImgData)slot.hiddenImgData={instruction:'',imageUrl:'',hotspots:[],question:''};
+  slot.hiddenImgData[field]=val;
+  if(field==='imageUrl')renderLessonStructure();
+  else setSaveStatus('שינויים לא שמורים');
+}
+function addHIHotspot(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.hiddenImgData)slot.hiddenImgData={instruction:'',imageUrl:'',hotspots:[],question:''};
+  if(slot.hiddenImgData.hotspots.length>=10)return;
+  slot.hiddenImgData.hotspots.push({label:'',x:null,y:null});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function addHIHotspotFromClick(e,section,si,sli,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const img=e.currentTarget;
+  const rect=img.getBoundingClientRect();
+  const x=((e.clientX-rect.left)/rect.width)*100;
+  const y=((e.clientY-rect.top)/rect.height)*100;
+  // מצא hotspot ללא מיקום ושים בו
+  const emptyHs=slot.hiddenImgData.hotspots.findIndex(h=>h.x==null);
+  if(emptyHs>=0){
+    slot.hiddenImgData.hotspots[emptyHs].x=x;
+    slot.hiddenImgData.hotspots[emptyHs].y=y;
+  } else if(slot.hiddenImgData.hotspots.length<10){
+    slot.hiddenImgData.hotspots.push({label:'',x,y});
+  } else return;
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function updateHIHotspot(section,si,sli,hi,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.hiddenImgData.hotspots[hi][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function removeHIHotspot(section,si,sli,hi){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.hiddenImgData.hotspots.splice(hi,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+async function handleHIUpload(input,inputId,section,si,sli){
+  const file=input.files[0];if(!file)return;
+  const fd=new FormData();fd.append('file',file);fd.append('upload_preset','w8rzehkl');
+  try{
+    const res=await fetch('https://api.cloudinary.com/v1_1/da6mdtjhh/image/upload',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.secure_url){
+      updateHIField(section,si,sli,'imageUrl',data.secure_url);
+      const el=document.getElementById(inputId);if(el)el.value=data.secure_url;
+    }
+  }catch(e){alert('שגיאה בהעלאה');}
+}
+function saveHIData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── REVEAL_WORD HELPERS ──
 function updateRWField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;

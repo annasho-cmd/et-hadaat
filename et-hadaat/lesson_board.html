@@ -202,6 +202,19 @@ function buildSlotHTML(slot){
       <div style="font-size:.75rem;opacity:.35;margin-top:6px;">התלמידים פותרים בטאבלט</div>
     </div>`;
 
+  } else if(slot.type==='hidden_img'){
+    const d=slot.hiddenImgData||{imageUrl:'',hotspots:[]};
+    let src=d.imageUrl||'';
+    const m=src.match(/\/file\/d\/([^\/\?]+)/);
+    if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+    inner=`<div style="text-align:center;padding:20px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🕵️</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:8px;">גלה פרטים מסתתרים</div>
+      ${src?`<img src="${esc(src)}" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;display:block;margin:0 auto 8px;" onerror="this.style.display='none'">`:''}
+      <div style="font-size:.82rem;opacity:.5;">${(d.hotspots||[]).filter(h=>h.x!=null).length} פרטים מוסתרים</div>
+      <div style="font-size:.75rem;opacity:.35;margin-top:6px;">התלמידים מוצאים בטאבלט</div>
+    </div>`;
+
   } else if(slot.type==='reveal_word'){
     const d=slot.revealWordData||{concepts:[]};
     const count=(d.concepts||[]).filter(c=>c.answer).length;
