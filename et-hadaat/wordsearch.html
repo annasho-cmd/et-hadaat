@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>תפזורת — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,.92);--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;font-weight:700;}
+
+.main{padding:16px 20px;}
+.instruction{font-size:.85rem;opacity:.6;margin-bottom:14px;text-align:center;}
+.content-wrap{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+
+/* GRID */
+.ws-grid-wrap{position:relative;display:inline-block;user-select:none;}
+.ws-grid{display:grid;gap:0;border:1px solid var(--border);}
+.ws-cell{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;cursor:crosshair;border:0.5px solid rgba(212,168,67,.08);transition:background .1s;}
+.ws-cell.hovering{background:rgba(212,168,67,.1);}
+.ws-overlay{position:absolute;inset:0;pointer-events:none;}
+
+/* CLUES */
+.clues-panel{min-width:220px;flex:1;}
+.clues-title{font-size:.75rem;font-weight:700;color:var(--gold);opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.clue-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;padding:7px 10px;border-radius:8px;border:1px solid transparent;}
+.clue-row.found{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.25);}
+.clue-num{min-width:22px;height:22px;border-radius:4px;background:rgba(212,168,67,.15);color:var(--gold);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.clue-text{font-size:.83rem;line-height:1.5;flex:1;}
+.clue-word-input{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Frank Ruhl Libre',serif;font-size:.9rem;font-weight:700;padding:5px 8px;outline:none;margin-top:4px;direction:rtl;}
+.clue-word-input:focus{border-color:var(--gold);}
+.clue-word-input.correct{border-color:#22c55e;background:rgba(34,197,94,.1);pointer-events:none;}
+.clue-word-input.wrong-flash{border-color:#f87171;animation:wrongFlash .4s ease;}
+@keyframes wrongFlash{0%,100%{border-color:#f87171;}50%{border-color:rgba(248,129,113,.3);}}
+
+.fail-msg{background:rgba(248,129,113,.1);border:1px solid rgba(248,129,113,.3);border-radius:8px;padding:10px 14px;font-size:.82rem;color:#f87171;margin-bottom:12px;display:none;}
+.score-bar{text-align:center;padding:10px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:8px;margin-top:14px;font-size:.88rem;display:none;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🔤 תפזורת</div>
+  <span id="score-badge" style="font-size:.78rem;opacity:.45;"></span>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="instruction" id="instruction"></div>
+  <div class="fail-msg" id="fail-msg"></div>
+  <div class="content-wrap">
+    <div class="ws-grid-wrap" id="grid-wrap">
+      <div class="ws-grid" id="ws-grid"></div>
+      <svg class="ws-overlay" id="ws-overlay"></svg>
+    </div>
+    <div class="clues-panel">
+      <div class="clues-title" id="clues-title">מושגים לחיפוש</div>
+      <div id="clues-list"></div>
+      <div class="score-bar" id="score-bar"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const params=new URLSearchParams(window.location.search);
+let wsData={clues:[],instruction:'',showOnlyWords:false};
+try{wsData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+
+let grid=[];let placements=[];let ROWS=0,COLS=0;
+let marking={active:false,startR:-1,startC:-1};
+let foundWords=new Set();
+const DIRS=[[0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]];
+// רק קדימה: מאוזן ימינה, מאונך למטה, 2 אלכסונים קדימה
+const FORWARD_DIRS=[[0,1],[1,0],[1,1],[-1,1]];
+
+const CIRCLE_COLORS=['#f0c060','#86efac','#93c5fd','#f9a8d4','#c4b5fd','#fdba74','#6ee7b7','#fca5a5'];
+let colorIdx=0;
+
+// ── GENERATOR ──
+function normalize(w){return (w||'').trim().toUpperCase().replace(/\s/g,'');}
+
+function generateWordSearch(words){
+  const SIZE=Math.max(14,words.reduce((m,w)=>Math.max(m,w.length),0)+4);
+  let g=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
+  const placed=[];const failed=[];
+
+  // ערבב סדר המילים
+  const shuffled=[...words].sort(()=>Math.random()-.5);
+
+  shuffled.forEach(word=>{
+    let ok=false;
+    const attempts=200;
+    for(let a=0;a<attempts&&!ok;a++){
+      const dir=FORWARD_DIRS[Math.floor(Math.random()*FORWARD_DIRS.length)];
+      const [dr,dc]=dir;
+      const maxR=dr>0?SIZE-word.length:dr<0?word.length-1:SIZE-1;
+      const minR=dr<0?word.length-1:0;
+      const maxC=dc>0?SIZE-word.length:dc<0?word.length-1:SIZE-1;
+      const minC=dc<0?word.length-1:0;
+      if(maxR<minR||maxC<minC)continue;
+      const r=minR+Math.floor(Math.random()*(maxR-minR+1));
+      const c=minC+Math.floor(Math.random()*(maxC-minC+1));
+      // בדוק אם ניתן למקם
+      let canPlace=true;
+      for(let i=0;i<word.length;i++){
+        const gr=r+dr*i,gc=c+dc*i;
+        if(g[gr][gc]!==null&&g[gr][gc]!==word[i]){canPlace=false;break;}
+      }
+      if(canPlace){
+        for(let i=0;i<word.length;i++) g[r+dr*i][c+dc*i]=word[i];
+        placed.push({word,r,c,dr,dc});
+        ok=true;
+      }
+    }
+    if(!ok)failed.push(word);
+  });
+
+  // מלא תאים ריקים באותיות רנדומליות
+  const heb='אבגדהוזחטיכלמנסעפצקרשת';
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++)
+    if(!g[r][c]) g[r][c]=heb[Math.floor(Math.random()*heb.length)];
+
+  return{grid:g,placed,failed,size:SIZE};
+}
+
+// ── INIT ──
+window.onload=function(){
+  document.getElementById('instruction').textContent=wsData.instruction||'מצאו את המושגים המוסתרים בתפזורת';
+  const validClues=(wsData.clues||[]).filter(c=>c.word);
+  if(!validClues.length){
+    document.getElementById('ws-grid').innerHTML='<div style="padding:20px;opacity:.4;">אין מושגים מוגדרים</div>';
+    return;
+  }
+  const words=validClues.map(c=>normalize(c.word));
+  const result=generateWordSearch(words);
+  grid=result.grid;placements=result.placed;
+  ROWS=result.size;COLS=result.size;
+
+  if(result.failed.length){
+    const names=result.failed.map(w=>validClues.find(c=>normalize(c.word)===w)?.word||w);
+    const el=document.getElementById('fail-msg');
+    el.style.display='block';
+    el.textContent=`⚠️ לא ניתן לשבץ: ${names.join(', ')}`;
+  }
+
+  buildGrid();
+  buildClues(validClues,words);
+  updateScore();
+};
+
+function buildGrid(){
+  const gridEl=document.getElementById('ws-grid');
+  gridEl.style.gridTemplateColumns=`repeat(${COLS},32px)`;
+  gridEl.style.gridTemplateRows=`repeat(${ROWS},32px)`;
+  gridEl.innerHTML='';
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const cell=document.createElement('div');
+      cell.className='ws-cell';
+      cell.textContent=grid[r][c]||'';
+      cell.id=`wsc-${r}-${c}`;
+      cell.dataset.r=r;cell.dataset.c=c;
+      gridEl.appendChild(cell);
+    }
+  }
+  // מאזין לסימון עם עכבר
+  gridEl.addEventListener('mousedown',startMark);
+  gridEl.addEventListener('mousemove',moveMark);
+  gridEl.addEventListener('mouseup',endMark);
+  // מגע
+  gridEl.addEventListener('touchstart',e=>{e.preventDefault();startMark(e.touches[0]);},{passive:false});
+  gridEl.addEventListener('touchmove',e=>{e.preventDefault();moveMark(e.touches[0]);},{passive:false});
+  gridEl.addEventListener('touchend',e=>{e.preventDefault();endMark(e.changedTouches[0]);},{passive:false});
+}
+
+function getCellFromPoint(x,y){
+  const el=document.elementFromPoint(x,y);
+  if(el?.classList.contains('ws-cell')){return{r:parseInt(el.dataset.r),c:parseInt(el.dataset.c)};}
+  return null;
+}
+
+function startMark(e){
+  const cell=getCellFromPoint(e.clientX,e.clientY);
+  if(!cell)return;
+  marking={active:true,startR:cell.r,startC:cell.c};
+  clearHover();
+  highlightHover(cell.r,cell.c,cell.r,cell.c);
+}
+function moveMark(e){
+  if(!marking.active)return;
+  const cell=getCellFromPoint(e.clientX,e.clientY);
+  if(!cell)return;
+  clearHover();
+  highlightHover(marking.startR,marking.startC,cell.r,cell.c);
+}
+function endMark(e){
+  if(!marking.active)return;
+  const cell=getCellFromPoint(e.clientX,e.clientY)||{r:marking.startR,c:marking.startC};
+  marking.active=false;
+  clearHover();
+  trySelectLine(marking.startR,marking.startC,cell.r,cell.c);
+}
+
+function getLineCells(r1,c1,r2,c2){
+  const dr=r2-r1,dc=c2-c1;
+  const len=Math.max(Math.abs(dr),Math.abs(dc));
+  if(len===0)return[[r1,c1]];
+  const sr=dr===0?0:dr/Math.abs(dr);
+  const sc=dc===0?0:dc/Math.abs(dc);
+  // חוקי: מאוזן, מאונך, או אלכסון מדויק
+  if(dr!==0&&dc!==0&&Math.abs(dr)!==Math.abs(dc))return null;
+  const cells=[];
+  for(let i=0;i<=len;i++) cells.push([r1+sr*i,c1+sc*i]);
+  return cells;
+}
+
+function highlightHover(r1,c1,r2,c2){
+  const cells=getLineCells(r1,c1,r2,c2);
+  if(!cells)return;
+  cells.forEach(([r,c])=>document.getElementById(`wsc-${r}-${c}`)?.classList.add('hovering'));
+}
+function clearHover(){document.querySelectorAll('.ws-cell.hovering').forEach(el=>el.classList.remove('hovering'));}
+
+function trySelectLine(r1,c1,r2,c2){
+  const cells=getLineCells(r1,c1,r2,c2);
+  if(!cells||cells.length<2)return;
+  const word=cells.map(([r,c])=>grid[r][c]).join('');
+  const wordRev=word.split('').reverse().join('');
+  // חפש התאמה
+  const match=placements.find(p=>!foundWords.has(p.word)&&(p.word===word||p.word===wordRev));
+  if(match){
+    foundWords.add(match.word);
+    drawCircle(cells,CIRCLE_COLORS[colorIdx%CIRCLE_COLORS.length]);
+    colorIdx++;
+    markClueFound(match.word);
+    updateScore();
+    if(foundWords.size===placements.length) setTimeout(showVictory,500);
+  }
+}
+
+function drawCircle(cells,color){
+  const svg=document.getElementById('ws-overlay');
+  const wrap=document.getElementById('grid-wrap');
+  const wRect=wrap.getBoundingClientRect();
+  const CELL=32;
+  if(cells.length===1){
+    const [r,c]=cells[0];
+    const cx=(c+0.5)*CELL,cy=(r+0.5)*CELL;
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r',CELL*0.45);
+    circle.setAttribute('fill','none');circle.setAttribute('stroke',color);circle.setAttribute('stroke-width','2.5');circle.setAttribute('opacity','0.7');
+    svg.appendChild(circle);return;
+  }
+  const [r1,c1]=cells[0];const [rn,cn]=cells[cells.length-1];
+  const x1=(c1+0.5)*CELL,y1=(r1+0.5)*CELL;
+  const x2=(cn+0.5)*CELL,y2=(rn+0.5)*CELL;
+  const dx=x2-x1,dy=y2-y1;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  const pad=CELL*0.4;
+  const nx=dy/len,ny=-dx/len; // נורמל
+  const rx=nx*pad,ry=ny*pad;
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  const px1=x1-dx/len*pad,py1=y1-dy/len*pad;
+  const px2=x2+dx/len*pad,py2=y2+dy/len*pad;
+  const d=`M ${px1+rx} ${py1+ry} L ${px2+rx} ${py2+ry} A ${pad} ${pad} 0 0 1 ${px2-rx} ${py2-ry} L ${px1-rx} ${py1-ry} A ${pad} ${pad} 0 0 1 ${px1+rx} ${py1+ry} Z`;
+  path.setAttribute('d',d);
+  path.setAttribute('fill',color);path.setAttribute('opacity','0.25');path.setAttribute('stroke',color);path.setAttribute('stroke-width','1.5');
+  svg.appendChild(path);
+}
+
+function buildClues(clues,words){
+  const list=document.getElementById('clues-list');
+  const showOnly=wsData.showOnlyWords;
+  document.getElementById('clues-title').textContent=showOnly?'מושגים לחיפוש':'מושגים';
+  list.innerHTML=clues.map((c,ci)=>{
+    const w=normalize(c.word);
+    return `<div class="clue-row" id="clue-row-${ci}">
+      <div class="clue-num">${ci+1}</div>
+      <div class="clue-text">
+        ${showOnly?`<strong>${esc(c.word)}</strong>`:`${esc(c.clue||c.word)}`}
+        ${!showOnly?`<input class="clue-word-input" id="clue-inp-${ci}"
+          placeholder="${'_'.repeat(c.word.length)}"
+          maxlength="${c.word.length}"
+          autocomplete="off" spellcheck="false"
+          oninput="checkClueInput(this,${ci},'${w}')">`:'' }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function checkClueInput(inp,ci,correctWord){
+  const val=normalize(inp.value);
+  if(val===correctWord){
+    inp.classList.add('correct');
+    // סמן כנמצא — אם המילה בגריד
+    const p=placements.find(pl=>pl.word===correctWord&&!foundWords.has(pl.word));
+    if(p){
+      const cells=[];
+      for(let i=0;i<p.word.length;i++) cells.push([p.r+p.dr*i,p.c+p.dc*i]);
+      foundWords.add(p.word);
+      drawCircle(cells,CIRCLE_COLORS[colorIdx%CIRCLE_COLORS.length]);
+      colorIdx++;
+      markClueFound(correctWord);
+      updateScore();
+      if(foundWords.size===placements.length) setTimeout(showVictory,500);
+    }
+  } else if(val.length===correctWord.length){
+    inp.classList.add('wrong-flash');
+    setTimeout(()=>inp.classList.remove('wrong-flash'),500);
+  }
+}
+
+function markClueFound(word){
+  const clues=(wsData.clues||[]).filter(c=>c.word);
+  const ci=clues.findIndex(c=>normalize(c.word)===word);
+  if(ci>=0){
+    document.getElementById(`clue-row-${ci}`)?.classList.add('found');
+    const inp=document.getElementById(`clue-inp-${ci}`);
+    if(inp){inp.value=wsData.clues?.find(c=>normalize(c.word)===word)?.word||word;inp.classList.add('correct');}
+  }
+}
+
+function updateScore(){
+  const total=placements.length;
+  const found=foundWords.size;
+  document.getElementById('score-badge').textContent=`${found}/${total} נמצאו`;
+}
+
+function showVictory(){
+  const scoreBar=document.getElementById('score-bar');
+  scoreBar.style.display='block';
+  scoreBar.innerHTML='🎉 מצאתם את כל המושגים! כל הכבוד!';
+  scoreBar.style.color='#22c55e';
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function normalize(w){return (w||'').trim().toUpperCase().replace(/\s/g,'');}
+</script>
+</body>
+</html>
