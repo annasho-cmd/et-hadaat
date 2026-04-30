@@ -584,6 +584,24 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── חידות בציורים ──
+  if(slot.type==='riddle_draw'){
+    const d=slot.riddleData||{riddles:[]};
+    const rdParams=encodeURIComponent(JSON.stringify(d));
+    const rdUrl=window.location.href.replace(/[^/]*/,'riddle_draw.html')+'?data='+rdParams;
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">✏️</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">חידות בציורים</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${d.riddles?.filter(r=>r.answer).length||0} חידות</div>
+      <button onclick="window.open('${rdUrl}','_blank','width=750,height=680')"
+        style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+        פתח חידות ✏️
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── תפזורת ──
   if(slot.type==='wordsearch'){
     const d=slot.wordsearchData||{clues:[]};

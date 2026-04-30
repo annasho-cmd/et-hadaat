@@ -2178,6 +2178,52 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── חידות בציורים ──
+  if(slot.type==='riddle_draw'){
+    const d=slot.riddleData||{instruction:'',riddles:[{url:'',answer:''}]};
+    const riddles=d.riddles||[];
+
+    const riddlesHtml=riddles.map((r,ri)=>`
+      <div style="background:rgba(44,26,14,.4);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:.8rem;font-weight:700;color:var(--gold);">חידה ${ri+1}</span>
+          ${riddles.length>1?`<button onclick="removeRiddle('${section}',${si},${sli},${ri})"
+            style="margin-right:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕</button>`:''}
+        </div>
+        <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.82rem;margin-bottom:5px;"
+          placeholder="קישור לתמונת החידה (URL / Drive)..."
+          value="${esc(r.url||'')}" id="rdl-url-${uid}-${ri}"
+          onchange="updateRiddle('${section}',${si},${sli},${ri},'url',this.value)">
+        <div style="display:flex;gap:8px;margin-bottom:5px;">
+          <button onclick="document.getElementById('rdl-file-${uid}-${ri}').click()"
+            style="padding:4px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:6px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.75rem;cursor:pointer;">
+            📁 העלה תמונה
+          </button>
+          <input type="file" id="rdl-file-${uid}-${ri}" accept="image/*" style="display:none;"
+            onchange="handleRiddleUpload(this,'rdl-url-${uid}-${ri}','${section}',${si},${sli},${ri})">
+        </div>
+        ${r.url?`<img src="${esc(r.url)}" style="max-width:100%;max-height:70px;border-radius:6px;object-fit:contain;margin-bottom:5px;" onerror="this.style.display='none'">`:''}
+        <input class="inline-field" style="min-height:0;padding:5px 8px;font-size:.85rem;" placeholder="התשובה הנכונה (מילה אחת או יותר)..."
+          value="${esc(r.answer||'')}"
+          onchange="updateRiddle('${section}',${si},${sli},${ri},'answer',this.value)">
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">✏️ חידות בציורים</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        התלמיד רואה את הציור ומשלים אותיות במשבצות לפי מספר האותיות בתשובה.
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="פתרו את החידות..."
+        onchange="updateRiddleField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div id="rdl-list-${uid}">${riddlesHtml}</div>
+      ${riddles.length<10?`<button onclick="addRiddle('${section}',${si},${sli})"
+        style="width:100%;padding:6px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.8rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף חידה</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveRiddleData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── תפזורת ──
   if(slot.type==='wordsearch'){
     const d=slot.wordsearchData||{instruction:'',showOnlyWords:false,clues:[{word:'',clue:''}]};
@@ -2763,6 +2809,44 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── RIDDLE_DRAW HELPERS ──
+function updateRiddleField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.riddleData)slot.riddleData={instruction:'',riddles:[]};
+  slot.riddleData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateRiddle(section,si,sli,ri,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.riddleData.riddles[ri])slot.riddleData.riddles[ri]={url:'',answer:''};
+  slot.riddleData.riddles[ri][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function addRiddle(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.riddleData)slot.riddleData={instruction:'',riddles:[]};
+  if(slot.riddleData.riddles.length>=10)return;
+  slot.riddleData.riddles.push({url:'',answer:''});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeRiddle(section,si,sli,ri){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.riddleData.riddles.splice(ri,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+async function handleRiddleUpload(input,inputId,section,si,sli,ri){
+  const file=input.files[0];if(!file)return;
+  const fd=new FormData();fd.append('file',file);fd.append('upload_preset','w8rzehkl');
+  try{
+    const res=await fetch('https://api.cloudinary.com/v1_1/da6mdtjhh/image/upload',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.secure_url){
+      updateRiddle(section,si,sli,ri,'url',data.secure_url);
+      const el=document.getElementById(inputId);if(el)el.value=data.secure_url;
+      renderLessonStructure();
+    }
+  }catch(e){alert('שגיאה בהעלאה');}
+}
+function saveRiddleData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── WORDSEARCH HELPERS ──
 function updateWSField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;

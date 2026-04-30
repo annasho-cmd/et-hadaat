@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>חידות בציורים — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,.92);--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;font-weight:700;}
+
+.main{max-width:700px;margin:0 auto;padding:20px;}
+.instruction{font-size:.88rem;opacity:.65;margin-bottom:18px;text-align:center;}
+.progress{font-size:.75rem;opacity:.4;text-align:center;margin-bottom:16px;}
+
+/* RIDDLE CARD */
+.riddle-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;transition:border-color .2s;}
+.riddle-card.solved{border-color:#22c55e;}
+.riddle-card.failed{border-color:#f87171;}
+.riddle-img{width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-bottom:14px;display:block;}
+.riddle-num{font-size:.72rem;font-weight:700;color:var(--gold);opacity:.5;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
+
+/* LETTER BOXES */
+.answer-boxes{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:12px;}
+.word-group{display:flex;gap:4px;margin-left:8px;}
+.letter-box{width:36px;height:40px;border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;position:relative;transition:all .15s;}
+.letter-box input{width:100%;height:100%;background:transparent;border:none;text-align:center;color:var(--parch);font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;outline:none;caret-color:var(--gold);direction:rtl;padding:0;}
+.letter-box.active{border-color:var(--gold);background:rgba(212,168,67,.08);}
+.letter-box.correct{border-color:#22c55e;background:rgba(34,197,94,.12);}
+.letter-box.correct input{color:#22c55e;pointer-events:none;}
+.letter-box.wrong{border-color:#f87171;background:rgba(248,129,113,.08);}
+.letter-box.revealed{border-color:rgba(212,168,67,.3);background:rgba(212,168,67,.06);}
+.letter-box.revealed input{color:var(--gold2);opacity:.7;pointer-events:none;}
+
+/* FEEDBACK */
+.feedback{text-align:center;padding:8px;border-radius:8px;font-size:.88rem;font-weight:700;margin-top:6px;min-height:32px;}
+.feedback.success{color:#22c55e;}
+.feedback.retry{color:#f87171;}
+.feedback.revealed{color:var(--gold);opacity:.8;}
+
+.check-btn{display:block;margin:0 auto;padding:8px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+.check-btn:disabled{opacity:.3;cursor:default;}
+
+/* SUMMARY */
+.summary{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;display:none;}
+.summary-emoji{font-size:3rem;margin-bottom:10px;}
+.summary-title{font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:6px;}
+.summary-sub{font-size:.88rem;opacity:.6;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">✏️ חידות בציורים</div>
+  <span id="score-badge" style="font-size:.78rem;opacity:.45;"></span>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="instruction" id="instruction"></div>
+  <div class="progress" id="progress"></div>
+  <div id="riddles-container"></div>
+  <div class="summary" id="summary">
+    <div class="summary-emoji">🎉</div>
+    <div class="summary-title" id="summary-title">סיימתם!</div>
+    <div class="summary-sub" id="summary-sub"></div>
+  </div>
+</div>
+
+<script>
+const params=new URLSearchParams(window.location.search);
+let riddleData={riddles:[],instruction:''};
+try{riddleData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+
+let state=[];// per riddle: {attempts, solved, revealed}
+
+window.onload=function(){
+  document.getElementById('instruction').textContent=riddleData.instruction||'פתרו את החידות!';
+  const riddles=(riddleData.riddles||[]).filter(r=>r.answer);
+  if(!riddles.length){
+    document.getElementById('riddles-container').innerHTML='<div style="opacity:.4;text-align:center;padding:40px;">אין חידות מוגדרות</div>';
+    return;
+  }
+  state=riddles.map(()=>({attempts:0,solved:false,revealed:false}));
+  buildRiddles(riddles);
+  updateProgress();
+};
+
+function buildRiddles(riddles){
+  const container=document.getElementById('riddles-container');
+  container.innerHTML=riddles.map((r,ri)=>{
+    let src=r.url||'';
+    const m=src.match(/\/file\/d\/([^\/\?]+)/);
+    if(m)src=`https://drive.google.com/uc?export=view&id=${m[1]}`;
+
+    const words=r.answer.trim().split(/\s+/);
+    const boxesHtml=words.map((word,wi)=>`
+      <div class="word-group" id="word-${ri}-${wi}">
+        ${word.split('').map((letter,li)=>`
+          <div class="letter-box" id="box-${ri}-${wi}-${li}">
+            <input type="text" maxlength="1" autocomplete="off" autocorrect="off" spellcheck="false"
+              id="inp-${ri}-${wi}-${li}"
+              oninput="letterInput(event,${ri},${wi},${li},'${word.split('').length}')"
+              onkeydown="letterKeydown(event,${ri},${wi},${li})"
+              onfocus="document.getElementById('box-${ri}-${wi}-${li}').classList.add('active')"
+              onblur="document.getElementById('box-${ri}-${wi}-${li}').classList.remove('active')">
+          </div>`).join('')}
+      </div>`).join('');
+
+    return `<div class="riddle-card" id="riddle-${ri}">
+      <div class="riddle-num">חידה ${ri+1} מתוך ${riddles.length}</div>
+      <img class="riddle-img" src="${esc(src)}" alt="חידה ${ri+1}" onerror="this.style.display='none'">
+      <div class="answer-boxes" id="boxes-${ri}">${boxesHtml}</div>
+      <div class="feedback" id="feedback-${ri}"></div>
+      <button class="check-btn" id="check-btn-${ri}" onclick="checkAnswer(${ri},'${esc(r.answer.trim())}')">בדוק ✓</button>
+    </div>`;
+  }).join('');
+}
+
+function letterInput(e,ri,wi,li,wordLen){
+  const inp=e.target;
+  const val=(inp.value||'').toUpperCase().replace(/[^א-תA-Z]/g,'');
+  inp.value=val?val[val.length-1]:'';
+  if(val) moveNextBox(ri,wi,li,parseInt(wordLen));
+}
+
+function letterKeydown(e,ri,wi,li){
+  if(e.key==='Backspace'){
+    const inp=document.getElementById(`inp-${ri}-${wi}-${li}`);
+    if(!inp.value) movePrevBox(ri,wi,li);
+  }
+  if(e.key==='ArrowRight') movePrevBox(ri,wi,li);
+  if(e.key==='ArrowLeft') moveNextBox(ri,wi,li,99);
+}
+
+function moveNextBox(ri,wi,li,wordLen){
+  if(li+1<wordLen){
+    document.getElementById(`inp-${ri}-${wi}-${li+1}`)?.focus();
+  } else {
+    // עבור למילה הבאה
+    const nextWi=wi+1;
+    const nextInp=document.getElementById(`inp-${ri}-${nextWi}-0`);
+    if(nextInp)nextInp.focus();
+  }
+}
+function movePrevBox(ri,wi,li){
+  if(li>0){document.getElementById(`inp-${ri}-${wi}-${li-1}`)?.focus();}
+  else if(wi>0){
+    // מצא אורך המילה הקודמת
+    const prevGroup=document.getElementById(`word-${ri}-${wi-1}`);
+    const prevInputs=prevGroup?.querySelectorAll('input');
+    if(prevInputs?.length) prevInputs[prevInputs.length-1].focus();
+  }
+}
+
+function checkAnswer(ri,correctAnswer){
+  const riddles=(riddleData.riddles||[]).filter(r=>r.answer);
+  const words=correctAnswer.split(/\s+/);
+  let studentAnswer='';
+  let allFilled=true;
+  words.forEach((word,wi)=>{
+    word.split('').forEach((letter,li)=>{
+      const val=document.getElementById(`inp-${ri}-${wi}-${li}`)?.value||'';
+      if(!val)allFilled=false;
+      studentAnswer+=val;
+    });
+    if(wi<words.length-1)studentAnswer+=' ';
+  });
+
+  if(!allFilled){
+    document.getElementById(`feedback-${ri}`).textContent='יש למלא את כל המשבצות';
+    document.getElementById(`feedback-${ri}`).className='feedback retry';
+    return;
+  }
+
+  const isCorrect=studentAnswer.trim().toUpperCase()===correctAnswer.toUpperCase();
+  state[ri].attempts++;
+
+  if(isCorrect){
+    state[ri].solved=true;
+    // סמן הכל ירוק
+    words.forEach((word,wi)=>word.split('').forEach((_,li)=>{
+      document.getElementById(`box-${ri}-${wi}-${li}`)?.classList.add('correct');
+    }));
+    document.getElementById(`feedback-${ri}`).textContent='🎉 נכון! כל הכבוד!';
+    document.getElementById(`feedback-${ri}`).className='feedback success';
+    document.getElementById(`check-btn-${ri}`).disabled=true;
+    document.getElementById(`riddle-${ri}`).classList.add('solved');
+    updateProgress();
+    checkAllDone();
+  } else {
+    if(state[ri].attempts>=2){
+      // גלה תשובה
+      state[ri].revealed=true;
+      revealAnswer(ri,correctAnswer);
+    } else {
+      // ניסיון ראשון — השאר אותיות נכונות
+      words.forEach((word,wi)=>word.split('').forEach((letter,li)=>{
+        const inp=document.getElementById(`inp-${ri}-${wi}-${li}`);
+        const box=document.getElementById(`box-${ri}-${wi}-${li}`);
+        const val=(inp?.value||'').toUpperCase();
+        if(val===letter.toUpperCase()){
+          box?.classList.add('correct');
+          if(inp)inp.setAttribute('readonly','true');
+        } else {
+          if(inp)inp.value='';
+          box?.classList.remove('wrong');
+        }
+      }));
+      document.getElementById(`feedback-${ri}`).textContent='❌ לא נכון. נסה שנית!';
+      document.getElementById(`feedback-${ri}`).className='feedback retry';
+    }
+  }
+}
+
+function revealAnswer(ri,correctAnswer){
+  const words=correctAnswer.split(/\s+/);
+  words.forEach((word,wi)=>word.split('').forEach((letter,li)=>{
+    const inp=document.getElementById(`inp-${ri}-${wi}-${li}`);
+    const box=document.getElementById(`box-${ri}-${wi}-${li}`);
+    if(inp){inp.value=letter.toUpperCase();inp.setAttribute('readonly','true');}
+    box?.classList.remove('correct','wrong');
+    box?.classList.add('revealed');
+  }));
+  document.getElementById(`feedback-${ri}`).textContent=`התשובה הנכונה: ${correctAnswer}`;
+  document.getElementById(`feedback-${ri}`).className='feedback revealed';
+  document.getElementById(`check-btn-${ri}`).disabled=true;
+  document.getElementById(`riddle-${ri}`).classList.add('failed');
+  updateProgress();
+  checkAllDone();
+}
+
+function updateProgress(){
+  const riddles=(riddleData.riddles||[]).filter(r=>r.answer);
+  const solved=state.filter(s=>s.solved).length;
+  const done=state.filter(s=>s.solved||s.revealed).length;
+  document.getElementById('score-badge').textContent=`${solved}/${riddles.length} נכון`;
+  document.getElementById('progress').textContent=`${done} מתוך ${riddles.length} הושלמו`;
+}
+
+function checkAllDone(){
+  const riddles=(riddleData.riddles||[]).filter(r=>r.answer);
+  const allDone=state.every(s=>s.solved||s.revealed);
+  if(!allDone)return;
+  const solved=state.filter(s=>s.solved).length;
+  const summary=document.getElementById('summary');
+  summary.style.display='block';
+  summary.scrollIntoView({behavior:'smooth'});
+  document.getElementById('summary-title').textContent=solved===riddles.length?'פתרתם הכל!':'סיכום:';
+  document.getElementById('summary-sub').textContent=`פתרתם נכון ${solved} מתוך ${riddles.length} חידות`;
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,"\\'");}
+</script>
+</body>
+</html>
