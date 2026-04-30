@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ניטור חדר הבריחה — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,.92);--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;font-weight:700;}
+.main{padding:20px;max-width:1000px;margin:0 auto;}
+.section-title{font-size:.75rem;font-weight:700;color:var(--gold);opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px;}
+.group-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.group-card.completed{border-color:#22c55e;}
+.group-num{font-weight:700;color:var(--gold);font-size:.9rem;margin-bottom:6px;}
+.progress-track{height:6px;background:rgba(212,168,67,.12);border-radius:3px;margin-bottom:8px;overflow:hidden;}
+.progress-bar{height:100%;background:var(--gold);border-radius:3px;transition:width .4s;}
+.members-list{font-size:.78rem;opacity:.6;line-height:1.7;}
+.leader-name{font-size:.82rem;font-weight:700;color:var(--gold2);}
+.change-leader-btn{padding:3px 8px;background:none;border:1px solid var(--border);border-radius:5px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.72rem;cursor:pointer;margin-right:6px;}
+.riddle-status{display:flex;gap:4px;margin-top:6px;}
+.rs-dot{width:8px;height:8px;border-radius:50%;background:rgba(212,168,67,.15);}
+.rs-dot.done{background:#22c55e;}
+.rs-dot.current{background:var(--gold);}
+.student-url-box{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;}
+.url-text{font-size:.8rem;word-break:break-all;opacity:.7;margin-top:4px;}
+.copy-btn{padding:4px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:5px;color:var(--gold);font-size:.75rem;cursor:pointer;font-family:'Heebo',sans-serif;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-title">🔐 ניטור — חדר הבריחה</div>
+  <span id="activity-name" style="font-size:.85rem;opacity:.6;"></span>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="student-url-box">
+    <div style="font-size:.82rem;font-weight:700;color:var(--gold);">קישור לתלמידים:</div>
+    <div class="url-text" id="student-url"></div>
+    <button class="copy-btn" onclick="copyUrl()">📋 העתק קישור</button>
+  </div>
+
+  <div class="section-title">מצב קבוצות</div>
+  <div class="groups-grid" id="groups-grid">
+    <div style="opacity:.4;font-size:.85rem;">טוען...</div>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+const params=new URLSearchParams(window.location.search);
+let escData={name:'חדר הבריחה',numGroups:4,riddles:[]};
+try{escData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+const sessionId=params.get('session')||'session_default';
+
+const studentBaseUrl=window.location.href.replace('escape_monitor.html','escape_room.html')
+  +'?session='+sessionId+'&data='+params.get('data');
+
+document.getElementById('activity-name').textContent=escData.name||'חדר הבריחה';
+document.getElementById('student-url').textContent=studentBaseUrl;
+
+function copyUrl(){
+  navigator.clipboard.writeText(studentBaseUrl).then(()=>alert('הקישור הועתק!'));
+}
+
+// ── INIT GROUPS ──
+window.onload=function(){
+  buildEmptyGroups();
+  // האזן לכל הקבוצות
+  db.ref(`escapeRoom/${sessionId}/groups`).on('value',snap=>{
+    const data=snap.val()||{};
+    updateGroupsDisplay(data);
+  });
+};
+
+function buildEmptyGroups(){
+  const n=escData.numGroups||4;
+  const grid=document.getElementById('groups-grid');
+  grid.innerHTML=Array.from({length:n},(_,i)=>`
+    <div class="group-card" id="gc-${i+1}">
+      <div class="group-num">קבוצה ${i+1}</div>
+      <div class="progress-track"><div class="progress-bar" id="pb-${i+1}" style="width:0%"></div></div>
+      <div style="font-size:.78rem;opacity:.4;">ממתין לחברי קבוצה...</div>
+    </div>`).join('');
+}
+
+function updateGroupsDisplay(data){
+  const n=escData.numGroups||4;
+  const total=escData.riddles.length;
+  for(let g=1;g<=n;g++){
+    const gData=data[g]||{};
+    const card=document.getElementById(`gc-${g}`);
+    if(!card)continue;
+    const progress=gData.progress||0;
+    const pct=Math.max(0,Math.round(Math.min(progress-1,total)/total*100));
+    const members=Object.values(gData.members||{});
+    const leader=gData.leader||'';
+    const completed=!!gData.completed;
+
+    if(completed)card.classList.add('completed');
+    document.getElementById(`pb-${g}`).style.width=pct+'%';
+
+    const stepDots=escData.riddles.map((_,i)=>{
+      const riddleNum=i+2;
+      return `<div class="rs-dot${progress>riddleNum?'done':progress===riddleNum?' current':''}"></div>`;
+    }).join('');
+
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <div class="group-num">קבוצה ${g}</div>
+        ${completed?'<span style="color:#22c55e;font-size:.75rem;">✅ סיימו!</span>':''}
+      </div>
+      <div class="progress-track"><div class="progress-bar" style="width:${pct}%"></div></div>
+      <div style="font-size:.78rem;margin-bottom:6px;">
+        שלב: ${progress<=1?'פתיחה':progress>=total+2?'סיום':`חידה ${progress-1}/${total}`}
+      </div>
+      <div class="riddle-status">${stepDots}</div>
+      ${leader?`<div style="margin-top:8px;">
+        <div style="font-size:.7rem;opacity:.4;margin-bottom:2px;">ראש קבוצה:</div>
+        <div style="display:flex;align-items:center;">
+          <span class="leader-name">👑 ${esc(leader)}</span>
+          ${members.length>1?`<button class="change-leader-btn" onclick="changeLeader(${g},${JSON.stringify(members).replace(/'/g,"\\'")})">החלף</button>`:''}
+        </div>
+      </div>`:''}
+      ${members.length?`<div class="members-list" style="margin-top:6px;">
+        <div style="font-size:.7rem;opacity:.4;margin-bottom:2px;">חברים (${members.length}):</div>
+        ${members.map(m=>esc(m)).join(' · ')}
+      </div>`:'<div style="font-size:.78rem;opacity:.3;margin-top:6px;">אין חברים עדיין</div>'}`;
+  }
+}
+
+function changeLeader(g,members){
+  const names=members.filter(Boolean);
+  if(names.length<2)return;
+  const options=names.map((n,i)=>`${i+1}. ${n}`).join('\n');
+  const choice=prompt(`בחרי ראש קבוצה חדש לקבוצה ${g}:\n${options}\n(הכיני מספר)`);
+  const idx=parseInt(choice)-1;
+  if(idx>=0&&idx<names.length){
+    db.ref(`escapeRoom/${sessionId}/groups/${g}/leader`).set(names[idx]);
+  }
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

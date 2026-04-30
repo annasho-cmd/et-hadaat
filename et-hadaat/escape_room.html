@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>חדר בריחה — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&family=MedievalSharp&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+/* ── BASE ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;min-height:100vh;direction:rtl;overflow-x:hidden;}
+
+/* ── STYLES ── */
+body.mystery{background:#0d0010;color:#e8d5f5;}
+body.mystery .panel{background:rgba(50,0,80,.85);border-color:rgba(150,50,255,.3);}
+body.mystery .title-font{font-family:'Frank Ruhl Libre',serif;color:#c084fc;}
+body.mystery .accent{color:#c084fc;}
+body.mystery .lock-box{border-color:rgba(150,50,255,.5);background:rgba(80,0,120,.4);}
+body.mystery .key-input{border-color:rgba(150,50,255,.4);background:rgba(50,0,80,.6);}
+body.mystery .btn-primary{background:linear-gradient(135deg,#7c3aed,#4c1d95);}
+body.mystery .page-bg{background:radial-gradient(ellipse at center,#1a0030 0%,#0d0010 100%);}
+
+body.ancient{background:#1a0f00;color:#fdf5e0;}
+body.ancient .panel{background:rgba(44,26,8,.9);border-color:rgba(212,168,67,.25);}
+body.ancient .title-font{font-family:'Frank Ruhl Libre',serif;color:#f0c060;}
+body.ancient .accent{color:#d4a843;}
+body.ancient .lock-box{border-color:rgba(212,168,67,.4);background:rgba(30,15,0,.6);}
+body.ancient .key-input{border-color:rgba(212,168,67,.35);background:rgba(44,26,8,.7);}
+body.ancient .btn-primary{background:linear-gradient(135deg,#d4a843,#8b6914);}
+body.ancient .page-bg{background:radial-gradient(ellipse at center,#2d1500 0%,#1a0f00 100%);}
+
+body.scifi{background:#000a14;color:#b3e8ff;}
+body.scifi .panel{background:rgba(0,30,60,.85);border-color:rgba(0,200,255,.25);}
+body.scifi .title-font{font-family:'Heebo',sans-serif;color:#00d4ff;letter-spacing:.08em;}
+body.scifi .accent{color:#00d4ff;}
+body.scifi .lock-box{border-color:rgba(0,200,255,.4);background:rgba(0,20,40,.6);}
+body.scifi .key-input{border-color:rgba(0,200,255,.35);background:rgba(0,30,60,.7);}
+body.scifi .btn-primary{background:linear-gradient(135deg,#0ea5e9,#0369a1);}
+body.scifi .page-bg{background:radial-gradient(ellipse at center,#001428 0%,#000a14 100%);}
+
+/* ── LAYOUT ── */
+.page-bg{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;}
+.panel{border:1px solid;border-radius:16px;width:100%;max-width:680px;padding:24px;position:relative;}
+.title-font{font-size:1.4rem;font-weight:700;margin-bottom:10px;text-align:center;}
+.subtitle{font-size:.85rem;opacity:.6;text-align:center;margin-bottom:16px;}
+
+/* ── BUTTONS ── */
+.btn-primary{padding:12px 28px;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;color:#fff;transition:all .15s;}
+.btn-primary:hover{opacity:.9;transform:scale(1.02);}
+.btn-secondary{padding:8px 18px;border-radius:8px;border:1px solid;background:transparent;font-family:'Heebo',sans-serif;font-size:.85rem;cursor:pointer;transition:all .15s;}
+.btn-secondary:hover{opacity:.8;}
+
+/* ── RIDDLE PAGE ── */
+.riddle-area{min-height:160px;font-size:.95rem;line-height:1.9;margin-bottom:16px;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.08);}
+.lock-box{border:2px solid;border-radius:12px;padding:18px;text-align:center;margin-top:8px;}
+.lock-icon{font-size:2.5rem;margin-bottom:8px;transition:transform .3s;}
+.lock-label{font-size:.8rem;opacity:.55;margin-bottom:10px;}
+.key-input{width:200px;text-align:center;border:2px solid;border-radius:8px;background:transparent;color:inherit;font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;padding:9px 12px;outline:none;letter-spacing:.08em;}
+.key-input:focus{box-shadow:0 0 0 2px rgba(255,255,255,.2);}
+.unlock-btn{margin-top:10px;padding:9px 22px;border-radius:8px;border:none;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+
+/* ── PROGRESS ── */
+.progress-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin-bottom:16px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s;}
+body.mystery .progress-fill{background:#c084fc;}
+body.ancient .progress-fill{background:#d4a843;}
+body.scifi .progress-fill{background:#00d4ff;}
+.step-dots{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+.step-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .3s;}
+.step-dot.done{background:#22c55e;}
+body.mystery .step-dot.active{background:#c084fc;box-shadow:0 0 8px #c084fc;}
+body.ancient .step-dot.active{background:#d4a843;box-shadow:0 0 8px #d4a843;}
+body.scifi .step-dot.active{background:#00d4ff;box-shadow:0 0 8px #00d4ff;}
+
+/* ── LOCK ANIMATION ── */
+@keyframes shakeKey{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-5px);}40%,80%{transform:translateX(5px);}}
+@keyframes unlock{0%{transform:scale(1);}30%{transform:scale(1.3) rotate(-10deg);}60%{transform:scale(1.1) rotate(5deg);}100%{transform:scale(1) rotate(0deg);}}
+@keyframes fadeDown{from{transform:translateY(-10px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.shake{animation:shakeKey .4s ease;}
+.unlocking{animation:unlock .5s ease forwards;}
+
+/* ── WRONG FLASH ── */
+@keyframes wrongFlash{0%,100%{border-color:rgba(248,129,113,.6);}50%{border-color:rgba(248,129,113,.1);}}
+.wrong-key{border-color:rgba(248,129,113,.6)!important;animation:wrongFlash .4s ease;}
+
+/* ── AGENT ── */
+.agent-btn{position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;cursor:pointer;border:none;box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:50;}
+body.mystery .agent-btn{background:rgba(124,58,237,.8);}
+body.ancient .agent-btn{background:rgba(212,168,67,.8);}
+body.scifi .agent-btn{background:rgba(14,165,233,.8);}
+.agent-panel{position:fixed;bottom:82px;right:16px;width:300px;background:rgba(10,5,2,.95);border:1px solid rgba(255,255,255,.15);border-radius:14px;display:none;z-index:50;flex-direction:column;max-height:360px;}
+.agent-panel.open{display:flex;}
+.agent-header{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:8px;}
+.agent-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;}
+.agent-bubble{padding:8px 11px;border-radius:9px;font-size:.82rem;line-height:1.5;}
+.agent-bubble.bot{background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.25);color:#e9d5ff;}
+.agent-bubble.user{background:rgba(255,255,255,.07);align-self:flex-end;color:inherit;}
+.agent-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid rgba(255,255,255,.1);}
+.agent-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:inherit;font-family:'Heebo',sans-serif;font-size:.82rem;padding:6px 9px;outline:none;}
+.agent-send{padding:6px 12px;border-radius:7px;border:none;background:rgba(109,40,217,.5);color:#e9d5ff;cursor:pointer;font-size:.82rem;}
+
+/* ── LEADER BADGE ── */
+.leader-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:700;margin-bottom:8px;}
+body.mystery .leader-badge{background:rgba(124,58,237,.2);color:#c084fc;}
+body.ancient .leader-badge{background:rgba(212,168,67,.15);color:#d4a843;}
+body.scifi .leader-badge{background:rgba(14,165,233,.15);color:#00d4ff;}
+
+/* ── MODAL ── */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;display:flex;align-items:center;justify-content:center;}
+.modal-box{max-width:380px;width:90%;padding:28px;border-radius:16px;text-align:center;}
+body.mystery .modal-box{background:#1a0028;border:1px solid rgba(150,50,255,.3);}
+body.ancient .modal-box{background:#1a0f00;border:1px solid rgba(212,168,67,.3);}
+body.scifi .modal-box{background:#001020;border:1px solid rgba(0,200,255,.3);}
+
+/* ── COMPLETION ── */
+@keyframes confetti{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+.confetti-piece{position:fixed;width:10px;height:10px;border-radius:2px;animation:confetti 3s ease forwards;}
+</style>
+</head>
+<body class="mystery">
+<div class="page-bg" id="page-bg">
+  <div class="panel" id="main-panel">
+    <div style="text-align:center;padding:40px;opacity:.4;">טוען...</div>
+  </div>
+</div>
+
+<button class="agent-btn" id="agent-btn" onclick="toggleAgent()" style="display:none;">🤖</button>
+<div class="agent-panel" id="agent-panel">
+  <div class="agent-header">
+    <span>🤖</span>
+    <span style="font-size:.85rem;font-weight:700;">סוכן הלמידה</span>
+    <button onclick="toggleAgent()" style="margin-right:auto;background:none;border:none;cursor:pointer;opacity:.5;font-size:.9rem;">✕</button>
+  </div>
+  <div class="agent-messages" id="agent-messages">
+    <div class="agent-bubble bot">שלום! אני כאן לתת רמזים — אבל לא לפתור את החידה בשבילכם 😊</div>
+  </div>
+  <div class="agent-input-row">
+    <input class="agent-input" id="agent-input" placeholder="שאל/י רמז..." onkeydown="if(event.key==='Enter')sendAgentMsg()">
+    <button class="agent-send" onclick="sendAgentMsg()">↑</button>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
+
+const params=new URLSearchParams(window.location.search);
+let escData={name:'חדר הבריחה',style:'mystery',numGroups:4,intro:'',helpResources:'',agentEnabled:true,riddles:[]};
+try{escData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+const sessionId=params.get('session')||'session_'+Date.now();
+const studentName=params.get('student')||'';
+
+let myGroup=null;
+let isLeader=false;
+let currentPage=0; // 0=group select, 1=intro, 2..n+1=riddles, n+2=end
+let agentHistory=[];
+
+const STYLE=escData.style||'mystery';
+document.body.className=STYLE;
+
+const STYLE_ICONS={mystery:'🔮',ancient:'📜',scifi:'🚀'};
+const STYLE_LOCK={mystery:'🔒',ancient:'🗝️',scifi:'🔐'};
+const STYLE_UNLOCK={mystery:'🔓',ancient:'✨',scifi:'💡'};
+
+// ── DB REFS ──
+function groupRef(g){return db.ref(`escapeRoom/${sessionId}/groups/${g}`);}
+function progressRef(g){return db.ref(`escapeRoom/${sessionId}/groups/${g}/progress`);}
+
+window.onload=function(){
+  document.getElementById('agent-btn').style.display=escData.agentEnabled?'flex':'none';
+  renderGroupSelect();
+};
+
+// ── PAGE 0: GROUP SELECT ──
+function renderGroupSelect(){
+  const panel=document.getElementById('main-panel');
+  const n=escData.numGroups||4;
+  const icon=STYLE_ICONS[STYLE];
+  const btns=Array.from({length:n},(_,i)=>`
+    <button class="btn-primary" style="margin:5px;min-width:80px;" onclick="joinGroup(${i+1})">
+      קבוצה ${i+1}
+    </button>`).join('');
+  panel.innerHTML=`
+    <div class="title-font">${icon} ${esc(escData.name||'חדר הבריחה')}</div>
+    <div class="subtitle">בחרו את מספר הקבוצה שלכם</div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:16px 0;">${btns}</div>
+    <div style="font-size:.78rem;opacity:.4;text-align:center;">התלמיד הראשון שמצטרף לקבוצה הופך לראש הקבוצה</div>`;
+}
+
+async function joinGroup(g){
+  myGroup=g;
+  const snap=await groupRef(g).once('value');
+  const data=snap.val()||{};
+  if(!data.leader){
+    // ראשון — הפוך לראש
+    await groupRef(g).update({leader:studentName||'תלמיד',members:{[Date.now()]:studentName||'תלמיד'},progress:0});
+    isLeader=true;
+  } else {
+    await groupRef(g).child('members').push(studentName||'תלמיד');
+    isLeader=false;
+  }
+  // האזן לשינויי התקדמות
+  progressRef(g).on('value',snap=>{
+    const p=snap.val()||0;
+    if(p!==currentPage){currentPage=p;renderCurrentPage();}
+  });
+  currentPage=1;
+  await progressRef(g).set(1);
+  renderCurrentPage();
+}
+
+// ── RENDER CURRENT PAGE ──
+function renderCurrentPage(){
+  const riddles=escData.riddles||[];
+  const total=riddles.length;
+  if(currentPage===1) renderIntro();
+  else if(currentPage>=2&&currentPage<=total+1) renderRiddle(currentPage-2);
+  else renderEnd();
+}
+
+// ── PAGE 1: INTRO ──
+function renderIntro(){
+  const panel=document.getElementById('main-panel');
+  panel.style.animation='fadeDown .4s ease';
+  panel.innerHTML=`
+    <div class="leader-badge" style="display:${isLeader?'inline-flex':'none'}">👑 ראש קבוצה ${myGroup}</div>
+    <div class="title-font">${STYLE_ICONS[STYLE]} ${esc(escData.name||'חדר הבריחה')}</div>
+    <div style="font-size:.88rem;opacity:.6;text-align:center;margin-bottom:6px;">קבוצה ${myGroup}</div>
+    <div style="margin:16px 0;font-size:.95rem;line-height:1.9;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.08);">
+      ${esc(escData.intro||'ברוכים הבאים! מוכנים להתחיל?').replace(/\n/g,'<br>')}
+    </div>
+    ${escData.helpResources?`<div style="font-size:.8rem;opacity:.55;margin-bottom:12px;">📚 מקורות עזר: ${esc(escData.helpResources)}</div>`:''}
+    ${renderLockedMsg(isLeader)}
+    ${isLeader?`<div style="text-align:center;margin-top:14px;">
+      <button class="btn-primary" onclick="advancePage()">התחילו! →</button>
+    </div>`:''}`;
+}
+
+function renderLockedMsg(leader){
+  if(leader)return '';
+  return `<div style="font-size:.82rem;opacity:.5;text-align:center;padding:8px;border-radius:7px;border:1px dashed rgba(255,255,255,.15);">
+    ממתין לראש הקבוצה...</div>`;
+}
+
+// ── PAGE 2-N: RIDDLE ──
+function renderRiddle(ri){
+  const riddle=escData.riddles[ri];
+  if(!riddle)return;
+  const total=escData.riddles.length;
+  const panel=document.getElementById('main-panel');
+  panel.innerHTML=`
+    <div class="step-dots">${escData.riddles.map((_,i)=>`<div class="step-dot${i<ri?' done':i===ri?' active':''}"></div>`).join('')}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(ri/total*100)}%"></div></div>
+    <div class="leader-badge" style="display:${isLeader?'inline-flex':'none'}">👑 ראש קבוצה ${myGroup}</div>
+    <div class="title-font" style="font-size:1.1rem;margin-bottom:4px;">חידה ${ri+1} מתוך ${total}</div>
+    <div class="riddle-area">${esc(riddle.text||'').replace(/\n/g,'<br>')}</div>
+    <div class="lock-box">
+      <div class="lock-icon" id="lock-icon">${STYLE_LOCK[STYLE]}</div>
+      <div class="lock-label">${riddle.keyType==='number'?'הקלידו את הקוד המספרי':'הקלידו את מילת המפתח'}</div>
+      ${isLeader?`
+        <input class="key-input" id="key-input" type="${riddle.keyType==='number'?'number':'text'}"
+          placeholder="${riddle.keyType==='number'?'קוד...':'מילה...'}"
+          maxlength="20" autocomplete="off" spellcheck="false"
+          onkeydown="if(event.key==='Enter')tryKey(${ri})">
+        <br>
+        <button class="unlock-btn btn-primary" style="margin-top:10px;" onclick="tryKey(${ri})">
+          פתח 🔓
+        </button>
+        <div id="key-feedback" style="min-height:22px;font-size:.82rem;margin-top:8px;"></div>
+      `:`<div style="font-size:.85rem;opacity:.5;margin-top:8px;">ממתין לראש הקבוצה...</div>`}
+    </div>`;
+}
+
+function tryKey(ri){
+  const riddle=escData.riddles[ri];
+  const inp=document.getElementById('key-input');
+  const val=(inp?.value||'').trim().toLowerCase();
+  const correct=riddle.key.trim().toLowerCase();
+  const lockIcon=document.getElementById('lock-icon');
+  const feedback=document.getElementById('key-feedback');
+
+  if(val===correct){
+    // נכון!
+    lockIcon.textContent=STYLE_UNLOCK[STYLE];
+    lockIcon.classList.add('unlocking');
+    if(feedback)feedback.textContent='✅ נכון! עוברים הלאה...';
+    if(feedback)feedback.style.color='#22c55e';
+    // קונפטי
+    spawnConfetti();
+    setTimeout(()=>advancePage(),1200);
+  } else {
+    // שגוי
+    if(inp){inp.classList.add('wrong-key');setTimeout(()=>inp.classList.remove('wrong-key'),500);}
+    if(lockIcon){lockIcon.classList.add('shake');setTimeout(()=>lockIcon.classList.remove('shake'),400);}
+    if(feedback){feedback.textContent='❌ לא נכון. נסו שוב!';feedback.style.color='#f87171';}
+    inp.value='';inp.focus();
+  }
+}
+
+function advancePage(){
+  currentPage++;
+  progressRef(myGroup).set(currentPage);
+  renderCurrentPage();
+}
+
+// ── FINAL PAGE ──
+function renderEnd(){
+  const panel=document.getElementById('main-panel');
+  panel.innerHTML=`
+    <div style="text-align:center;padding:10px 0;">
+      <div style="font-size:3rem;margin-bottom:14px;">${STYLE===mystery?'🏆':STYLE==='ancient'?'📜✨':'🚀🏆'}</div>
+      <div class="title-font" style="font-size:1.4rem;margin-bottom:8px;">כל הכבוד!</div>
+      <div style="font-size:.95rem;opacity:.7;margin-bottom:16px;">קבוצה ${myGroup} סיימה את חדר הבריחה!</div>
+      <div style="font-size:.85rem;opacity:.5;">ממתינים להוראות המורה</div>
+    </div>`;
+  spawnConfetti(30);
+  db.ref(`escapeRoom/${sessionId}/groups/${myGroup}/completed`).set(Date.now());
+}
+
+// ── CONFETTI ── 
+function spawnConfetti(n=15){
+  const colors=['#c084fc','#f0c060','#00d4ff','#22c55e','#f9a8d4','#fdba74'];
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.className='confetti-piece';
+      el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*.5}s;transform:rotate(${Math.random()*360}deg);`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),4000);
+    },i*80);
+  }
+}
+
+// ── AGENT ──
+function toggleAgent(){
+  document.getElementById('agent-panel').classList.toggle('open');
+}
+async function sendAgentMsg(){
+  const inp=document.getElementById('agent-input');
+  const msg=(inp?.value||'').trim();
+  if(!msg)return;
+  inp.value='';
+  addAgentBubble(msg,'user');
+  agentHistory.push({role:'user',content:msg});
+  // מצא את החידה הנוכחית
+  const ri=Math.max(0,currentPage-2);
+  const riddle=escData.riddles[ri]||{};
+  try{
+    const res=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:150,
+        system:`אתה סוכן למידה לחדר בריחה. החידה הנוכחית: "${riddle.text||''}". 
+          אל תגלה את התשובה (${riddle.key}). תן רמז מועיל. ענה בעברית קצר ומדויק.`,
+        messages:agentHistory})});
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'נסו לקרוא את החידה שוב בעיון';
+    addAgentBubble(reply,'bot');
+    agentHistory.push({role:'assistant',content:reply});
+    if(agentHistory.length>10)agentHistory=agentHistory.slice(-10);
+  }catch(e){addAgentBubble('לא ניתן להתחבר כרגע','bot');}
+}
+function addAgentBubble(text,role){
+  const msgs=document.getElementById('agent-messages');
+  const b=document.createElement('div');
+  b.className=`agent-bubble ${role}`;
+  b.textContent=text;
+  msgs.appendChild(b);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

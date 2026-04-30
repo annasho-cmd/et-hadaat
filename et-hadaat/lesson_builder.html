@@ -1896,6 +1896,91 @@ function buildSlotEditor(slot, section, si, sli, uid){
 
   // ── מיון — מה הקשר? ──
   // ── טבלת מילוי ──
+  // ── חדר בריחה ──
+  if(slot.type==='escape_room'){
+    const d=slot.escapeData||{
+      name:'חדר הבריחה',style:'mystery',numGroups:4,
+      intro:'',helpResources:'',agentEnabled:true,
+      riddles:[{text:'',key:'',keyType:'word'}]
+    };
+    const riddles=d.riddles||[];
+    const STYLES=[
+      {v:'mystery', l:'🔮 מסתורי',   s:'שחור / סגול'},
+      {v:'ancient', l:'📜 היסטורי',  s:'קלף / זהב'},
+      {v:'scifi',   l:'🚀 עתידני',   s:'ניאון / כחול'},
+    ];
+
+    const riddlesHtml=riddles.map((r,ri)=>`
+      <div style="background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+          <span style="font-size:.8rem;font-weight:700;color:var(--gold);">חידה ${ri+1}</span>
+          ${riddles.length>1?`<button onclick="removeESRiddle('${section}',${si},${sli},${ri})"
+            style="margin-right:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕</button>`:''}
+        </div>
+        <textarea class="inline-field" style="min-height:90px;font-size:.82rem;margin-bottom:6px;"
+          placeholder="טקסט החידה — כתבי את הסיפור, הרמזים וההפניות..."
+          onchange="updateESRiddle('${section}',${si},${sli},${ri},'text',this.value)">${esc(r.text||'')}</textarea>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div style="font-size:.78rem;opacity:.6;">מפתח (קוד פתרון):</div>
+          <select class="inline-field" style="min-height:0;padding:3px 7px;width:100px;"
+            onchange="updateESRiddle('${section}',${si},${sli},${ri},'keyType',this.value)">
+            <option value="word" ${r.keyType!=='number'?'selected':''}>מילה</option>
+            <option value="number" ${r.keyType==='number'?'selected':''}>מספר</option>
+          </select>
+          <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.88rem;font-weight:700;"
+            placeholder="${r.keyType==='number'?'למשל: 1847':'למשל: מגילה'}"
+            value="${esc(r.key||'')}"
+            onchange="updateESRiddle('${section}',${si},${sli},${ri},'key',this.value)">
+        </div>
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🔐 חדר בריחה</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">שם הפעילות:</div>
+          <input class="inline-field" style="min-height:0;padding:5px 8px;"
+            value="${esc(d.name||'')}" placeholder="חדר הבריחה..."
+            onchange="updateESField('${section}',${si},${sli},'name',this.value)">
+        </div>
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">סגנון עיצוב:</div>
+          <select class="inline-field" style="min-height:0;padding:5px 8px;"
+            onchange="updateESField('${section}',${si},${sli},'style',this.value)">
+            ${STYLES.map(s=>`<option value="${s.v}" ${d.style===s.v?'selected':''}>${s.l} — ${s.s}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">מספר קבוצות:</div>
+          <input class="inline-field" type="number" min="2" max="10" style="min-height:0;padding:5px 8px;"
+            value="${d.numGroups||4}" onchange="updateESField('${section}',${si},${sli},'numGroups',parseInt(this.value))">
+        </div>
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">מספר חידות:</div>
+          <input class="inline-field" type="number" min="2" max="6" style="min-height:0;padding:5px 8px;"
+            value="${riddles.length}" onchange="setESRiddleCount('${section}',${si},${sli},parseInt(this.value))">
+        </div>
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">סיפור מסגרת (דף פתיחה):</div>
+      <textarea class="inline-field" style="min-height:70px;margin-bottom:8px;"
+        placeholder="ברוכים הבאים! אתם נמצאים ב... עליכם..."
+        onchange="updateESField('${section}',${si},${sli},'intro',this.value)">${esc(d.intro||'')}</textarea>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">מקורות עזר (יוצגו לתלמידים):</div>
+      <textarea class="inline-field" style="min-height:50px;margin-bottom:10px;"
+        placeholder="ספר לימוד עמ' 45, מקור מס' 3..."
+        onchange="updateESField('${section}',${si},${sli},'helpResources',this.value)">${esc(d.helpResources||'')}</textarea>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;margin-bottom:10px;">
+        <input type="checkbox" ${d.agentEnabled!==false?'checked':''} style="width:15px;height:15px;"
+          onchange="updateESField('${section}',${si},${sli},'agentEnabled',this.checked)">
+        <span>הפעל סוכן למידה (נותן רמזים, לא פותר)</span>
+      </label>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">חידות (${riddles.length}):</div>
+      <div id="es-riddles-${uid}">${riddlesHtml}</div>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveESData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   if(slot.type==='fill_table'){
     const d=slot.fillTableData||{instruction:'',cols:[{name:''}],rows:[{cells:[{value:'',studentFills:false}]}]};
     const cols=d.cols||[{name:''}];
@@ -3459,6 +3544,33 @@ function restoreKlueWord(section,si,sli,wi,uid){
   setSaveStatus('שינויים לא שמורים');
 }
 function saveKlueData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
+// ── ESCAPE_ROOM HELPERS ──
+function updateESField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.escapeData)slot.escapeData={name:'חדר הבריחה',style:'mystery',numGroups:4,intro:'',helpResources:'',agentEnabled:true,riddles:[{text:'',key:'',keyType:'word'}]};
+  slot.escapeData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateESRiddle(section,si,sli,ri,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.escapeData.riddles[ri])slot.escapeData.riddles[ri]={text:'',key:'',keyType:'word'};
+  slot.escapeData.riddles[ri][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function setESRiddleCount(section,si,sli,count){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  count=Math.min(6,Math.max(2,count));
+  const current=slot.escapeData.riddles.length;
+  if(count>current) for(let i=current;i<count;i++) slot.escapeData.riddles.push({text:'',key:'',keyType:'word'});
+  else slot.escapeData.riddles=slot.escapeData.riddles.slice(0,count);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeESRiddle(section,si,sli,ri){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(slot.escapeData.riddles.length<=2)return;
+  slot.escapeData.riddles.splice(ri,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function saveESData(section,si,sli){saveLesson();flash('✓ נשמר');}
 
 // ── FILL_TABLE HELPERS ──
 function updateFTField(section,si,sli,field,val){

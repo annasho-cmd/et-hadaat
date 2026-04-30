@@ -415,6 +415,26 @@ function buildSlotBlock(slot,stIdx,sli){
     return buildSortTable(slot, stIdx, sli);
   }
 
+  // ── חדר בריחה ──
+  if(slot.type==='escape_room'){
+    const d=slot.escapeData||{};
+    const sessionId='esc_'+Date.now();
+    const escParams=encodeURIComponent(JSON.stringify(d));
+    const escUrl=window.location.href.replace(/[^/]*/,'escape_room.html')+'?data='+escParams+'&session='+sessionId+'&student='+encodeURIComponent(studentName||'');
+    const monUrl=window.location.href.replace(/[^/]*/,'escape_monitor.html')+'?data='+escParams+'&session='+sessionId;
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🔐</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">${esc(d.name||'חדר הבריחה')}</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${d.riddles?.length||0} חידות · ${d.numGroups||4} קבוצות</div>
+      <button onclick="window.open('${escUrl}','_blank','width=720,height=600')"
+        style="padding:10px 24px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:#fff;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;margin-left:8px;">
+        כניסה לפעילות 🔐
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   if(slot.type==='fill_table'){
     return buildFillTable(slot, stIdx, sli);
   }

@@ -202,6 +202,25 @@ function buildSlotHTML(slot){
       <div style="font-size:.75rem;opacity:.35;margin-top:6px;">התלמידים פותרים בטאבלט</div>
     </div>`;
 
+  } else if(slot.type==='escape_room'){
+    const d=slot.escapeData||{};
+    const sessionId='esc_'+Date.now();
+    const escParams=encodeURIComponent(JSON.stringify(d));
+    const monUrl=window.location.href.replace('lesson_board.html','escape_monitor.html')+'?data='+escParams+'&session='+sessionId;
+    const escUrl=window.location.href.replace('lesson_board.html','escape_room.html')+'?data='+escParams+'&session='+sessionId;
+    inner=`<div style="text-align:center;padding:28px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:10px;">🔐</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">${esc(d.name||'חדר הבריחה')}</div>
+      <div style="font-size:.85rem;opacity:.5;margin-bottom:16px;">${d.riddles?.length||0} חידות · ${d.numGroups||4} קבוצות</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button onclick="window.open('${monUrl}','_blank','width=900,height=650')"
+          style="padding:10px 22px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;">
+          📊 ניטור קבוצות
+        </button>
+        <div style="font-size:.75rem;opacity:.35;margin-top:8px;width:100%;">שתפי את קישור הפעילות עם התלמידים דרך ניטור הקבוצות</div>
+      </div>
+    </div>`;
+
   } else if(slot.type==='fill_table'){
     const ftd=slot.fillTableData||slot.tableData;
     if(ftd&&ftd.cols){
