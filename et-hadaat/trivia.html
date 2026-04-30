@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>טריוויה — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+
+/* ── MILLIONAIRE ── */
+.mill-bg{min-height:100vh;background:radial-gradient(ellipse at 50% 30%,#0a0a2e 0%,#000 100%);}
+.mill-main{max-width:760px;margin:0 auto;padding:20px;}
+.mill-question{background:rgba(0,0,80,.6);border:2px solid rgba(100,100,255,.4);border-radius:14px;padding:20px 24px;text-align:center;font-size:1.1rem;line-height:1.7;margin-bottom:16px;font-family:'Frank Ruhl Libre',serif;}
+.mill-answers{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.mill-answer{padding:12px 16px;background:linear-gradient(135deg,rgba(0,20,80,.8),rgba(0,0,60,.8));border:2px solid rgba(100,150,255,.4);border-radius:10px;cursor:pointer;text-align:center;font-size:.9rem;font-family:'Frank Ruhl Libre',serif;transition:all .2s;color:var(--parch);}
+.mill-answer:hover{border-color:rgba(255,200,0,.6);background:linear-gradient(135deg,rgba(60,40,0,.8),rgba(40,20,0,.8));}
+.mill-answer.selected{border-color:#fbbf24;background:linear-gradient(135deg,rgba(80,60,0,.9),rgba(60,40,0,.9));}
+.mill-answer.correct{border-color:#22c55e;background:linear-gradient(135deg,rgba(0,60,20,.9),rgba(0,40,10,.9))!important;}
+.mill-answer.wrong{border-color:#ef4444;background:linear-gradient(135deg,rgba(60,0,0,.9),rgba(40,0,0,.9))!important;}
+.mill-answer.eliminated{opacity:.35;pointer-events:none;}
+.mill-ladder{display:flex;flex-direction:column;gap:3px;position:fixed;left:20px;top:60px;font-size:.72rem;width:90px;}
+.mill-rung{padding:3px 8px;border-radius:4px;opacity:.5;text-align:center;}
+.mill-rung.current{background:rgba(255,200,0,.25);border:1px solid rgba(255,200,0,.5);opacity:1;color:#fbbf24;font-weight:700;}
+.mill-rung.done{background:rgba(34,197,94,.15);opacity:.8;color:#22c55e;}
+.mill-rung.milestone{color:#fbbf24;}
+.lifelines{display:flex;gap:10px;justify-content:center;margin-bottom:14px;}
+.lifeline-btn{padding:8px 16px;background:rgba(255,200,0,.1);border:1px solid rgba(255,200,0,.3);border-radius:8px;color:#fbbf24;font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.lifeline-btn:disabled{opacity:.25;cursor:default;}
+.lifeline-btn.used{opacity:.25;pointer-events:none;text-decoration:line-through;}
+
+/* ── ONE VS 100 ── */
+.ovh-bg{min-height:100vh;background:radial-gradient(ellipse at center,#0f0020 0%,#000 100%);}
+.contestant-box{background:linear-gradient(135deg,rgba(80,0,120,.5),rgba(40,0,80,.5));border:2px solid rgba(150,50,255,.4);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px;}
+.audience-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:6px;margin-bottom:14px;}
+.audience-member{padding:6px 4px;border-radius:7px;border:1px solid rgba(150,50,255,.2);text-align:center;font-size:.72rem;transition:all .2s;}
+.audience-member.active{background:rgba(80,0,120,.4);}
+.audience-member.answered-correct{background:rgba(34,197,94,.2);border-color:#22c55e;color:#22c55e;}
+.audience-member.answered-wrong{background:rgba(239,68,68,.15);border-color:#ef4444;opacity:.4;}
+.audience-member.eliminated{opacity:.2;pointer-events:none;}
+
+/* ── DONT DROP ── */
+.dd-bg{min-height:100vh;background:linear-gradient(180deg,#0a1428 0%,#000820 100%);}
+.dd-stakes{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;}
+.player-stake{background:rgba(0,100,255,.1);border:2px solid rgba(0,150,255,.3);border-radius:12px;padding:12px 20px;text-align:center;min-width:120px;}
+.stake-name{font-size:.78rem;opacity:.6;margin-bottom:2px;}
+.stake-pts{font-size:1.6rem;font-weight:700;font-family:'Frank Ruhl Libre',serif;color:#60a5fa;}
+.bet-input{background:rgba(0,100,255,.08);border:2px solid rgba(0,150,255,.3);border-radius:8px;color:var(--parch);font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;padding:8px 12px;outline:none;width:120px;text-align:center;}
+
+/* ── SHARED ── */
+.question-card{background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:14px;padding:18px 22px;text-align:center;font-size:1rem;line-height:1.7;margin-bottom:14px;font-family:'Frank Ruhl Libre',serif;}
+.answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.answer-btn{padding:11px 14px;border:2px solid var(--border);border-radius:9px;cursor:pointer;text-align:center;font-size:.88rem;font-family:'Heebo',sans-serif;background:rgba(253,245,224,.04);color:var(--parch);transition:all .15s;}
+.answer-btn:hover{border-color:var(--gold);background:rgba(212,168,67,.08);}
+.answer-btn.correct{border-color:#22c55e!important;background:rgba(34,197,94,.15)!important;}
+.answer-btn.wrong{border-color:#ef4444!important;background:rgba(239,68,68,.1)!important;}
+.answer-btn.disabled{pointer-events:none;opacity:.6;}
+.answer-letter{font-weight:700;color:var(--gold);margin-left:8px;}
+.q-counter{font-size:.75rem;opacity:.4;text-align:center;margin-bottom:6px;}
+.score-display{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;font-weight:700;color:var(--gold2);text-align:center;margin-bottom:8px;}
+.result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.result-emoji{font-size:4rem;}
+.result-title{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;color:var(--gold2);}
+.result-sub{font-size:.9rem;opacity:.65;}
+
+@keyframes correctPop{0%{transform:scale(1);}30%{transform:scale(1.05);}100%{transform:scale(1);}}
+@keyframes wrongShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-title" id="game-title">🎯 טריוויה</div>
+  <span id="score-display" style="font-size:.85rem;color:var(--gold);font-weight:700;"></span>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+<div id="game-container"></div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+const params=new URLSearchParams(window.location.search);
+let triviaData={name:'טריוויה',template:'millionaire',numAnswers:4,questions:[]};
+try{triviaData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+const sessionId=params.get('session')||'tv_'+Date.now();
+
+const LETTERS=['א','ב','ג','ד','ה'];
+const qs=triviaData.questions||[];
+let shuffledQs=[...qs].sort(()=>Math.random()-.5);
+
+document.getElementById('game-title').textContent='🎯 '+esc(triviaData.name||'טריוויה');
+
+window.onload=function(){
+  const t=triviaData.template;
+  if(t==='millionaire') initMillionaire();
+  else if(t==='one_vs_100') initOneVs100();
+  else initDontDrop();
+};
+
+// ════════════════════════════════════════════
+// מי רוצה להיות מיליונר
+// ════════════════════════════════════════════
+const MILL_VALUES=[100,200,300,500,1000,2000,4000,8000,16000,32000,64000,125000,250000,500000,1000000];
+const MILL_MILESTONES=[4,9,14];
+let millQ=0,millScore=0,millUsed50=false,millUsedAudience=false,millWalked=false;
+
+function initMillionaire(){
+  document.body.className='';
+  document.body.style.background='radial-gradient(ellipse at 50% 30%,#0a0a2e 0%,#000 100%)';
+  renderMillionaire();
+}
+function renderMillionaire(){
+  if(millQ>=Math.min(shuffledQs.length,15)){showResult(true,'💰','כל הכבוד!',`הגעת ל-${MILL_VALUES[millQ-1]?.toLocaleString()||0} נקודות!`);return;}
+  const q=shuffledQs[millQ];
+  const answers=shuffleAnswers(q);
+  const val=MILL_VALUES[millQ]||1000;
+
+  const ladderHtml=MILL_VALUES.slice(0,Math.min(shuffledQs.length,15)).map((v,i)=>`
+    <div class="mill-rung${i===millQ?' current':i<millQ?' done':''} ${MILL_MILESTONES.includes(i)?' milestone':''}">
+      ${v.toLocaleString()}
+    </div>`).reverse().join('');
+
+  document.getElementById('game-container').innerHTML=`
+    <div style="min-height:calc(100vh - 49px);background:radial-gradient(ellipse at 50% 30%,#0a0a2e 0%,#000 100%);padding:20px 20px 20px 130px;">
+      <div class="mill-ladder">${ladderHtml}</div>
+      <div style="max-width:680px;margin:0 auto;">
+        <div class="q-counter">שאלה ${millQ+1} מתוך ${Math.min(shuffledQs.length,15)} · שווי: ${val.toLocaleString()}</div>
+        <div class="mill-question">${esc(q.question)}</div>
+        <div class="lifelines">
+          <button class="lifeline-btn${millUsed50?' used':''}" id="btn50" onclick="use5050()"
+            ${millUsed50?'disabled':''}>50:50</button>
+          <button class="lifeline-btn${millUsedAudience?' used':''}" id="btnAud" onclick="useAudience()"
+            ${millUsedAudience?'disabled':''}>👥 עזרת קהל</button>
+          <button class="lifeline-btn" onclick="walkAway()">💸 קח ועזוב</button>
+        </div>
+        <div class="mill-answers" id="mill-answers">
+          ${answers.map((a,i)=>`
+            <button class="mill-answer" id="mill-ans-${i}" onclick="answerMill(${i},${a.correct})"
+              data-correct="${a.correct}">
+              <span style="color:#fbbf24;margin-left:6px;">${LETTERS[i]}.</span> ${esc(a.text)}
+            </button>`).join('')}
+        </div>
+        <div id="mill-feedback" style="text-align:center;min-height:24px;font-size:.88rem;"></div>
+      </div>
+    </div>`;
+}
+
+let _millAnswers=[];
+function shuffleAnswers(q){
+  const ans=[(q.answers||[])[q.correct||0]||'?',...(q.answers||[]).filter((_,i)=>i!==(q.correct||0))].slice(0,triviaData.numAnswers||4);
+  const shuffled=ans.map((text,i)=>({text,correct:i===0})).sort(()=>Math.random()-.5);
+  _millAnswers=shuffled;
+  return shuffled;
+}
+
+function answerMill(i,isCorrect){
+  document.querySelectorAll('.mill-answer').forEach(b=>b.style.pointerEvents='none');
+  const btn=document.getElementById('mill-ans-'+i);
+  btn.classList.add('selected');
+  setTimeout(()=>{
+    btn.classList.remove('selected');
+    btn.classList.add(isCorrect?'correct':'wrong');
+    if(!isCorrect){
+      // הצג נכון
+      _millAnswers.forEach((a,j)=>{if(a.correct)document.getElementById('mill-ans-'+j)?.classList.add('correct');});
+    }
+    setTimeout(()=>{
+      if(isCorrect){
+        millScore=MILL_VALUES[millQ]||1000;
+        millQ++;
+        document.getElementById('score-display').textContent=millScore.toLocaleString()+' נק׳';
+        renderMillionaire();
+      } else {
+        const safe=MILL_MILESTONES.filter(m=>m<millQ).pop();
+        const safeScore=safe!=null?MILL_VALUES[safe]:0;
+        showResult(false,'💸','טעות!',`יצאת עם ${safeScore.toLocaleString()} נקודות`);
+      }
+    },1500);
+  },1200);
+}
+
+function use5050(){
+  if(millUsed50)return;
+  millUsed50=true;
+  document.getElementById('btn50').classList.add('used');
+  let removed=0;
+  _millAnswers.forEach((a,i)=>{
+    if(!a.correct&&removed<2){
+      document.getElementById('mill-ans-'+i)?.classList.add('eliminated');
+      removed++;
+    }
+  });
+}
+function useAudience(){
+  if(millUsedAudience)return;
+  millUsedAudience=true;
+  document.getElementById('btnAud').classList.add('used');
+  // סימולציה — 60-80% לנכון
+  const correctIdx=_millAnswers.findIndex(a=>a.correct);
+  const pcts=_millAnswers.map((_,i)=>{
+    if(i===correctIdx)return 60+Math.floor(Math.random()*20);
+    return Math.floor(Math.random()*15);
+  });
+  // נרמל ל-100
+  const total=pcts.reduce((a,b)=>a+b,0);
+  const norm=pcts.map(p=>Math.round(p/total*100));
+  const html=_millAnswers.map((a,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <span style="min-width:20px;color:#fbbf24;">${LETTERS[i]}.</span>
+      <div style="flex:1;height:16px;background:rgba(255,200,0,.1);border-radius:4px;overflow:hidden;">
+        <div style="width:${norm[i]}%;height:100%;background:rgba(255,200,0,.6);border-radius:4px;transition:width 1s;"></div>
+      </div>
+      <span style="min-width:36px;font-size:.8rem;">${norm[i]}%</span>
+    </div>`).join('');
+  document.getElementById('mill-feedback').innerHTML=`<div style="background:rgba(0,0,80,.5);border:1px solid rgba(100,100,255,.3);border-radius:8px;padding:12px;margin-top:8px;">${html}</div>`;
+}
+function walkAway(){
+  showResult(true,'💸','לקחת ועזבת',`יצאת עם ${(MILL_VALUES[millQ-1]||0).toLocaleString()} נקודות`);
+}
+
+// ════════════════════════════════════════════
+// אחד נגד 100
+// ════════════════════════════════════════════
+const SESSION_DB=db.ref(`trivia/${sessionId}`);
+let ovContestant='',ovAudience=[],ovCurrentQ=0,ovContestantAnswered=false,ovAudienceAnswers={};
+let ovMyRole=''; // 'contestant' or 'audience'
+
+function initOneVs100(){
+  renderOvSetup();
+}
+function renderOvSetup(){
+  const container=document.getElementById('game-container');
+  container.innerHTML=`
+    <div style="min-height:calc(100vh - 49px);background:radial-gradient(ellipse at center,#0f0020 0%,#000 100%);padding:30px 20px;">
+      <div style="max-width:500px;margin:0 auto;text-align:center;">
+        <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:#c084fc;margin-bottom:20px;">👥 אחד נגד 100</div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <button onclick="joinAsContestant()" style="padding:14px 24px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;">
+            🎤 אני המתמודד
+          </button>
+          <button onclick="joinAsAudience()" style="padding:14px 24px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);color:#c084fc;border-radius:12px;font-family:'Heebo',sans-serif;font-size:.95rem;cursor:pointer;">
+            👥 אני בקהל
+          </button>
+        </div>
+        <div style="font-size:.78rem;opacity:.4;margin-top:14px;">מספר session: ${sessionId}</div>
+      </div>
+    </div>`;
+}
+
+function joinAsContestant(){
+  ovMyRole='contestant';
+  ovContestant=params.get('student')||'מתמודד';
+  SESSION_DB.child('contestant').set({name:ovContestant,ts:Date.now()});
+  SESSION_DB.child('currentQ').set(0);
+  SESSION_DB.child('phase').set('question');
+  SESSION_DB.on('value',handleOvUpdate);
+  renderOvContestant();
+}
+function joinAsAudience(){
+  ovMyRole='audience';
+  const name=params.get('student')||'קהל '+Math.floor(Math.random()*100);
+  SESSION_DB.child('audience/'+encodeURIComponent(name)).set({name,active:true});
+  SESSION_DB.on('value',handleOvUpdate);
+  renderOvAudienceLobby(name);
+}
+
+function renderOvContestant(){
+  if(ovCurrentQ>=shuffledQs.length){showResult(true,'🏆','ניצחת!',`עברת את כל ${shuffledQs.length} השאלות!`);return;}
+  const q=shuffledQs[ovCurrentQ];
+  const answers=shuffleAnswers(q);
+  const container=document.getElementById('game-container');
+  container.innerHTML=`
+    <div style="min-height:calc(100vh - 49px);background:radial-gradient(ellipse at center,#0f0020 0%,#000 100%);padding:20px;">
+      <div style="max-width:600px;margin:0 auto;">
+        <div class="contestant-box">
+          <div style="font-size:.8rem;opacity:.5;margin-bottom:4px;">🎤 מתמודד</div>
+          <div style="font-size:1rem;font-weight:700;color:#c084fc;">${esc(ovContestant)}</div>
+        </div>
+        <div class="q-counter">שאלה ${ovCurrentQ+1} מתוך ${shuffledQs.length}</div>
+        <div class="question-card">${esc(q.question)}</div>
+        <div class="answers-grid" id="ov-answers">
+          ${answers.map((a,i)=>`
+            <button class="answer-btn" onclick="ovContestantAnswer(${i},${a.correct})"
+              data-correct="${a.correct}">
+              <span class="answer-letter">${LETTERS[i]}.</span>${esc(a.text)}
+            </button>`).join('')}
+        </div>
+        <div id="ov-feedback" style="text-align:center;min-height:24px;font-size:.88rem;"></div>
+        <div id="ov-audience-results" style="margin-top:14px;"></div>
+      </div>
+    </div>`;
+}
+
+function ovContestantAnswer(i,isCorrect){
+  document.querySelectorAll('.answer-btn').forEach(b=>b.classList.add('disabled'));
+  const btn=document.querySelectorAll('.answer-btn')[i];
+  btn.classList.add(isCorrect?'correct':'wrong');
+  if(!isCorrect) document.querySelectorAll('.answer-btn').forEach((b,j)=>{if(b.dataset.correct==='true')b.classList.add('correct');});
+  SESSION_DB.child('contestantAnswer').set({qi:ovCurrentQ,correct:isCorrect,ts:Date.now()});
+  const fb=document.getElementById('ov-feedback');
+  if(isCorrect){
+    if(fb)fb.innerHTML='<span style="color:#22c55e;font-weight:700;">✅ נכון!</span>';
+    setTimeout(()=>{ovCurrentQ++;SESSION_DB.child('currentQ').set(ovCurrentQ);renderOvContestant();},2000);
+  } else {
+    if(fb)fb.innerHTML='<span style="color:#ef4444;font-weight:700;">❌ טעות! המשחק נגמר.</span>';
+    setTimeout(()=>showResult(false,'💔','טעות!',`המשחק הסתיים בשאלה ${ovCurrentQ+1}`),2000);
+  }
+}
+
+function renderOvAudienceLobby(name){
+  const container=document.getElementById('game-container');
+  container.innerHTML=`
+    <div style="min-height:calc(100vh - 49px);background:radial-gradient(ellipse at center,#0f0020 0%,#000 100%);padding:30px 20px;text-align:center;">
+      <div style="font-size:1rem;color:#c084fc;margin-bottom:8px;">👥 אתה בקהל</div>
+      <div style="font-size:.85rem;opacity:.6;margin-bottom:16px;">${esc(name)}</div>
+      <div id="audience-q-area" style="max-width:500px;margin:0 auto;"></div>
+    </div>`;
+  SESSION_DB.child('currentQ').on('value',snap=>{
+    ovCurrentQ=snap.val()||0;
+    renderAudienceQuestion(name);
+  });
+}
+
+function renderAudienceQuestion(myName){
+  if(ovCurrentQ>=shuffledQs.length) return;
+  const q=shuffledQs[ovCurrentQ];
+  const answers=shuffleAnswers(q);
+  document.getElementById('audience-q-area').innerHTML=`
+    <div class="question-card" style="font-size:.92rem;">${esc(q.question)}</div>
+    <div class="answers-grid">
+      ${answers.map((a,i)=>`
+        <button class="answer-btn" onclick="ovAudienceAnswer(this,${a.correct},'${esc(myName)}')">
+          <span class="answer-letter">${LETTERS[i]}.</span>${esc(a.text)}
+        </button>`).join('')}
+    </div>`;
+}
+
+function ovAudienceAnswer(btn,isCorrect,name){
+  document.querySelectorAll('.answer-btn').forEach(b=>b.classList.add('disabled'));
+  btn.classList.add(isCorrect?'correct':'wrong');
+  SESSION_DB.child('audienceAnswers/'+encodeURIComponent(name)).set({correct:isCorrect,qi:ovCurrentQ,ts:Date.now()});
+}
+
+function handleOvUpdate(snap){/* realtime updates handled per component */}
+
+// ════════════════════════════════════════════
+// אל תפיל את המיליון
+// ════════════════════════════════════════════
+let ddPlayers=[],ddCurrentQ=0,ddPhase='bet'; // bet, answer, result
+
+function initDontDrop(){
+  renderDdSetup();
+}
+function renderDdSetup(){
+  const container=document.getElementById('game-container');
+  container.innerHTML=`
+    <div style="min-height:calc(100vh - 49px);background:linear-gradient(180deg,#0a1428 0%,#000820 100%);padding:30px 20px;">
+      <div style="max-width:480px;margin:0 auto;text-align:center;">
+        <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:#60a5fa;margin-bottom:16px;">🎯 אל תפיל את המיליון</div>
+        <div style="font-size:.85rem;opacity:.6;margin-bottom:16px;">1 או 2 שחקנים</div>
+        <div style="display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto 16px;">
+          <input id="p1-name" style="background:rgba(0,100,255,.08);border:2px solid rgba(0,150,255,.3);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;padding:8px 12px;outline:none;text-align:center;" placeholder="שחקן 1 — שם...">
+          <input id="p2-name" style="background:rgba(0,100,255,.08);border:2px solid rgba(0,150,255,.3);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;padding:8px 12px;outline:none;text-align:center;" placeholder="שחקן 2 — שם (אופציונלי)">
+        </div>
+        <button onclick="startDontDrop()" style="padding:12px 28px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;">
+          התחל משחק 🎯
+        </button>
+      </div>
+    </div>`;
+}
+
+const DD_START=1000;
+function startDontDrop(){
+  const p1=document.getElementById('p1-name').value.trim()||'שחקן 1';
+  const p2=document.getElementById('p2-name').value.trim();
+  ddPlayers=[{name:p1,pts:DD_START}];
+  if(p2)ddPlayers.push({name:p2,pts:DD_START});
+  ddCurrentQ=0;
+  renderDdQuestion();
+}
+
+function renderDdQuestion(){
+  if(ddCurrentQ>=shuffledQs.length||ddPlayers.every(p=>p.pts<=0)){
+    const winner=ddPlayers.reduce((a,b)=>a.pts>=b.pts?a:b);
+    showResult(true,'🎯','המשחק הסתיים!',`${esc(winner.name)} ניצח/ה עם ${winner.pts} נקודות!`);
+    return;
+  }
+  const q=shuffledQs[ddCurrentQ];
+  const answers=shuffleAnswers(q);
+  const numA=Math.min((q.answers||[]).length+1,5);
+
+  const stakesHtml=ddPlayers.map((p,pi)=>`
+    <div class="player-stake">
+      <div class="stake-name">${esc(p.name)}</div>
+      <div class="stake-pts">${p.pts.toLocaleString()}</div>
+      ${p.pts>0?`<div style="margin-top:6px;">
+        <input class="bet-input" id="bet-${pi}" type="number" min="1" max="${p.pts}" placeholder="הימור..."
+          value="${Math.floor(p.pts/2)}">
+        <div style="font-size:.7rem;opacity:.4;margin-top:2px;">מ-1 עד ${p.pts}</div>
+      </div>`:'<div style="font-size:.8rem;color:#ef4444;margin-top:4px;">יצא</div>'}
+    </div>`).join('');
+
+  document.getElementById('game-container').innerHTML=`
+    <div style="min-height:calc(100vh - 49px);background:linear-gradient(180deg,#0a1428 0%,#000820 100%);padding:16px 20px;">
+      <div style="max-width:680px;margin:0 auto;">
+        <div class="q-counter">שאלה ${ddCurrentQ+1} מתוך ${shuffledQs.length}</div>
+        <div class="dd-stakes">${stakesHtml}</div>
+        <div class="question-card">${esc(q.question)}</div>
+        <div class="answers-grid" id="dd-answers" style="grid-template-columns:${numA>4?'1fr 1fr 1fr':numA===3?'repeat(3,1fr)':'1fr 1fr'};">
+          ${answers.map((a,i)=>`
+            <button class="answer-btn" onclick="ddAnswer(${i},${a.correct})">
+              <span class="answer-letter">${LETTERS[i]}.</span>${esc(a.text)}
+            </button>`).join('')}
+        </div>
+        <div id="dd-feedback" style="text-align:center;min-height:24px;font-size:.88rem;"></div>
+      </div>
+    </div>`;
+}
+
+function ddAnswer(i,isCorrect){
+  document.querySelectorAll('.answer-btn').forEach((b,j)=>{
+    b.classList.add('disabled');
+    if(j===i)b.classList.add(isCorrect?'correct':'wrong');
+    if(isCorrect&&j!==i)return;
+    if(!isCorrect) document.querySelectorAll('.answer-btn').forEach(b2=>{if(b2.dataset.correct==='true')b2.classList.add('correct');});
+  });
+  ddPlayers.forEach((p,pi)=>{
+    const betEl=document.getElementById('bet-'+pi);
+    const bet=Math.min(parseInt(betEl?.value||0)||0,p.pts);
+    if(isCorrect)p.pts+=bet;
+    else p.pts=Math.max(0,p.pts-bet);
+  });
+  const fb=document.getElementById('dd-feedback');
+  if(fb)fb.innerHTML=isCorrect
+    ?'<span style="color:#22c55e;font-weight:700;">✅ נכון! הניקוד הוכפל</span>'
+    :'<span style="color:#ef4444;font-weight:700;">❌ טעות! הניקוד ירד</span>';
+  setTimeout(()=>{ddCurrentQ++;renderDdQuestion();},2000);
+}
+
+// ════════════════════════════════════════════
+// SHARED RESULT
+// ════════════════════════════════════════════
+function showResult(success,emoji,title,sub){
+  const overlay=document.createElement('div');
+  overlay.className='result-overlay';
+  overlay.innerHTML=`
+    <div class="result-emoji">${emoji}</div>
+    <div class="result-title">${esc(title)}</div>
+    <div class="result-sub">${esc(sub)}</div>
+    <button class="btn" style="margin-top:8px;" onclick="window.close()">סיום</button>`;
+  document.body.appendChild(overlay);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

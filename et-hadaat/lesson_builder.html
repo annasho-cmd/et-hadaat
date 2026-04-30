@@ -1897,6 +1897,100 @@ function buildSlotEditor(slot, section, si, sli, uid){
   // ── מיון — מה הקשר? ──
   // ── טבלת מילוי ──
   // ── חדר בריחה ──
+  // ── טריוויה ──
+  if(slot.type==='trivia'){
+    const d=slot.triviaData||{name:'טריוויה',template:'millionaire',target:'class',numAnswers:4,questions:[]};
+    const qs=d.questions||[];
+    const TEMPLATES=[
+      {v:'millionaire', l:'💰 מי רוצה להיות מיליונר', s:'15 שאלות, 50:50, עזרת קהל'},
+      {v:'one_vs_100',  l:'👥 אחד נגד 100',          s:'תלמיד מול כל הכיתה'},
+      {v:'dont_drop',   l:'🎯 אל תפיל את המיליון',   s:'הימור על נקודות, 4-5 תשובות'},
+    ];
+
+    const qsHtml=qs.map((q,qi)=>`
+      <div style="background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:7px;padding:8px 10px;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <span style="min-width:20px;height:20px;border-radius:4px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${qi+1}</span>
+          <input class="inline-field" style="flex:2;min-height:0;padding:3px 7px;font-size:.82rem;"
+            placeholder="שאלה..." value="${esc(q.question||'')}"
+            onchange="updateTriviaQ('${section}',${si},${sli},${qi},'question',this.value)">
+          <button onclick="removeTriviaQ('${section}',${si},${sli},${qi})"
+            style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;padding:0 2px;">✕</button>
+        </div>
+        ${Array.from({length:d.numAnswers||4},(_,ai)=>`
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+            <input type="radio" name="tv-correct-${uid}-${qi}" ${q.correct===ai?'checked':''}
+              onchange="updateTriviaQ('${section}',${si},${sli},${qi},'correct',${ai})"
+              style="width:13px;height:13px;cursor:pointer;" title="תשובה נכונה">
+            <input class="inline-field" style="flex:1;min-height:0;padding:3px 7px;font-size:.78rem;"
+              placeholder="תשובה ${ai+1}${ai===0?' (נכונה)':''}" value="${esc((q.answers||[])[ai]||'')}"
+              onchange="updateTriviaAnswer('${section}',${si},${sli},${qi},${ai},this.value)">
+          </div>`).join('')}
+        ${d.template==='dont_drop'&&(d.numAnswers||4)>=4?`
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+            <input type="radio" name="tv-correct-${uid}-${qi}" ${q.correct===4?'checked':''}
+              onchange="updateTriviaQ('${section}',${si},${sli},${qi},'correct',4)"
+              style="width:13px;height:13px;cursor:pointer;">
+            <input class="inline-field" style="flex:1;min-height:0;padding:3px 7px;font-size:.78rem;"
+              placeholder="תשובה 5 (אופציונלי לאל תפיל)" value="${esc((q.answers||[])[4]||'')}"
+              onchange="updateTriviaAnswer('${section}',${si},${sli},${qi},4,this.value)">
+          </div>`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🎯 טריוויה</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:3px;">שם הפעילות:</div>
+          <input class="inline-field" style="min-height:0;padding:5px 8px;"
+            value="${esc(d.name||'')}" placeholder="טריוויה..."
+            onchange="updateTriviaField('${section}',${si},${sli},'name',this.value)">
+        </div>
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:3px;">מיועד ל:</div>
+          <select class="inline-field" style="min-height:0;padding:5px 8px;"
+            onchange="updateTriviaField('${section}',${si},${sli},'target',this.value)">
+            <option value="class" ${d.target==='class'?'selected':''}>כיתה / שיעור</option>
+            <option value="student" ${d.target==='student'?'selected':''}>תלמיד בודד (קרון)</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:3px;">תשובות לשאלה:</div>
+          <select class="inline-field" style="min-height:0;padding:5px 8px;"
+            onchange="updateTriviaField('${section}',${si},${sli},'numAnswers',parseInt(this.value));renderLessonStructure()">
+            <option value="3" ${d.numAnswers===3?'selected':''}>3 תשובות</option>
+            <option value="4" ${(d.numAnswers||4)===4?'selected':''}>4 תשובות</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:.75rem;opacity:.5;margin-bottom:3px;">תבנית:</div>
+          <select class="inline-field" style="min-height:0;padding:5px 8px;"
+            onchange="updateTriviaField('${section}',${si},${sli},'template',this.value);renderLessonStructure()">
+            ${TEMPLATES.map(t=>`<option value="${t.v}" ${d.template===t.v?'selected':''}>${t.l}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="font-size:.72rem;opacity:.45;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        ${TEMPLATES.find(t=>t.v===d.template)?.s||''}
+        ${d.template==='millionaire'?' · מסמן ⭕ = תשובה נכונה':''}<br>
+        ${d.template==='dont_drop'?'ניתן להוסיף תשובה 5 לכל שאלה':''}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:.75rem;opacity:.5;">שאלות (${qs.length}/30):</div>
+        <button onclick="generateTriviaQuestions('${section}',${si},${sli},'${uid}')"
+          style="padding:4px 12px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:6px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.75rem;cursor:pointer;">
+          🤖 צור שאלות עם AI
+        </button>
+      </div>
+      <div id="tv-qs-${uid}">${qsHtml}</div>
+      ${qs.length<30?`<button onclick="addTriviaQ('${section}',${si},${sli})"
+        style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף שאלה</button>`:''}
+      <div id="tv-ai-status-${uid}" style="font-size:.78rem;opacity:.5;text-align:center;min-height:20px;"></div>
+      <div class="editor-btns" style="margin-top:8px;">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveTriviaData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   if(slot.type==='escape_room'){
     const d=slot.escapeData||{
       name:'חדר הבריחה',style:'mystery',numGroups:4,
@@ -3544,6 +3638,64 @@ function restoreKlueWord(section,si,sli,wi,uid){
   setSaveStatus('שינויים לא שמורים');
 }
 function saveKlueData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
+// ── TRIVIA HELPERS ──
+function updateTriviaField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.triviaData)slot.triviaData={name:'טריוויה',template:'millionaire',target:'class',numAnswers:4,questions:[]};
+  slot.triviaData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateTriviaQ(section,si,sli,qi,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.triviaData.questions[qi])slot.triviaData.questions[qi]={question:'',answers:['','','',''],correct:0};
+  slot.triviaData.questions[qi][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateTriviaAnswer(section,si,sli,qi,ai,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.triviaData.questions[qi].answers)slot.triviaData.questions[qi].answers=[];
+  slot.triviaData.questions[qi].answers[ai]=val;setSaveStatus('שינויים לא שמורים');
+}
+function addTriviaQ(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(slot.triviaData.questions.length>=30)return;
+  slot.triviaData.questions.push({question:'',answers:['','','',''],correct:0});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeTriviaQ(section,si,sli,qi){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.triviaData.questions.splice(qi,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function saveTriviaData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
+async function generateTriviaQuestions(section,si,sli,uid){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  const topic=document.getElementById('b-topic-input')?.value||currentUnit?.name||'';
+  const statusEl=document.getElementById('tv-ai-status-'+uid);
+  if(statusEl)statusEl.textContent='🤖 מייצר שאלות...';
+  const n=slot.triviaData.numAnswers||4;
+  const prompt=`צור 10 שאלות טריוויה בנושא: "${topic}" עם ${n} תשובות לכל שאלה.
+ענה אך ורק ב-JSON תקין בפורמט:
+[{"question":"...","answers":["תשובה נכונה","שגויה 1","שגויה 2"${n===4?',"שגויה 3"':''}],"correct":0}]
+שים את התשובה הנכונה תמיד במיקום 0. ענה בעברית בלבד.`;
+  try{
+    const reply=await callAI('ענה אך ורק ב-JSON תקין ללא טקסט נוסף.',prompt,[]);
+    const clean=reply.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    if(Array.isArray(parsed)){
+      if(!slot.triviaData.questions)slot.triviaData.questions=[];
+      parsed.forEach(q=>{
+        if(slot.triviaData.questions.length<30)
+          slot.triviaData.questions.push(q);
+      });
+      renderLessonStructure();
+      if(statusEl)statusEl.textContent=`✅ נוספו ${parsed.length} שאלות`;
+      setSaveStatus('שינויים לא שמורים');
+    }
+  }catch(e){
+    if(statusEl)statusEl.textContent='שגיאה ביצירת שאלות. נסי שנית.';
+  }
+}
 
 // ── ESCAPE_ROOM HELPERS ──
 function updateESField(section,si,sli,field,val){
