@@ -192,6 +192,16 @@ function buildSlotHTML(slot){
     inner=`<div class="slot-content" style="font-size:1.15rem;margin-bottom:12px;">${esc(q)}</div>
       <div style="font-size:.8rem;opacity:.4;">התלמידים כותבים את תשובתם בטאבלט</div>`;
 
+  } else if(slot.type==='wordsearch'){
+    const d=slot.wordsearchData||{instruction:'',clues:[]};
+    const validClues=(d.clues||[]).filter(c=>c.word);
+    inner=`<div style="text-align:center;padding:28px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:10px;">🔤</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">תפזורת</div>
+      <div style="font-size:.85rem;opacity:.5;margin-bottom:6px;">${validClues.length} מושגים מוסתרים</div>
+      <div style="font-size:.75rem;opacity:.35;">התלמידים מוצאים ומסמנים בטאבלט</div>
+    </div>`;
+
   } else if(slot.type==='crossword'){
     const d=slot.crosswordData||{instruction:'',clues:[]};
     const validClues=(d.clues||[]).filter(c=>c.word&&c.clue);

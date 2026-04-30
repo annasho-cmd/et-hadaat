@@ -584,6 +584,24 @@ function buildSlotBlock(slot,stIdx,sli){
     return block;
   }
 
+  // ── תפזורת ──
+  if(slot.type==='wordsearch'){
+    const d=slot.wordsearchData||{clues:[]};
+    const wsParams=encodeURIComponent(JSON.stringify(d));
+    const wsUrl=window.location.href.replace(/[^/]*/,'wordsearch.html')+'?data='+wsParams;
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">🔤</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">תפזורת</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${d.clues?.filter(c=>c.word).length||0} מושגים</div>
+      <button onclick="window.open('${wsUrl}','_blank','width=900,height=680')"
+        style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+        פתח תפזורת 🔤
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   // ── תשבץ ──
   if(slot.type==='crossword'){
     const d=slot.crosswordData||{clues:[]};

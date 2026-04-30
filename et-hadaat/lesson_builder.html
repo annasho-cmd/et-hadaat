@@ -2178,6 +2178,47 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── תפזורת ──
+  if(slot.type==='wordsearch'){
+    const d=slot.wordsearchData||{instruction:'',showOnlyWords:false,clues:[{word:'',clue:''}]};
+    const clues=d.clues||[];
+
+    const cluesHtml=clues.map((c,ci)=>`
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span style="min-width:20px;height:20px;border-radius:4px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ci+1}</span>
+        <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.82rem;" placeholder="מושג / מילה..."
+          value="${esc(c.word||'')}"
+          onchange="updateWSClue('${section}',${si},${sli},${ci},'word',this.value)">
+        ${!d.showOnlyWords?`<span style="opacity:.3;font-size:.8rem;">=</span>
+        <input class="inline-field" style="flex:2;min-height:0;padding:4px 8px;font-size:.82rem;" placeholder="הגדרה / רמז..."
+          value="${esc(c.clue||'')}"
+          onchange="updateWSClue('${section}',${si},${sli},${ci},'clue',this.value)">`:'' }
+        ${clues.length>1?`<button onclick="removeWSClue('${section}',${si},${sli},${ci})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;padding:0 2px;">✕</button>`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">🔤 תפזורת</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        האפליקציה תכין תפזורת עם המושגים — מאוזן, מאונך ואלכסון.
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="מצאו את המושגים המוסתרים..."
+        onchange="updateWSField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;margin-bottom:8px;">
+        <input type="checkbox" ${d.showOnlyWords?'checked':''} style="width:15px;height:15px;"
+          onchange="updateWSField('${section}',${si},${sli},'showOnlyWords',this.checked);renderLessonStructure()">
+        <span>הצג רק מושגים (ללא הגדרות)</span>
+      </label>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">מושגים (${clues.length}/15):</div>
+      <div id="ws-clues-${uid}">${cluesHtml}</div>
+      ${clues.length<15?`<button onclick="addWSClue('${section}',${si},${sli})"
+        style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף מושג</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveWSData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── תשבץ ──
   if(slot.type==='crossword'){
     const d=slot.crosswordData||{instruction:'',clues:[{word:'',clue:''}]};
@@ -2722,6 +2763,31 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── WORDSEARCH HELPERS ──
+function updateWSField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.wordsearchData)slot.wordsearchData={instruction:'',showOnlyWords:false,clues:[]};
+  slot.wordsearchData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateWSClue(section,si,sli,ci,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.wordsearchData.clues[ci])slot.wordsearchData.clues[ci]={word:'',clue:''};
+  slot.wordsearchData.clues[ci][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function addWSClue(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.wordsearchData)slot.wordsearchData={instruction:'',showOnlyWords:false,clues:[]};
+  if(slot.wordsearchData.clues.length>=15)return;
+  slot.wordsearchData.clues.push({word:'',clue:''});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeWSClue(section,si,sli,ci){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.wordsearchData.clues.splice(ci,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function saveWSData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── CROSSWORD HELPERS ──
 function updateCWField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
