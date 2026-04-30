@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>תשבץ — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,.92);--border:rgba(212,168,67,.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0602;color:var(--parch);min-height:100vh;direction:rtl;}
+.topbar{background:rgba(10,5,2,.98);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);flex:1;}
+.btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;cursor:pointer;}
+.btn:hover{background:rgba(212,168,67,.1);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;font-weight:700;}
+.main{display:flex;gap:0;min-height:calc(100vh - 49px);}
+
+/* GRID */
+.grid-side{flex:1;padding:20px;overflow-x:auto;}
+.grid-wrap{display:inline-block;}
+.cw-table{border-collapse:collapse;}
+.cw-cell{width:36px;height:36px;border:none;position:relative;}
+.cw-cell.active{border:1.5px solid rgba(212,168,67,.4);background:rgba(253,245,224,.07);}
+.cw-cell.active.focused{background:rgba(212,168,67,.12);}
+.cw-cell.correct{background:rgba(34,197,94,.15)!important;border-color:#22c55e!important;}
+.cw-cell.wrong{background:rgba(248,129,113,.1)!important;border-color:#f87171!important;}
+.cell-num{position:absolute;top:1px;right:2px;font-size:9px;color:var(--gold);opacity:.6;line-height:1;font-weight:700;z-index:2;}
+.cell-input{width:100%;height:100%;background:transparent;border:none;text-align:center;color:var(--parch);font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;outline:none;caret-color:var(--gold);direction:rtl;padding:0;}
+.cell-input::selection{background:rgba(212,168,67,.3);}
+.cell-input:focus{color:var(--gold2);}
+.instruction{font-size:.85rem;opacity:.6;margin-bottom:14px;}
+
+/* CLUES */
+.clues-side{width:300px;background:var(--surface);border-right:1px solid var(--border);padding:16px;overflow-y:auto;}
+.clues-title{font-size:.72rem;font-weight:700;color:var(--gold);opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.clue-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;padding:7px 10px;border-radius:7px;border:1px solid transparent;cursor:pointer;transition:all .15s;}
+.clue-row:hover{background:rgba(212,168,67,.07);}
+.clue-row.active-clue{background:rgba(212,168,67,.1);border-color:rgba(212,168,67,.25);}
+.clue-row.completed{opacity:.45;}
+.clue-num{min-width:22px;height:22px;border-radius:4px;background:rgba(212,168,67,.15);color:var(--gold);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.clue-dir{font-size:.7rem;opacity:.4;margin-top:2px;}
+.clue-text{font-size:.83rem;line-height:1.5;flex:1;}
+.clue-answer-input{width:100%;background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:6px;color:var(--parch);font-family:'Frank Ruhl Libre',serif;font-size:.9rem;font-weight:700;padding:5px 8px;outline:none;margin-top:5px;direction:rtl;}
+.clue-answer-input:focus{border-color:var(--gold);}
+.clue-answer-input.correct{border-color:#22c55e;background:rgba(34,197,94,.1);}
+.clue-answer-input.wrong{border-color:#f87171;}
+
+/* MODAL */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:center;justify-content:center;}
+.modal-box{background:#1a0f05;border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:90%;text-align:center;}
+.modal-title{font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:8px;}
+.modal-sub{font-size:.88rem;opacity:.6;margin-bottom:20px;line-height:1.6;}
+.modal-btns{display:flex;gap:10px;justify-content:center;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">📐 תשבץ</div>
+  <button class="btn btn-gold" onclick="checkAll()">בדוק ✓</button>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="clues-side" id="clues-side">
+    <div class="clues-title">מאוזן</div>
+    <div id="clues-across"></div>
+    <div class="clues-title" style="margin-top:14px;">מאונך</div>
+    <div id="clues-down"></div>
+  </div>
+  <div class="grid-side">
+    <div class="instruction" id="instruction"></div>
+    <div class="grid-wrap" id="grid-wrap"></div>
+    <div id="fail-msg" style="display:none;background:rgba(248,129,113,.1);border:1px solid rgba(248,129,113,.3);border-radius:8px;padding:10px 14px;font-size:.82rem;color:#f87171;margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- RESULT MODAL -->
+<div class="modal" id="result-modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-btns">
+      <button class="btn btn-gold" id="modal-fix-btn" onclick="fixWrong()">כן, אתקן</button>
+      <button class="btn" onclick="closeModal()">לא, תודה</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params=new URLSearchParams(window.location.search);
+let cwData={clues:[],instruction:''};
+try{cwData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+
+let grid=[];let placements=[];let ROWS=0,COLS=0;
+
+// ── CROSSWORD GENERATOR ──
+function normalize(w){return (w||'').trim().toUpperCase();}
+
+function generateCrossword(words){
+  // מיין לפי אורך (ארוך תחילה)
+  const sorted=[...words].sort((a,b)=>b.length-a.length);
+  const SIZE=21;
+  let g=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
+  let placed=[];
+  let failed=[];
+
+  function canPlace(word,r,c,dir){
+    if(dir==='across'){
+      if(c+word.length>SIZE)return false;
+      // לפני ואחרי חייב להיות ריק או גבול
+      if(c>0&&g[r][c-1]!==null)return false;
+      if(c+word.length<SIZE&&g[r][c+word.length]!==null)return false;
+      let intersections=0;
+      for(let i=0;i<word.length;i++){
+        const cell=g[r][c+i];
+        if(cell!==null){
+          if(cell!==word[i])return false;
+          intersections++;
+        } else {
+          // בדוק שאין שכן לאורך (אלא אם כן יש הצטלבות)
+          if(r>0&&g[r-1][c+i]!==null&&cell===null)return false;
+          if(r<SIZE-1&&g[r+1][c+i]!==null&&cell===null)return false;
+        }
+      }
+      return placed.length===0||intersections>0;
+    } else {
+      if(r+word.length>SIZE)return false;
+      if(r>0&&g[r-1][c]!==null)return false;
+      if(r+word.length<SIZE&&g[r+word.length][c]!==null)return false;
+      let intersections=0;
+      for(let i=0;i<word.length;i++){
+        const cell=g[r+i][c];
+        if(cell!==null){
+          if(cell!==word[i])return false;
+          intersections++;
+        } else {
+          if(c>0&&g[r+i][c-1]!==null&&cell===null)return false;
+          if(c<SIZE-1&&g[r+i][c+1]!==null&&cell===null)return false;
+        }
+      }
+      return placed.length===0||intersections>0;
+    }
+  }
+
+  function placeWord(word,r,c,dir){
+    for(let i=0;i<word.length;i++){
+      if(dir==='across')g[r][c+i]=word[i];
+      else g[r+i][c]=word[i];
+    }
+    placed.push({word,r,c,dir});
+  }
+
+  // מקם מילה ראשונה במרכז
+  const first=sorted[0];
+  const startR=Math.floor(SIZE/2);
+  const startC=Math.floor((SIZE-first.length)/2);
+  placeWord(first,startR,startC,'across');
+
+  // מקם שאר המילים
+  for(let wi=1;wi<sorted.length;wi++){
+    const word=sorted[wi];
+    let bestScore=-1,bestR,bestC,bestDir;
+
+    for(let r=0;r<SIZE;r++){
+      for(let c=0;c<SIZE;c++){
+        for(const dir of['across','down']){
+          if(canPlace(word,r,c,dir)){
+            // ספור הצטלבויות
+            let score=0;
+            for(let i=0;i<word.length;i++){
+              const gr=dir==='across'?r:r+i;
+              const gc=dir==='across'?c+i:c;
+              if(g[gr][gc]===word[i])score++;
+            }
+            if(score>bestScore){bestScore=score;bestR=r;bestC=c;bestDir=dir;}
+          }
+        }
+      }
+    }
+
+    if(bestScore>=0){
+      placeWord(word,bestR,bestC,bestDir);
+    } else {
+      failed.push(word);
+    }
+  }
+
+  // חתוך את הגריד לגודל מינימלי
+  let minR=SIZE,maxR=0,minC=SIZE,maxC=0;
+  placed.forEach(({r,c,word,dir})=>{
+    minR=Math.min(minR,r);maxR=Math.max(maxR,dir==='down'?r+word.length-1:r);
+    minC=Math.min(minC,c);maxC=Math.max(maxC,dir==='across'?c+word.length-1:c);
+  });
+  // הוסף margin
+  minR=Math.max(0,minR-1);minC=Math.max(0,minC-1);
+  maxR=Math.min(SIZE-1,maxR+1);maxC=Math.min(SIZE-1,maxC+1);
+
+  const trimmed=[];
+  for(let r=minR;r<=maxR;r++){
+    const row=[];
+    for(let c=minC;c<=maxC;c++)row.push(g[r][c]);
+    trimmed.push(row);
+  }
+
+  // עדכן קואורדינטות
+  const adjustedPlaced=placed.map(p=>({...p,r:p.r-minR,c:p.c-minC}));
+  return{grid:trimmed,placed:adjustedPlaced,failed,rows:maxR-minR+1,cols:maxC-minC+1};
+}
+
+// ── INIT ──
+window.onload=function(){
+  document.getElementById('instruction').textContent=cwData.instruction||'השלימו את התשבץ';
+  const validClues=(cwData.clues||[]).filter(c=>c.word&&c.clue);
+  if(!validClues.length){
+    document.getElementById('grid-wrap').innerHTML='<div style="opacity:.4;padding:20px;">אין מושגים מוגדרים</div>';
+    return;
+  }
+  const words=validClues.map(c=>normalize(c.word));
+  const result=generateCrossword(words);
+  grid=result.grid;
+  placements=result.placed;
+  ROWS=result.rows;COLS=result.cols;
+
+  if(result.failed.length){
+    const failedWords=result.failed.map(w=>validClues.find(c=>normalize(c.word)===w)?.word||w);
+    document.getElementById('fail-msg').style.display='block';
+    document.getElementById('fail-msg').textContent=`⚠️ לא ניתן לשבץ: ${failedWords.join(', ')}`;
+  }
+
+  // מספר כל נקודת התחלה
+  const numbered={};
+  let num=1;
+  // ממיין לפי שורה ואחר כך עמודה
+  const startPoints=[...placements].sort((a,b)=>a.r!==b.r?a.r-b.r:a.c-b.c);
+  const uniqueStarts=[];
+  startPoints.forEach(p=>{
+    const key=`${p.r}-${p.c}`;
+    if(!uniqueStarts.includes(key))uniqueStarts.push(key);
+  });
+  uniqueStarts.forEach(key=>{
+    numbered[key]=num++;
+  });
+  placements.forEach(p=>{
+    p.num=numbered[`${p.r}-${p.c}`];
+  });
+
+  buildGrid(numbered);
+  buildClues(validClues,words);
+};
+
+function buildGrid(numbered){
+  const wrap=document.getElementById('grid-wrap');
+  const cellSize=36;
+  let html=`<table class="cw-table" style="border-collapse:collapse;">`;
+  for(let r=0;r<ROWS;r++){
+    html+=`<tr>`;
+    for(let c=0;c<COLS;c++){
+      const letter=grid[r][c];
+      const key=`${r}-${c}`;
+      if(letter){
+        const num=numbered[key]||'';
+        html+=`<td class="cw-cell active" id="cell-${r}-${c}" style="width:${cellSize}px;height:${cellSize}px;">
+          ${num?`<div class="cell-num">${num}</div>`:''}
+          <input class="cell-input" id="inp-${r}-${c}" maxlength="1" autocomplete="off" autocorrect="off" spellcheck="false"
+            oninput="cellInput(event,${r},${c})"
+            onkeydown="cellKeydown(event,${r},${c})"
+            onfocus="cellFocus(${r},${c})">
+        </td>`;
+      } else {
+        html+=`<td class="cw-cell" style="width:${cellSize}px;height:${cellSize}px;background:transparent;border:none;"></td>`;
+      }
+    }
+    html+=`</tr>`;
+  }
+  html+=`</table>`;
+  wrap.innerHTML=html;
+}
+
+function buildClues(clues,words){
+  const across=placements.filter(p=>p.dir==='across');
+  const down=placements.filter(p=>p.dir==='down');
+
+  function renderClueList(list,containerId){
+    const container=document.getElementById(containerId);
+    container.innerHTML=list.sort((a,b)=>a.num-b.num).map(p=>{
+      const origClue=clues.find(c=>normalize(c.word)===p.word);
+      return `<div class="clue-row" id="clue-${p.dir}-${p.num}" onclick="focusClue('${p.dir}',${p.num})">
+        <div>
+          <div class="clue-num">${p.num}</div>
+          <div class="clue-dir">${p.dir==='across'?'→':'↓'}</div>
+        </div>
+        <div class="clue-text">
+          ${esc(origClue?.clue||p.word)}
+          <input class="clue-answer-input" id="clue-inp-${p.dir}-${p.num}"
+            maxlength="${p.word.length}" placeholder="${'_'.repeat(p.word.length)}"
+            autocomplete="off" spellcheck="false"
+            oninput="clueInput(this,'${p.dir}',${p.num},'${p.r}','${p.c}',${p.word.length})"
+            autocorrect="off">
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  renderClueList(across,'clues-across');
+  renderClueList(down,'clues-down');
+}
+
+// ── INTERACTION ──
+let currentFocus=null;
+
+function cellFocus(r,c){
+  currentFocus={r,c};
+  // מצא את המאורך/מאונך הרלוונטי
+  highlightWord(r,c);
+}
+
+function highlightWord(r,c){
+  // נקה הדגשות
+  document.querySelectorAll('.cw-cell.focused').forEach(el=>el.classList.remove('focused'));
+  document.querySelectorAll('.clue-row.active-clue').forEach(el=>el.classList.remove('active-clue'));
+  // מצא מיליות שמכילות את התא
+  const rel=placements.filter(p=>{
+    if(p.dir==='across') return p.r===r&&p.c<=c&&p.c+p.word.length>c;
+    return p.c===c&&p.r<=r&&p.r+p.word.length>r;
+  });
+  rel.forEach(p=>{
+    for(let i=0;i<p.word.length;i++){
+      const gr=p.dir==='across'?p.r:p.r+i;
+      const gc=p.dir==='across'?p.c+i:p.c;
+      document.getElementById(`cell-${gr}-${gc}`)?.classList.add('focused');
+    }
+    document.getElementById(`clue-${p.dir}-${p.num}`)?.classList.add('active-clue');
+  });
+}
+
+function cellInput(e,r,c){
+  const inp=document.getElementById(`inp-${r}-${c}`);
+  const val=(inp.value||'').toUpperCase().replace(/[^א-תA-Z]/g,'');
+  inp.value=val?val[val.length-1]:'';
+  // עדכן clue input אם קיים
+  syncCellToClue(r,c);
+  // זוז לתא הבא
+  if(val) moveNext(r,c);
+}
+
+function cellKeydown(e,r,c){
+  if(e.key==='Backspace'){
+    const inp=document.getElementById(`inp-${r}-${c}`);
+    if(!inp.value) movePrev(r,c);
+  }
+  if(e.key==='ArrowRight')moveTo(r,c-1);
+  if(e.key==='ArrowLeft')moveTo(r,c+1);
+  if(e.key==='ArrowUp')moveTo(r-1,c);
+  if(e.key==='ArrowDown')moveTo(r+1,c);
+}
+
+function moveNext(r,c){
+  // נסה מאוזן קודם, אחר כך מאונך
+  const word=placements.find(p=>p.dir==='across'&&p.r===r&&p.c<=c&&p.c+p.word.length>c);
+  if(word){const next=c+1;if(next<word.c+word.word.length)moveTo(r,next);}
+}
+function movePrev(r,c){
+  const word=placements.find(p=>p.dir==='across'&&p.r===r&&p.c<=c&&p.c+p.word.length>c);
+  if(word){const prev=c-1;if(prev>=word.c)moveTo(r,prev);}
+}
+function moveTo(r,c){
+  const el=document.getElementById(`inp-${r}-${c}`);
+  if(el)el.focus();
+}
+
+function syncCellToClue(r,c){
+  placements.forEach(p=>{
+    if(p.dir==='across'&&p.r===r&&p.c<=c&&p.c+p.word.length>c){
+      const pos=c-p.c;
+      const inp=document.getElementById(`clue-inp-${p.dir}-${p.num}`);
+      if(inp){
+        let val=inp.value.padEnd(p.word.length,' ').split('');
+        val[pos]=document.getElementById(`inp-${r}-${c}`)?.value||' ';
+        inp.value=val.join('').trimEnd();
+      }
+    }
+    if(p.dir==='down'&&p.c===c&&p.r<=r&&p.r+p.word.length>r){
+      const pos=r-p.r;
+      const inp=document.getElementById(`clue-inp-${p.dir}-${p.num}`);
+      if(inp){
+        let val=inp.value.padEnd(p.word.length,' ').split('');
+        val[pos]=document.getElementById(`inp-${r}-${c}`)?.value||' ';
+        inp.value=val.join('').trimEnd();
+      }
+    }
+  });
+}
+
+function clueInput(inputEl,dir,num,baseR,baseC,wordLen){
+  const val=(inputEl.value||'').toUpperCase();
+  inputEl.value=val;
+  const p=placements.find(p=>p.dir===dir&&p.num===num);
+  if(!p)return;
+  for(let i=0;i<wordLen;i++){
+    const r=dir==='across'?parseInt(baseR):parseInt(baseR)+i;
+    const c=dir==='across'?parseInt(baseC)+i:parseInt(baseC);
+    const cellInp=document.getElementById(`inp-${r}-${c}`);
+    if(cellInp)cellInp.value=val[i]||'';
+  }
+}
+
+function focusClue(dir,num){
+  const p=placements.find(p=>p.dir===dir&&p.num===num);
+  if(p)moveTo(p.r,p.c);
+}
+
+// ── CHECK ──
+function checkAll(){
+  let correct=0,wrong=0,empty=0;
+  placements.forEach(p=>{
+    for(let i=0;i<p.word.length;i++){
+      const r=p.dir==='across'?p.r:p.r+i;
+      const c=p.dir==='across'?p.c+i:p.c;
+      const cellInp=document.getElementById(`inp-${r}-${c}`);
+      const val=(cellInp?.value||'').toUpperCase().trim();
+      if(!val)empty++;
+    }
+  });
+  if(empty>0){
+    showModal('האם לבדוק עכשיו?',`נותרו ${empty} תאים ריקים.`,true);
+    return;
+  }
+  doCheck();
+}
+
+function doCheck(){
+  let correctWords=0,wrongWords=0;
+  const wrongWordsList=[];
+  placements.forEach(p=>{
+    let allCorrect=true;
+    for(let i=0;i<p.word.length;i++){
+      const r=p.dir==='across'?p.r:p.r+i;
+      const c=p.dir==='across'?p.c+i:p.c;
+      const val=(document.getElementById(`inp-${r}-${c}`)?.value||'').toUpperCase().trim();
+      if(val!==p.word[i])allCorrect=false;
+    }
+    // צבע תאים לפי המילה כולה
+    for(let i=0;i<p.word.length;i++){
+      const r=p.dir==='across'?p.r:p.r+i;
+      const c=p.dir==='across'?p.c+i:p.c;
+      const cellEl=document.getElementById(`cell-${r}-${c}`);
+      const val=(document.getElementById(`inp-${r}-${c}`)?.value||'').toUpperCase().trim();
+      const letterOk=val===p.word[i];
+      if(allCorrect){cellEl?.classList.add('correct');}
+      else if(!letterOk){cellEl?.classList.add('wrong');}
+    }
+    const clueInp=document.getElementById(`clue-inp-${p.dir}-${p.num}`);
+    if(allCorrect){correctWords++;clueInp?.classList.add('correct');}
+    else{wrongWords++;clueInp?.classList.add('wrong');
+      const origClue=cwData.clues.find(c=>normalize(c.word)===p.word);
+      if(origClue)wrongWordsList.push(origClue.word);
+    }
+  });
+
+  if(wrongWords===0){
+    showModal('🎉 כל הכבוד!',`פתרת את כל התשבץ נכון! (${correctWords} מושגים)`,false);
+  } else {
+    showModal('סיכום',
+      `✅ ${correctWords} מושגים נכון\n❌ ${wrongWords} מושגים שגויים\n\nרוצה לתקן את הטעויות?`,
+      true,wrongWordsList);
+  }
+}
+
+let _wrongList=[];
+function showModal(title,sub,showFix,wrongList){
+  _wrongList=wrongList||[];
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-sub').textContent=sub;
+  document.getElementById('modal-fix-btn').style.display=showFix?'inline':'none';
+  document.getElementById('result-modal').style.display='flex';
+}
+function closeModal(){document.getElementById('result-modal').style.display='none';}
+function fixWrong(){
+  closeModal();
+  // מחק רק תאים שגויים
+  placements.forEach(p=>{
+    const isWrong=_wrongList.includes(cwData.clues.find(c=>normalize(c.word)===p.word)?.word);
+    if(isWrong){
+      for(let i=0;i<p.word.length;i++){
+        const r=p.dir==='across'?p.r:p.r+i;
+        const c=p.dir==='across'?p.c+i:p.c;
+        const cellEl=document.getElementById(`cell-${r}-${c}`);
+        const cellInp=document.getElementById(`inp-${r}-${c}`);
+        cellEl?.classList.remove('correct','wrong');
+        if(cellInp)cellInp.value='';
+      }
+      const clueInp=document.getElementById(`clue-inp-${p.dir}-${p.num}`);
+      if(clueInp){clueInp.value='';clueInp.classList.remove('correct','wrong');}
+    }
+  });
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function normalize(w){return (w||'').trim().toUpperCase();}
+</script>
+</body>
+</html>

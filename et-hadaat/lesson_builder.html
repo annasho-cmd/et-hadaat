@@ -2178,6 +2178,42 @@ function buildSlotEditor(slot, section, si, sli, uid){
       </div>`;
   }
 
+  // ── תשבץ ──
+  if(slot.type==='crossword'){
+    const d=slot.crosswordData||{instruction:'',clues:[{word:'',clue:''}]};
+    const clues=d.clues||[];
+
+    const cluesHtml=clues.map((c,ci)=>`
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span style="min-width:20px;height:20px;border-radius:4px;background:rgba(212,168,67,.2);color:var(--gold);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ci+1}</span>
+        <input class="inline-field" style="flex:1;min-height:0;padding:4px 8px;font-size:.82rem;" placeholder="מושג / מילה..."
+          value="${esc(c.word||'')}"
+          onchange="updateCWClue('${section}',${si},${sli},${ci},'word',this.value)">
+        <span style="opacity:.3;font-size:.8rem;">=</span>
+        <input class="inline-field" style="flex:2;min-height:0;padding:4px 8px;font-size:.82rem;" placeholder="הגדרה / רמז..."
+          value="${esc(c.clue||'')}"
+          onchange="updateCWClue('${section}',${si},${sli},${ci},'clue',this.value)">
+        ${clues.length>1?`<button onclick="removeCWClue('${section}',${si},${sli},${ci})"
+          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;padding:0 2px;">✕</button>`:''}
+      </div>`).join('');
+
+    return `<div class="inline-editor-title">📐 תשבץ</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        האפליקציה תייצר תשבץ אוטומטית מהמושגים. אם לא ניתן לשבץ מושג — תוצג הודעה.
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה:</div>
+      <textarea class="inline-field" style="min-height:40px;margin-bottom:8px;" placeholder="השלימו את התשבץ..."
+        onchange="updateCWField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction)}</textarea>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">מושגים והגדרות (${clues.length}/15):</div>
+      <div id="cw-clues-${uid}">${cluesHtml}</div>
+      ${clues.length<15?`<button onclick="addCWClue('${section}',${si},${sli})"
+        style="width:100%;padding:5px;background:rgba(212,168,67,.06);border:1px dashed rgba(212,168,67,.3);border-radius:7px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:8px;">+ הוסף מושג</button>`:''}
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveCWData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   // ── מתיחת קו ──
   if(slot.type==='match_line'){
     const d=slot.matchLineData||{instruction:'',headerA:'',headerB:'',pairs:[{a:{type:'text',value:''},b:{type:'text',value:''}}]};
@@ -2686,6 +2722,31 @@ function updateTfField(section,si,sli,field,val){
   slot.tfData[field]=val;
   setSaveStatus('שינויים לא שמורים');
 }
+// ── CROSSWORD HELPERS ──
+function updateCWField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.crosswordData)slot.crosswordData={instruction:'',clues:[]};
+  slot.crosswordData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateCWClue(section,si,sli,ci,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.crosswordData.clues[ci])slot.crosswordData.clues[ci]={word:'',clue:''};
+  slot.crosswordData.clues[ci][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function addCWClue(section,si,sli){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.crosswordData)slot.crosswordData={instruction:'',clues:[]};
+  if(slot.crosswordData.clues.length>=15)return;
+  slot.crosswordData.clues.push({word:'',clue:''});
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function removeCWClue(section,si,sli,ci){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  slot.crosswordData.clues.splice(ci,1);
+  renderLessonStructure();setSaveStatus('שינויים לא שמורים');
+}
+function saveCWData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
 // ── MATCH_LINE HELPERS ──
 function updateMLField(section,si,sli,field,val){
   const slot=getSlot(section,si,sli);if(!slot)return;
