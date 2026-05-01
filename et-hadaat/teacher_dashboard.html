@@ -527,6 +527,7 @@ select.modal-input option{background:#2c1a0e;}
             <button class="btn-primary" onclick="openCheckWorkModal()">📎 בדוק עבודה</button>
             <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);" onclick="openTaskRubricView()">📑 מחוון</button>
             <button class="btn-primary" id="btn-complete-task" style="background:rgba(34,197,94,.15);color:#22c55e;" onclick="completeTask()">✅ סיים משימה</button>
+            <button class="btn-primary" style="background:rgba(212,168,67,.1);color:var(--gold);" onclick="duplicateTask()">📋 שכפל</button>
           </div>
         </div>
         <div id="task-detail-content"></div>
@@ -2183,6 +2184,38 @@ function openAddRubricModal(taskId){
 }
 
 let _addRubricMode=false;
+
+function duplicateTask(){
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!task)return;
+  // פתח מודל משימה חדשה עם נתונים מולאים
+  openNewTaskModal();
+  // מלא את השדות
+  setTimeout(()=>{
+    document.getElementById('task-name').value=task.name+' (עותק)';
+    document.getElementById('task-type').value=task.type||'עבודה';
+    document.getElementById('task-mode').value=task.mode||'עצמי';
+    document.getElementById('task-instructions').value=task.instructions||'';
+    if(task.due) document.getElementById('task-due').value=task.due;
+    if(task.gradeDays) document.getElementById('task-grade-deadline').value=task.gradeDays;
+    // הפעל שינוי אופן עבודה
+    onTaskModeChange();
+    // אם יש מחוון — טען אותו
+    if(task.rubric){
+      renderEditableRubric(JSON.parse(JSON.stringify(task.rubric)));
+      const saveBtn=document.getElementById('btn-save-with-rubric');
+      if(saveBtn)saveBtn.style.display='inline-block';
+      if(task.rubric.summaryNote){
+        setTimeout(()=>{
+          const el=document.getElementById('task-rubric-summary');
+          if(el)el.value=task.rubric.summaryNote;
+        },50);
+      }
+    }
+    // שנה כותרת
+    document.querySelector('#modal-new-task .modal-title').textContent='📋 שכפול משימה — בחרי קבוצת לימוד';
+  },50);
+}
 
 function completeTask(){
   if(!currentTaskId)return;
