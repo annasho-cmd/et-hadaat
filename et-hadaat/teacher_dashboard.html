@@ -502,18 +502,21 @@ select.modal-input option{background:#2c1a0e;}
       <div class="screen" id="screen-tasks">
         <div class="screen-hd">
           <div class="screen-title">📋 ניהול משימות</div>
-          <button class="btn-primary" onclick="openNewTaskModal()">➕ משימה חדשה</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-          <span style="font-size:.82rem;opacity:.6;">סינון לפי מקצוע:</span>
-          <select id="tasks-subject-filter" onchange="renderTasksList()"
-            style="background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:7px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 10px;outline:none;">
-            <option value="">כל המקצועות</option>
-          </select>
         </div>
         <div id="tasks-alerts-bar" style="display:none;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:.85rem;color:#fca5a5;"></div>
+        <div class="subjects-grid" id="tasks-subjects-grid"></div>
+        <div id="tasks-subjects-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין מקצועות מוגדרים.</div>
+      </div>
+
+      <!-- ══ TASKS BY SUBJECT ══ -->
+      <div class="screen" id="screen-tasks-subject">
+        <div class="screen-hd">
+          <div class="screen-title" id="tasks-subject-title">📋 משימות</div>
+          <button class="btn-primary" onclick="openNewTaskModal()">➕ משימה חדשה</button>
+        </div>
+
         <div id="tasks-list"></div>
-        <div id="tasks-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין משימות עדיין. לחצי "➕ משימה חדשה" להתחלה.</div>
+        <div id="tasks-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין משימות למקצוע זה. לחצי "➕ משימה חדשה" להתחלה.</div>
       </div>
 
       <!-- ══ TASK DETAIL ══ -->
@@ -1585,9 +1588,56 @@ const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
 let currentTaskId=null;
 let tasks=[];
 
+let currentTasksSubject=null;
+
 function openTasksScreen(){
+  currentTasksSubject=null;
   updateBreadcrumb([{label:'ניהול משימות'}]);
   showScreen('screen-tasks');
+  renderTasksSubjects();
+  loadTasksAlerts();
+}
+
+function renderTasksSubjects(){
+  const grid=document.getElementById('tasks-subjects-grid');
+  const empty=document.getElementById('tasks-subjects-empty');
+  if(!grid)return;
+  grid.innerHTML='';
+  if(!subjects.length){if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  subjects.forEach(sub=>{
+    const card=document.createElement('div');
+    card.className='subject-card';
+    card.style.setProperty('--card-color',sub.color||'var(--gold)');
+    card.style.position='relative';
+    // ספור משימות לפי מקצוע
+    const taskCount=(tasks||[]).filter(t=>t.subjectId===sub.id).length;
+    card.innerHTML=`
+      <div class="subject-icon">${sub.icon||'📚'}</div>
+      <div class="subject-name">${esc(sub.name)}</div>
+      <div class="subject-meta">${taskCount} משימות</div>
+      <div class="subject-arrow">‹</div>`;
+    card.onclick=()=>openTasksBySubject(sub);
+    grid.appendChild(card);
+  });
+}
+
+function loadTasksAlerts(){
+  db.ref('teacher/tasks').once('value',snap=>{
+    tasks=snap.val()?Object.entries(snap.val()).map(([id,v])=>({id,...v})):[];
+    checkTasksAlerts();
+    renderTasksSubjects(); // עדכן מונה משימות
+  });
+}
+
+function openTasksBySubject(sub){
+  currentTasksSubject=sub;
+  document.getElementById('tasks-subject-title').textContent='📋 '+esc(sub.name);
+  updateBreadcrumb([
+    {label:'ניהול משימות',fn:"openTasksScreen()"},
+    {label:sub.name}
+  ]);
+  showScreen('screen-tasks-subject');
   loadTasks();
 }
 
@@ -1600,16 +1650,9 @@ function deleteTask(taskId){
 }
 
 function loadTasks(){
-  // אכלס פילטר מקצועות
-  const filterSel=document.getElementById('tasks-subject-filter');
-  if(filterSel){
-    filterSel.innerHTML='<option value="">כל המקצועות</option>'+
-      subjects.map(s=>`<option value="${s.id}">${s.name||s.id}</option>`).join('');
-  }
   db.ref('teacher/tasks').once('value',snap=>{
     tasks=snap.val()?Object.entries(snap.val()).map(([id,v])=>({id,...v})):[];
     renderTasksList();
-    checkTasksAlerts();
   });
 }
 
@@ -1620,7 +1663,7 @@ function renderTasksList(){
   if(!tasks.length){list.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   // מיין לפי תאריך הגשה
-  const filtered=subjectFilter?tasks.filter(t=>t.subjectId===subjectFilter):tasks;
+  const filtered=currentTasksSubject?tasks.filter(t=>t.subjectId===currentTasksSubject.id):tasks;
   const sorted=[...filtered].sort((a,b)=>new Date(a.due)-new Date(b.due));
   list.innerHTML=sorted.map(t=>{
     const dueDate=new Date(t.due);
@@ -1827,7 +1870,7 @@ function saveNewTask(withRubric){
   const mode=document.getElementById('task-mode').value;
   const due=document.getElementById('task-due').value;
   const gradeDays=parseInt(document.getElementById('task-grade-deadline').value);
-  const subjectId=currentSubject?.id||'';
+  const subjectId=currentTasksSubject?.id||currentSubject?.id||'';
   const instructions=document.getElementById('task-instructions').value.trim();
   if(!name){alert('נא למלא שם משימה.');return;}
   const rubric=(withRubric&&document.getElementById('task-rubric-preview')._rubric)||null;
@@ -1896,7 +1939,11 @@ function openTaskDetail(taskId){
       </div>
       ${studentsHtml||'<div style="opacity:.4;font-size:.85rem;">אין תלמידים בקבוצה</div>'}
     </div>`;
-  updateBreadcrumb([{label:'ניהול משימות',fn:"openTasksScreen()"},{label:task.name}]);
+  updateBreadcrumb([
+    {label:'ניהול משימות',fn:"openTasksScreen()"},
+    currentTasksSubject?{label:currentTasksSubject.name,fn:"openTasksBySubject(currentTasksSubject)"}:null,
+    {label:task.name}
+  ].filter(Boolean));
   showScreen('screen-task-detail');
 }
 
