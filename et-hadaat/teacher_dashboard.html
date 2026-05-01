@@ -778,7 +778,20 @@ select.modal-input option{background:#2c1a0e;}
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
-      <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="checkWorkWithAI()">🤖 בדוק לפי מחוון</button>
+      <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="checkWorkWithAI()" id="btn-check-ai">🤖 בדוק לפי מחוון</button>
+      <button class="modal-save" style="background:rgba(212,168,67,.2);color:var(--gold);border:1px solid rgba(212,168,67,.4);" onclick="showManualGrade()">✏️ ציון ידני</button>
+    </div>
+    <!-- ציון ידני -->
+    <div id="manual-grade-area" style="display:none;margin-top:14px;background:rgba(44,26,14,.6);border:1px solid var(--border);border-radius:10px;padding:14px;">
+      <div style="font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:10px;">✏️ ציון ידני</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <label style="font-size:.82rem;opacity:.7;">ציון (0-100):</label>
+        <input type="number" min="0" max="100" id="manual-score"
+          style="width:80px;background:rgba(253,245,224,.06);border:2px solid var(--gold);border-radius:7px;color:var(--gold);text-align:center;font-size:1.1rem;font-weight:900;padding:5px;font-family:Heebo,sans-serif;outline:none;">
+      </div>
+      <textarea id="manual-feedback" rows="2" placeholder="הערה לתלמיד (אופציונלי)..."
+        style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:8px;outline:none;resize:vertical;direction:rtl;margin-bottom:8px;"></textarea>
+      <button onclick="saveManualGrade()" class="btn-primary" style="width:100%;padding:9px;">💾 שמור ציון</button>
     </div>
     <div id="check-work-result" style="display:none;margin-top:16px;"></div>
   </div>
@@ -1864,6 +1877,26 @@ function saveNewTask(withRubric){
       }
     }
   }
+  // מצב הוספת מחוון למשימה קיימת
+  if(_addRubricMode&&withRubric){
+    const preview=document.getElementById('task-rubric-preview');
+    const rubric=preview?._rubric;
+    if(rubric&&currentTaskId){
+      const summaryEl=document.getElementById('task-rubric-summary');
+      if(summaryEl?.value)rubric.summaryNote=summaryEl.value.trim();
+      db.ref('teacher/tasks/'+currentTaskId+'/rubric').set(rubric);
+      const task=tasks.find(t=>t.id===currentTaskId);
+      if(task)task.rubric=rubric;
+      showToast('✅ מחוון נוסף למשימה');
+      closeModals();
+      _addRubricMode=false;
+      if(document.querySelector('#modal-new-task .modal-title'))
+        document.querySelector('#modal-new-task .modal-title').textContent='➕ משימה חדשה';
+      openTaskDetail(currentTaskId);
+    }
+    return;
+  }
+  _addRubricMode=false;
   const name=document.getElementById('task-name').value.trim();
   const groupId=document.getElementById('task-group').value;
   const type=document.getElementById('task-type').value;
@@ -1911,7 +1944,7 @@ function openTaskDetail(taskId){
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         ${hasScore?`<span style="background:rgba(42,107,42,.2);color:#6ee7a0;padding:3px 10px;border-radius:10px;font-size:.88rem;font-weight:700;">${g.score}</span>`:'<span style="opacity:.3;font-size:.82rem;">לא נבדק</span>'}
-        <button onclick="${hasScore?`openEditGrade('${taskId}','${s}')`:"openCheckForStudent('${taskId}','${s}')"}"
+        <button onclick="openStudentCheck('${taskId}','${s}',${hasScore})"
           style="padding:5px 12px;background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);border-radius:7px;color:#c4b5fd;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">
           ${hasScore?'✏️ ערוך מחוון':'📎 בדוק'}
         </button>
@@ -1928,7 +1961,10 @@ function openTaskDetail(taskId){
         <div><div style="opacity:.5;margin-bottom:3px;">סוג</div>${task.type} · ${task.mode}</div>
         <div><div style="opacity:.5;margin-bottom:3px;">הגשה</div>${dueDate.toLocaleDateString('he-IL')}</div>
         <div><div style="opacity:.5;margin-bottom:3px;">מועד לציונים</div>${gradeDeadline.toLocaleDateString('he-IL')}</div>
-        <div><div style="opacity:.5;margin-bottom:3px;">מחוון</div>${task.rubric?`✅ ${task.rubric.criteria?.length||0} קריטריונים`:'❌ אין מחוון'}</div>
+        <div><div style="opacity:.5;margin-bottom:3px;">מחוון</div>${task.rubric
+          ?`✅ ${task.rubric.criteria?.length||0} קריטריונים`
+          :`<span style="color:#f87171;">❌ אין מחוון</span> <button onclick="openAddRubricModal('${taskId}')" style="margin-right:6px;padding:2px 9px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.72rem;cursor:pointer;">+ הוסף מחוון</button>`
+        }</div>
         <div><div style="opacity:.5;margin-bottom:3px;">נבדקו</div>${checked}/${students.length}</div>
       </div>
     </div>
@@ -2018,6 +2054,48 @@ function openEditGrade(taskId, studentName){
   }
 }
 
+function showManualGrade(){
+  const area=document.getElementById('manual-grade-area');
+  if(area)area.style.display=area.style.display==='none'?'block':'none';
+}
+
+function saveManualGrade(){
+  const studentName=document.getElementById('check-student-name').value.trim();
+  const score=parseInt(document.getElementById('manual-score').value)||0;
+  const feedback=document.getElementById('manual-feedback')?.value.trim()||'';
+  if(!studentName){alert('שם התלמיד חסר');return;}
+  if(!score&&score!==0){alert('יש להזין ציון');return;}
+  saveStudentGrade(currentTaskId, studentName, score, feedback, null);
+}
+
+function openAddRubricModal(taskId){
+  // פתח מודל משימה חדשה אך רק לבניית מחוון
+  currentTaskId=taskId;
+  const task=tasks.find(t=>t.id===taskId);
+  if(!task)return;
+  // מלא את השדות הקיימים
+  document.getElementById('task-name').value=task.name||'';
+  document.getElementById('task-instructions').value=task.instructions||'';
+  document.getElementById('task-type').value=task.type||'עבודה';
+  document.getElementById('task-mode').value=task.mode||'עצמי';
+  document.getElementById('task-rubric-preview').innerHTML='';
+  document.getElementById('task-rubric-preview').style.display='none';
+  document.getElementById('task-rubric-preview')._rubric=null;
+  document.getElementById('btn-save-with-rubric').style.display='none';
+  // שנה כותרת מודל
+  document.querySelector('#modal-new-task .modal-title').textContent='📑 הוסף מחוון למשימה';
+  // הסתר כפתור שמור בלי מחוון
+  _addRubricMode=true;
+  document.getElementById('modal-new-task').style.display='flex';
+}
+
+let _addRubricMode=false;
+
+function openStudentCheck(taskId, studentName, hasScore){
+  if(hasScore) openEditGrade(taskId, studentName);
+  else openCheckForStudent(taskId, studentName);
+}
+
 function openCheckForStudent(taskId,studentName){
   currentTaskId=taskId;
   document.getElementById('check-student-name').value=studentName;
@@ -2101,7 +2179,9 @@ function loadCheckFile(input,type){
 async function checkWorkWithAI(){
   const task=tasks.find(t=>t.id===currentTaskId);
   if(!task){alert('לא נמצאה משימה');return;}
-  if(!task.rubric){alert('אין מחוון למשימה זו. תחילה צרי מחוון.');return;}
+  if(!task.rubric){
+    if(!confirm('אין מחוון למשימה זו.\nניתן לבדוק ידנית, אך ללא ניתוח AI מפורט.\nרוצי להמשיך?')){return;}
+  }
   const studentName=document.getElementById('check-student-name').value.trim();
   if(!studentName){alert('נא להזין שם תלמיד.');return;}
   const activeMode=['text','pdf','image'].find(m=>{const el=document.getElementById('check-mode-'+m);return el&&el.style.display!=='none';})||'text';
