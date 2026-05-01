@@ -417,6 +417,27 @@ function buildSlotBlock(slot,stIdx,sli){
 
   // ── חדר בריחה ──
   // ── טריוויה ──
+  // ── פיצוחים ──
+  if(slot.type==='crackers'){
+    const d=slot.crackersData||{letters:{}};
+    const sessionId='crack_'+Date.now();
+    const crParams=encodeURIComponent(JSON.stringify(d));
+    const boardUrl=window.location.href.replace(/[^/]*/,'crackers_board.html')+'?data='+crParams+'&session='+sessionId;
+    const studentUrl=window.location.href.replace(/[^/]*/,'crackers.html')+'?data='+crParams+'&session='+sessionId+'&student='+encodeURIComponent(studentName||'');
+    const activeCount=Object.values(d.letters||{}).filter(l=>l.w1||l.w2).length;
+    html+=`<div style="text-align:center;padding:24px 16px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:2rem;margin-bottom:10px;">💥</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">פיצוחים</div>
+      <div style="font-size:.8rem;opacity:.5;margin-bottom:16px;">${activeCount} אותיות מוגדרות</div>
+      <button onclick="window.open('${studentUrl}','_blank','width=500,height=700')"
+        style="padding:10px 24px;background:linear-gradient(135deg,#7c3aed,#4c1d95);color:#fff;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
+        💥 כניסה לפיצוחים
+      </button>
+    </div>`;
+    block.innerHTML=html;
+    return block;
+  }
+
   if(slot.type==='trivia'){
     const d=slot.triviaData||{};
     const sessionId='tv_'+Date.now();

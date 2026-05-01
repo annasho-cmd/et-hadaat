@@ -1898,6 +1898,56 @@ function buildSlotEditor(slot, section, si, sli, uid){
   // ── טבלת מילוי ──
   // ── חדר בריחה ──
   // ── טריוויה ──
+  // ── פיצוחים ──
+  if(slot.type==='crackers'){
+    const d=slot.crackersData||{instruction:'',groupMode:'app',letters:{}};
+    const HEB='אבגדהוזחטיכלמנסעפצקרשת'.split('');
+    const letters=d.letters||{};
+
+    const lettersHtml=HEB.map(letter=>{
+      const ld=letters[letter]||{w1:'',def1:'',w2:'',def2:''};
+      const hasData=ld.w1||ld.w2;
+      return `<div style="background:${hasData?'rgba(212,168,67,.08)':'rgba(253,245,224,.03)'};border:1px solid ${hasData?'rgba(212,168,67,.3)':'var(--border)'};border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+        <div style="font-weight:700;color:var(--gold);font-size:.88rem;margin-bottom:5px;">אות ${letter}</div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:4px;align-items:center;margin-bottom:4px;">
+          <input class="inline-field" style="min-height:0;padding:3px 7px;font-size:.8rem;font-weight:700;"
+            placeholder="מושג 1..." value="${esc(ld.w1||'')}"
+            onchange="updateCrackersLetter('${section}',${si},${sli},'${letter}','w1',this.value)">
+          <input class="inline-field" style="min-height:0;padding:3px 7px;font-size:.8rem;"
+            placeholder="הגדרה 1..." value="${esc(ld.def1||'')}"
+            onchange="updateCrackersLetter('${section}',${si},${sli},'${letter}','def1',this.value)">
+          <input class="inline-field" style="min-height:0;padding:3px 7px;font-size:.8rem;font-weight:700;"
+            placeholder="מושג 2..." value="${esc(ld.w2||'')}"
+            onchange="updateCrackersLetter('${section}',${si},${sli},'${letter}','w2',this.value)">
+          <input class="inline-field" style="min-height:0;padding:3px 7px;font-size:.8rem;"
+            placeholder="הגדרה 2..." value="${esc(ld.def2||'')}"
+            onchange="updateCrackersLetter('${section}',${si},${sli},'${letter}','def2',this.value)">
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="inline-editor-title">💥 פיצוחים</div>
+      <div style="font-size:.72rem;opacity:.4;background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+        כוורת אותיות · כחולים מלמעלה למטה · אדומים מימין לשמאל · 2 מושגים+הגדרות לכל אות
+      </div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">הנחיה קבועה לתלמידים:</div>
+      <textarea class="inline-field" style="min-height:50px;margin-bottom:8px;" placeholder="כל תשובה חייבת להתחיל באות המשובצת..."
+        onchange="updateCrackersField('${section}',${si},${sli},'instruction',this.value)">${esc(d.instruction||'')}</textarea>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">שיבוץ קבוצות:</div>
+      <select class="inline-field" style="min-height:0;padding:5px 8px;margin-bottom:10px;"
+        onchange="updateCrackersField('${section}',${si},${sli},'groupMode',this.value)">
+        <option value="app" ${d.groupMode==='app'?'selected':''}>אפליקציה מגרילה</option>
+        <option value="teacher" ${d.groupMode==='teacher'?'selected':''}>מורה משבצת</option>
+        <option value="student" ${d.groupMode==='student'?'selected':''}>תלמיד בוחר</option>
+      </select>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:6px;">מושגים לפי אות (מלאי רק אותיות עם מושגים):</div>
+      <div id="crackers-letters-${uid}">${lettersHtml}</div>
+      <div class="editor-btns">
+        <button class="btn btn-sm" style="background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;" onclick="clearSlot('${section}',${si},${sli},'${uid}')">🗑 הסר</button>
+        <button class="btn btn-gold btn-sm" onclick="saveCrackersData('${section}',${si},${sli})">שמור ✓</button>
+      </div>`;
+  }
+
   if(slot.type==='trivia'){
     const d=slot.triviaData||{name:'טריוויה',template:'millionaire',target:'class',numAnswers:4,questions:[]};
     const qs=d.questions||[];
@@ -3638,6 +3688,20 @@ function restoreKlueWord(section,si,sli,wi,uid){
   setSaveStatus('שינויים לא שמורים');
 }
 function saveKlueData(section,si,sli){saveLesson();flash('✓ נשמר');}
+
+// ── CRACKERS HELPERS ──
+function updateCrackersField(section,si,sli,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.crackersData)slot.crackersData={instruction:'',groupMode:'app',letters:{}};
+  slot.crackersData[field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function updateCrackersLetter(section,si,sli,letter,field,val){
+  const slot=getSlot(section,si,sli);if(!slot)return;
+  if(!slot.crackersData)slot.crackersData={instruction:'',groupMode:'app',letters:{}};
+  if(!slot.crackersData.letters[letter])slot.crackersData.letters[letter]={w1:'',def1:'',w2:'',def2:''};
+  slot.crackersData.letters[letter][field]=val;setSaveStatus('שינויים לא שמורים');
+}
+function saveCrackersData(section,si,sli){saveLesson();flash('✓ נשמר');}
 
 // ── TRIVIA HELPERS ──
 function updateTriviaField(section,si,sli,field,val){

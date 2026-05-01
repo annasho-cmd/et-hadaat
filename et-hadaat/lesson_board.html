@@ -202,6 +202,29 @@ function buildSlotHTML(slot){
       <div style="font-size:.75rem;opacity:.35;margin-top:6px;">התלמידים פותרים בטאבלט</div>
     </div>`;
 
+  } else if(slot.type==='crackers'){
+    const d=slot.crackersData||{letters:{}};
+    const sessionId='crack_'+Date.now();
+    const crParams=encodeURIComponent(JSON.stringify(d));
+    const boardUrl=window.location.href.replace('lesson_board.html','crackers_board.html')+'?data='+crParams+'&session='+sessionId;
+    const studentUrl=window.location.href.replace('lesson_board.html','crackers.html')+'?data='+crParams+'&session='+sessionId;
+    const activeCount=Object.values(d.letters||{}).filter(l=>l.w1||l.w2).length;
+    inner=`<div style="text-align:center;padding:24px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:10px;">💥</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">פיצוחים</div>
+      <div style="font-size:.85rem;opacity:.5;margin-bottom:14px;">${activeCount} אותיות · כחולים נגד אדומים</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button onclick="window.open('${boardUrl}','_blank','width=1100,height=700')"
+          style="padding:10px 22px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:10px;font-family:Heebo,sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;">
+          📊 פתח לוח הקרנה
+        </button>
+        <button onclick="navigator.clipboard?.writeText('${studentUrl}').then(()=>alert('הקישור הועתק!'))"
+          style="padding:10px 18px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;border-radius:10px;font-family:Heebo,sans-serif;font-size:.85rem;cursor:pointer;">
+          📋 העתק קישור לתלמידים
+        </button>
+      </div>
+    </div>`;
+
   } else if(slot.type==='trivia'){
     const d=slot.triviaData||{};
     const sessionId='tv_'+Date.now();

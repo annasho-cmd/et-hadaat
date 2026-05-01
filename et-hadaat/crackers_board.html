@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>פיצוחים — לוח הקרנה</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0a0006;color:var(--parch);height:100vh;overflow:hidden;direction:rtl;}
+.topbar{background:rgba(5,0,10,.98);border-bottom:1px solid rgba(255,255,255,.1);padding:6px 16px;display:flex;align-items:center;gap:12px;height:44px;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;font-weight:700;color:var(--gold2);flex:1;}
+.team-score{padding:4px 14px;border-radius:20px;font-weight:700;font-size:.85rem;}
+.team-blue{background:rgba(59,130,246,.2);border:1px solid rgba(59,130,246,.4);color:#60a5fa;}
+.team-red{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;}
+.btn{padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:none;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.78rem;cursor:pointer;}
+.btn:hover{background:rgba(255,255,255,.08);}
+.btn-mark-blue{background:rgba(59,130,246,.3);border-color:rgba(59,130,246,.5);color:#60a5fa;}
+.btn-mark-red{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.5);color:#f87171;}
+.btn-mark-black{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);}
+
+.main{display:flex;height:calc(100vh - 44px);}
+
+/* HONEYCOMB */
+.board-area{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;}
+.honeycomb{display:flex;flex-direction:column;gap:2px;align-items:center;}
+.hex-row{display:flex;gap:3px;}
+.hex-row:nth-child(even){margin-right:0px;}
+.hex{width:64px;height:72px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:900;}
+.hex-inner{display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+.hex.empty{background:rgba(60,0,80,.6);}
+.hex.empty:hover{background:rgba(80,0,110,.8);}
+.hex.blue{background:linear-gradient(135deg,#1d4ed8,#1e40af);}
+.hex.red{background:linear-gradient(135deg,#dc2626,#991b1b);}
+.hex.black{background:#111;color:rgba(255,255,255,.25);}
+.hex.active{animation:hexPulse 0.7s ease infinite;}
+@keyframes hexPulse{0%,100%{filter:brightness(1);}50%{filter:brightness(1.6) drop-shadow(0 0 8px rgba(255,220,0,.8));}}
+
+/* QUESTION PANEL */
+.q-panel{width:300px;background:rgba(10,0,20,.9);border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;padding:14px;gap:10px;overflow-y:auto;}
+.q-letter{font-family:'Frank Ruhl Libre',serif;font-size:2.5rem;font-weight:900;text-align:center;margin-bottom:4px;}
+.q-box{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;}
+.q-num{font-size:.68rem;opacity:.45;margin-bottom:4px;}
+.q-def{font-size:.88rem;line-height:1.6;}
+.q-answer{font-size:.95rem;font-weight:700;color:var(--gold2);display:none;margin-top:5px;}
+.turn-indicator{text-align:center;padding:8px;border-radius:8px;font-size:.82rem;font-weight:700;margin-top:4px;}
+.turn-blue{background:rgba(59,130,246,.15);color:#60a5fa;}
+.turn-red{background:rgba(239,68,68,.1);color:#f87171;}
+
+.controls{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.ctrl-row{display:flex;gap:6px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">💥 פיצוחים</div>
+  <div class="team-score team-blue" id="score-blue">כחולים: 0</div>
+  <div class="team-score team-red" id="score-red">אדומים: 0</div>
+  <button class="btn" onclick="revealAnswer()" id="btn-reveal">👁 גלה תשובה</button>
+  <button class="btn btn-mark-blue" onclick="markCell('blue')" id="btn-blue">✓ כחולים</button>
+  <button class="btn btn-mark-red" onclick="markCell('red')" id="btn-red">✓ אדומים</button>
+  <button class="btn btn-mark-black" onclick="markCell('black')">✗ שחור</button>
+  <button class="btn" onclick="nextQuestion()">שאלה ▸</button>
+  <button class="btn" onclick="window.close()">✕</button>
+</div>
+
+<div class="main">
+  <div class="q-panel" id="q-panel">
+    <div style="opacity:.3;font-size:.85rem;text-align:center;padding:20px;">לחץ על אות בכוורת</div>
+  </div>
+  <div class="board-area">
+    <div class="honeycomb" id="honeycomb"></div>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+
+const params=new URLSearchParams(window.location.search);
+let crackerData={letters:{},instruction:''};
+try{crackerData=JSON.parse(decodeURIComponent(params.get('data')||'{}'));}catch(e){}
+const sessionId=params.get('session')||'crack_'+Date.now();
+const SESSION=db.ref('crackers/'+sessionId);
+
+// אסוף אותיות שיש להן נתונים
+const HEB_ORDER='אבגדהוזחטיכלמנסעפצקרשת'.split('');
+const activeLetters=HEB_ORDER.filter(l=>{
+  const ld=crackerData.letters[l];
+  return ld&&(ld.w1||ld.w2);
+});
+
+let cellStates={}; // letter → 'blue'|'red'|'black'|'empty'
+let currentLetter=null;
+let currentQIdx=0; // 0 or 1
+let currentTurn='blue'; // 'blue' or 'red'
+let scores={blue:0,red:0};
+let firstTeamFailed=false;
+
+// ── BUILD HONEYCOMB ──
+function buildHoneycomb(){
+  const n=activeLetters.length;
+  // חשב גריד: נסה ליצור לוח כמה שיותר ריבועי
+  const cols=Math.ceil(Math.sqrt(n*1.3));
+  const rows=Math.ceil(n/cols);
+  const honeycomb=document.getElementById('honeycomb');
+  honeycomb.innerHTML='';
+  let idx=0;
+  for(let r=0;r<rows;r++){
+    const row=document.createElement('div');
+    row.className='hex-row';
+    // שורות זוגיות מוזזות
+    if(r%2===1)row.style.marginRight='34px';
+    const rowCols=r<rows-1?cols:n-(rows-1)*cols;
+    for(let c=0;c<cols;c++){
+      const letter=activeLetters[idx];
+      const hex=document.createElement('div');
+      hex.className='hex empty';
+      hex.id='hex-'+letter;
+      hex.innerHTML=`<div class="hex-inner">${letter||''}</div>`;
+      if(letter){
+        hex.onclick=()=>selectLetter(letter);
+        idx++;
+      } else {
+        hex.style.opacity='0';
+        hex.style.pointerEvents='none';
+      }
+      row.appendChild(hex);
+    }
+    honeycomb.appendChild(row);
+  }
+  // שמור גריד ב-Firebase לתלמידים
+  SESSION.child('grid').set({letters:activeLetters,cols});
+}
+
+function selectLetter(letter){
+  if(cellStates[letter]==='blue'||cellStates[letter]==='red'||cellStates[letter]==='black')return;
+  // בטל בחירה קודמת
+  if(currentLetter) document.getElementById('hex-'+currentLetter)?.classList.remove('active');
+  currentLetter=letter;
+  currentQIdx=0;
+  firstTeamFailed=false;
+  document.getElementById('hex-'+letter)?.classList.add('active');
+  // עדכן Firebase
+  SESSION.child('state').set({activeLetter:letter,qIdx:0,turn:currentTurn});
+  renderQuestion();
+}
+
+function renderQuestion(){
+  if(!currentLetter)return;
+  const ld=crackerData.letters[currentLetter]||{};
+  const isQ1=currentQIdx===0;
+  const word=isQ1?ld.w1:ld.w2;
+  const def=isQ1?ld.def1:ld.def2;
+  const panel=document.getElementById('q-panel');
+  const turnHtml=`<div class="turn-indicator turn-${currentTurn}">${currentTurn==='blue'?'🔵 תור כחולים':'🔴 תור אדומים'}</div>`;
+  panel.innerHTML=`
+    <div class="q-letter" style="color:${currentTurn==='blue'?'#60a5fa':'#f87171'}">${currentLetter}</div>
+    ${turnHtml}
+    <div class="q-box">
+      <div class="q-num">הגדרה ${currentQIdx+1}</div>
+      <div class="q-def">${esc(def||'אין הגדרה')}</div>
+      <div class="q-answer" id="q-answer-display">← ${esc(word||'?')}</div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-row">
+        <button class="btn btn-mark-blue" onclick="markCell('blue')" style="flex:1;">✓ כחולים צדקו</button>
+        <button class="btn btn-mark-red" onclick="markCell('red')" style="flex:1;">✓ אדומים צדקו</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn" onclick="passToOther()" style="flex:1;">⟳ תור עובר</button>
+        <button class="btn btn-mark-black" onclick="markCell('black')" style="flex:1;">✗ שחור</button>
+      </div>
+      <button class="btn" onclick="revealAnswer()" style="width:100%;">👁 גלה תשובה</button>
+    </div>`;
+}
+
+function revealAnswer(){
+  const el=document.getElementById('q-answer-display');
+  if(el)el.style.display='block';
+}
+
+function passToOther(){
+  if(!currentLetter)return;
+  if(!firstTeamFailed){
+    firstTeamFailed=true;
+    currentTurn=currentTurn==='blue'?'red':'blue';
+    // עבור לשאלה 2 אם נגמרה שאלה 1
+    currentQIdx=currentQIdx===0?1:0;
+    SESSION.child('state').set({activeLetter:currentLetter,qIdx:currentQIdx,turn:currentTurn});
+    renderQuestion();
+  } else {
+    // שניהם נכשלו — שחור
+    markCell('black');
+  }
+}
+
+function markCell(color){
+  if(!currentLetter)return;
+  cellStates[currentLetter]=color;
+  const hex=document.getElementById('hex-'+currentLetter);
+  if(hex){
+    hex.classList.remove('empty','blue','red','black','active');
+    hex.classList.add(color);
+  }
+  if(color==='blue')scores.blue++;
+  if(color==='red')scores.red++;
+  updateScores();
+  SESSION.child('cells').update({[currentLetter]:color});
+  // בדוק ניצחון
+  checkWin();
+  currentLetter=null;
+  firstTeamFailed=false;
+  currentTurn=color==='blue'?'blue':'red'; // ממשיך מי שצבע
+  if(color==='black')currentTurn=currentTurn==='blue'?'red':'blue';
+  document.getElementById('q-panel').innerHTML='<div style="opacity:.3;font-size:.85rem;text-align:center;padding:20px;">בחר אות בכוורת</div>';
+}
+
+function nextQuestion(){
+  if(!currentLetter)return;
+  currentQIdx=(currentQIdx+1)%2;
+  renderQuestion();
+}
+
+function updateScores(){
+  document.getElementById('score-blue').textContent=`כחולים: ${scores.blue}`;
+  document.getElementById('score-red').textContent=`אדומים: ${scores.red}`;
+}
+
+function checkWin(){
+  // בדוק שרשרת מלמעלה למטה לכחולים
+  const n=activeLetters.length;
+  const cols=Math.ceil(Math.sqrt(n*1.3));
+  const rows=Math.ceil(n/cols);
+  // פשטות: בדוק אם יש מספיק תאים
+  if(scores.blue>=Math.ceil(rows/2)||scores.red>=Math.ceil(cols/2)){
+    const winner=scores.blue>scores.red?'כחולים':'אדומים';
+    setTimeout(()=>alert(`🏆 ${winner} ניצחו!`),300);
+  }
+}
+
+window.onload=function(){
+  buildHoneycomb();
+  SESSION.child('instruction').set(crackerData.instruction||'');
+  SESSION.child('groupMode').set(crackerData.groupMode||'app');
+};
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
