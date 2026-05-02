@@ -743,7 +743,10 @@ select.modal-input option{background:#2c1a0e;}
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
-      <button class="modal-save" id="btn-build-rubric" style="background:rgba(109,40,217,.8);" onclick="buildTaskRubric()">🤖 בנה מחוון</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="buildTaskRubric('qa')">📝 מחוון שאלות ותשובות</button>
+        <button class="modal-save" style="background:rgba(44,26,80,.8);border:1px solid rgba(109,40,217,.4);" onclick="buildTaskRubric('eval')">📊 מחוון הערכה</button>
+      </div>
       <button class="modal-save" id="btn-save-with-rubric" style="display:none;background:rgba(42,107,42,.8);" onclick="saveNewTask(true)">💾 שמור עם מחוון ✓</button>
       <button class="modal-save" onclick="saveNewTask(false)">💾 שמור בלי מחוון</button>
     </div>
@@ -1812,21 +1815,41 @@ function openNewTaskModal(){
   document.getElementById('modal-new-task').style.display='flex';
 }
 
-async function buildTaskRubric(){
+async function buildTaskRubric(rubricType='eval'){
   const name=document.getElementById('task-name').value.trim();
   const instructions=document.getElementById('task-instructions').value.trim();
   const type=document.getElementById('task-type').value;
   const mode=document.getElementById('task-mode').value;
   if(!name||!instructions){alert('נא למלא שם משימה והוראות לפני בניית המחוון.');return;}
-  const buildBtn=document.getElementById('btn-build-rubric');
-  if(buildBtn)buildBtn.textContent='⏳ בונה...';
 
-  const prompt=`בנה מחוון הערכה מפורט למשימה:
+  // הצג טעינה על שני הכפתורים
+  document.querySelectorAll('#modal-new-task .modal-save').forEach(b=>{
+    if(b.textContent.includes('מחוון'))b.style.opacity='.5';
+  });
+
+  const isQA=rubricType==='qa';
+  const prompt=isQA
+    ?`בנה מחוון שאלות ותשובות למשימה:
+שם: ${name} | סוג: ${type} | אופן: ${mode}
+הוראות: ${instructions}
+
+זהה את השאלות והסעיפים מתוך ההוראות. לכל שאלה/סעיף צור קריטריון נפרד.
+החזר JSON בלבד:
+{
+  "rubricType": "qa",
+  "criteria": [
+    {"name": "שאלה 1 / סעיף א", "maxPoints": מספר, "description": "תיאור מה נבדק", "answerKey": ""}
+  ],
+  "totalPoints": 100
+}
+עד 12 קריטריונים. סה"כ בדיוק 100 נקודות. השאר answerKey ריק — המורה תמלא.`
+    :`בנה מחוון הערכה מפורט למשימה:
 שם: ${name} | סוג: ${type} | אופן: ${mode}
 הוראות: ${instructions}
 
 החזר JSON בלבד:
 {
+  "rubricType": "eval",
   "criteria": [
     {"name": "שם קריטריון", "maxPoints": מספר, "description": "תיאור קצר"}
   ],
@@ -1836,7 +1859,7 @@ async function buildTaskRubric(){
 
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,
         system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
         messages:[{role:'user',content:prompt}]})});
     if(!r.ok){const err=await r.text();throw new Error('HTTP '+r.status+': '+err);}
@@ -1846,6 +1869,7 @@ async function buildTaskRubric(){
     if(!text)throw new Error('התשובה מהשרת ריקה');
     const rubric=JSON.parse(text);
     if(!rubric.criteria?.length)throw new Error('המחוון שהתקבל לא תקין');
+    rubric.rubricType=rubricType;
     renderEditableRubric(rubric);
     const saveBtn=document.getElementById('btn-save-with-rubric');
     if(saveBtn)saveBtn.style.display='inline-block';
@@ -1853,22 +1877,25 @@ async function buildTaskRubric(){
     console.error('buildTaskRubric error:',e);
     alert('שגיאה בבניית המחוון:\n'+e.message+'\n\nנסי שוב או שמרי בלי מחוון.');
   }
-  if(buildBtn)buildBtn.textContent='🤖 בנה מחוון';
+  document.querySelectorAll('#modal-new-task .modal-save').forEach(b=>{
+    if(b.textContent.includes('מחוון'))b.style.opacity='1';
+  });
 }
 
 function renderEditableRubric(rubric){
   const preview=document.getElementById('task-rubric-preview');
   preview.style.display='block';
   preview._rubric=rubric;
+  const isQA=rubric.rubricType==='qa';
   const rows=rubric.criteria.map((c,i)=>`
     <tr style="border-bottom:1px solid rgba(212,168,67,.08);">
       <td style="padding:6px 8px;vertical-align:top;">
         <input value="${esc(c.name)}" onchange="updateRubricCriterion(${i},'name',this.value)"
           style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 8px;outline:none;margin-bottom:4px;">
-        <div style="font-size:.7rem;opacity:.45;margin-bottom:4px;">${esc(c.description||'')}</div>
-        <textarea rows="2" placeholder="תשובה נכונה (אופציונלי — לבדיקה אוטומטית)..."
+        <div style="font-size:.7rem;opacity:.45;margin-bottom:${isQA?4:0}px;">${esc(c.description||'')}</div>
+        ${isQA?`<textarea rows="2" placeholder="הדביקי את התשובה הנכונה..."
           onchange="updateRubricCriterion(${i},'answerKey',this.value)"
-          style="width:100%;background:rgba(109,40,217,.06);border:1px solid rgba(109,40,217,.2);border-radius:5px;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.78rem;padding:5px 8px;outline:none;resize:vertical;direction:rtl;">${esc(c.answerKey||'')}</textarea>
+          style="width:100%;background:rgba(109,40,217,.06);border:1px solid rgba(109,40,217,.2);border-radius:5px;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.78rem;padding:5px 8px;outline:none;resize:vertical;direction:rtl;">${esc(c.answerKey||'')}</textarea>`:''}
       </td>
       <td style="padding:6px 8px;text-align:center;width:70px;vertical-align:top;">
         <input type="number" min="1" max="100" value="${c.maxPoints}" onchange="updateRubricCriterion(${i},'maxPoints',parseInt(this.value));updateRubricTotal()"
@@ -1880,14 +1907,19 @@ function renderEditableRubric(rubric){
     </tr>`).join('');
 
   preview.innerHTML=`
-    <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">✅ מחוון נבנה — ערכי את הקריטריונים לפי הצורך:</div>
-    <div style="font-size:.75rem;opacity:.5;margin-bottom:8px;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.2);border-radius:6px;padding:6px 10px;">
-      💡 שדה סגול = תשובה נכונה. מלאי אותו כדי שהאפליקציה תבדוק את תשובת התלמיד אוטומטית.
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;">✅ מחוון נבנה</div>
+      <div style="padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:700;
+        background:${isQA?'rgba(109,40,217,.2)':'rgba(212,168,67,.15)'};
+        color:${isQA?'#c4b5fd':'var(--gold)'};">
+        ${isQA?'📝 שאלות ותשובות':'📊 הערכה'}
+      </div>
     </div>
+    ${isQA?'<div style="font-size:.75rem;opacity:.5;margin-bottom:8px;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.2);border-radius:6px;padding:6px 10px;">💡 הדביקי תשובות נכונות בשדות הסגולים — האפליקציה תשתמש בהן לבדיקה אוטומטית.</div>':''}
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
       <thead>
         <tr style="border-bottom:1px solid rgba(212,168,67,.2);">
-          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">קריטריון + תשובה נכונה</th>
+          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">${isQA?'שאלה / סעיף + תשובה נכונה':'קריטריון'}</th>
           <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:center;width:70px;">ניקוד מקס׳</th>
           <th style="width:50px;"></th>
         </tr>
@@ -1895,7 +1927,7 @@ function renderEditableRubric(rubric){
       <tbody id="rubric-edit-rows">${rows}</tbody>
     </table>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <button onclick="addRubricCriterion()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף קריטריון</button>
+      <button onclick="addRubricCriterion()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף ${isQA?'שאלה':'קריטריון'}</button>
       <div id="rubric-total" style="font-size:.88rem;font-weight:700;">
         סה"כ: <span id="rubric-total-num">${rubric.totalPoints||0}</span> נק׳
         ${(rubric.totalPoints||0)!==100?'<span style="color:#f87171;font-size:.78rem;margin-right:6px;">⚠️ חייב להיות 100</span>':'<span style="color:#22c55e;font-size:.78rem;margin-right:6px;">✅</span>'}
