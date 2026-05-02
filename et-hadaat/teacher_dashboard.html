@@ -528,6 +528,7 @@ select.modal-input option{background:#2c1a0e;}
             <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);" onclick="openTaskRubricView()">📑 מחוון</button>
             <button class="btn-primary" id="btn-complete-task" style="background:rgba(34,197,94,.15);color:#22c55e;" onclick="completeTask()">✅ סיים משימה</button>
             <button class="btn-primary" style="background:rgba(212,168,67,.1);color:var(--gold);" onclick="duplicateTask()">📋 שכפל</button>
+            <button class="btn-primary" style="background:rgba(139,32,32,.2);color:#f87171;border:1px solid rgba(139,32,32,.3);" onclick="deleteCurrentTask()">🗑 מחק</button>
           </div>
         </div>
         <div id="task-detail-content"></div>
@@ -2185,6 +2186,17 @@ function openAddRubricModal(taskId){
 
 let _addRubricMode=false;
 
+function deleteCurrentTask(){
+  if(!currentTaskId)return;
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!confirm(`למחוק את המשימה "${task?.name||''}"?\nפעולה זו אינה הפיכה.`))return;
+  db.ref('teacher/tasks/'+currentTaskId).remove();
+  tasks=tasks.filter(t=>t.id!==currentTaskId);
+  showToast('✓ המשימה נמחקה');
+  if(currentTasksSubject) openTasksBySubject(currentTasksSubject);
+  else openTasksScreen();
+}
+
 function duplicateTask(){
   const task=tasks.find(t=>t.id===currentTaskId);
   if(!task)return;
@@ -2428,7 +2440,11 @@ function saveStudentGrade(taskId,studentName,score,feedback,rubricScores){
   openTaskDetail(taskId);
 }
 
+let _pendingGroupCopy=null;
+
 function showGroupCopyDialog(taskId,gradedStudent,score,feedback,rubricScores,others,task){
+  // שמור נתונים במשתנה גלובלי
+  _pendingGroupCopy={taskId,score,feedback,rubricScores};
   // הסר דיאלוג ישן
   document.getElementById('group-copy-dialog')?.remove();
   const dialog=document.createElement('div');
@@ -2453,7 +2469,7 @@ function showGroupCopyDialog(taskId,gradedStudent,score,feedback,rubricScores,ot
     </div>
     <div id="group-members-list">${membersHtml}</div>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button onclick="copyGradeToGroup('${taskId}',${score},'${esc(feedback||'')}',${JSON.stringify(rubricScores||null)})"
+      <button onclick="copyGradeToGroup()"
         style="flex:1;padding:10px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:9px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
         💾 העתק לנבחרים
       </button>
@@ -2466,7 +2482,9 @@ function showGroupCopyDialog(taskId,gradedStudent,score,feedback,rubricScores,ot
   document.body.appendChild(dialog);
 }
 
-function copyGradeToGroup(taskId,score,feedback,rubricScores){
+function copyGradeToGroup(){
+  if(!_pendingGroupCopy)return;
+  const {taskId,score,feedback,rubricScores}=_pendingGroupCopy;
   const checkboxes=document.querySelectorAll('#group-members-list input[type=checkbox]:checked');
   const task=tasks.find(t=>t.id===taskId);
   let count=0;
@@ -2481,7 +2499,9 @@ function copyGradeToGroup(taskId,score,feedback,rubricScores){
     count++;
   });
   document.getElementById('group-copy-dialog').remove();
+  _pendingGroupCopy=null;
   if(count>0)showToast(`✓ הציון הועתק ל-${count} תלמידים`);
+  else showToast('לא נבחרו תלמידים');
   openTaskDetail(taskId);
 }
 
