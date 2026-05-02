@@ -1711,6 +1711,18 @@ function openTasksBySubject(sub){
   ]);
   showScreen('screen-tasks-subject');
   loadTasks();
+  // תקן משימות ישנות ללא subjectId שהן של המקצוע הזה
+  setTimeout(()=>{
+    tasks.forEach(t=>{
+      if(!t.subjectId){
+        const grp=groups.find(g=>g.id===t.groupId);
+        if(grp&&grp.subjectId===sub.id){
+          db.ref('teacher/tasks/'+t.id+'/subjectId').set(sub.id);
+          t.subjectId=sub.id;
+        }
+      }
+    });
+  },500);
 }
 
 function deleteTask(taskId){
@@ -1738,13 +1750,9 @@ function renderTasksList(){
   // מיין לפי תאריך הגשה
   const filtered=currentTasksSubject
     ? tasks.filter(t=>{
-        // משימות חדשות — לפי subjectId
         if(t.subjectId) return t.subjectId===currentTasksSubject.id;
-        // משימות ישנות — לפי groupId השייך לקבוצות של המקצוע
-        const subjectGroupIds=(currentTasksSubject.units||[])
-          .flatMap(u=>Object.keys(u.groups||{}));
-        return subjectGroupIds.includes(t.groupId)||
-          groups.filter(g=>g.subjectId===currentTasksSubject.id).some(g=>g.id===t.groupId);
+        // משימות ישנות ללא subjectId — הצג בכל המקצועות עד תיקון
+        return true;
       })
     : tasks;
   const sorted=[...filtered].sort((a,b)=>new Date(a.due)-new Date(b.due));
