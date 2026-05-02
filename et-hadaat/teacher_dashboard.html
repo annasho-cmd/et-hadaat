@@ -1871,14 +1871,28 @@ async function buildTaskRubric(rubricType='eval'){
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,
-        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
+        system:'אתה עוזר הוראה. החזר JSON תקני בלבד. אל תוסיף טקסט לפני או אחרי. אל תשתמש בגרשיים בודדים. כל המפתחות והערכים חייבים להיות בגרשיים כפולים.',
         messages:[{role:'user',content:prompt}]})});
     if(!r.ok){const err=await r.text();throw new Error('HTTP '+r.status+': '+err);}
     const d=await r.json();
     if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
     const text=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
     if(!text)throw new Error('התשובה מהשרת ריקה');
-    const rubric=JSON.parse(text);
+    // נסה לתקן JSON נפוץ — גרשיים בודדים לגרשיים כפולים
+    let jsonText=text;
+    let rubric;
+    try{
+      rubric=JSON.parse(jsonText);
+    }catch(e1){
+      // נסה לחלץ רק את החלק של ה-JSON
+      const match=jsonText.match(/\{[\s\S]*\}/);
+      if(match){
+        try{rubric=JSON.parse(match[0]);}
+        catch(e2){throw new Error('JSON לא תקין: '+e2.message);}
+      } else {
+        throw new Error('לא נמצא JSON בתשובה');
+      }
+    }
     if(!rubric.criteria?.length)throw new Error('המחוון שהתקבל לא תקין');
     rubric.rubricType=rubricType;
     renderEditableRubric(rubric);
