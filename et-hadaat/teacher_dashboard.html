@@ -1782,11 +1782,13 @@ function renderTasksList(){
 
 function checkTasksAlerts(){
   const now=new Date();
-  const urgent=tasks.filter(t=>{
-    if(t.completed)return false; // דלג על משימות מושלמות
+  // הצג התרעות רק למשימות הנראות — עם subjectId תקין
+  const visibleTasks=tasks.filter(t=>t.subjectId);
+  const urgent=visibleTasks.filter(t=>{
+    if(t.completed)return false;
     const gradeDeadline=new Date(new Date(t.due).getTime()+t.gradeDays*24*60*60*1000);
     const days=Math.ceil((gradeDeadline-now)/(1000*60*60*24));
-    return days<=7 && days>=0;
+    return days<=7&&days>=0;
   });
   const bar=document.getElementById('tasks-alerts-bar');
   const badge=document.getElementById('tasks-alert-badge');
@@ -1796,7 +1798,8 @@ function checkTasksAlerts(){
     bar.style.display='block';
     bar.innerHTML='⚠️ משימות הדורשות ציונים בקרוב: '+urgent.map(t=>{
       const days=Math.ceil((new Date(new Date(t.due).getTime()+t.gradeDays*24*60*60*1000)-now)/(1000*60*60*24));
-      return `<b>${t.name}</b> (${days} ימים)`;
+      const sub=subjects.find(s=>s.id===t.subjectId);
+      return `<b>${t.name}</b>${sub?' ('+sub.name+')':''} — ${days} ימים`;
     }).join(' · ');
   }
 }
