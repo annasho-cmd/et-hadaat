@@ -1861,27 +1861,33 @@ function renderEditableRubric(rubric){
   preview.style.display='block';
   preview._rubric=rubric;
   const rows=rubric.criteria.map((c,i)=>`
-    <tr>
-      <td style="padding:6px 8px;">
+    <tr style="border-bottom:1px solid rgba(212,168,67,.08);">
+      <td style="padding:6px 8px;vertical-align:top;">
         <input value="${esc(c.name)}" onchange="updateRubricCriterion(${i},'name',this.value)"
-          style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 8px;outline:none;">
-        <div style="font-size:.7rem;opacity:.45;margin-top:3px;">${esc(c.description||'')}</div>
+          style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 8px;outline:none;margin-bottom:4px;">
+        <div style="font-size:.7rem;opacity:.45;margin-bottom:4px;">${esc(c.description||'')}</div>
+        <textarea rows="2" placeholder="תשובה נכונה (אופציונלי — לבדיקה אוטומטית)..."
+          onchange="updateRubricCriterion(${i},'answerKey',this.value)"
+          style="width:100%;background:rgba(109,40,217,.06);border:1px solid rgba(109,40,217,.2);border-radius:5px;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.78rem;padding:5px 8px;outline:none;resize:vertical;direction:rtl;">${esc(c.answerKey||'')}</textarea>
       </td>
-      <td style="padding:6px 8px;text-align:center;width:70px;">
+      <td style="padding:6px 8px;text-align:center;width:70px;vertical-align:top;">
         <input type="number" min="1" max="100" value="${c.maxPoints}" onchange="updateRubricCriterion(${i},'maxPoints',parseInt(this.value));updateRubricTotal()"
           style="width:60px;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.88rem;padding:5px;outline:none;text-align:center;font-weight:700;">
       </td>
-      <td style="padding:6px 8px;text-align:center;width:50px;">
+      <td style="padding:6px 8px;text-align:center;width:50px;vertical-align:top;">
         <button onclick="removeRubricCriterion(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem;">✕</button>
       </td>
     </tr>`).join('');
 
   preview.innerHTML=`
     <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">✅ מחוון נבנה — ערכי את הקריטריונים לפי הצורך:</div>
+    <div style="font-size:.75rem;opacity:.5;margin-bottom:8px;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.2);border-radius:6px;padding:6px 10px;">
+      💡 שדה סגול = תשובה נכונה. מלאי אותו כדי שהאפליקציה תבדוק את תשובת התלמיד אוטומטית.
+    </div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
       <thead>
         <tr style="border-bottom:1px solid rgba(212,168,67,.2);">
-          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">קריטריון</th>
+          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">קריטריון + תשובה נכונה</th>
           <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:center;width:70px;">ניקוד מקס׳</th>
           <th style="width:50px;"></th>
         </tr>
@@ -1890,10 +1896,9 @@ function renderEditableRubric(rubric){
     </table>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <button onclick="addRubricCriterion()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף קריטריון</button>
-      <div id="rubric-total" style="font-size:.88rem;font-weight:700;"
-        class="${rubric.totalPoints===100?'':'rubric-warn'}">
-        סה"כ: <span id="rubric-total-num">${rubric.totalPoints}</span> נק׳
-        ${rubric.totalPoints!==100?'<span style="color:#f87171;font-size:.78rem;margin-right:6px;">⚠️ חייב להיות 100</span>':'<span style="color:#22c55e;font-size:.78rem;margin-right:6px;">✅</span>'}
+      <div id="rubric-total" style="font-size:.88rem;font-weight:700;">
+        סה"כ: <span id="rubric-total-num">${rubric.totalPoints||0}</span> נק׳
+        ${(rubric.totalPoints||0)!==100?'<span style="color:#f87171;font-size:.78rem;margin-right:6px;">⚠️ חייב להיות 100</span>':'<span style="color:#22c55e;font-size:.78rem;margin-right:6px;">✅</span>'}
       </div>
     </div>
     <div style="margin-bottom:8px;">
@@ -2572,7 +2577,16 @@ async function checkWorkWithAI(){
   if(!studentName){alert('נא להזין שם תלמיד.');return;}
   const activeMode=['text','pdf','image'].find(m=>{const el=document.getElementById('check-mode-'+m);return el&&el.style.display!=='none';})||'text';
 
-  const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description||''}`).join('\n');
+  const hasAnswerKeys=task.rubric?.criteria?.some(c=>c.answerKey);
+  const rubricText=task.rubric.criteria.map(c=>{
+    let line=`${c.name} (${c.maxPoints} נק׳)`;
+    if(c.description) line+=`: ${c.description}`;
+    if(c.answerKey) line+=`\n  תשובה נכונה: ${c.answerKey}`;
+    return line;
+  }).join('\n\n');
+  const systemPrompt=hasAnswerKeys
+    ?'אתה עוזר הוראה. יש לך את התשובות הנכונות. השווה את תשובות התלמיד לתשובות הנכונות ותן ניקוד מדויק. ענה אך ורק ב-JSON תקני.'
+    :'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.';
   const jsonPrompt=`\n\nהחזר JSON בלבד:\n{"scores":[{"criterion":"שם הקריטריון","score":ניקוד_שניתן,"maxScore":ניקוד_מקסימלי,"comment":"הערה קצרה לתלמיד"}],"totalScore":סה"כ,"verbalFeedback":"הערה מילולית לתלמיד — 2-3 משפטים מעודדים ומכוונים"}`;
   const btn=document.querySelector('#modal-check-work .modal-save');
   if(btn)btn.textContent='⏳ בודק...';
@@ -2583,7 +2597,7 @@ async function checkWorkWithAI(){
       const workText=document.getElementById('check-work-text').value.trim();
       if(!workText){alert('נא להדביק את תוכן העבודה.');if(btn)btn.textContent='🤖 בדוק לפי מחוון';return;}
       body={model:'claude-sonnet-4-20250514',max_tokens:1500,
-        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
+        system:systemPrompt,
         messages:[{role:'user',content:`בדוק את העבודה לפי המחוון:\n${rubricText}\n\nעבודה:\n${workText}${jsonPrompt}`}]};
     } else {
       if(!_checkFileData){alert('נא לבחור קובץ.');if(btn)btn.textContent='🤖 בדוק לפי מחוון';return;}
@@ -2591,7 +2605,7 @@ async function checkWorkWithAI(){
         ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_checkFileData.base64}}
         :{type:'image',source:{type:'base64',media_type:_checkFileData.mediaType,data:_checkFileData.base64}};
       body={model:'claude-sonnet-4-20250514',max_tokens:1500,
-        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
+        system:systemPrompt,
         messages:[{role:'user',content:[fileContent,{type:'text',text:`בדוק לפי המחוון:\n${rubricText}${jsonPrompt}`}]}]};
     }
 
