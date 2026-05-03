@@ -502,33 +502,20 @@ select.modal-input option{background:#2c1a0e;}
       <div class="screen" id="screen-tasks">
         <div class="screen-hd">
           <div class="screen-title">📋 ניהול משימות</div>
-        </div>
-        <div id="tasks-alerts-bar" style="display:none;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:.85rem;color:#fca5a5;"></div>
-        <div class="subjects-grid" id="tasks-subjects-grid"></div>
-        <div id="tasks-subjects-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין מקצועות מוגדרים.</div>
-      </div>
-
-      <!-- ══ TASKS BY SUBJECT ══ -->
-      <div class="screen" id="screen-tasks-subject">
-        <div class="screen-hd">
-          <div class="screen-title" id="tasks-subject-title">📋 משימות</div>
           <button class="btn-primary" onclick="openNewTaskModal()">➕ משימה חדשה</button>
         </div>
-
+        <div id="tasks-alerts-bar" style="display:none;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:.85rem;color:#fca5a5;"></div>
         <div id="tasks-list"></div>
-        <div id="tasks-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין משימות למקצוע זה. לחצי "➕ משימה חדשה" להתחלה.</div>
+        <div id="tasks-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין משימות עדיין. לחצי "➕ משימה חדשה" להתחלה.</div>
       </div>
 
       <!-- ══ TASK DETAIL ══ -->
       <div class="screen" id="screen-task-detail">
         <div class="screen-hd">
           <div class="screen-title" id="task-detail-title">משימה</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;">
             <button class="btn-primary" onclick="openCheckWorkModal()">📎 בדוק עבודה</button>
             <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);" onclick="openTaskRubricView()">📑 מחוון</button>
-            <button class="btn-primary" id="btn-complete-task" style="background:rgba(34,197,94,.15);color:#22c55e;" onclick="completeTask()">✅ סיים משימה</button>
-            <button class="btn-primary" style="background:rgba(212,168,67,.1);color:var(--gold);" onclick="duplicateTask()">📋 שכפל</button>
-            <button class="btn-primary" style="background:rgba(139,32,32,.2);color:#f87171;border:1px solid rgba(139,32,32,.3);" onclick="deleteCurrentTask()">🗑 מחק</button>
           </div>
         </div>
         <div id="task-detail-content"></div>
@@ -689,7 +676,7 @@ select.modal-input option{background:#2c1a0e;}
       </div>
       <div class="modal-field">
         <div class="modal-label">אופן עבודה</div>
-        <select class="modal-input" id="task-mode" onchange="onTaskModeChange()">
+        <select class="modal-input" id="task-mode">
           <option value="עצמי">עצמי</option>
           <option value="זוגות">זוגות</option>
           <option value="קבוצה של 3">קבוצה של 3</option>
@@ -697,32 +684,6 @@ select.modal-input option{background:#2c1a0e;}
           <option value="קבוצה של 5">קבוצה של 5</option>
         </select>
       </div>
-    </div>
-    <!-- שאלת שיבוץ קבוצות — מופיעה רק כשלא עצמי -->
-    <div id="group-assignment-field" style="display:none;" class="modal-field">
-      <div class="modal-label">שיבוץ קבוצות</div>
-      <div style="display:flex;gap:10px;">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem;padding:8px 14px;border-radius:8px;border:1px solid var(--border);flex:1;transition:all .15s;" id="lbl-free-choice">
-          <input type="radio" name="group-assign" value="free" checked onchange="onGroupAssignChange(this.value)"
-            style="width:15px;height:15px;">
-          <div>
-            <div style="font-weight:600;">בחירה חופשית</div>
-            <div style="font-size:.72rem;opacity:.5;margin-top:2px;">התלמידים בוחרים בעצמם</div>
-          </div>
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem;padding:8px 14px;border-radius:8px;border:1px solid var(--border);flex:1;transition:all .15s;" id="lbl-teacher-choice">
-          <input type="radio" name="group-assign" value="teacher" onchange="onGroupAssignChange(this.value)"
-            style="width:15px;height:15px;">
-          <div>
-            <div style="font-weight:600;">בחירת המורה</div>
-            <div style="font-size:.72rem;opacity:.5;margin-top:2px;">שיבוץ ידני לקבוצות</div>
-          </div>
-        </label>
-      </div>
-      <button id="btn-open-assign" onclick="openGroupAssignModal()" style="display:none;margin-top:8px;width:100%;padding:8px;background:rgba(212,168,67,.1);border:1px dashed rgba(212,168,67,.3);border-radius:8px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.83rem;cursor:pointer;">
-        👥 פתח חלון שיבוץ
-      </button>
-      <div id="assign-summary" style="display:none;margin-top:6px;font-size:.78rem;color:#6ee7a0;"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="modal-field">
@@ -744,7 +705,7 @@ select.modal-input option{background:#2c1a0e;}
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="buildTaskRubric('qa')">📝 מחוון שאלות ותשובות</button>
+        <button class="modal-save" id="btn-build-rubric" style="background:rgba(109,40,217,.8);" onclick="buildTaskRubric('qa')">📝 מחוון שאלות ותשובות</button>
         <button class="modal-save" style="background:rgba(44,26,80,.8);border:1px solid rgba(109,40,217,.4);" onclick="buildTaskRubric('eval')">📊 מחוון הערכה</button>
       </div>
       <button class="modal-save" id="btn-save-with-rubric" style="display:none;background:rgba(42,107,42,.8);" onclick="saveNewTask(true)">💾 שמור עם מחוון ✓</button>
@@ -756,7 +717,7 @@ select.modal-input option{background:#2c1a0e;}
 </div>
 
 <div class="modal-overlay" id="modal-check-work">
-  <div class="modal" style="max-width:960px;width:98%;max-height:92vh;overflow-y:auto;">
+  <div class="modal" style="max-width:620px;width:95%;">
     <div class="modal-title">📎 בדיקת עבודה</div>
     <div class="modal-field">
       <div class="modal-label">שם התלמיד/ה</div>
@@ -810,49 +771,9 @@ select.modal-input option{background:#2c1a0e;}
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModals()">ביטול</button>
-      <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="checkWorkWithAI()" id="btn-check-ai">🤖 בדוק לפי מחוון</button>
-      <button class="modal-save" style="background:rgba(212,168,67,.2);color:var(--gold);border:1px solid rgba(212,168,67,.4);" onclick="showManualGrade()">✏️ ציון ידני</button>
-    </div>
-    <!-- ציון ידני -->
-    <div id="manual-grade-area" style="display:none;margin-top:14px;background:rgba(44,26,14,.6);border:1px solid var(--border);border-radius:10px;padding:14px;">
-      <div style="font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:10px;">✏️ ציון ידני</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <label style="font-size:.82rem;opacity:.7;">ציון (0-100):</label>
-        <input type="number" min="0" max="100" id="manual-score"
-          style="width:80px;background:rgba(253,245,224,.06);border:2px solid var(--gold);border-radius:7px;color:var(--gold);text-align:center;font-size:1.1rem;font-weight:900;padding:5px;font-family:Heebo,sans-serif;outline:none;">
-      </div>
-      <textarea id="manual-feedback" rows="2" placeholder="הערה לתלמיד (אופציונלי)..."
-        style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:8px;outline:none;resize:vertical;direction:rtl;margin-bottom:8px;"></textarea>
-      <button onclick="saveManualGrade()" class="btn-primary" style="width:100%;padding:9px;">💾 שמור ציון</button>
+      <button class="modal-save" style="background:rgba(109,40,217,.8);" onclick="checkWorkWithAI()">🤖 בדוק לפי מחוון</button>
     </div>
     <div id="check-work-result" style="display:none;margin-top:16px;"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-group-assign" style="display:none;">
-  <div class="modal" style="max-width:820px;width:97%;max-height:90vh;overflow-y:auto;">
-    <div class="modal-title">👥 שיבוץ קבוצות</div>
-    <div style="display:flex;gap:16px;min-height:400px;">
-      <!-- תלמידים לא משובצים -->
-      <div style="width:200px;flex-shrink:0;">
-        <div style="font-size:.75rem;font-weight:700;color:var(--gold);opacity:.6;text-transform:uppercase;margin-bottom:8px;">תלמידים</div>
-        <div id="assign-students-pool" style="display:flex;flex-direction:column;gap:5px;min-height:300px;background:rgba(253,245,224,.03);border:1px solid var(--border);border-radius:10px;padding:8px;"
-          ondragover="event.preventDefault()" ondrop="dropToPool(event)">
-        </div>
-      </div>
-      <!-- קבוצות -->
-      <div style="flex:1;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div style="font-size:.75rem;font-weight:700;color:var(--gold);opacity:.6;text-transform:uppercase;">קבוצות</div>
-          <button onclick="addAssignGroup()" style="padding:3px 10px;background:rgba(212,168,67,.1);border:1px dashed rgba(212,168,67,.3);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.75rem;cursor:pointer;">+ הוסף קבוצה</button>
-        </div>
-        <div id="assign-groups-area" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;"></div>
-      </div>
-    </div>
-    <div class="modal-btns" style="margin-top:16px;">
-      <button class="modal-cancel" onclick="closeGroupAssignModal()">ביטול</button>
-      <button class="modal-save" onclick="saveGroupAssignment()">💾 שמור שיבוץ</button>
-    </div>
   </div>
 </div>
 
@@ -1655,74 +1576,15 @@ function showDetail(name) {
 // MODALS
 // ══════════════════════════════════════
 // ══ TASKS MANAGEMENT ══
-const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
+const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
 
 let currentTaskId=null;
 let tasks=[];
 
-let currentTasksSubject=null;
-
 function openTasksScreen(){
-  currentTasksSubject=null;
   updateBreadcrumb([{label:'ניהול משימות'}]);
   showScreen('screen-tasks');
-  renderTasksSubjects();
-  loadTasksAlerts();
-}
-
-function renderTasksSubjects(){
-  const grid=document.getElementById('tasks-subjects-grid');
-  const empty=document.getElementById('tasks-subjects-empty');
-  if(!grid)return;
-  grid.innerHTML='';
-  if(!subjects.length){if(empty)empty.style.display='block';return;}
-  if(empty)empty.style.display='none';
-  subjects.forEach(sub=>{
-    const card=document.createElement('div');
-    card.className='subject-card';
-    card.style.setProperty('--card-color',sub.color||'var(--gold)');
-    card.style.position='relative';
-    // ספור משימות לפי מקצוע
-    const taskCount=(tasks||[]).filter(t=>t.subjectId===sub.id).length;
-    card.innerHTML=`
-      <div class="subject-icon">${sub.icon||'📚'}</div>
-      <div class="subject-name">${esc(sub.name)}</div>
-      <div class="subject-meta">${taskCount} משימות</div>
-      <div class="subject-arrow">‹</div>`;
-    card.onclick=()=>openTasksBySubject(sub);
-    grid.appendChild(card);
-  });
-}
-
-function loadTasksAlerts(){
-  db.ref('teacher/tasks').once('value',snap=>{
-    tasks=snap.val()?Object.entries(snap.val()).map(([id,v])=>({id,...v})):[];
-    checkTasksAlerts();
-    renderTasksSubjects(); // עדכן מונה משימות
-  });
-}
-
-function openTasksBySubject(sub){
-  currentTasksSubject=sub;
-  document.getElementById('tasks-subject-title').textContent='📋 '+esc(sub.name);
-  updateBreadcrumb([
-    {label:'ניהול משימות',fn:"openTasksScreen()"},
-    {label:sub.name}
-  ]);
-  showScreen('screen-tasks-subject');
   loadTasks();
-  // תקן משימות ישנות ללא subjectId שהן של המקצוע הזה
-  setTimeout(()=>{
-    tasks.forEach(t=>{
-      if(!t.subjectId){
-        const grp=groups.find(g=>g.id===t.groupId);
-        if(grp&&grp.subjectId===sub.id){
-          db.ref('teacher/tasks/'+t.id+'/subjectId').set(sub.id);
-          t.subjectId=sub.id;
-        }
-      }
-    });
-  },500);
 }
 
 function deleteTask(taskId){
@@ -1744,30 +1606,20 @@ function loadTasks(){
 function renderTasksList(){
   const list=document.getElementById('tasks-list');
   const empty=document.getElementById('tasks-empty');
-  const subjectFilter=document.getElementById('tasks-subject-filter')?.value||'';
   if(!tasks.length){list.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   // מיין לפי תאריך הגשה
-  const filtered=currentTasksSubject
-    ? tasks.filter(t=>{
-        if(t.subjectId) return t.subjectId===currentTasksSubject.id;
-        // משימות ישנות ללא subjectId — הצג בכל המקצועות עד תיקון
-        return true;
-      })
-    : tasks;
-  const sorted=[...filtered].sort((a,b)=>new Date(a.due)-new Date(b.due));
+  const sorted=[...tasks].sort((a,b)=>new Date(a.due)-new Date(b.due));
   list.innerHTML=sorted.map(t=>{
     const dueDate=new Date(t.due);
     const gradeDeadline=new Date(dueDate.getTime()+t.gradeDays*24*60*60*1000);
     const now=new Date();
     const daysLeft=Math.ceil((gradeDeadline-now)/(1000*60*60*24));
     let urgency='';
-    if(t.completed){
-      urgency='opacity:.5;background:rgba(34,197,94,.04);border-color:rgba(34,197,94,.15);';
-    } else if(daysLeft<=1) urgency='background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.4);';
+    if(daysLeft<=1) urgency='background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.4);';
     else if(daysLeft<=3) urgency='background:rgba(234,88,12,.1);border-color:rgba(234,88,12,.3);';
     else if(daysLeft<=7) urgency='background:rgba(202,138,4,.08);border-color:rgba(202,138,4,.25);';
-    const gradeStr=t.completed?'<span style="color:#22c55e;">✅ הושלמה</span>':daysLeft>0?`⏰ ${daysLeft} ימים לציונים`:'🔴 עבר המועד';
+    const gradeStr=daysLeft>0?`⏰ ${daysLeft} ימים לציונים`:'🔴 עבר המועד';
     const checked=t.grades?Object.keys(t.grades).length:0;
     const group=groups.find(g=>g.id===t.groupId);
     return `<div class="card" style="${urgency}cursor:pointer;margin-bottom:12px;position:relative;" onclick="openTaskDetail('${t.id}')">
@@ -1790,13 +1642,10 @@ function renderTasksList(){
 
 function checkTasksAlerts(){
   const now=new Date();
-  // הצג התרעות רק למשימות הנראות — עם subjectId תקין
-  const visibleTasks=tasks.filter(t=>t.subjectId);
-  const urgent=visibleTasks.filter(t=>{
-    if(t.completed)return false;
+  const urgent=tasks.filter(t=>{
     const gradeDeadline=new Date(new Date(t.due).getTime()+t.gradeDays*24*60*60*1000);
     const days=Math.ceil((gradeDeadline-now)/(1000*60*60*24));
-    return days<=7&&days>=0;
+    return days<=7 && days>=0;
   });
   const bar=document.getElementById('tasks-alerts-bar');
   const badge=document.getElementById('tasks-alert-badge');
@@ -1806,8 +1655,7 @@ function checkTasksAlerts(){
     bar.style.display='block';
     bar.innerHTML='⚠️ משימות הדורשות ציונים בקרוב: '+urgent.map(t=>{
       const days=Math.ceil((new Date(new Date(t.due).getTime()+t.gradeDays*24*60*60*1000)-now)/(1000*60*60*24));
-      const sub=subjects.find(s=>s.id===t.subjectId);
-      return `<b>${t.name}</b>${sub?' ('+sub.name+')':''} — ${days} ימים`;
+      return `<b>${t.name}</b> (${days} ימים)`;
     }).join(' · ');
   }
 }
@@ -1826,125 +1674,111 @@ function openNewTaskModal(){
   document.getElementById('modal-new-task').style.display='flex';
 }
 
-async function buildTaskRubric(rubricType='eval'){
+async function buildTaskRubric(rubricType){
+  rubricType=rubricType||'eval';
   const name=document.getElementById('task-name').value.trim();
   const instructions=document.getElementById('task-instructions').value.trim();
   const type=document.getElementById('task-type').value;
   const mode=document.getElementById('task-mode').value;
   if(!name||!instructions){alert('נא למלא שם משימה והוראות לפני בניית המחוון.');return;}
-
-  // הצג טעינה על שני הכפתורים
-  document.querySelectorAll('#modal-new-task .modal-save').forEach(b=>{
-    if(b.textContent.includes('מחוון'))b.style.opacity='.5';
-  });
+  const buildBtn=document.getElementById('btn-build-rubric');
+  if(buildBtn)buildBtn.textContent='⏳ בונה...';
 
   const isQA=rubricType==='qa';
   const prompt=isQA
-    ?`בנה מחוון שאלות ותשובות למשימה:
-שם: ${name} | סוג: ${type} | אופן: ${mode}
+    ?`בנה מחוון שאלות ותשובות למשימה.
+שם: ${name}
+סוג: ${type}
 הוראות: ${instructions}
-
-זהה את השאלות והסעיפים מתוך ההוראות. לכל שאלה/סעיף צור קריטריון נפרד.
-החזר JSON בלבד:
-{
-  "rubricType": "qa",
-  "criteria": [
-    {"name": "שאלה 1 / סעיף א", "maxPoints": מספר, "description": "תיאור מה נבדק", "answerKey": ""}
-  ],
-  "totalPoints": 100
-}
-עד 12 קריטריונים. סה"כ בדיוק 100 נקודות. השאר answerKey ריק — המורה תמלא.`
-    :`בנה מחוון הערכה מפורט למשימה:
-שם: ${name} | סוג: ${type} | אופן: ${mode}
+זהה שאלות וסעיפים. לכל אחד קריטריון נפרד.
+החזר JSON בלבד ללא טקסט נוסף:
+{"rubricType":"qa","criteria":[{"name":"שאלה 1 סעיף א","maxPoints":20,"description":"תיאור","answerKey":""}],"totalPoints":100}
+עד 12 קריטריונים. סה"כ 100 בדיוק. answerKey ריק.`
+    :`בנה מחוון הערכה למשימה.
+שם: ${name}
+סוג: ${type}
 הוראות: ${instructions}
-
-החזר JSON בלבד:
-{
-  "rubricType": "eval",
-  "criteria": [
-    {"name": "שם קריטריון", "maxPoints": מספר, "description": "תיאור קצר"}
-  ],
-  "totalPoints": 100
-}
-עד 8 קריטריונים. סה"כ בדיוק 100 נקודות. התאם את הקריטריונים להוראות העבודה.`;
+החזר JSON בלבד ללא טקסט נוסף:
+{"rubricType":"eval","criteria":[{"name":"שם קריטריון","maxPoints":20,"description":"תיאור קצר"}],"totalPoints":100}
+עד 8 קריטריונים. סה"כ 100 בדיוק.`;
 
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,
-        system:'אתה עוזר הוראה. החזר JSON תקני בלבד. אל תוסיף טקסט לפני או אחרי. אל תשתמש בגרשיים בודדים. כל המפתחות והערכים חייבים להיות בגרשיים כפולים.',
+        system:'אתה עוזר הוראה. החזר JSON תקני בלבד. ללא טקסט לפני או אחרי. גרשיים כפולים בלבד.',
         messages:[{role:'user',content:prompt}]})});
-    if(!r.ok){const err=await r.text();throw new Error('HTTP '+r.status+': '+err);}
+    if(!r.ok)throw new Error('HTTP '+r.status);
     const d=await r.json();
     if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-    const text=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
-    if(!text)throw new Error('התשובה מהשרת ריקה');
-    // נסה לתקן JSON נפוץ — גרשיים בודדים לגרשיים כפולים
-    let jsonText=text;
+    const _raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    if(!_raw)throw new Error('התשובה ריקה');
     let rubric;
-    try{
-      rubric=JSON.parse(jsonText);
-    }catch(e1){
-      // נסה לחלץ רק את החלק של ה-JSON
-      const match=jsonText.match(/\{[\s\S]*\}/);
-      if(match){
-        try{rubric=JSON.parse(match[0]);}
-        catch(e2){throw new Error('JSON לא תקין: '+e2.message);}
-      } else {
-        throw new Error('לא נמצא JSON בתשובה');
-      }
+    try{rubric=JSON.parse(_raw);}
+    catch(e1){
+      const _m=_raw.match(/\{[\s\S]*\}/);
+      if(_m){try{rubric=JSON.parse(_m[0]);}catch(e2){throw new Error('JSON לא תקין: '+e2.message);}}
+      else throw new Error('לא נמצא JSON:\n'+_raw.slice(0,200));
     }
-    if(!rubric.criteria?.length)throw new Error('המחוון שהתקבל לא תקין');
+    if(!rubric?.criteria?.length)throw new Error('המחוון שהתקבל לא תקין');
     rubric.rubricType=rubricType;
     renderEditableRubric(rubric);
     const saveBtn=document.getElementById('btn-save-with-rubric');
     if(saveBtn)saveBtn.style.display='inline-block';
   }catch(e){
-    console.error('buildTaskRubric error:',e);
-    alert('שגיאה בבניית המחוון:\n'+e.message+'\n\nנסי שוב או שמרי בלי מחוון.');
+    alert('שגיאה בבניית המחוון:\n'+e.message+'\n\nנסי שוב.');
   }
-  document.querySelectorAll('#modal-new-task .modal-save').forEach(b=>{
-    if(b.textContent.includes('מחוון'))b.style.opacity='1';
-  });
+  if(buildBtn)buildBtn.textContent='🤖 בנה מחוון';
+}
+
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:'אתה עוזר הוראה. החזר JSON תקני בלבד. אל תוסיף טקסט לפני או אחרי. גרשיים כפולים בלבד.',
+        messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    const _raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    if(!_raw)throw new Error('התשובה ריקה');
+    let rubric;
+    try{rubric=JSON.parse(_raw);}
+    catch(e1){
+      const _m=_raw.match(/\{[\s\S]*\}/);
+      if(_m){try{rubric=JSON.parse(_m[0]);}catch(e2){throw new Error('JSON לא תקין: '+e2.message);}}
+      else throw new Error('לא נמצא JSON. תשובת AI:\n'+_raw.slice(0,200));
+    }
+    if(!rubric?.criteria?.length)throw new Error('המחוון שהתקבל לא תקין');
+    renderEditableRubric(rubric);
+    const saveBtn=document.getElementById('btn-save-with-rubric');
+    if(saveBtn)saveBtn.style.display='inline-block';
+  }catch(e){alert('שגיאה בבניית המחוון:\n'+e.message+'\n\nנסי שוב.');}
+  if(buildBtn)buildBtn.textContent='🤖 בנה מחוון';
 }
 
 function renderEditableRubric(rubric){
   const preview=document.getElementById('task-rubric-preview');
   preview.style.display='block';
   preview._rubric=rubric;
-  const isQA=rubric.rubricType==='qa';
   const rows=rubric.criteria.map((c,i)=>`
-    <tr style="border-bottom:1px solid rgba(212,168,67,.08);">
-      <td style="padding:6px 8px;vertical-align:top;">
+    <tr>
+      <td style="padding:6px 8px;">
         <input value="${esc(c.name)}" onchange="updateRubricCriterion(${i},'name',this.value)"
-          style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 8px;outline:none;margin-bottom:4px;">
-        <div style="font-size:.7rem;opacity:.45;margin-bottom:${isQA?4:0}px;">${esc(c.description||'')}</div>
-        ${isQA?`<textarea rows="2" placeholder="הדביקי את התשובה הנכונה..."
-          onchange="updateRubricCriterion(${i},'answerKey',this.value)"
-          style="width:100%;background:rgba(109,40,217,.06);border:1px solid rgba(109,40,217,.2);border-radius:5px;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.78rem;padding:5px 8px;outline:none;resize:vertical;direction:rtl;">${esc(c.answerKey||'')}</textarea>`:''}
+          style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 8px;outline:none;">
+        <div style="font-size:.7rem;opacity:.45;margin-top:3px;">${esc(c.description||'')}</div>
       </td>
-      <td style="padding:6px 8px;text-align:center;width:70px;vertical-align:top;">
+      <td style="padding:6px 8px;text-align:center;width:70px;">
         <input type="number" min="1" max="100" value="${c.maxPoints}" onchange="updateRubricCriterion(${i},'maxPoints',parseInt(this.value));updateRubricTotal()"
           style="width:60px;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.88rem;padding:5px;outline:none;text-align:center;font-weight:700;">
       </td>
-      <td style="padding:6px 8px;text-align:center;width:50px;vertical-align:top;">
+      <td style="padding:6px 8px;text-align:center;width:50px;">
         <button onclick="removeRubricCriterion(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem;">✕</button>
       </td>
     </tr>`).join('');
 
   preview.innerHTML=`
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-      <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;">✅ מחוון נבנה</div>
-      <div style="padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:700;
-        background:${isQA?'rgba(109,40,217,.2)':'rgba(212,168,67,.15)'};
-        color:${isQA?'#c4b5fd':'var(--gold)'};">
-        ${isQA?'📝 שאלות ותשובות':'📊 הערכה'}
-      </div>
-    </div>
-    ${isQA?'<div style="font-size:.75rem;opacity:.5;margin-bottom:8px;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.2);border-radius:6px;padding:6px 10px;">💡 הדביקי תשובות נכונות בשדות הסגולים — האפליקציה תשתמש בהן לבדיקה אוטומטית.</div>':''}
+    <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">✅ מחוון נבנה — ערכי את הקריטריונים לפי הצורך:</div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
       <thead>
         <tr style="border-bottom:1px solid rgba(212,168,67,.2);">
-          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">${isQA?'שאלה / סעיף + תשובה נכונה':'קריטריון'}</th>
+          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">קריטריון</th>
           <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:center;width:70px;">ניקוד מקס׳</th>
           <th style="width:50px;"></th>
         </tr>
@@ -1952,17 +1786,8 @@ function renderEditableRubric(rubric){
       <tbody id="rubric-edit-rows">${rows}</tbody>
     </table>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <button onclick="addRubricCriterion()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף ${isQA?'שאלה':'קריטריון'}</button>
-      <div id="rubric-total" style="font-size:.88rem;font-weight:700;">
-        סה"כ: <span id="rubric-total-num">${rubric.totalPoints||0}</span> נק׳
-        ${(rubric.totalPoints||0)!==100?'<span style="color:#f87171;font-size:.78rem;margin-right:6px;">⚠️ חייב להיות 100</span>':'<span style="color:#22c55e;font-size:.78rem;margin-right:6px;">✅</span>'}
-      </div>
-    </div>
-    <div style="margin-bottom:8px;">
-      <div style="font-size:.75rem;opacity:.55;margin-bottom:4px;">💬 הערה מסכמת למחוון (אופציונלי — תוכלי לשלוח לתלמידים):</div>
-      <textarea id="task-rubric-summary" rows="2"
-        style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:8px;outline:none;resize:vertical;direction:rtl;"
-        placeholder="למשל: זוהי עבודה הדורשת מחשבה מעמיקה וביטוי עצמי...">${rubric.summaryNote||''}</textarea>
+      <button onclick="addRubricCriterion()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף קריטריון</button>
+      <div id="rubric-total" style="font-size:.88rem;font-weight:700;color:var(--gold);">סה"כ: ${rubric.totalPoints} נק׳</div>
     </div>`;
   preview._rubric=rubric;
 }
@@ -1974,21 +1799,10 @@ function updateRubricCriterion(i,field,val){
 function updateRubricTotal(){
   const preview=document.getElementById('task-rubric-preview');
   if(!preview._rubric)return;
-  const total=preview._rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
+  const total=preview._rubric.criteria.reduce((s,c)=>s+(c.maxPoints||0),0);
   preview._rubric.totalPoints=total;
-  const numEl=document.getElementById('rubric-total-num');
-  if(numEl)numEl.textContent=total;
-  const totalEl=document.getElementById('rubric-total');
-  if(totalEl){
-    const warn=totalEl.querySelector('span:last-child');
-    if(warn){
-      if(total===100){warn.textContent='✅';warn.style.color='#22c55e';}
-      else{warn.textContent='⚠️ חייב להיות 100';warn.style.color='#f87171';}
-    }
-  }
-  // עדכן כפתור שמירה
-  const saveBtn=document.getElementById('btn-save-with-rubric');
-  if(saveBtn)saveBtn.style.opacity=total===100?'1':'0.5';
+  const el=document.getElementById('rubric-total');
+  if(el)el.textContent='סה"כ: '+total+' נק׳';
 }
 function removeRubricCriterion(i){
   const preview=document.getElementById('task-rubric-preview');
@@ -2004,59 +1818,17 @@ function addRubricCriterion(){
 }
 
 function saveNewTask(withRubric){
-  // בדיקת סכום מחוון = 100
-  if(withRubric){
-    const preview=document.getElementById('task-rubric-preview');
-    if(preview._rubric){
-      const total=preview._rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
-      if(total!==100){
-        alert(`סכום הניקוד במחוון הוא ${total} נקודות.
-המחוון חייב להסתכם ב-100 נקודות בדיוק.
-נא לתקן את הניקוד לפני השמירה.`);
-        return;
-      }
-    }
-  }
-  // מצב הוספת מחוון למשימה קיימת
-  if(_addRubricMode&&withRubric){
-    const preview=document.getElementById('task-rubric-preview');
-    const rubric=preview?._rubric;
-    if(rubric&&currentTaskId){
-      const summaryEl=document.getElementById('task-rubric-summary');
-      if(summaryEl?.value)rubric.summaryNote=summaryEl.value.trim();
-      db.ref('teacher/tasks/'+currentTaskId+'/rubric').set(rubric);
-      const task=tasks.find(t=>t.id===currentTaskId);
-      if(task)task.rubric=rubric;
-      showToast('✅ מחוון נוסף למשימה');
-      closeModals();
-      _addRubricMode=false;
-      if(document.querySelector('#modal-new-task .modal-title'))
-        document.querySelector('#modal-new-task .modal-title').textContent='➕ משימה חדשה';
-      openTaskDetail(currentTaskId);
-    }
-    return;
-  }
-  _addRubricMode=false;
   const name=document.getElementById('task-name').value.trim();
   const groupId=document.getElementById('task-group').value;
   const type=document.getElementById('task-type').value;
   const mode=document.getElementById('task-mode').value;
   const due=document.getElementById('task-due').value;
   const gradeDays=parseInt(document.getElementById('task-grade-deadline').value);
-  const subjectId=currentTasksSubject?.id||currentSubject?.id||'';
   const instructions=document.getElementById('task-instructions').value.trim();
   if(!name){alert('נא למלא שם משימה.');return;}
   const rubric=(withRubric&&document.getElementById('task-rubric-preview')._rubric)||null;
-  if(rubric){
-    const summaryEl=document.getElementById('task-rubric-summary');
-    if(summaryEl?.value) rubric.summaryNote=summaryEl.value.trim();
-  }
-  const rubricSummary=(withRubric&&document.getElementById('task-rubric-summary')?.value)||'';
-  if(rubric&&rubricSummary) rubric.summaryNote=rubricSummary;
   if(withRubric&&!rubric){alert('נא לבנות מחוון תחילה.');return;}
-  const taskGroupsData=_taskGroups.length?_taskGroups:null;
-  const task={name,groupId,type,mode,due,gradeDays,instructions,subjectId,rubric,
-    taskGroups:taskGroupsData,createdAt:Date.now(),grades:{}};
+  const task={name,groupId,type,mode,due,gradeDays,instructions,rubric,createdAt:Date.now(),grades:{}};
   db.ref('teacher/tasks').push(task);
   closeModals();
   showToast(rubric?'✓ המשימה נשמרה עם מחוון':'✓ המשימה נשמרה');
@@ -2086,9 +1858,9 @@ function openTaskDetail(taskId){
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         ${hasScore?`<span style="background:rgba(42,107,42,.2);color:#6ee7a0;padding:3px 10px;border-radius:10px;font-size:.88rem;font-weight:700;">${g.score}</span>`:'<span style="opacity:.3;font-size:.82rem;">לא נבדק</span>'}
-        <button onclick="openStudentCheck('${taskId}','${s}',${hasScore})"
+        <button onclick="openCheckForStudent('${taskId}','${s}')"
           style="padding:5px 12px;background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);border-radius:7px;color:#c4b5fd;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">
-          ${hasScore?'✏️ ערוך מחוון':'📎 בדוק'}
+          ${hasScore?'✏️ ערוך':'📎 בדוק'}
         </button>
       </div>
     </div>`;
@@ -2103,10 +1875,7 @@ function openTaskDetail(taskId){
         <div><div style="opacity:.5;margin-bottom:3px;">סוג</div>${task.type} · ${task.mode}</div>
         <div><div style="opacity:.5;margin-bottom:3px;">הגשה</div>${dueDate.toLocaleDateString('he-IL')}</div>
         <div><div style="opacity:.5;margin-bottom:3px;">מועד לציונים</div>${gradeDeadline.toLocaleDateString('he-IL')}</div>
-        <div><div style="opacity:.5;margin-bottom:3px;">מחוון</div>${task.rubric
-          ?`✅ ${task.rubric.criteria?.length||0} קריטריונים`
-          :`<span style="color:#f87171;">❌ אין מחוון</span> <button onclick="openAddRubricModal('${taskId}')" style="margin-right:6px;padding:2px 9px;background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.72rem;cursor:pointer;">+ הוסף מחוון</button>`
-        }</div>
+        <div><div style="opacity:.5;margin-bottom:3px;">מחוון</div>${task.rubric?`✅ ${task.rubric.criteria?.length||0} קריטריונים`:'❌ אין מחוון'}</div>
         <div><div style="opacity:.5;margin-bottom:3px;">נבדקו</div>${checked}/${students.length}</div>
       </div>
     </div>
@@ -2117,348 +1886,8 @@ function openTaskDetail(taskId){
       </div>
       ${studentsHtml||'<div style="opacity:.4;font-size:.85rem;">אין תלמידים בקבוצה</div>'}
     </div>`;
-  updateBreadcrumb([
-    {label:'ניהול משימות',fn:"openTasksScreen()"},
-    currentTasksSubject?{label:currentTasksSubject.name,fn:"openTasksBySubject(currentTasksSubject)"}:null,
-    {label:task.name}
-  ].filter(Boolean));
-  // עדכן כפתור סיום
-  const completeBtn=document.getElementById('btn-complete-task');
-  if(completeBtn){
-    if(task.completed){
-      completeBtn.textContent='🔄 פתח מחדש';
-      completeBtn.style.background='rgba(100,100,100,.2)';
-      completeBtn.style.color='rgba(253,245,224,.5)';
-      completeBtn.onclick=()=>reopenTask();
-    } else {
-      completeBtn.textContent='✅ סיים משימה';
-      completeBtn.style.background='rgba(34,197,94,.15)';
-      completeBtn.style.color='#22c55e';
-      completeBtn.onclick=()=>completeTask();
-    }
-  }
+  updateBreadcrumb([{label:'ניהול משימות',fn:"openTasksScreen()"},{label:task.name}]);
   showScreen('screen-task-detail');
-}
-
-function openEditGrade(taskId, studentName){
-  const task=tasks.find(t=>t.id===taskId);
-  if(!task)return;
-  const key=studentName.replace(/ /g,'_');
-  const grade=task.grades?.[key]||{};
-  const rubric=task.rubric;
-
-  // פתח מודל בדיקה עם נתונים קיימים
-  currentTaskId=taskId;
-  document.getElementById('check-student-name').value=studentName;
-  document.getElementById('check-work-text').value='';
-  _checkFileData=null;
-  setCheckMode('text');
-  document.getElementById('modal-check-work').style.display='flex';
-
-  // אם יש ציון קיים — הצג את המחוון הנבדק הקיים
-  if(grade.score!==undefined&&rubric?.criteria&&grade.rubricScores){
-    const resultEl=document.getElementById('check-work-result');
-    resultEl.style.display='block';
-    const rubricRows=rubric.criteria.map((c,i)=>{
-      const rs=grade.rubricScores?.[i]||{};
-      return `<tr style="border-bottom:1px solid rgba(255,255,255,.06);">
-        <td style="padding:8px;font-size:.82rem;">${esc(c.name)}</td>
-        <td style="padding:8px;text-align:center;font-size:.82rem;opacity:.6;">${c.maxPoints}</td>
-        <td style="padding:8px;text-align:center;">
-          <input type="number" min="0" max="${c.maxPoints}" value="${rs.score||0}" id="rs-score-${i}"
-            style="width:55px;background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);border-radius:5px;color:var(--gold);text-align:center;font-size:.88rem;font-weight:700;padding:4px;font-family:Heebo,sans-serif;outline:none;"
-            onchange="updateResultTotal()">
-        </td>
-        <td style="padding:8px;font-size:.78rem;">
-          <input value="${esc(rs.comment||'')}" id="rs-comment-${i}"
-            style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;color:var(--parch);font-size:.78rem;padding:4px 7px;font-family:Heebo,sans-serif;outline:none;">
-        </td>
-      </tr>`;
-    }).join('');
-
-    resultEl.innerHTML=`
-      <div style="background:rgba(44,26,14,.8);border:1px solid rgba(212,168,67,.25);border-radius:12px;padding:16px;">
-        <div style="font-size:.88rem;font-weight:700;color:#f0c060;margin-bottom:12px;">✏️ עריכת מחוון — ${esc(studentName)}</div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
-          <thead><tr style="border-bottom:1px solid rgba(212,168,67,.2);">
-            <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:right;">קריטריון</th>
-            <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:center;width:55px;">מקס׳</th>
-            <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:center;width:65px;">ניקוד</th>
-            <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:right;">הערה</th>
-          </tr></thead>
-          <tbody>${rubricRows}</tbody>
-        </table>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px;background:rgba(212,168,67,.08);border-radius:8px;">
-          <div style="font-size:.85rem;font-weight:700;">ציון סופי:</div>
-          <input type="number" min="0" max="100" value="${grade.score}" id="rs-total"
-            style="width:70px;background:rgba(253,245,224,.06);border:2px solid var(--gold);border-radius:7px;color:var(--gold);text-align:center;font-size:1.1rem;font-weight:900;padding:5px;font-family:Heebo,sans-serif;outline:none;">
-        </div>
-        <div style="margin-bottom:14px;">
-          <div style="font-size:.78rem;opacity:.6;margin-bottom:5px;">הערה מילולית לתלמיד:</div>
-          <textarea id="rs-feedback" rows="3" style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:9px;outline:none;resize:vertical;direction:rtl;">${esc(grade.feedback||'')}</textarea>
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button onclick="saveFromResult('${taskId}','${studentName}',${rubric.criteria.length})"
-            class="btn-primary" style="flex:1;font-size:.88rem;padding:10px;">
-            💾 שמור ציון מעודכן
-          </button>
-          <button onclick="document.getElementById('check-work-result').style.display='none'"
-            style="padding:10px 16px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:8px;color:#f87171;cursor:pointer;font-family:Heebo,sans-serif;font-size:.85rem;">
-            ביטול
-          </button>
-        </div>
-      </div>`;
-  }
-}
-
-function showManualGrade(){
-  const area=document.getElementById('manual-grade-area');
-  if(area)area.style.display=area.style.display==='none'?'block':'none';
-}
-
-function saveManualGrade(){
-  const studentName=document.getElementById('check-student-name').value.trim();
-  const score=parseInt(document.getElementById('manual-score').value)||0;
-  const feedback=document.getElementById('manual-feedback')?.value.trim()||'';
-  if(!studentName){alert('שם התלמיד חסר');return;}
-  if(!score&&score!==0){alert('יש להזין ציון');return;}
-  saveStudentGrade(currentTaskId, studentName, score, feedback, null);
-}
-
-function openAddRubricModal(taskId){
-  // פתח מודל משימה חדשה אך רק לבניית מחוון
-  currentTaskId=taskId;
-  const task=tasks.find(t=>t.id===taskId);
-  if(!task)return;
-  // מלא את השדות הקיימים
-  document.getElementById('task-name').value=task.name||'';
-  document.getElementById('task-instructions').value=task.instructions||'';
-  document.getElementById('task-type').value=task.type||'עבודה';
-  document.getElementById('task-mode').value=task.mode||'עצמי';
-  document.getElementById('task-rubric-preview').innerHTML='';
-  document.getElementById('task-rubric-preview').style.display='none';
-  document.getElementById('task-rubric-preview')._rubric=null;
-  document.getElementById('btn-save-with-rubric').style.display='none';
-  // שנה כותרת מודל
-  document.querySelector('#modal-new-task .modal-title').textContent='📑 הוסף מחוון למשימה';
-  // הסתר כפתור שמור בלי מחוון
-  _addRubricMode=true;
-  document.getElementById('modal-new-task').style.display='flex';
-}
-
-let _addRubricMode=false;
-
-function deleteCurrentTask(){
-  if(!currentTaskId)return;
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!confirm(`למחוק את המשימה "${task?.name||''}"?\nפעולה זו אינה הפיכה.`))return;
-  db.ref('teacher/tasks/'+currentTaskId).remove();
-  tasks=tasks.filter(t=>t.id!==currentTaskId);
-  showToast('✓ המשימה נמחקה');
-  if(currentTasksSubject) openTasksBySubject(currentTasksSubject);
-  else openTasksScreen();
-}
-
-function duplicateTask(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!task)return;
-  // פתח מודל משימה חדשה עם נתונים מולאים
-  openNewTaskModal();
-  // מלא את השדות
-  setTimeout(()=>{
-    document.getElementById('task-name').value=task.name+' (עותק)';
-    document.getElementById('task-type').value=task.type||'עבודה';
-    document.getElementById('task-mode').value=task.mode||'עצמי';
-    document.getElementById('task-instructions').value=task.instructions||'';
-    if(task.due) document.getElementById('task-due').value=task.due;
-    if(task.gradeDays) document.getElementById('task-grade-deadline').value=task.gradeDays;
-    // הפעל שינוי אופן עבודה
-    onTaskModeChange();
-    // אם יש מחוון — טען אותו
-    if(task.rubric){
-      renderEditableRubric(JSON.parse(JSON.stringify(task.rubric)));
-      const saveBtn=document.getElementById('btn-save-with-rubric');
-      if(saveBtn)saveBtn.style.display='inline-block';
-      if(task.rubric.summaryNote){
-        setTimeout(()=>{
-          const el=document.getElementById('task-rubric-summary');
-          if(el)el.value=task.rubric.summaryNote;
-        },50);
-      }
-    }
-    // שנה כותרת
-    document.querySelector('#modal-new-task .modal-title').textContent='📋 שכפול משימה — בחרי קבוצת לימוד';
-  },50);
-}
-
-function completeTask(){
-  if(!currentTaskId)return;
-  if(!confirm('לסמן את המשימה כמושלמת?\nהיא תוסר מרשימת ההתרעות.'))return;
-  db.ref('teacher/tasks/'+currentTaskId+'/completed').set(true);
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(task)task.completed=true;
-  showToast('✅ המשימה הושלמה');
-  openTaskDetail(currentTaskId);
-  renderTasksList();
-}
-
-function reopenTask(){
-  if(!currentTaskId)return;
-  db.ref('teacher/tasks/'+currentTaskId+'/completed').remove();
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(task)task.completed=false;
-  showToast('🔄 המשימה נפתחה מחדש');
-  openTaskDetail(currentTaskId);
-  renderTasksList();
-}
-
-function openStudentCheck(taskId, studentName, hasScore){
-  if(hasScore) openEditGrade(taskId, studentName);
-  else openCheckForStudent(taskId, studentName);
-}
-
-// ── GROUP ASSIGNMENT ──
-let _taskGroups=[]; // [{id,name,members:[]}]
-let _draggedStudent=null;
-
-function onTaskModeChange(){
-  const mode=document.getElementById('task-mode').value;
-  const field=document.getElementById('group-assignment-field');
-  field.style.display=mode==='עצמי'?'none':'block';
-  // אפס בחירה
-  document.querySelector('input[name="group-assign"][value="free"]').checked=true;
-  document.getElementById('btn-open-assign').style.display='none';
-  document.getElementById('assign-summary').style.display='none';
-  _taskGroups=[];
-}
-
-function onGroupAssignChange(val){
-  document.getElementById('btn-open-assign').style.display=val==='teacher'?'block':'none';
-  if(val==='free'){
-    _taskGroups=[];
-    document.getElementById('assign-summary').style.display='none';
-  }
-}
-
-function openGroupAssignModal(){
-  const groupId=document.getElementById('task-group').value;
-  const group=groups.find(g=>g.id===groupId);
-  const students=group?.students||[];
-  const mode=document.getElementById('task-mode').value;
-  const groupSize=mode==='זוגות'?2:parseInt(mode.replace('קבוצה של ',''))||3;
-  const numGroups=Math.ceil(students.length/groupSize);
-
-  // בנה קבוצות ריקות אם אין
-  if(!_taskGroups.length){
-    _taskGroups=Array.from({length:numGroups},(_,i)=>({id:'g'+(i+1),name:'קבוצה '+(i+1),members:[]}));
-  }
-
-  // תלמידים לא משובצים
-  const assigned=new Set(_taskGroups.flatMap(g=>g.members));
-  const pool=students.filter(s=>!assigned.has(s));
-
-  // צייר pool
-  const poolEl=document.getElementById('assign-students-pool');
-  poolEl.innerHTML=pool.map(s=>`
-    <div class="assign-chip" draggable="true" data-student="${esc(s)}"
-      ondragstart="_draggedStudent=this.dataset.student;this.style.opacity='.4'"
-      ondragend="this.style.opacity='1'"
-      style="padding:6px 10px;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:7px;font-size:.84rem;cursor:grab;">
-      ${esc(s)}
-    </div>`).join('');
-
-  // צייר קבוצות
-  renderAssignGroups();
-  document.getElementById('modal-group-assign').style.display='flex';
-}
-
-function renderAssignGroups(){
-  const area=document.getElementById('assign-groups-area');
-  area.innerHTML=_taskGroups.map((g,gi)=>`
-    <div style="background:rgba(44,26,14,.6);border:1px solid var(--border);border-radius:10px;padding:10px;">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-        <input value="${esc(g.name)}" onchange="_taskGroups[${gi}].name=this.value"
-          style="flex:1;background:transparent;border:none;border-bottom:1px solid rgba(212,168,67,.3);color:var(--gold);font-family:Heebo,sans-serif;font-size:.82rem;font-weight:700;outline:none;padding:2px 4px;">
-        <button onclick="removeAssignGroup(${gi})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.8rem;">✕</button>
-      </div>
-      <div id="group-slot-${gi}" style="min-height:60px;background:rgba(253,245,224,.03);border:1px dashed rgba(212,168,67,.2);border-radius:7px;padding:6px;display:flex;flex-direction:column;gap:4px;"
-        ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
-        ondragleave="this.style.borderColor='rgba(212,168,67,.2)'"
-        ondrop="dropToGroup(event,${gi})">
-        ${g.members.map(m=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:rgba(212,168,67,.1);border-radius:5px;font-size:.82rem;">
-            ${esc(m)}
-            <button onclick="removeFromGroup(${gi},'${esc(m)}')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.72rem;">✕</button>
-          </div>`).join('')}
-        ${!g.members.length?'<div style="opacity:.25;font-size:.75rem;text-align:center;padding:6px;">גרור לכאן</div>':''}
-      </div>
-    </div>`).join('');
-}
-
-function dropToGroup(event,gi){
-  event.preventDefault();
-  document.getElementById('group-slot-'+gi).style.borderColor='rgba(212,168,67,.2)';
-  if(!_draggedStudent)return;
-  // הסר מקבוצה אחרת אם קיים
-  _taskGroups.forEach(g=>g.members=g.members.filter(m=>m!==_draggedStudent));
-  _taskGroups[gi].members.push(_draggedStudent);
-  _draggedStudent=null;
-  // עדכן pool
-  const groupId=document.getElementById('task-group').value;
-  const group=groups.find(g=>g.id===groupId);
-  const assigned=new Set(_taskGroups.flatMap(g=>g.members));
-  const pool=(group?.students||[]).filter(s=>!assigned.has(s));
-  document.getElementById('assign-students-pool').innerHTML=pool.map(s=>`
-    <div class="assign-chip" draggable="true" data-student="${esc(s)}"
-      ondragstart="_draggedStudent=this.dataset.student;this.style.opacity='.4'"
-      ondragend="this.style.opacity='1'"
-      style="padding:6px 10px;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:7px;font-size:.84rem;cursor:grab;">
-      ${esc(s)}
-    </div>`).join('');
-  renderAssignGroups();
-}
-
-function dropToPool(event){
-  event.preventDefault();
-  if(!_draggedStudent)return;
-  _taskGroups.forEach(g=>g.members=g.members.filter(m=>m!==_draggedStudent));
-  _draggedStudent=null;
-  openGroupAssignModal();
-}
-
-function addAssignGroup(){
-  const n=_taskGroups.length+1;
-  _taskGroups.push({id:'g'+n,name:'קבוצה '+n,members:[]});
-  renderAssignGroups();
-}
-
-function removeAssignGroup(gi){
-  // החזר חברים ל-pool
-  _taskGroups.splice(gi,1);
-  openGroupAssignModal();
-}
-
-function removeFromGroup(gi,member){
-  _taskGroups[gi].members=_taskGroups[gi].members.filter(m=>m!==member);
-  openGroupAssignModal();
-}
-
-function saveGroupAssignment(){
-  const assigned=_taskGroups.flatMap(g=>g.members);
-  const groupId=document.getElementById('task-group').value;
-  const group=groups.find(g=>g.id===groupId);
-  const total=group?.students?.length||0;
-  if(assigned.length<total){
-    if(!confirm(`${total-assigned.length} תלמידים לא שובצו. להמשיך בכל זאת?`))return;
-  }
-  document.getElementById('modal-group-assign').style.display='none';
-  const summary=document.getElementById('assign-summary');
-  summary.style.display='block';
-  summary.textContent=`✅ ${_taskGroups.length} קבוצות הוגדרו (${assigned.length} תלמידים שובצו)`;
-}
-
-function closeGroupAssignModal(){
-  document.getElementById('modal-group-assign').style.display='none';
 }
 
 function openCheckForStudent(taskId,studentName){
@@ -2481,89 +1910,6 @@ function saveStudentGrade(taskId,studentName,score,feedback,rubricScores){
   if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
   showToast('✓ ציון נשמר');
   closeModals();
-  // אם יש קבוצות מוגדרות מראש — מצא את הקבוצה של התלמיד
-  if(task&&task.mode&&task.mode!=='עצמי'){
-    const group=groups.find(g=>g.id===task.groupId);
-    const allStudents=group?.students||[];
-    let others=[];
-    if(task.taskGroups?.length){
-      // מצא את הקבוצה של התלמיד
-      const myGroup=task.taskGroups.find(tg=>tg.members.includes(studentName));
-      if(myGroup){others=myGroup.members.filter(s=>s!==studentName);}
-      else{others=allStudents.filter(s=>s!==studentName);}
-    } else {
-      others=allStudents.filter(s=>s!==studentName);
-    }
-    if(others.length>0){
-      showGroupCopyDialog(taskId,studentName,score,feedback,rubricScores,others,task);
-      return;
-    }
-  }
-  openTaskDetail(taskId);
-}
-
-let _pendingGroupCopy=null;
-
-function showGroupCopyDialog(taskId,gradedStudent,score,feedback,rubricScores,others,task){
-  // שמור נתונים במשתנה גלובלי
-  _pendingGroupCopy={taskId,score,feedback,rubricScores};
-  // הסר דיאלוג ישן
-  document.getElementById('group-copy-dialog')?.remove();
-  const dialog=document.createElement('div');
-  dialog.id='group-copy-dialog';
-  dialog.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;';
-  const alreadyGraded=new Set(Object.keys(task.grades||{}).map(k=>k.replace(/_/g,' ')));
-  const membersHtml=others.map(s=>{
-    const hasGrade=alreadyGraded.has(s);
-    return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid ${hasGrade?'rgba(255,255,255,.1)':'var(--border)'};margin-bottom:6px;cursor:${hasGrade?'default':'pointer'};opacity:${hasGrade?'.4':'1'};">
-      <input type="checkbox" value="${esc(s)}" ${hasGrade?'disabled':''}
-        style="width:16px;height:16px;">
-      <span style="font-size:.9rem;">${esc(s)}</span>
-      ${hasGrade?'<span style="font-size:.72rem;color:#6ee7a0;margin-right:auto;">✓ יש ציון</span>':''}
-    </label>`;
-  }).join('');
-
-  dialog.innerHTML=`<div style="background:#1a0f05;border:1px solid var(--border);border-radius:16px;padding:24px;max-width:420px;width:92%;max-height:80vh;overflow-y:auto;">
-    <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);margin-bottom:6px;">👥 העתק ציון לקבוצה</div>
-    <div style="font-size:.82rem;opacity:.6;margin-bottom:14px;">
-      ציון <strong style="color:var(--gold);">${score}</strong> נשמר עבור ${esc(gradedStudent)}.<br>
-      סמני את חברי הקבוצה שקיבלו את אותה עבודה:
-    </div>
-    <div id="group-members-list">${membersHtml}</div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
-      <button onclick="copyGradeToGroup()"
-        style="flex:1;padding:10px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:9px;font-family:Heebo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">
-        💾 העתק לנבחרים
-      </button>
-      <button onclick="document.getElementById('group-copy-dialog').remove();openTaskDetail('${taskId}')"
-        style="padding:10px 16px;background:none;border:1px solid var(--border);border-radius:9px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.88rem;cursor:pointer;">
-        דלג
-      </button>
-    </div>
-  </div>`;
-  document.body.appendChild(dialog);
-}
-
-function copyGradeToGroup(){
-  if(!_pendingGroupCopy)return;
-  const {taskId,score,feedback,rubricScores}=_pendingGroupCopy;
-  const checkboxes=document.querySelectorAll('#group-members-list input[type=checkbox]:checked');
-  const task=tasks.find(t=>t.id===taskId);
-  let count=0;
-  checkboxes.forEach(cb=>{
-    const s=cb.value;
-    const key=s.replace(/ /g,'_');
-    const gradeData={score:parseInt(score),gradedAt:Date.now(),copiedFromGroup:true};
-    if(feedback)gradeData.feedback=feedback;
-    if(rubricScores)gradeData.rubricScores=rubricScores;
-    db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gradeData);
-    if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
-    count++;
-  });
-  document.getElementById('group-copy-dialog').remove();
-  _pendingGroupCopy=null;
-  if(count>0)showToast(`✓ הציון הועתק ל-${count} תלמידים`);
-  else showToast('לא נבחרו תלמידים');
   openTaskDetail(taskId);
 }
 
@@ -2627,23 +1973,12 @@ function loadCheckFile(input,type){
 async function checkWorkWithAI(){
   const task=tasks.find(t=>t.id===currentTaskId);
   if(!task){alert('לא נמצאה משימה');return;}
-  if(!task.rubric){
-    if(!confirm('אין מחוון למשימה זו.\nניתן לבדוק ידנית, אך ללא ניתוח AI מפורט.\nרוצי להמשיך?')){return;}
-  }
+  if(!task.rubric){alert('אין מחוון למשימה זו. תחילה צרי מחוון.');return;}
   const studentName=document.getElementById('check-student-name').value.trim();
   if(!studentName){alert('נא להזין שם תלמיד.');return;}
   const activeMode=['text','pdf','image'].find(m=>{const el=document.getElementById('check-mode-'+m);return el&&el.style.display!=='none';})||'text';
 
-  const hasAnswerKeys=task.rubric?.criteria?.some(c=>c.answerKey);
-  const rubricText=task.rubric.criteria.map(c=>{
-    let line=`${c.name} (${c.maxPoints} נק׳)`;
-    if(c.description) line+=`: ${c.description}`;
-    if(c.answerKey) line+=`\n  תשובה נכונה: ${c.answerKey}`;
-    return line;
-  }).join('\n\n');
-  const systemPrompt=hasAnswerKeys
-    ?'אתה עוזר הוראה. יש לך את התשובות הנכונות. השווה את תשובות התלמיד לתשובות הנכונות ותן ניקוד מדויק. ענה אך ורק ב-JSON תקני.'
-    :'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.';
+  const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description||''}`).join('\n');
   const jsonPrompt=`\n\nהחזר JSON בלבד:\n{"scores":[{"criterion":"שם הקריטריון","score":ניקוד_שניתן,"maxScore":ניקוד_מקסימלי,"comment":"הערה קצרה לתלמיד"}],"totalScore":סה"כ,"verbalFeedback":"הערה מילולית לתלמיד — 2-3 משפטים מעודדים ומכוונים"}`;
   const btn=document.querySelector('#modal-check-work .modal-save');
   if(btn)btn.textContent='⏳ בודק...';
@@ -2654,7 +1989,7 @@ async function checkWorkWithAI(){
       const workText=document.getElementById('check-work-text').value.trim();
       if(!workText){alert('נא להדביק את תוכן העבודה.');if(btn)btn.textContent='🤖 בדוק לפי מחוון';return;}
       body={model:'claude-sonnet-4-20250514',max_tokens:1500,
-        system:systemPrompt,
+        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
         messages:[{role:'user',content:`בדוק את העבודה לפי המחוון:\n${rubricText}\n\nעבודה:\n${workText}${jsonPrompt}`}]};
     } else {
       if(!_checkFileData){alert('נא לבחור קובץ.');if(btn)btn.textContent='🤖 בדוק לפי מחוון';return;}
@@ -2662,13 +1997,21 @@ async function checkWorkWithAI(){
         ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_checkFileData.base64}}
         :{type:'image',source:{type:'base64',media_type:_checkFileData.mediaType,data:_checkFileData.base64}};
       body={model:'claude-sonnet-4-20250514',max_tokens:1500,
-        system:systemPrompt,
+        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
         messages:[{role:'user',content:[fileContent,{type:'text',text:`בדוק לפי המחוון:\n${rubricText}${jsonPrompt}`}]}]};
     }
 
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
-    const result=JSON.parse((d.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
+    const _raw2=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    if(!_raw2)throw new Error('תשובה ריקה מהשרת');
+    let result;
+    try{result=JSON.parse(_raw2);}
+    catch(e1){
+      const _m2=_raw2.match(/\{[\s\S]*\}/);
+      if(_m2){try{result=JSON.parse(_m2[0]);}catch(e2){throw new Error('JSON לא תקין בבדיקה: '+e2.message);}}
+      else throw new Error('לא נמצא JSON בתשובה');
+    }
 
     // הצג מחוון עם עמודות ניקוד + הערה + ציון סופי + הערה מילולית
     const resultEl=document.getElementById('check-work-result');
