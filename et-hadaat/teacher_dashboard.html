@@ -502,9 +502,17 @@ select.modal-input option{background:#2c1a0e;}
       <div class="screen" id="screen-tasks">
         <div class="screen-hd">
           <div class="screen-title">📋 ניהול משימות</div>
-          <button class="btn-primary" onclick="openNewTaskModal()">➕ משימה חדשה</button>
         </div>
         <div id="tasks-alerts-bar" style="display:none;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:.85rem;color:#fca5a5;"></div>
+        <div class="subjects-grid" id="tasks-subjects-grid"></div>
+        <div id="tasks-subjects-empty" style="display:none;text-align:center;padding:40px;opacity:.4;">אין מקצועות</div>
+      </div>
+
+      <div class="screen" id="screen-tasks-subject">
+        <div class="screen-hd">
+          <div class="screen-title" id="tasks-subject-title">📋 משימות</div>
+          <button class="btn-primary" onclick="openNewTaskModal()">➕ משימה חדשה</button>
+        </div>
         <div id="tasks-list"></div>
         <div id="tasks-empty" style="display:none;text-align:center;padding:50px;opacity:.4;font-size:.9rem;">אין משימות עדיין. לחצי "➕ משימה חדשה" להתחלה.</div>
       </div>
@@ -1581,9 +1589,49 @@ const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
 let currentTaskId=null;
 let tasks=[];
 
+let currentTasksSubject=null;
+
 function openTasksScreen(){
+  currentTasksSubject=null;
   updateBreadcrumb([{label:'ניהול משימות'}]);
   showScreen('screen-tasks');
+  // טען משימות ואז צייר קוביות
+  db.ref('teacher/tasks').once('value',snap=>{
+    tasks=snap.val()?Object.entries(snap.val()).map(([id,v])=>({id,...v})):[];
+    checkTasksAlerts();
+    renderTasksSubjectGrid();
+  });
+}
+
+function renderTasksSubjectGrid(){
+  const grid=document.getElementById('tasks-subjects-grid');
+  const empty=document.getElementById('tasks-subjects-empty');
+  if(!grid)return;
+  if(!subjects.length){if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  grid.innerHTML='';
+  subjects.forEach(sub=>{
+    const count=tasks.filter(t=>t.subjectId===sub.id).length;
+    const card=document.createElement('div');
+    card.className='subject-card';
+    card.style.setProperty('--card-color',sub.color||'var(--gold)');
+    card.innerHTML=`<div class="subject-icon">${sub.icon||'📚'}</div>
+      <div class="subject-name">${esc(sub.name)}</div>
+      <div class="subject-meta">${count} משימות</div>
+      <div class="subject-arrow">‹</div>`;
+    card.onclick=()=>openTasksBySubject(sub);
+    grid.appendChild(card);
+  });
+}
+
+function openTasksBySubject(sub){
+  currentTasksSubject=sub;
+  document.getElementById('tasks-subject-title').textContent='📋 '+esc(sub.name);
+  updateBreadcrumb([
+    {label:'ניהול משימות',fn:"openTasksScreen()"},
+    {label:sub.name}
+  ]);
+  showScreen('screen-tasks-subject');
   loadTasks();
 }
 
@@ -1599,7 +1647,6 @@ function loadTasks(){
   db.ref('teacher/tasks').once('value',snap=>{
     tasks=snap.val()?Object.entries(snap.val()).map(([id,v])=>({id,...v})):[];
     renderTasksList();
-    checkTasksAlerts();
   });
 }
 
@@ -1609,7 +1656,8 @@ function renderTasksList(){
   if(!tasks.length){list.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   // מיין לפי תאריך הגשה
-  const sorted=[...tasks].sort((a,b)=>new Date(a.due)-new Date(b.due));
+  const filtered=currentTasksSubject?tasks.filter(t=>t.subjectId===currentTasksSubject.id):tasks;
+  const sorted=[...filtered].sort((a,b)=>new Date(a.due)-new Date(b.due));
   list.innerHTML=sorted.map(t=>{
     const dueDate=new Date(t.due);
     const gradeDeadline=new Date(dueDate.getTime()+t.gradeDays*24*60*60*1000);
@@ -1805,7 +1853,8 @@ function saveNewTask(withRubric){
   if(!name){alert('נא למלא שם משימה.');return;}
   const rubric=(withRubric&&document.getElementById('task-rubric-preview')._rubric)||null;
   if(withRubric&&!rubric){alert('נא לבנות מחוון תחילה.');return;}
-  const task={name,groupId,type,mode,due,gradeDays,instructions,rubric,createdAt:Date.now(),grades:{}};
+  const subjectId=currentTasksSubject?.id||'';
+  const task={name,groupId,type,mode,due,gradeDays,instructions,subjectId,rubric,createdAt:Date.now(),grades:{}};
   db.ref('teacher/tasks').push(task);
   closeModals();
   showToast(rubric?'✓ המשימה נשמרה עם מחוון':'✓ המשימה נשמרה');
@@ -1814,24 +1863,35 @@ function saveNewTask(withRubric){
 
 function openTaskDetail(taskId){
   currentTaskId=taskId;
-  const task=tasks.find(t=>t.id===taskId);
-  if(!task)return;
+  currentTaskId=taskId;
+  // טען ציונים עדכניים מ-Firebase
+  db.ref('teacher/tasks/'+taskId+'/grades').once('value',gradeSnap=>{
+    const freshGrades=gradeSnap.val()||{};
+    const task=tasks.find(t=>t.id===taskId);
+    if(!task)return;
+    task.grades=freshGrades; // עדכן מ-Firebase
+    _renderTaskDetail(task);
+  });
+}
+
+function _renderTaskDetail(task){
+  const taskId=task.id;
   document.getElementById('task-detail-title').textContent=task.name;
   const group=groups.find(g=>g.id===task.groupId);
   const dueDate=new Date(task.due);
-  const gradeDeadline=new Date(dueDate.getTime()+task.gradeDays*24*60*60*1000);
+  const gradeDeadline=new Date(dueDate.getTime()+(task.gradeDays||21)*24*60*60*1000);
   const content=document.getElementById('task-detail-content');
   const students=group?.students||[];
 
-  // רשימת תלמידים עם ציונים
-  const studentsHtml=students.map(s=>{
+  // רשימת תלמידים — רק מהקבוצה
+  const studentsHtml=students.length?students.map(s=>{
     const key=s.replace(/ /g,'_');
     const g=task.grades?.[key]||{};
     const hasScore=g.score!==undefined&&g.score!=='';
     return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="flex:1;">
         <div style="font-size:.9rem;font-weight:600;">${s}</div>
-        ${g.feedback?`<div style="font-size:.75rem;opacity:.55;margin-top:2px;">${esc(g.feedback.substring(0,60))}${g.feedback.length>60?'...':''}</div>`:''}
+        ${hasScore&&g.feedback?`<div style="font-size:.75rem;opacity:.55;margin-top:2px;">${esc(g.feedback.substring(0,60))}${g.feedback.length>60?'...':''}</div>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         ${hasScore?`<span style="background:rgba(42,107,42,.2);color:#6ee7a0;padding:3px 10px;border-radius:10px;font-size:.88rem;font-weight:700;">${g.score}</span>`:'<span style="opacity:.3;font-size:.82rem;">לא נבדק</span>'}
@@ -1841,7 +1901,7 @@ function openTaskDetail(taskId){
         </button>
       </div>
     </div>`;
-  }).join('');
+  }).join(''):'<div style="opacity:.4;font-size:.85rem;">אין תלמידים רשומים בקבוצה זו</div>';
 
   const checked=students.filter(s=>task.grades?.[s.replace(/ /g,'_')]?.score!==undefined).length;
 
@@ -1863,7 +1923,11 @@ function openTaskDetail(taskId){
       </div>
       ${studentsHtml||'<div style="opacity:.4;font-size:.85rem;">אין תלמידים בקבוצה</div>'}
     </div>`;
-  updateBreadcrumb([{label:'ניהול משימות',fn:"openTasksScreen()"},{label:task.name}]);
+  updateBreadcrumb([
+    {label:'ניהול משימות',fn:"openTasksScreen()"},
+    currentTasksSubject?{label:currentTasksSubject.name,fn:"openTasksBySubject(currentTasksSubject)"}:null,
+    {label:task.name}
+  ].filter(Boolean));
   showScreen('screen-task-detail');
 }
 
