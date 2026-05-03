@@ -1748,30 +1748,28 @@ function openNewTaskModal(){
 async function buildTaskRubric(rubricType){
   rubricType=rubricType||'eval';
   const name=document.getElementById('task-name').value.trim();
-  const instructions=document.getElementById('task-instructions').value.trim();
+  const rawInstr=document.getElementById('task-instructions').value.trim();
   const type=document.getElementById('task-type').value;
-  const mode=document.getElementById('task-mode').value;
-  if(!name||!instructions){alert('נא למלא שם משימה והוראות לפני בניית המחוון.');return;}
+  if(!name||!rawInstr){alert('נא למלא שם משימה והוראות לפני בניית המחוון.');return;}
+  // נקה תווים שעלולים לשבור JSON
+  const instructions=rawInstr.replace(/"/g,"'").replace(/\\/g,'').replace(/[\r\n]+/g,' ').slice(0,600);
   const buildBtn=document.getElementById('btn-build-rubric');
   if(buildBtn)buildBtn.textContent='⏳ בונה...';
 
   const isQA=rubricType==='qa';
   const prompt=isQA
-    ?`בנה מחוון שאלות ותשובות למשימה.
-שם: ${name}
-סוג: ${type}
-הוראות: ${instructions}
-זהה שאלות וסעיפים. לכל אחד קריטריון נפרד.
-החזר JSON בלבד ללא טקסט נוסף:
-{"rubricType":"qa","criteria":[{"name":"שאלה 1 סעיף א","maxPoints":20,"description":"תיאור","answerKey":""}],"totalPoints":100}
-עד 12 קריטריונים. סה"כ 100 בדיוק. answerKey ריק.`
-    :`בנה מחוון הערכה למשימה.
-שם: ${name}
-סוג: ${type}
-הוראות: ${instructions}
-החזר JSON בלבד ללא טקסט נוסף:
-{"rubricType":"eval","criteria":[{"name":"שם קריטריון","maxPoints":20,"description":"תיאור קצר"}],"totalPoints":100}
-עד 8 קריטריונים. סה"כ 100 בדיוק.`;
+    ?`משימה: ${name}. סוג: ${type}. הוראות: ${instructions}
+
+זהה את השאלות והסעיפים בהוראות ובנה מחוון.
+החזר JSON תקני בלבד (גרשיים כפולות, ללא טקסט נוסף):
+{"rubricType":"qa","criteria":[{"name":"שם שאלה/סעיף","maxPoints":20,"description":"מה נבדק","answerKey":""}],"totalPoints":100}
+כללים: עד 12 קריטריונים, סה"כ בדיוק 100, answerKey ריק, description קצר ללא גרשיים.`
+    :`משימה: ${name}. סוג: ${type}. הוראות: ${instructions}
+
+בנה מחוון הערכה מפורט.
+החזר JSON תקני בלבד (גרשיים כפולות, ללא טקסט נוסף):
+{"rubricType":"eval","criteria":[{"name":"שם קריטריון","maxPoints":20,"description":"מה נבדק"}],"totalPoints":100}
+כללים: עד 8 קריטריונים, סה"כ בדיוק 100, description קצר ללא גרשיים.`;
 
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
