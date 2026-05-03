@@ -1730,29 +1730,6 @@ async function buildTaskRubric(rubricType){
   if(buildBtn)buildBtn.textContent='🤖 בנה מחוון';
 }
 
-  try{
-    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
-        system:'אתה עוזר הוראה. החזר JSON תקני בלבד. אל תוסיף טקסט לפני או אחרי. גרשיים כפולים בלבד.',
-        messages:[{role:'user',content:prompt}]})});
-    const d=await r.json();
-    const _raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
-    if(!_raw)throw new Error('התשובה ריקה');
-    let rubric;
-    try{rubric=JSON.parse(_raw);}
-    catch(e1){
-      const _m=_raw.match(/\{[\s\S]*\}/);
-      if(_m){try{rubric=JSON.parse(_m[0]);}catch(e2){throw new Error('JSON לא תקין: '+e2.message);}}
-      else throw new Error('לא נמצא JSON. תשובת AI:\n'+_raw.slice(0,200));
-    }
-    if(!rubric?.criteria?.length)throw new Error('המחוון שהתקבל לא תקין');
-    renderEditableRubric(rubric);
-    const saveBtn=document.getElementById('btn-save-with-rubric');
-    if(saveBtn)saveBtn.style.display='inline-block';
-  }catch(e){alert('שגיאה בבניית המחוון:\n'+e.message+'\n\nנסי שוב.');}
-  if(buildBtn)buildBtn.textContent='🤖 בנה מחוון';
-}
-
 function renderEditableRubric(rubric){
   const preview=document.getElementById('task-rubric-preview');
   preview.style.display='block';
