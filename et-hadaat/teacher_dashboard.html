@@ -521,9 +521,32 @@ select.modal-input option{background:#2c1a0e;}
       <div class="screen" id="screen-task-detail">
         <div class="screen-hd">
           <div class="screen-title" id="task-detail-title">משימה</div>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             <button class="btn-primary" onclick="openCheckWorkModal()">📎 בדוק עבודה</button>
-            <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);" onclick="openTaskRubricView()">📑 מחוון</button>
+            <!-- מחוון — תפריט נפתח -->
+            <div style="position:relative;">
+              <button class="btn-primary" style="background:rgba(212,168,67,.15);color:var(--gold);"
+                onclick="document.getElementById('rubric-menu').style.display=document.getElementById('rubric-menu').style.display==='block'?'none':'block'">
+                📑 מחוון ▾
+              </button>
+              <div id="rubric-menu" style="display:none;position:absolute;top:110%;right:0;background:#1a0f05;border:1px solid var(--border);border-radius:10px;padding:6px;z-index:50;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5);">
+                <button onclick="openTaskRubricView();document.getElementById('rubric-menu').style.display='none'"
+                  style="display:block;width:100%;padding:8px 12px;background:none;border:none;color:var(--parch);font-family:Heebo,sans-serif;font-size:.85rem;text-align:right;cursor:pointer;border-radius:6px;">
+                  👁 צפה במחוון
+                </button>
+                <button onclick="openAddRubricToTask('qa');document.getElementById('rubric-menu').style.display='none'"
+                  style="display:block;width:100%;padding:8px 12px;background:none;border:none;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.85rem;text-align:right;cursor:pointer;border-radius:6px;">
+                  📝 בנה מחוון שאלות ותשובות
+                </button>
+                <button onclick="openAddRubricToTask('eval');document.getElementById('rubric-menu').style.display='none'"
+                  style="display:block;width:100%;padding:8px 12px;background:none;border:none;color:#93c5fd;font-family:Heebo,sans-serif;font-size:.85rem;text-align:right;cursor:pointer;border-radius:6px;">
+                  📊 בנה מחוון הערכה
+                </button>
+              </div>
+            </div>
+            <button class="btn-primary" style="background:rgba(212,168,67,.1);color:var(--gold);" onclick="duplicateCurrentTask()">📋 שכפל</button>
+            <button class="btn-primary" id="btn-complete-task" style="background:rgba(34,197,94,.15);color:#22c55e;" onclick="completeCurrentTask()">✅ סיים</button>
+            <button class="btn-primary" style="background:rgba(139,32,32,.2);color:#f87171;" onclick="deleteCurrentTask()">🗑 מחק</button>
           </div>
         </div>
         <div id="task-detail-content"></div>
@@ -1939,6 +1962,78 @@ function openCheckForStudent(taskId,studentName){
   _checkFileData=null;
   setCheckMode('text');
   document.getElementById('modal-check-work').style.display='flex';
+}
+
+function completeCurrentTask(){
+  if(!currentTaskId)return;
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(task?.completed){
+    if(!confirm('לפתוח את המשימה מחדש?'))return;
+    db.ref('teacher/tasks/'+currentTaskId+'/completed').remove();
+    task.completed=false;
+    showToast('🔄 המשימה נפתחה מחדש');
+  } else {
+    if(!confirm('לסמן משימה זו כמושלמת?'))return;
+    db.ref('teacher/tasks/'+currentTaskId+'/completed').set(true);
+    if(task)task.completed=true;
+    showToast('✅ המשימה הושלמה');
+  }
+  const btn=document.getElementById('btn-complete-task');
+  if(btn&&task){btn.textContent=task.completed?'🔄 פתח מחדש':'✅ סיים';}
+}
+
+function deleteCurrentTask(){
+  if(!currentTaskId)return;
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!confirm(`למחוק את המשימה "${task?.name||''}"?\nפעולה זו אינה הפיכה.`))return;
+  db.ref('teacher/tasks/'+currentTaskId).remove();
+  tasks=tasks.filter(t=>t.id!==currentTaskId);
+  showToast('✓ המשימה נמחקה');
+  if(currentTasksSubject)openTasksBySubject(currentTasksSubject);
+  else openTasksScreen();
+}
+
+function duplicateCurrentTask(){
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!task)return;
+  openNewTaskModal();
+  setTimeout(()=>{
+    document.getElementById('task-name').value=task.name+' (עותק)';
+    document.getElementById('task-type').value=task.type||'עבודה';
+    document.getElementById('task-mode').value=task.mode||'עצמי';
+    document.getElementById('task-instructions').value=task.instructions||'';
+    if(task.due)document.getElementById('task-due').value=task.due;
+    if(task.gradeDays)document.getElementById('task-grade-deadline').value=task.gradeDays;
+    document.querySelector('#modal-new-task .modal-title').textContent='📋 שכפול משימה';
+    if(task.rubric){
+      renderEditableRubric(JSON.parse(JSON.stringify(task.rubric)));
+      const saveBtn=document.getElementById('btn-save-with-rubric');
+      if(saveBtn)saveBtn.style.display='inline-block';
+    }
+  },50);
+}
+
+function openAddRubricToTask(rubricType){
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!task)return;
+  // שמור מחוון ישירות ל-Firebase
+  openNewTaskModal();
+  setTimeout(()=>{
+    document.getElementById('task-name').value=task.name;
+    document.getElementById('task-instructions').value=task.instructions||'';
+    document.getElementById('task-type').value=task.type||'עבודה';
+    document.querySelector('#modal-new-task .modal-title').textContent='📑 בנה מחוון';
+    setTimeout(()=>buildTaskRubric(rubricType),200);
+  },50);
+}
+
+function openTaskRubricView(){
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!task?.rubric){showToast('אין מחוון למשימה זו');return;}
+  renderEditableRubric(JSON.parse(JSON.stringify(task.rubric)));
+  document.getElementById('modal-new-task').style.display='flex';
+  document.querySelector('#modal-new-task .modal-title').textContent='📑 מחוון: '+task.name;
+  document.getElementById('btn-save-with-rubric').style.display='inline-block';
 }
 
 function saveStudentGrade(taskId,studentName,score,feedback,rubricScores){
