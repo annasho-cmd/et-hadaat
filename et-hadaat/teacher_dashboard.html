@@ -1803,37 +1803,60 @@ function renderEditableRubric(rubric){
   const preview=document.getElementById('task-rubric-preview');
   preview.style.display='block';
   preview._rubric=rubric;
+  const isQA=rubric.rubricType==='qa';
+  const total=rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
+  rubric.totalPoints=total;
+
   const rows=rubric.criteria.map((c,i)=>`
-    <tr>
-      <td style="padding:6px 8px;">
-        <input value="${esc(c.name)}" onchange="updateRubricCriterion(${i},'name',this.value)"
-          style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 8px;outline:none;">
-        <div style="font-size:.7rem;opacity:.45;margin-top:3px;">${esc(c.description||'')}</div>
+    <tr style="border-bottom:1px solid rgba(212,168,67,.08);">
+      <td style="padding:6px 8px;vertical-align:top;">
+        <input value="${esc(c.name||'')}" onchange="updateRubricCriterion(${i},'name',this.value)"
+          style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:5px 8px;outline:none;margin-bottom:3px;">
+        <div style="font-size:.7rem;opacity:.4;">${esc(c.description||'')}</div>
+        ${isQA?`<textarea rows="2" placeholder="הדביקי כאן את התשובה הנכונה..."
+          onchange="updateRubricCriterion(${i},'answerKey',this.value)"
+          style="width:100%;margin-top:5px;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.3);border-radius:5px;color:#c4b5fd;font-family:Heebo,sans-serif;font-size:.78rem;padding:5px 7px;outline:none;resize:vertical;direction:rtl;">${esc(c.answerKey||'')}</textarea>`:''}
       </td>
-      <td style="padding:6px 8px;text-align:center;width:70px;">
-        <input type="number" min="1" max="100" value="${c.maxPoints}" onchange="updateRubricCriterion(${i},'maxPoints',parseInt(this.value));updateRubricTotal()"
-          style="width:60px;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.88rem;padding:5px;outline:none;text-align:center;font-weight:700;">
+      <td style="padding:6px 8px;text-align:center;width:70px;vertical-align:top;">
+        <input type="number" min="1" max="100" value="${parseInt(c.maxPoints)||0}"
+          onchange="updateRubricCriterion(${i},'maxPoints',parseInt(this.value)||0);updateRubricTotal()"
+          style="width:58px;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:5px;color:var(--gold);font-family:Heebo,sans-serif;font-size:.88rem;padding:5px;outline:none;text-align:center;font-weight:700;">
       </td>
-      <td style="padding:6px 8px;text-align:center;width:50px;">
+      <td style="padding:6px 8px;text-align:center;width:36px;vertical-align:top;">
         <button onclick="removeRubricCriterion(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem;">✕</button>
       </td>
     </tr>`).join('');
 
   preview.innerHTML=`
-    <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;margin-bottom:10px;">✅ מחוון נבנה — ערכי את הקריטריונים לפי הצורך:</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;">✅ מחוון נבנה — ערכי לפי הצורך:</div>
+      <div style="padding:2px 9px;border-radius:10px;font-size:.72rem;font-weight:700;
+        background:${isQA?'rgba(109,40,217,.2)':'rgba(212,168,67,.12)'};
+        color:${isQA?'#c4b5fd':'var(--gold)'};">${isQA?'📝 שאלות ותשובות':'📊 הערכה'}</div>
+    </div>
+    ${isQA?`<div style="font-size:.75rem;opacity:.5;margin-bottom:8px;background:rgba(109,40,217,.07);border:1px solid rgba(109,40,217,.2);border-radius:6px;padding:6px 10px;">
+      💡 הדביקי את התשובות הנכונות בשדות הסגולים — האפליקציה תשתמש בהן לבדיקה אוטומטית
+    </div>`:''}
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
-      <thead>
-        <tr style="border-bottom:1px solid rgba(212,168,67,.2);">
-          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">קריטריון</th>
-          <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:center;width:70px;">ניקוד מקס׳</th>
-          <th style="width:50px;"></th>
-        </tr>
-      </thead>
+      <thead><tr style="border-bottom:1px solid rgba(212,168,67,.2);">
+        <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:right;">${isQA?'שאלה / סעיף + תשובה נכונה':'קריטריון'}</th>
+        <th style="padding:6px 8px;font-size:.75rem;color:var(--gold);text-align:center;width:70px;">ניקוד מקס׳</th>
+        <th style="width:36px;"></th>
+      </tr></thead>
       <tbody id="rubric-edit-rows">${rows}</tbody>
     </table>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <button onclick="addRubricCriterion()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף קריטריון</button>
-      <div id="rubric-total" style="font-size:.88rem;font-weight:700;color:var(--gold);">סה"כ: ${rubric.totalPoints} נק׳</div>
+      <button onclick="addRubricCriterion()" style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);border-radius:6px;color:#d4a843;font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף ${isQA?'שאלה':'קריטריון'}</button>
+      <div id="rubric-total" style="font-size:.88rem;font-weight:700;">
+        סה"כ: <span id="rubric-total-num">${total}</span> נק׳
+        ${total!==100?'<span style="color:#f87171;font-size:.75rem;margin-right:5px;">⚠️ חייב להיות 100</span>':'<span style="color:#22c55e;font-size:.75rem;margin-right:5px;">✅</span>'}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:.75rem;opacity:.5;margin-bottom:4px;">💬 הערה מסכמת (אופציונלי):</div>
+      <textarea id="task-rubric-summary" rows="2"
+        style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);border-radius:7px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.82rem;padding:7px;outline:none;resize:vertical;direction:rtl;"
+        placeholder="הערה כללית שתישלח לתלמידים...">${esc(rubric.summaryNote||'')}</textarea>
     </div>`;
   preview._rubric=rubric;
 }
@@ -1845,10 +1868,15 @@ function updateRubricCriterion(i,field,val){
 function updateRubricTotal(){
   const preview=document.getElementById('task-rubric-preview');
   if(!preview._rubric)return;
-  const total=preview._rubric.criteria.reduce((s,c)=>s+(c.maxPoints||0),0);
+  const total=preview._rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
   preview._rubric.totalPoints=total;
-  const el=document.getElementById('rubric-total');
-  if(el)el.textContent='סה"כ: '+total+' נק׳';
+  const numEl=document.getElementById('rubric-total-num');
+  if(numEl)numEl.textContent=total;
+  const warn=document.getElementById('rubric-total')?.querySelector('span:last-child');
+  if(warn){
+    if(total===100){warn.textContent='✅';warn.style.color='#22c55e';}
+    else{warn.textContent='⚠️ חייב להיות 100';warn.style.color='#f87171';}
+  }
 }
 function removeRubricCriterion(i){
   const preview=document.getElementById('task-rubric-preview');
