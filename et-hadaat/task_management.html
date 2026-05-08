@@ -522,9 +522,11 @@ const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
 let subjects=[], groups=[], tasks=[];
 let currentSubject=null, currentTaskId=null;
 let _checkFileData=null, _instrFileData=null, _rubricImgData=null;
-let _taskEditId=null; // null = new task, else = editing
+let _taskEditId=null;
 let _groupMethod='free';
-let _taskGroups=[]; // assigned groups for current task being created/edited
+let _taskGroups=[];
+// cache: שמור קבצים שהועלו לפי שם תלמיד (key=studentName_replaced)
+let _studentFileCache={};
 
 /* ══════════════════════════════════════
    INIT
@@ -781,52 +783,55 @@ function _renderDetail(task){
     const key=s.replace(/ /g,'_');
     const g=task.grades?.[key]||{};
     const hasScore=g.score!==undefined&&g.score!=='';
-    const hasRubric=hasScore&&task.rubric&&g.rubricScores?.length;
-    // inline editable score field id
-    const scoreId=`inline-score-${key}`;
-    const fbId=`inline-fb-${key}`;
-    return `<div class="student-row" id="srow-${key}" style="flex-wrap:wrap;gap:8px;">
-      <div style="flex:1;min-width:160px;">
-        <div class="student-name">${esc(s)}</div>
-        ${hasScore&&g.feedback
-          ?`<div class="student-feedback" id="fb-preview-${key}">${esc(g.feedback.substring(0,80))}${g.feedback.length>80?'...':''}</div>`
-          :`<div class="student-feedback" id="fb-preview-${key}" style="display:none;"></div>`}
+    const hasRubric=hasScore&&g.rubricScores?.length;
+    const sEsc=s.replace(/'/g,"\\'").replace(/\\/g,'\\\\');
+    return `<div id="srow-${key}" style="padding:12px 0;border-bottom:1px solid rgba(212,168,67,.08);">
+      <!-- שורה עליונה: שם + ציון + 3 כפתורים -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:140px;">
+          <div class="student-name">${esc(s)}</div>
+          ${hasRubric?`<div style="font-size:.7rem;color:var(--gold);opacity:.7;margin-top:2px;">📑 ${g.rubricScores.length} קריטריונים נשמרו</div>`:''}
+        </div>
+        <!-- ציון -->
+        <div style="flex-shrink:0;">
+          ${hasScore
+            ?`<input type="number" min="0" max="100" value="${g.score}" id="sc-${key}"
+                style="width:60px;background:rgba(42,107,42,.15);border:1.5px solid rgba(42,107,42,.4);
+                border-radius:7px;color:#6ee7a0;text-align:center;font-size:1rem;font-weight:700;
+                padding:5px;font-family:Heebo,sans-serif;outline:none;" title="ציון">`
+            :`<span style="opacity:.3;font-size:.8rem;">לא נבדק</span>`}
+        </div>
+        <!-- 3 כפתורים: שמור | ערוך | בדוק -->
+        <div style="display:flex;gap:5px;flex-shrink:0;">
+          ${hasScore?`<button class="btn-check"
+            style="background:rgba(42,107,42,.18);border-color:rgba(42,107,42,.4);color:#6ee7a0;"
+            title="שמור ציון והערה"
+            onclick="event.stopPropagation();quickSave('${task.id}','${sEsc}')">
+            💾 שמור
+          </button>`:''}
+          <button class="btn-check"
+            style="background:${hasRubric?'rgba(212,168,67,.15)':'rgba(80,80,80,.15)'};
+            border-color:${hasRubric?'rgba(212,168,67,.4)':'rgba(80,80,80,.3)'};
+            color:${hasRubric?'var(--gold)':'#777'};"
+            title="${hasRubric?'ערוך מחוון שמור':'אין מחוון בדוק עדיין'}"
+            onclick="event.stopPropagation();editStudentRubric('${task.id}','${sEsc}')">
+            📑 ערוך
+          </button>
+          <button class="btn-check"
+            title="בדיקה עם AI"
+            onclick="event.stopPropagation();openCheckForStudent('${task.id}','${sEsc}')">
+            🤖 בדוק
+          </button>
+        </div>
       </div>
-      <!-- ציון + עריכה מהירה -->
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        ${hasScore
-          ?`<input type="number" min="0" max="100" value="${g.score}" id="${scoreId}"
-              style="width:58px;background:rgba(42,107,42,.15);border:1.5px solid rgba(42,107,42,.4);
-              border-radius:7px;color:#6ee7a0;text-align:center;font-size:.95rem;font-weight:700;
-              padding:4px;font-family:Heebo,sans-serif;outline:none;">`
-          :`<span style="opacity:.3;font-size:.8rem;width:58px;text-align:center;display:block;">—</span>`}
-      </div>
-      <!-- 3 כפתורים -->
-      <div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;">
-        <button class="btn-check" title="בדיקה חדשה עם AI"
-          onclick="event.stopPropagation();openCheckForStudent('${task.id}','${s}')">
-          📎 בדוק
-        </button>
-        <button class="btn-check" title="ערוך את המחוון הבדוק"
-          style="background:${hasRubric?'rgba(212,168,67,.15)':'rgba(100,100,100,.1)'};
-          border-color:${hasRubric?'rgba(212,168,67,.35)':'rgba(100,100,100,.2)'};
-          color:${hasRubric?'var(--gold)':'#666'};"
-          onclick="event.stopPropagation();editStudentRubric('${task.id}','${s}')">
-          📑 מחוון
-        </button>
-        ${hasScore?`<button class="btn-check" title="שמור ציון מעודכן"
-          style="background:rgba(42,107,42,.15);border-color:rgba(42,107,42,.35);color:#6ee7a0;"
-          onclick="event.stopPropagation();saveInlineScore('${task.id}','${s}','${scoreId}','${fbId}')">
-          💾 שמור
-        </button>`:''}
-      </div>
-      <!-- הערה מילולית — שורה נסתרת שנפתחת בעריכה -->
-      <div id="inline-fb-wrap-${key}" style="display:none;width:100%;margin-top:6px;">
-        <textarea id="${fbId}" rows="2"
-          style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);
-          border-radius:7px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.82rem;
-          padding:7px;outline:none;resize:vertical;direction:rtl;"
-          placeholder="הערה מילולית לתלמיד...">${esc(g.feedback||'')}</textarea>
+      <!-- הערה מילולית — תמיד גלויה אם קיימת, ניתנת לעריכה והעתקה -->
+      <div style="margin-top:8px;">
+        <textarea id="fb-${key}" rows="${hasScore&&g.feedback?2:1}"
+          style="width:100%;background:rgba(253,245,224,.05);border:1px solid rgba(212,168,67,.15);
+          border-radius:6px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.82rem;
+          padding:6px 8px;outline:none;resize:vertical;direction:rtl;
+          ${!hasScore?'opacity:.4;':''}"
+          placeholder="הערה מילולית לתלמיד (ניתנת לעריכה והעתקה)...">${esc(g.feedback||'')}</textarea>
       </div>
     </div>`;
   }).join(''):'<div class="empty-state" style="padding:16px;">אין תלמידים בקבוצה זו</div>';
@@ -865,11 +870,54 @@ function _renderDetail(task){
 
 function openCheckForStudent(taskId,studentName){
   currentTaskId=taskId;
+  const task=tasks.find(t=>t.id===taskId);
+  const key=studentName.replace(/ /g,'_');
+  const existing=task?.grades?.[key]||{};
+
   document.getElementById('ck-student').value=studentName;
   document.getElementById('ck-text').value='';
   document.getElementById('ck-result').style.display='none';
-  _checkFileData=null;
+  document.getElementById('ck-pdf-name').textContent='';
+  document.getElementById('ck-img-name').textContent='';
+  document.getElementById('ck-img-preview').style.display='none';
+  // שמור את שם הקובץ הקודם אם יש
+  if(_studentFileCache[key]){
+    _checkFileData=_studentFileCache[key];
+    const fName=_checkFileData.name||'קובץ קיים';
+    if(_checkFileData.type==='pdf')document.getElementById('ck-pdf-name').textContent='✓ '+fName+' (שמור בזיכרון)';
+    else{
+      document.getElementById('ck-img-name').textContent='✓ '+fName+' (שמור בזיכרון)';
+      if(_checkFileData.type==='image'&&document.getElementById('ck-img-el')){
+        document.getElementById('ck-img-el').src='data:'+_checkFileData.mediaType+';base64,'+_checkFileData.base64;
+        document.getElementById('ck-img-preview').style.display='block';
+      }
+    }
+  } else {
+    _checkFileData=null;
+  }
   setCheckMode('text');
+
+  // אם יש ציון קיים — הצג אותו מיד ואפשר עריכה
+  if(existing.score!==undefined && existing.rubricScores?.length && task?.rubric?.criteria){
+    const fakeResult={
+      scores:task.rubric.criteria.map((c,i)=>({
+        criterion:c.name,
+        score:existing.rubricScores[i]?.score??0,
+        maxScore:c.maxPoints,
+        comment:existing.rubricScores[i]?.comment||''
+      })),
+      totalScore:existing.score,
+      verbalFeedback:existing.feedback||''
+    };
+    renderCheckResult(fakeResult,studentName,task);
+    // הצג הודעה שאלו נתונים שמורים
+    const resultEl=document.getElementById('ck-result');
+    const notice=document.createElement('div');
+    notice.style.cssText='background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:7px;padding:8px 12px;font-size:.78rem;margin-bottom:8px;';
+    notice.innerHTML='📋 <strong>ציון קיים:</strong> '+existing.score+' — הנתונים הבאים שמורים ב-Firebase. ניתן לערוך ולשמור מחדש, או לבדוק שוב עם AI.';
+    resultEl.insertBefore(notice,resultEl.firstChild?.firstChild||resultEl.firstChild);
+  }
+
   openModal('modal-check');
 }
 
@@ -1416,15 +1464,25 @@ function setCheckMode(mode){
 
 function loadCheckFile(input,type){
   const file=input.files[0];if(!file)return;
+  // reset value so same file can be re-selected
+  input.value='';
   const reader=new FileReader();
   reader.onload=e=>{
     const base64=e.target.result.split(',')[1];
-    _checkFileData={type,base64,mediaType:type==='pdf'?'application/pdf':file.type,name:file.name};
-    if(type==='pdf'){const el=document.getElementById('ck-pdf-name');if(el)el.textContent='✓ '+file.name;}
-    else{
+    const fileData={type,base64,mediaType:type==='pdf'?'application/pdf':file.type,name:file.name};
+    _checkFileData=fileData;
+    // שמור ב-cache לפי שם תלמיד
+    const sName=document.getElementById('ck-student').value.trim();
+    if(sName)_studentFileCache[sName.replace(/ /g,'_')]=fileData;
+    if(type==='pdf'){
+      const el=document.getElementById('ck-pdf-name');
+      if(el)el.textContent='✓ '+file.name;
+    } else {
       const el=document.getElementById('ck-img-name');if(el)el.textContent='✓ '+file.name;
-      const img=document.getElementById('ck-img-el');const prev=document.getElementById('ck-img-preview');
-      if(img)img.src=e.target.result;if(prev)prev.style.display='block';
+      const img=document.getElementById('ck-img-el');
+      const prev=document.getElementById('ck-img-preview');
+      if(img)img.src=e.target.result;
+      if(prev)prev.style.display='block';
     }
   };
   reader.readAsDataURL(file);
@@ -1443,7 +1501,7 @@ async function checkWorkWithAI(){
   const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description||''}`).join('\n');
   const answerKeys=task.rubric.rubricType==='qa'?
     task.rubric.criteria.map(c=>c.answerKey?`${c.name}: ${c.answerKey}`:'').filter(Boolean).join('\n'):'';
-  const jsonPrompt=`\n\nהחזר JSON בלבד:\n{"scores":[{"criterion":"שם","score":ניקוד,"maxScore":מקסימום,"comment":"הערה קצרה"}],"totalScore":סה_כ,"verbalFeedback":"הערה מילולית — 2-3 משפטים"}`;
+  const jsonPrompt=`\n\nחובה להחזיר JSON בלבד — ללא טקסט נוסף לפני או אחרי:\n{"scores":[{"criterion":"שם הקריטריון בדיוק כפי שמופיע במחוון","score":מספר_שלם,"maxScore":מספר_שלם,"comment":"הערה קצרה וספציפית"}],"totalScore":מספר_שלם,"verbalFeedback":"הערה מילולית אישית לתלמיד — 3-4 משפטים. פתחי בנקודה חיובית, הצביעי על מה שאפשר לשפר, סיימי בעידוד."}`;
   const btn=document.getElementById('btn-ck-ai');
   const origTxt=btn.textContent;
   btn.textContent='⏳ בודק...';btn.disabled=true;
@@ -1500,11 +1558,20 @@ function renderCheckResult(result,studentName,task){
       <span style="font-size:.72rem;opacity:.4;">ניתן לשינוי ידני</span>
     </div>
     <div style="margin-bottom:14px;">
-      <div style="font-size:.75rem;opacity:.55;margin-bottom:5px;">הערה מילולית לתלמיד:</div>
-      <textarea id="rs-feedback" rows="3"
-        style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);
-        border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;padding:9px;
-        outline:none;resize:vertical;direction:rtl;">${esc(result.verbalFeedback||'')}</textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <div style="font-size:.78rem;opacity:.6;">הערה מילולית לתלמיד:</div>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('rs-feedback').value).then(()=>toast('✓ הועתק'))"
+          style="padding:3px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border);
+          border-radius:5px;color:var(--gold);font-size:.72rem;cursor:pointer;font-family:Heebo,sans-serif;">
+          📋 העתק
+        </button>
+      </div>
+      <textarea id="rs-feedback" rows="4"
+        style="width:100%;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.25);
+        border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:10px;
+        outline:none;resize:vertical;direction:rtl;user-select:text;line-height:1.6;"
+        onclick="this.select()">${esc(result.verbalFeedback||'')}</textarea>
+      <div style="font-size:.68rem;opacity:.35;margin-top:2px;">לחצי על הטקסט לסימון הכל · Ctrl+C להעתקה</div>
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="saveFromResult('${currentTaskId}','${studentName}',${result.scores.length})"
@@ -1525,22 +1592,50 @@ function updateResTotal(n){
 function saveFromResult(taskId,studentName,n){
   const score=parseInt(document.getElementById('rs-total').value)||0;
   const feedback=document.getElementById('rs-feedback').value.trim();
+  const task=tasks.find(t=>t.id===taskId);
+  // שמור rubricScores עם שם הקריטריון כדי שאפשר יהיה לשחזר
   const rubricScores=[];
   for(let i=0;i<n;i++){
     const s=document.getElementById('rs-'+i);
     const c=document.getElementById('rc-'+i);
-    rubricScores.push({score:parseInt(s?.value)||0,comment:c?.value||''});
+    // שמור גם את שם הקריטריון
+    const criterionName=task?.rubric?.criteria?.[i]?.name||('קריטריון '+(i+1));
+    const maxScore=task?.rubric?.criteria?.[i]?.maxPoints||0;
+    rubricScores.push({
+      criterion:criterionName,
+      score:parseInt(s?.value)||0,
+      maxScore,
+      comment:c?.value||''
+    });
   }
   const key=studentName.replace(/ /g,'_');
-  const gradeData={score,gradedAt:Date.now()};
-  if(feedback)gradeData.feedback=feedback;
-  if(rubricScores.length)gradeData.rubricScores=rubricScores;
+  const gradeData={score,feedback,rubricScores,gradedAt:Date.now()};
   db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gradeData);
-  const task=tasks.find(t=>t.id===taskId);
   if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
-  toast('✓ הציון נשמר');
+  toast('✓ הציון והמחוון נשמרו');
   closeModals();
   openTaskDetail(taskId);
+}
+
+// שמירה מהירה של ציון + הערה מהשורה
+function quickSave(taskId,studentName){
+  const key=studentName.replace(/ /g,'_');
+  const scoreEl=document.getElementById('sc-'+key);
+  const fbEl=document.getElementById('fb-'+key);
+  if(!scoreEl){toast('לא נמצא שדה ציון');return;}
+  const score=parseInt(scoreEl.value);
+  if(isNaN(score)||score<0||score>100){toast('ציון לא תקין (0-100)');return;}
+  const feedback=fbEl?.value.trim()||'';
+  const task=tasks.find(t=>t.id===taskId);
+  const existing=task?.grades?.[key]||{};
+  const gradeData={...existing,score,feedback,editedAt:Date.now()};
+  if(!gradeData.gradedAt)gradeData.gradedAt=Date.now();
+  db.ref('teacher/tasks/'+taskId+'/grades/'+key).update(gradeData);
+  if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
+  // visual feedback
+  scoreEl.style.borderColor='rgba(42,107,42,.8)';
+  setTimeout(()=>scoreEl.style.borderColor='rgba(42,107,42,.4)',1200);
+  toast('✓ '+studentName+' — ציון '+score+' נשמר');
 }
 
 function showStudentRubric(taskId,studentName){
@@ -1621,66 +1716,87 @@ function saveInlineScore(taskId,studentName,scoreInputId,fbInputId){
 ══════════════════════════════════════ */
 function editStudentRubric(taskId,studentName){
   const task=tasks.find(t=>t.id===taskId);
-  if(!task?.rubric){toast('אין מחוון למשימה זו. בני מחוון תחילה.');return;}
   const key=studentName.replace(/ /g,'_');
-  const grades=task.grades?.[key]||{};
-  const criteria=task.rubric.criteria||[];
+  const grades=task?.grades?.[key]||{};
   const rubricScores=grades.rubricScores||[];
   const hasData=rubricScores.length>0;
 
-  // build editable rubric rows pre-filled with existing scores
-  const rows=criteria.map((c,i)=>{
-    const rs=rubricScores[i]||{score:'',comment:''};
-    return `<tr style="border-bottom:1px solid rgba(212,168,67,.07);">
-      <td style="padding:8px;font-size:.85rem;">${esc(c.name)}</td>
+  // בנה קריטריונים: העדף את הנתונים השמורים ב-rubricScores, גבה עם task.rubric.criteria
+  let criteria=[];
+  if(hasData){
+    // rubricScores החדשים שומרים criterion+maxScore
+    criteria=rubricScores.map((rs,i)=>({
+      name:rs.criterion||task?.rubric?.criteria?.[i]?.name||('קריטריון '+(i+1)),
+      maxPoints:rs.maxScore||task?.rubric?.criteria?.[i]?.maxPoints||10,
+      score:rs.score??0,
+      comment:rs.comment||''
+    }));
+  } else if(task?.rubric?.criteria){
+    criteria=task.rubric.criteria.map(c=>({
+      name:c.name,maxPoints:c.maxPoints,score:0,comment:''
+    }));
+  } else {
+    toast('אין מחוון למשימה זו ואין נתונים שמורים לתלמיד זה.');
+    return;
+  }
+
+  const rows=criteria.map((c,i)=>`
+    <tr style="border-bottom:1px solid rgba(212,168,67,.07);">
+      <td style="padding:8px;font-size:.85rem;font-weight:600;">${esc(c.name)}</td>
       <td style="padding:8px;text-align:center;font-size:.75rem;opacity:.5;">${c.maxPoints}</td>
       <td style="padding:8px;text-align:center;">
-        <input type="number" min="0" max="${c.maxPoints}" value="${rs.score??''}" id="er-s-${i}"
+        <input type="number" min="0" max="${c.maxPoints}" value="${c.score}" id="er-s-${i}"
           style="width:55px;background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);
-          border-radius:5px;color:var(--gold);text-align:center;font-size:.88rem;font-weight:700;
+          border-radius:5px;color:var(--gold);text-align:center;font-size:.9rem;font-weight:700;
           padding:4px;font-family:Heebo,sans-serif;outline:none;"
           onchange="updateErTotal(${criteria.length})">
       </td>
       <td style="padding:8px;">
-        <input value="${esc(rs.comment||'')}" id="er-c-${i}"
+        <input value="${esc(c.comment)}" id="er-c-${i}"
           style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(255,255,255,.08);
           border-radius:5px;color:var(--parch);font-size:.78rem;padding:4px 7px;
           font-family:Heebo,sans-serif;outline:none;">
       </td>
-    </tr>`;
-  }).join('');
+    </tr>`).join('');
 
-  const html=`
-    <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+  const calcTotal=criteria.reduce((s,c)=>s+c.score,0);
+
+  document.getElementById('rubric-modal-title').textContent=(hasData?'✏️ עריכת':'📝 מילוי ')+' מחוון — '+esc(studentName);
+  document.getElementById('rubric-modal-content').innerHTML=`
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <div style="font-size:.9rem;font-weight:700;color:var(--gold2);">${esc(studentName)}</div>
-      ${hasData?'<span style="font-size:.75rem;padding:2px 8px;border-radius:10px;background:rgba(42,107,42,.2);color:#6ee7a0;">✓ מחוון שמור</span>':'<span style="font-size:.75rem;opacity:.5;">מחוון ריק — מלאי ציונים</span>'}
+      ${hasData?`<span style="font-size:.72rem;padding:2px 8px;border-radius:10px;
+        background:rgba(42,107,42,.2);color:#6ee7a0;">✓ מחוון שמור מ-${fmtDate(new Date(grades.gradedAt||Date.now()).toISOString().split('T')[0])}</span>`
+        :'<span style="font-size:.72rem;opacity:.5;">מחוון ריק — מלאי ציונים</span>'}
     </div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
       <thead><tr style="border-bottom:1px solid rgba(212,168,67,.2);">
         <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:right;">קריטריון</th>
         <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:center;width:50px;">מקס׳</th>
         <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:center;width:65px;">ניקוד</th>
-        <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);">הערה</th>
+        <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);">הערה לקריטריון</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(212,168,67,.07);border-radius:8px;margin-bottom:12px;">
-      <div style="font-size:.85rem;font-weight:700;">ציון סופי:</div>
-      <input type="number" min="0" max="100" value="${grades.score??''}" id="er-total"
-        style="width:65px;background:rgba(253,245,224,.07);border:2px solid var(--gold);border-radius:7px;
-        color:var(--gold);text-align:center;font-size:1rem;font-weight:900;padding:4px;
-        font-family:Heebo,sans-serif;outline:none;">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+      background:rgba(212,168,67,.07);border-radius:8px;margin-bottom:12px;">
+      <div style="font-size:.88rem;font-weight:700;">ציון סופי:</div>
+      <input type="number" min="0" max="100" value="${grades.score??calcTotal}" id="er-total"
+        style="width:65px;background:rgba(253,245,224,.07);border:2px solid var(--gold);
+        border-radius:7px;color:var(--gold);text-align:center;font-size:1rem;font-weight:900;
+        padding:4px;font-family:Heebo,sans-serif;outline:none;">
+      <span style="font-size:.72rem;opacity:.4;">ניתן לשינוי ידני</span>
     </div>
-    <div style="margin-bottom:14px;">
-      <div style="font-size:.75rem;opacity:.55;margin-bottom:5px;">הערה מילולית:</div>
-      <textarea id="er-feedback" rows="3"
+    <div style="margin-bottom:4px;">
+      <div style="font-size:.75rem;opacity:.6;margin-bottom:5px;">הערה מילולית (ניתנת להעתקה):</div>
+      <textarea id="er-feedback" rows="4"
         style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);
-        border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.85rem;
-        padding:9px;outline:none;resize:vertical;direction:rtl;">${esc(grades.feedback||'')}</textarea>
+        border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;
+        padding:9px;outline:none;resize:vertical;direction:rtl;user-select:text;"
+        onclick="this.select()">${esc(grades.feedback||'')}</textarea>
+      <div style="font-size:.7rem;opacity:.4;margin-top:3px;">לחצי על הטקסט לסימון הכל, Ctrl+C להעתקה</div>
     </div>`;
 
-  document.getElementById('rubric-modal-title').textContent='📑 עריכת מחוון — '+esc(studentName);
-  document.getElementById('rubric-modal-content').innerHTML=html;
   document.getElementById('btn-rubric-save').style.display='inline-block';
   document.getElementById('btn-rubric-save').onclick=()=>saveEditedStudentRubric(taskId,studentName,criteria.length);
   openModal('modal-rubric');
@@ -1695,19 +1811,31 @@ function updateErTotal(n){
 function saveEditedStudentRubric(taskId,studentName,n){
   const score=parseInt(document.getElementById('er-total')?.value)||0;
   const feedback=document.getElementById('er-feedback')?.value.trim()||'';
+  const task=tasks.find(t=>t.id===taskId);
+  const key=studentName.replace(/ /g,'_');
+  const existing=task?.grades?.[key]||{};
   const rubricScores=[];
   for(let i=0;i<n;i++){
     const s=document.getElementById('er-s-'+i);
     const c=document.getElementById('er-c-'+i);
-    rubricScores.push({score:parseInt(s?.value)||0,comment:c?.value||''});
+    // שמור שם קריטריון גם כאן
+    const criterionName=existing.rubricScores?.[i]?.criterion
+      ||task?.rubric?.criteria?.[i]?.name
+      ||('קריטריון '+(i+1));
+    const maxScore=existing.rubricScores?.[i]?.maxScore
+      ||task?.rubric?.criteria?.[i]?.maxPoints||0;
+    rubricScores.push({
+      criterion:criterionName,
+      score:parseInt(s?.value)||0,
+      maxScore,
+      comment:c?.value||''
+    });
   }
-  const key=studentName.replace(/ /g,'_');
-  const task=tasks.find(t=>t.id===taskId);
-  const existing=task?.grades?.[key]||{};
-  const gradeData={...existing,score,feedback,rubricScores,gradedAt:existing.gradedAt||Date.now(),editedAt:Date.now()};
+  const gradeData={...existing,score,feedback,rubricScores,editedAt:Date.now()};
+  if(!gradeData.gradedAt)gradeData.gradedAt=Date.now();
   db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gradeData);
   if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
-  toast('✓ המחוון נשמר');
+  toast('✓ המחוון נשמר — '+studentName);
   closeModals();
   openTaskDetail(taskId);
 }
@@ -1719,46 +1847,67 @@ function exportGrades(taskId, mode='simple'){
   const task=tasks.find(t=>t.id===taskId);if(!task)return;
   const group=groups.find(g=>g.id===task.groupId);
   const students=group?.students||[];
-  const criteria=task.rubric?.criteria||[];
+
+  // helper: escape cell for CSV
+  const csvCell=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
 
   if(mode==='simple'){
-    // CSV בסיסי: שם, ציון, הערה — מתאים להזנה במערכת ביה"ס
-    const rows=[['שם תלמיד/ה','ציון','הערה מילולית','תאריך בדיקה']];
+    // CSV פשוט למערכת ציונים
+    const header=[csvCell('שם תלמיד/ה'),csvCell('ציון'),csvCell('הערה מילולית'),csvCell('תאריך בדיקה')];
+    const rows=[header.join(',')];
     students.forEach(s=>{
       const key=s.replace(/ /g,'_');
       const g=task.grades?.[key]||{};
-      const feedbackClean=(g.feedback||'').replace(/,/g,' ').replace(/\n/g,' ');
-      rows.push([s, g.score??'', feedbackClean,
-        g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):''
-      ]);
+      rows.push([
+        csvCell(s),
+        csvCell(g.score??''),
+        csvCell(g.feedback||''),
+        csvCell(g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):'')
+      ].join(','));
     });
-    const csv=rows.map(r=>r.map(cell=>`"${cell}"`).join(',')).join('\n');
-    downloadFile('\uFEFF'+csv, task.name+'_ציונים.csv', 'text/csv;charset=utf-8');
-    toast('✓ קובץ CSV הורד');
+    downloadFile('\uFEFF'+rows.join('\r\n'), task.name+'_ציונים.csv', 'text/csv;charset=utf-8');
+    toast('✓ CSV ציונים הורד ('+students.length+' תלמידים)');
 
   } else {
-    // דוח מפורט: ציון + כל קריטריון + הערות
-    const headerCols=['שם תלמיד/ה','ציון סופי'];
-    criteria.forEach(c=>headerCols.push(c.name+' ('+c.maxPoints+')','הערה — '+c.name));
-    headerCols.push('הערה מילולית','תאריך בדיקה');
+    // דוח מפורט: ציון + כל קריטריון + הערה
+    // קבל רשימת קריטריונים מהמשימה או מהנתונים הקיימים
+    const criteriaNames=[];
+    if(task.rubric?.criteria){
+      task.rubric.criteria.forEach(c=>criteriaNames.push(c.name));
+    } else {
+      // נסה לאסוף מהנתונים הקיימים
+      students.forEach(s=>{
+        const key=s.replace(/ /g,'_');
+        const rs=task.grades?.[key]?.rubricScores||[];
+        rs.forEach((r,i)=>{if(r.criterion&&!criteriaNames[i])criteriaNames[i]=r.criterion;});
+      });
+    }
 
-    const rows=[headerCols];
+    const header=[csvCell('שם תלמיד/ה'),csvCell('ציון סופי')];
+    criteriaNames.forEach(n=>{
+      header.push(csvCell('ניקוד — '+n));
+      header.push(csvCell('הערה — '+n));
+    });
+    header.push(csvCell('הערה מילולית כוללת'));
+    header.push(csvCell('תאריך בדיקה'));
+
+    const rows=[header.join(',')];
     students.forEach(s=>{
       const key=s.replace(/ /g,'_');
       const g=task.grades?.[key]||{};
       const rubricScores=g.rubricScores||[];
-      const row=[s, g.score??''];
-      criteria.forEach((_,i)=>{
+      const row=[csvCell(s),csvCell(g.score??'')];
+      criteriaNames.forEach((_,i)=>{
         const rs=rubricScores[i]||{};
-        row.push(rs.score??'', (rs.comment||'').replace(/,/g,' ').replace(/\n/g,' '));
+        row.push(csvCell(rs.score??''));
+        row.push(csvCell(rs.comment||''));
       });
-      row.push((g.feedback||'').replace(/,/g,' ').replace(/\n/g,' '));
-      row.push(g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):'');
-      rows.push(row);
+      row.push(csvCell(g.feedback||''));
+      row.push(csvCell(g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):''));
+      rows.push(row.join(','));
     });
-    const csv=rows.map(r=>r.map(cell=>`"${cell}"`).join(',')).join('\n');
-    downloadFile('\uFEFF'+csv, task.name+'_דוח_מפורט.csv', 'text/csv;charset=utf-8');
-    toast('✓ דוח מפורט הורד');
+    downloadFile('\uFEFF'+rows.join('\r\n'), task.name+'_דוח_מפורט.csv', 'text/csv;charset=utf-8');
+    toast('✓ דוח מפורט הורד ('+criteriaNames.length+' קריטריונים)');
   }
 }
 
