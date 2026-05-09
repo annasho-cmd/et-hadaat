@@ -294,7 +294,7 @@ select.modal-input option{background:#2c1a0e;}
           <div class="home-card-title">דוחות</div>
           <div class="home-card-sub">מעקב תלמידים וציונים</div>
         </div>
-        <div class="home-card" onclick="openTasksScreen()" style="border-color:rgba(139,92,246,.35);" id="tasks-home-card">
+        <div class="home-card" onclick="goToTaskManagement()" style="border-color:rgba(139,92,246,.35);" id="tasks-home-card">
           <div class="home-card-icon">📋</div>
           <div class="home-card-title">ניהול משימות</div>
           <div class="home-card-sub">מחוונים, ציונים והתראות</div>
@@ -1136,7 +1136,20 @@ function updateBreadcrumb(items) {
   bc.innerHTML = html;
 }
 
-function goHome() {
+function goToTaskManagement(){
+  // בדוק איזה נתיב עובד ועבור אליו
+  const base=window.location.href.replace(/[^/]*$/, '');
+  const paths=['task_management.html','et-hadaat/task_management.html'];
+  function tryNext(i){
+    if(i>=paths.length){alert('לא נמצא קובץ ניהול משימות');return;}
+    const url=base+paths[i];
+    fetch(url,{method:'HEAD'}).then(r=>{
+      if(r.ok)window.location.href=url;
+      else tryNext(i+1);
+    }).catch(()=>tryNext(i+1));
+  }
+  tryNext(0);
+}
   if (dbListener) { db.ref(dbListener).off(); dbListener=null; }
   currentSubject=null; currentUnit=null;
   updateBreadcrumb([]);
