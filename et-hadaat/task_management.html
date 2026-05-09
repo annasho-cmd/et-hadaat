@@ -925,11 +925,15 @@ function showCopyToGroupPopup(task,gradedStudent,gradeData){
   const allStudents=(gr?.students||[]).filter(s=>s!==gradedStudent);
   if(!allStudents.length){closeGradingScreen();return;}
 
-  // בנה popup
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
   const size=task.mode.includes('3')?3:task.mode.includes('4')?4:task.mode.includes('5')?5:2;
-  const maxSelect=size-1; // כבר בדקנו את הראשון
+  const maxSelect=size-1;
+
+  // שמור נתונים גלובלית
+  window._copyGroupData={taskId:task.id,gradeData,gradedStudent};
+
+  const overlay=document.createElement('div');
+  overlay.id='copy-group-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
 
   overlay.innerHTML=`
     <div style="background:#1a0e05;border:2px solid var(--gold);border-radius:14px;padding:24px;
@@ -942,18 +946,17 @@ function showCopyToGroupPopup(task,gradedStudent,gradeData){
       <div id="copy-group-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
         ${allStudents.map(s=>`
           <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;
-            background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;cursor:pointer;
-            transition:background .15s;" onmouseover="this.style.background='rgba(212,168,67,.08)'" onmouseout="this.style.background='rgba(253,245,224,.04)'">
+            background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;cursor:pointer;">
             <input type="checkbox" value="${esc(s)}" style="width:17px;height:17px;accent-color:var(--gold);cursor:pointer;"
               onchange="cgLimitCheck(this,${maxSelect})">
             <span style="font-size:.9rem;font-weight:600;">${esc(s)}</span>
           </label>`).join('')}
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button onclick="this.closest('div[style*=fixed]').remove();closeGradingScreen();"
+        <button onclick="document.getElementById('copy-group-overlay').remove();closeGradingScreen();"
           style="padding:8px 18px;background:none;border:1px solid var(--border);color:var(--parch);
           border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">דלג — חזור למשימה</button>
-        <button onclick="copyCradeToGroup(this,'${task.id}');"
+        <button onclick="copyCradeToGroup()"
           style="padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);
           border:none;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;">
           📋 העתק ציון לסומנות
@@ -961,9 +964,6 @@ function showCopyToGroupPopup(task,gradedStudent,gradeData){
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  // שמור gradeData לשימוש בהעתקה
-  overlay._gradeData=gradeData;
-  overlay._gradedStudent=gradedStudent;
 }
 
 function cgLimitCheck(cb,max){
@@ -972,21 +972,23 @@ function cgLimitCheck(cb,max){
   if(checked.length>max){cb.checked=false;toast(`ניתן לסמן עד ${max} תלמידים`);}
 }
 
-function copyCradeToGroup(btn,taskId){
-  const overlay=btn.closest('div[style*="position:fixed"]');
-  const gradeData=overlay._gradeData;
-  const checked=[...overlay.querySelectorAll('#copy-group-list input:checked')];
+function copyCradeToGroup(){
+  const data=window._copyGroupData;
+  if(!data){toast('שגיאה — נסי שוב');return;}
+  const {taskId,gradeData,gradedStudent}=data;
+  const checked=[...document.querySelectorAll('#copy-group-list input:checked')];
   if(!checked.length){toast('לא סומנה אף תלמידה. לחצי "דלג" לחזרה.');return;}
   const task=tasks.find(t=>t.id===taskId);
   checked.forEach(cb=>{
     const sName=cb.value;
     const key=sName.replace(/ /g,'_');
-    const gd={...gradeData,copiedFrom:overlay._gradedStudent,gradedAt:Date.now()};
+    const gd={...gradeData,copiedFrom:gradedStudent,gradedAt:Date.now()};
     db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gd);
     if(task){if(!task.grades)task.grades={};task.grades[key]=gd;}
   });
   toast(`✓ ציון הועתק ל-${checked.length} תלמידים`);
-  overlay.remove();
+  document.getElementById('copy-group-overlay')?.remove();
+  window._copyGroupData=null;
   closeGradingScreen();
 }
 
