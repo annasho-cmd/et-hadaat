@@ -9,482 +9,424 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
 :root{
-  --ink:#1c1208;--brown:#6b3a1f;
-  --gold:#d4a843;--gold2:#f0c060;
-  --parch:#fdf5e0;--parch2:#f5e8c0;
-  --red:#8b2020;--green:#2a6b2a;
-  --surface:rgba(44,26,14,0.85);
-  --border:rgba(212,168,67,0.22);
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--red:#8b2020;--green:#2a6b2a;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);
   --muted:rgba(253,245,224,0.45);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.18) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.08) 0%,transparent 50%),
-    repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(212,168,67,.015) 60px,rgba(212,168,67,.015) 61px);}
-
+  background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.18) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.08) 0%,transparent 50%);}
 /* TOPBAR */
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;
-  background:rgba(20,12,4,.9);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
-.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);font-weight:700;}
-.breadcrumb{display:flex;align-items:center;gap:6px;font-size:.8rem;flex:1;margin:0 16px;flex-wrap:wrap;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;
+  background:rgba(15,8,2,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.05rem;color:var(--gold2);font-weight:700;white-space:nowrap;}
+.breadcrumb{display:flex;align-items:center;gap:5px;font-size:.78rem;flex:1;margin:0 14px;flex-wrap:wrap;}
 .bc-item{color:var(--gold);cursor:pointer;opacity:.75;transition:opacity .2s;}
 .bc-item:hover{opacity:1;}
-.bc-sep{opacity:.4;}
-.btn-back{padding:6px 14px;background:rgba(212,168,67,.1);border:1px solid var(--border);
-  color:var(--parch);border-radius:6px;cursor:pointer;font-size:.82rem;font-family:'Heebo',sans-serif;}
-.btn-back:hover{background:rgba(212,168,67,.2);}
-
-.main{flex:1;padding:24px 20px;max-width:1100px;margin:0 auto;width:100%;}
-
-/* SCREENS */
+.bc-sep{opacity:.35;}
+.btn-back{padding:5px 12px;background:rgba(212,168,67,.1);border:1px solid var(--border);
+  color:var(--parch);border-radius:6px;cursor:pointer;font-size:.8rem;font-family:'Heebo',sans-serif;white-space:nowrap;}
+.main{padding:20px 18px;max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:1;}
 .screen{display:none;}.screen.active{display:block;}
-
+.screen-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.screen-title{font-family:'Frank Ruhl Libre',serif;font-size:1.25rem;color:var(--gold2);font-weight:700;}
 /* CARDS */
-.card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
-.card-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;color:var(--gold2);font-weight:700;margin-bottom:12px;}
-
-/* SUBJECT GRID */
-.subjects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
-.subject-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:22px;
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
+.card-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;color:var(--gold2);font-weight:700;margin-bottom:10px;}
+/* SUBJECTS */
+.subjects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:26px;}
+.subject-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px;
   cursor:pointer;transition:transform .2s,border-color .2s;position:relative;overflow:hidden;}
 .subject-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-color,var(--gold));}
 .subject-card:hover{transform:translateY(-3px);border-color:var(--gold);}
-.subject-icon{font-size:2rem;margin-bottom:8px;}
-.subject-name{font-size:1rem;font-weight:700;color:var(--parch);margin-bottom:4px;}
-.subject-meta{font-size:.78rem;opacity:.6;}
-.subject-arrow{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:1.3rem;opacity:.3;}
-.badge-urgent{position:absolute;top:8px;left:8px;background:#dc2626;color:#fff;border-radius:50%;
-  width:20px;height:20px;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
-
-/* ALERTS SECTION */
-.alerts-section{margin-top:8px;}
-.alerts-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;color:var(--gold2);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.alert-row{display:flex;align-items:center;gap:12px;padding:12px 16px;
-  background:rgba(44,26,14,.7);border:1px solid var(--border);border-radius:8px;
-  margin-bottom:8px;cursor:pointer;transition:border-color .2s;}
+.subject-icon{font-size:1.9rem;margin-bottom:7px;}
+.subject-name{font-size:.95rem;font-weight:700;color:var(--parch);margin-bottom:3px;}
+.subject-meta{font-size:.75rem;opacity:.55;}
+.subject-arrow{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:1.2rem;opacity:.28;}
+.badge-urgent{position:absolute;top:7px;left:7px;background:#dc2626;color:#fff;border-radius:50%;
+  width:19px;height:19px;font-size:.62rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+/* ALERTS */
+.alerts-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;color:var(--gold2);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.alert-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(44,26,14,.7);
+  border:1px solid var(--border);border-radius:8px;margin-bottom:7px;cursor:pointer;transition:border-color .2s;}
 .alert-row:hover{border-color:var(--gold);}
 .alert-row.urgent{border-color:rgba(220,38,38,.5);background:rgba(220,38,38,.07);}
-.alert-row.soon{border-color:rgba(234,88,12,.4);background:rgba(234,88,12,.05);}
-.alert-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.alert-dot.urgent{background:#dc2626;}
-.alert-dot.soon{background:#ea580c;}
-.alert-dot.ok{background:var(--gold);}
+.alert-row.soon{border-color:rgba(234,88,12,.4);}
+.alert-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.alert-dot.urgent{background:#dc2626;}.alert-dot.soon{background:#ea580c;}.alert-dot.ok{background:var(--gold);}
 .alert-info{flex:1;}
-.alert-name{font-size:.88rem;font-weight:700;}
-.alert-sub{font-size:.75rem;opacity:.55;margin-top:2px;}
-.alert-days{font-size:.82rem;font-weight:700;flex-shrink:0;}
-.alert-days.urgent{color:#f87171;}
-.alert-days.soon{color:#fb923c;}
-.alert-days.ok{color:var(--gold);}
-
-/* TASK LIST */
-.screen-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
-.screen-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;color:var(--gold2);font-weight:700;}
-
+.alert-name{font-size:.86rem;font-weight:700;}
+.alert-sub{font-size:.72rem;opacity:.5;margin-top:1px;}
+.alert-days{font-size:.8rem;font-weight:700;flex-shrink:0;}
+.alert-days.urgent{color:#f87171;}.alert-days.soon{color:#fb923c;}.alert-days.ok{color:var(--gold);}
 /* TASK CARDS */
 .task-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
-  padding:16px;margin-bottom:12px;cursor:pointer;transition:border-color .2s,transform .2s;position:relative;}
+  padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s,transform .15s;position:relative;}
 .task-card:hover{border-color:var(--gold);transform:translateY(-1px);}
 .task-card.urgent{border-color:rgba(220,38,38,.5);background:rgba(220,38,38,.06);}
 .task-card.soon{border-color:rgba(234,88,12,.35);}
-.task-top{display:flex;align-items:flex-start;gap:12px;}
-.task-main{flex:1;}
-.task-name{font-size:.95rem;font-weight:700;margin-bottom:4px;}
-.task-meta{font-size:.75rem;opacity:.55;margin-bottom:6px;}
-.task-tags{display:flex;gap:6px;flex-wrap:wrap;}
-.tag{padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700;}
+.task-top{display:flex;align-items:flex-start;gap:10px;}
+.task-name{font-size:.92rem;font-weight:700;margin-bottom:3px;}
+.task-meta{font-size:.72rem;opacity:.5;margin-bottom:5px;}
+.task-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.tag{padding:2px 7px;border-radius:9px;font-size:.68rem;font-weight:700;}
 .tag-type{background:rgba(212,168,67,.15);color:var(--gold);}
 .tag-mode{background:rgba(109,40,217,.15);color:#c4b5fd;}
 .tag-rubric{background:rgba(42,107,42,.2);color:#6ee7a0;}
 .tag-norubric{background:rgba(100,100,100,.15);color:#888;}
 .task-stats{text-align:center;flex-shrink:0;}
-.task-stats-n{font-size:1.2rem;font-weight:900;color:var(--gold);}
-.task-stats-l{font-size:.65rem;opacity:.45;}
-.task-deadline{font-size:.72rem;margin-top:6px;}
-.task-del-btn{position:absolute;top:10px;left:10px;background:rgba(139,32,32,.2);
-  border:1px solid rgba(139,32,32,.3);border-radius:5px;color:#f87171;cursor:pointer;
-  font-size:.7rem;padding:2px 7px;z-index:2;font-family:'Heebo',sans-serif;}
-.task-del-btn:hover{background:rgba(139,32,32,.4);}
-
-/* TASK DETAIL */
-.detail-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:.82rem;margin-bottom:4px;}
-.detail-field{padding:10px 12px;background:rgba(253,245,224,.04);border-radius:8px;}
-.detail-label{font-size:.7rem;opacity:.45;margin-bottom:4px;}
-.detail-val{font-size:.88rem;font-weight:600;}
-
-/* STUDENT LIST */
-.student-row{display:flex;align-items:center;gap:12px;padding:11px 14px;
-  border-bottom:1px solid rgba(212,168,67,.08);}
-.student-row:last-child{border-bottom:none;}
-.student-name{flex:1;font-size:.9rem;font-weight:600;}
-.student-feedback{font-size:.72rem;opacity:.5;margin-top:2px;}
-.score-badge{padding:3px 12px;border-radius:10px;font-size:.85rem;font-weight:700;
-  background:rgba(42,107,42,.2);color:#6ee7a0;}
-.btn-check{padding:6px 14px;background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);
-  border-radius:7px;color:#c4b5fd;font-size:.78rem;cursor:pointer;font-family:'Heebo',sans-serif;
-  transition:background .2s;white-space:nowrap;}
-.btn-check:hover{background:rgba(109,40,217,.4);}
-
-/* ACTION BUTTONS */
-.btn-primary{padding:8px 16px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);
-  border:none;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;}
+.task-stats-n{font-size:1.15rem;font-weight:900;color:var(--gold);}
+.task-stats-l{font-size:.62rem;opacity:.4;}
+.task-del-btn{position:absolute;top:8px;left:8px;background:rgba(139,32,32,.2);
+  border:1px solid rgba(139,32,32,.3);border-radius:4px;color:#f87171;cursor:pointer;
+  font-size:.68rem;padding:2px 6px;z-index:2;font-family:'Heebo',sans-serif;}
+.progress-bar{height:3px;background:rgba(212,168,67,.12);border-radius:2px;margin-top:6px;}
+.progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),#f0c060);}
+/* DETAIL */
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:4px;}
+.detail-field{padding:9px 11px;background:rgba(253,245,224,.04);border-radius:7px;}
+.detail-label{font-size:.68rem;opacity:.4;margin-bottom:3px;}
+.detail-val{font-size:.85rem;font-weight:600;}
+/* STUDENT ROW IN DETAIL */
+.s-row{padding:12px 4px;border-bottom:1px solid rgba(212,168,67,.07);}
+.s-row:last-child{border-bottom:none;}
+.s-row-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.s-name-btn{font-size:.92rem;font-weight:700;cursor:pointer;color:var(--parch);
+  background:none;border:none;padding:0;font-family:'Heebo',sans-serif;text-align:right;}
+.s-name-btn:hover{color:var(--gold2);text-decoration:underline;}
+.s-score-input{width:56px;background:rgba(42,107,42,.15);border:1.5px solid rgba(42,107,42,.35);
+  border-radius:6px;color:#6ee7a0;text-align:center;font-size:.95rem;font-weight:700;
+  padding:4px;font-family:'Heebo',sans-serif;outline:none;}
+.s-fb-area{margin-top:7px;width:100%;background:rgba(253,245,224,.05);
+  border:1px solid rgba(212,168,67,.13);border-radius:6px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.8rem;padding:6px 8px;outline:none;
+  resize:vertical;direction:rtl;min-height:38px;}
+.s-rubric-info{font-size:.68rem;color:var(--gold);opacity:.65;margin-top:2px;}
+/* BUTTONS */
+.btn-primary{padding:8px 15px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);
+  border:none;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.83rem;font-weight:700;}
 .btn-primary:hover{opacity:.9;}
-.btn-sm{padding:6px 12px;background:rgba(212,168,67,.12);border:1px solid var(--border);
-  color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;}
-.btn-sm:hover{background:rgba(212,168,67,.25);}
-.btn-danger{padding:6px 14px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.35);
-  color:#f87171;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;}
+.btn-sm{padding:5px 11px;background:rgba(212,168,67,.1);border:1px solid var(--border);
+  color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.78rem;}
+.btn-sm:hover{background:rgba(212,168,67,.22);}
+.btn-green{padding:5px 11px;background:rgba(42,107,42,.18);border:1px solid rgba(42,107,42,.38);
+  color:#6ee7a0;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.78rem;}
+.btn-danger{padding:6px 12px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.35);
+  color:#f87171;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;}
+.btn-purple{padding:5px 11px;background:rgba(109,40,217,.18);border:1px solid rgba(109,40,217,.38);
+  color:#c4b5fd;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.78rem;}
 
-/* MODALS */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
-  display:none;align-items:center;justify-content:center;}
+/* ══ GRADING SCREEN ══ */
+#screen-grade{background:#0f0a04;}
+.grade-header{display:flex;align-items:center;gap:10px;padding:14px 18px;
+  background:rgba(20,12,4,.95);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.grade-task-name{font-family:'Frank Ruhl Libre',serif;font-size:1rem;color:var(--gold2);font-weight:700;}
+.grade-student-name{font-size:.95rem;font-weight:700;color:var(--parch);}
+.grade-nav{display:flex;gap:5px;margin-right:auto;}
+.grade-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 18px;
+  min-height:calc(100vh - 110px);}
+@media(max-width:800px){.grade-layout{grid-template-columns:1fr;}}
+.grade-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;
+  display:flex;flex-direction:column;overflow:hidden;}
+.grade-panel-hd{padding:12px 14px;border-bottom:1px solid var(--border);font-size:.82rem;
+  font-weight:700;color:var(--gold);display:flex;align-items:center;justify-content:space-between;}
+.grade-panel-bd{flex:1;padding:14px;overflow-y:auto;}
+.work-display{min-height:300px;background:rgba(253,245,224,.03);border:1px dashed rgba(212,168,67,.2);
+  border-radius:8px;padding:12px;font-size:.85rem;line-height:1.7;white-space:pre-wrap;
+  overflow-y:auto;max-height:500px;direction:rtl;}
+.work-display img{max-width:100%;border-radius:6px;}
+.rubric-row-grade{display:flex;align-items:flex-start;gap:8px;padding:8px 0;
+  border-bottom:1px solid rgba(212,168,67,.07);}
+.rubric-row-grade:last-child{border-bottom:none;}
+.rg-name{flex:1;font-size:.83rem;line-height:1.4;}
+.rg-max{font-size:.72rem;opacity:.4;width:36px;text-align:center;flex-shrink:0;padding-top:3px;}
+.rg-score{width:52px;background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);
+  border-radius:5px;color:var(--gold);text-align:center;font-size:.88rem;font-weight:700;
+  padding:4px;font-family:'Heebo',sans-serif;outline:none;flex-shrink:0;}
+.rg-comment{flex:1.5;background:rgba(253,245,224,.04);border:1px solid rgba(255,255,255,.07);
+  border-radius:5px;color:var(--parch);font-size:.75rem;padding:4px 6px;
+  font-family:'Heebo',sans-serif;outline:none;resize:none;}
+.grade-score-row{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:rgba(212,168,67,.07);border-top:1px solid rgba(212,168,67,.15);}
+.grade-total-input{width:65px;background:rgba(253,245,224,.07);border:2px solid var(--gold);
+  border-radius:7px;color:var(--gold);text-align:center;font-size:1.05rem;font-weight:900;
+  padding:5px;font-family:'Heebo',sans-serif;outline:none;}
+.grade-fb{width:100%;background:rgba(253,245,224,.06);border:1.5px solid rgba(212,168,67,.2);
+  border-radius:8px;color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.85rem;
+  padding:9px;outline:none;resize:vertical;direction:rtl;line-height:1.6;}
+
+/* ══ WIZARD MODAL ══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;
+  display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px 0;}
 .modal-overlay.open{display:flex;}
-.modal{background:#1e1206;border:2px solid var(--gold);border-radius:14px;padding:26px;
-  width:100%;max-width:580px;margin:16px;max-height:92vh;overflow-y:auto;}
-.modal-lg{max-width:680px;}
-.modal-title{font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;color:var(--gold2);margin-bottom:20px;font-weight:700;}
-.modal-field{margin-bottom:14px;}
-.modal-label{font-size:.78rem;color:var(--gold);opacity:.85;margin-bottom:5px;}
-.modal-input{width:100%;padding:10px 12px;background:rgba(253,245,224,.07);
-  border:1.5px solid var(--border);border-radius:7px;color:var(--parch);
-  font-family:'Heebo',sans-serif;font-size:.9rem;outline:none;transition:border .2s;}
-.modal-input:focus{border-color:var(--gold);}
-select.modal-input{appearance:auto;}
-select.modal-input option{background:#2c1a0e;}
-textarea.modal-input{resize:vertical;direction:rtl;}
-.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.modal-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;}
-.modal-cancel{padding:8px 18px;background:none;border:1px solid var(--border);
-  color:var(--parch);border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;}
-
-/* SUB-OPTIONS */
-.sub-option-row{display:none;margin-top:8px;padding:12px;background:rgba(109,40,217,.08);
-  border:1px solid rgba(109,40,217,.25);border-radius:8px;}
-.sub-option-row.visible{display:block;}
-.radio-group{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
-.radio-opt{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem;
-  padding:7px 12px;border-radius:7px;border:1px solid var(--border);background:rgba(253,245,224,.04);
-  transition:all .2s;}
-.radio-opt:hover{border-color:rgba(109,40,217,.5);}
-.radio-opt.selected{border-color:#7c3aed;background:rgba(109,40,217,.15);color:#c4b5fd;}
-.radio-opt input{accent-color:#7c3aed;}
-
-/* GROUPS ASSIGNMENT */
-.groups-assignment{display:none;margin-top:10px;}
-.groups-assignment.visible{display:block;}
-.group-slot{background:rgba(44,26,14,.6);border:1px solid var(--border);border-radius:8px;
-  padding:10px 14px;margin-bottom:8px;}
-.group-slot-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-.group-slot-title{font-size:.82rem;font-weight:700;color:var(--gold);}
-.group-slot-members{display:flex;flex-wrap:wrap;gap:6px;}
-.member-tag{padding:3px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border);
-  border-radius:12px;font-size:.75rem;cursor:pointer;transition:all .2s;}
-.member-tag:hover{background:rgba(212,168,67,.2);}
-.member-tag.selected{background:rgba(109,40,217,.2);border-color:#7c3aed;color:#c4b5fd;}
-
-/* FILE UPLOAD */
-.file-drop{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;
+.modal{background:#1a0e05;border:2px solid var(--gold);border-radius:14px;
+  width:100%;max-width:620px;margin:auto 16px;}
+.modal-lg{max-width:720px;}
+/* WIZARD STEPS */
+.wizard-steps{display:flex;align-items:center;padding:16px 22px 0;gap:0;}
+.wstep{display:flex;align-items:center;flex:1;}
+.wstep-dot{width:28px;height:28px;border-radius:50%;background:rgba(212,168,67,.12);
+  border:2px solid var(--border);color:var(--muted);font-size:.75rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s;}
+.wstep-dot.done{background:rgba(42,107,42,.3);border-color:#6ee7a0;color:#6ee7a0;}
+.wstep-dot.active{background:rgba(212,168,67,.2);border-color:var(--gold);color:var(--gold2);}
+.wstep-label{font-size:.65rem;opacity:.5;margin-top:3px;text-align:center;white-space:nowrap;}
+.wstep-line{flex:1;height:1px;background:var(--border);margin:0 4px;margin-bottom:16px;}
+.wstep-line.done{background:rgba(42,107,42,.5);}
+.wstep-wrap{display:flex;flex-direction:column;align-items:center;}
+.wizard-body{padding:20px 22px;}
+.wizard-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);
+  font-weight:700;margin-bottom:16px;}
+.wizard-btns{padding:14px 22px;border-top:1px solid rgba(212,168,67,.12);
+  display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+/* MODAL FIELDS */
+.mf{margin-bottom:13px;}
+.ml{font-size:.77rem;color:var(--gold);opacity:.82;margin-bottom:5px;}
+.mi{width:100%;padding:9px 11px;background:rgba(253,245,224,.07);border:1.5px solid var(--border);
+  border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;transition:border .2s;}
+.mi:focus{border-color:var(--gold);}
+select.mi{appearance:auto;}
+select.mi option{background:#2c1a0e;}
+textarea.mi{resize:vertical;direction:rtl;}
+.mrow{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+/* CHECKBOXES GRID */
+.check-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;}
+.check-opt{display:flex;align-items:center;gap:6px;padding:6px 12px;
+  border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:.83rem;
+  background:rgba(253,245,224,.04);transition:all .2s;}
+.check-opt:hover{border-color:var(--gold);}
+.check-opt.sel{border-color:var(--gold);background:rgba(212,168,67,.13);color:var(--gold2);}
+.check-opt input{accent-color:var(--gold);}
+/* RADIO */
+.radio-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;}
+.radio-opt{padding:6px 12px;border:1px solid var(--border);border-radius:7px;cursor:pointer;
+  font-size:.82rem;background:rgba(253,245,224,.04);transition:all .2s;}
+.radio-opt:hover,.radio-opt.sel{border-color:#7c3aed;background:rgba(109,40,217,.13);color:#c4b5fd;}
+/* FILE DROP */
+.file-drop{border:2px dashed var(--border);border-radius:9px;padding:16px;text-align:center;
   cursor:pointer;transition:border-color .2s;}
 .file-drop:hover{border-color:var(--gold);}
-.file-drop-icon{font-size:1.8rem;margin-bottom:6px;}
-.file-drop-text{font-size:.82rem;opacity:.6;}
-.file-name{font-size:.78rem;color:var(--gold);margin-top:6px;}
-
+.file-name{font-size:.76rem;color:var(--gold);margin-top:5px;}
 /* RUBRIC TABLE */
-.rubric-table{width:100%;border-collapse:collapse;margin-bottom:12px;}
-.rubric-table th{padding:7px 8px;font-size:.72rem;color:var(--gold);text-align:right;
-  border-bottom:1px solid rgba(212,168,67,.2);}
-.rubric-table td{padding:7px 8px;vertical-align:top;border-bottom:1px solid rgba(212,168,67,.06);}
-.rubric-input{width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.15);
-  border-radius:5px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.82rem;padding:5px 8px;outline:none;}
-.rubric-num{width:58px;text-align:center;color:var(--gold);font-weight:700;}
-.rubric-total-row{display:flex;justify-content:space-between;align-items:center;
-  padding:8px 4px;font-size:.85rem;}
-
-/* CHECK WORK */
-.check-mode-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
-.check-mode-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);
-  background:transparent;color:var(--parch);cursor:pointer;font-family:'Heebo',sans-serif;
-  font-size:.83rem;transition:all .2s;}
-.check-mode-btn.active{border-color:var(--gold);background:rgba(212,168,67,.15);color:var(--gold);font-weight:700;}
-
-/* RESULT */
-.result-box{background:rgba(44,26,14,.8);border:1px solid rgba(212,168,67,.25);border-radius:12px;padding:16px;margin-top:14px;}
-.result-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(212,168,67,.06);}
-.result-name{flex:1;font-size:.82rem;}
-.result-max{font-size:.75rem;opacity:.5;width:40px;text-align:center;}
-.result-score-input{width:55px;background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);
-  border-radius:5px;color:var(--gold);text-align:center;font-size:.88rem;font-weight:700;
-  padding:4px;font-family:'Heebo',sans-serif;outline:none;}
-.result-comment{flex:2;background:rgba(253,245,224,.04);border:1px solid rgba(255,255,255,.08);
-  border-radius:5px;color:var(--parch);font-size:.75rem;padding:4px 7px;font-family:'Heebo',sans-serif;outline:none;}
-
-/* EMPTY */
-.empty-state{text-align:center;padding:36px;opacity:.4;font-size:.88rem;}
-
+.rubric-tbl{width:100%;border-collapse:collapse;margin-bottom:10px;}
+.rubric-tbl th{padding:6px 7px;font-size:.7rem;color:var(--gold);text-align:right;
+  border-bottom:1px solid rgba(212,168,67,.18);}
+.rubric-tbl td{padding:6px 7px;vertical-align:top;border-bottom:1px solid rgba(212,168,67,.05);}
+.ri{width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.14);
+  border-radius:5px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.8rem;padding:5px 7px;outline:none;}
+.ri-num{width:54px;text-align:center;color:var(--gold);font-weight:700;}
+/* AI STATUS */
+.ai-status{display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.25);border-radius:8px;
+  font-size:.82rem;color:#c4b5fd;margin-bottom:10px;}
+.ai-spin{width:16px;height:16px;border:2px solid rgba(109,40,217,.3);
+  border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* SUB OPTION */
+.sub-opt-row{display:none;margin-top:8px;padding:10px;background:rgba(109,40,217,.07);
+  border:1px solid rgba(109,40,217,.22);border-radius:8px;}
+.sub-opt-row.vis{display:block;}
+/* GROUP SLOTS */
+.group-slot{background:rgba(44,26,14,.6);border:1px solid var(--border);border-radius:7px;
+  padding:9px 12px;margin-bottom:7px;}
+.gs-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.gs-title{font-size:.8rem;font-weight:700;color:var(--gold);}
+.member-tag{display:inline-flex;align-items:center;padding:3px 9px;
+  background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:11px;
+  font-size:.73rem;cursor:pointer;margin:2px;transition:all .15s;}
+.member-tag.sel{background:rgba(109,40,217,.18);border-color:#7c3aed;color:#c4b5fd;}
 /* TOAST */
-#toast{position:fixed;bottom:24px;right:24px;background:#1a3a1a;border:1px solid #3fb950;
-  color:#6ee7a0;padding:10px 18px;border-radius:8px;font-size:.85rem;z-index:9999;display:none;}
-
-/* RUBRIC VIEW */
-.rubric-view-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(212,168,67,.07);}
-.rubric-view-name{flex:1;font-size:.85rem;}
-.rubric-view-pts{font-size:.85rem;font-weight:700;color:var(--gold);width:50px;text-align:center;}
-.rubric-view-desc{font-size:.75rem;opacity:.5;flex:1.5;}
-
-/* PROGRESS BAR */
-.progress-bar{height:4px;background:rgba(212,168,67,.15);border-radius:2px;margin-top:6px;}
-.progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),#f0c060);transition:width .4s;}
-
-/* TABS */
-.tabs{display:flex;gap:0;border-bottom:2px solid rgba(212,168,67,.15);margin-bottom:20px;}
-.tab{padding:8px 18px;background:none;border:none;color:var(--muted);cursor:pointer;
-  font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;border-bottom:2px solid transparent;
-  margin-bottom:-2px;transition:all .2s;}
-.tab:hover{color:var(--parch);}
-.tab.active{border-bottom-color:var(--gold);color:var(--gold2);}
+#toast{position:fixed;bottom:22px;right:22px;background:#1a3a1a;border:1px solid #3fb950;
+  color:#6ee7a0;padding:9px 17px;border-radius:8px;font-size:.83rem;z-index:9999;display:none;pointer-events:none;}
+/* MISC */
+.empty-state{text-align:center;padding:32px;opacity:.38;font-size:.86rem;}
+.info-box{padding:10px 13px;border-radius:8px;font-size:.8rem;margin-bottom:10px;}
+.info-box.green{background:rgba(42,107,42,.12);border:1px solid rgba(42,107,42,.3);color:#6ee7a0;}
+.info-box.gold{background:rgba(212,168,67,.09);border:1px solid rgba(212,168,67,.25);color:var(--gold2);}
+.info-box.purple{background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.28);color:#c4b5fd;}
 </style>
 </head>
 <body>
 
-<div id="topbar" class="topbar">
-  <div class="topbar-title">📋 ניהול משימות — עת הדעת</div>
+<div class="topbar">
+  <div class="topbar-title">📋 ניהול משימות</div>
   <div class="breadcrumb" id="breadcrumb"></div>
-  <button class="btn-back" onclick="goBack()">← חזור ללוח</button>
+  <button class="btn-back" onclick="goBack()">← לוח המורה</button>
 </div>
 
-<div class="main">
+<div class="main" id="main-wrap">
 
-  <!-- ══ HOME ══ -->
+  <!-- HOME -->
   <div class="screen active" id="screen-home">
     <div class="screen-hd">
       <div class="screen-title">📋 ניהול משימות</div>
     </div>
-
-    <!-- subject cubes -->
-    <div class="subjects-grid" id="home-subjects-grid">
-      <div class="empty-state">טוען מקצועות...</div>
-    </div>
-
-    <!-- alerts section -->
-    <div class="alerts-section">
-      <div class="alerts-title">
-        ⏰ לוח התרעות
-        <span id="alerts-count" style="background:rgba(220,38,38,.2);color:#f87171;border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700;display:none;"></span>
+    <div class="subjects-grid" id="home-subjects-grid"><div class="empty-state">טוען...</div></div>
+    <div style="margin-top:4px;">
+      <div class="alerts-title">⏰ לוח התרעות
+        <span id="alerts-count" style="display:none;background:rgba(220,38,38,.2);color:#f87171;border-radius:9px;padding:1px 8px;font-size:.7rem;font-weight:700;"></span>
       </div>
-      <div id="alerts-list"><div class="empty-state" style="padding:16px;">אין משימות פעילות</div></div>
+      <div id="alerts-list"><div class="empty-state" style="padding:14px;">אין משימות פעילות</div></div>
     </div>
   </div>
 
-  <!-- ══ SUBJECT TASKS ══ -->
+  <!-- SUBJECT -->
   <div class="screen" id="screen-subject">
     <div class="screen-hd">
-      <div class="screen-title" id="subject-title">משימות</div>
-      <button class="btn-primary" onclick="openNewTaskModal()">➕ משימה חדשה</button>
+      <div class="screen-title" id="subject-title"></div>
+      <button class="btn-primary" onclick="openWizard()">➕ משימה חדשה</button>
     </div>
     <div id="tasks-columns"></div>
-    <div class="empty-state" id="tasks-empty" style="display:none;">אין משימות עדיין. לחצי על "➕ משימה חדשה".</div>
+    <div class="empty-state" id="tasks-empty" style="display:none;">אין משימות עדיין.</div>
   </div>
 
-  <!-- ══ TASK DETAIL ══ -->
+  <!-- TASK DETAIL -->
   <div class="screen" id="screen-detail">
     <div class="screen-hd">
-      <div class="screen-title" id="detail-title">משימה</div>
+      <div class="screen-title" id="detail-title"></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn-primary" onclick="openCheckWorkModal()">📎 בדוק עבודה</button>
-        <div style="position:relative;">
-          <button class="btn-sm" onclick="toggleRubricMenu()">📑 מחוון ▾</button>
-          <div id="rubric-menu" style="display:none;position:absolute;top:110%;right:0;
-            background:#1a0f05;border:1px solid var(--border);border-radius:10px;padding:6px;
-            z-index:50;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.5);">
-            <button onclick="viewRubric();closeRubricMenu()" class="rubric-menu-btn">👁 צפה במחוון</button>
-            <button onclick="openBuildRubric('qa');closeRubricMenu()" class="rubric-menu-btn" style="color:#c4b5fd;">📝 מחוון שאלות/תשובות</button>
-            <button onclick="openBuildRubric('eval');closeRubricMenu()" class="rubric-menu-btn" style="color:#93c5fd;">📊 מחוון הערכה</button>
-          </div>
-        </div>
         <button class="btn-sm" onclick="editCurrentTask()">✏️ ערוך</button>
         <button class="btn-sm" onclick="duplicateCurrentTask()">📋 שכפל</button>
-        <button class="btn-sm" style="background:rgba(34,197,94,.1);color:#22c55e;border-color:rgba(34,197,94,.3);" onclick="completeCurrentTask()" id="btn-complete">✅ סיים</button>
+        <div style="position:relative;">
+          <button class="btn-sm" onclick="toggleRubricMenu()">📑 מחוון ▾</button>
+          <div id="rubric-menu" style="display:none;position:absolute;top:110%;right:0;background:#1a0f05;
+            border:1px solid var(--border);border-radius:9px;padding:5px;z-index:50;min-width:170px;box-shadow:0 8px 22px rgba(0,0,0,.5);">
+            <button onclick="viewRubric();closeRubricMenu()" class="rmb">👁 צפה במחוון</button>
+            <button onclick="openBuildRubric('qa');closeRubricMenu()" class="rmb" style="color:#c4b5fd;">📝 שאלות/תשובות</button>
+            <button onclick="openBuildRubric('eval');closeRubricMenu()" class="rmb" style="color:#93c5fd;">📊 הערכה</button>
+          </div>
+        </div>
+        <button class="btn-sm" style="background:rgba(34,197,94,.1);color:#22c55e;border-color:rgba(34,197,94,.28);"
+          id="btn-complete" onclick="completeCurrentTask()">✅ סיים</button>
         <button class="btn-danger" onclick="deleteCurrentTask()">🗑 מחק</button>
       </div>
     </div>
     <div id="detail-content"></div>
   </div>
 
-</div><!-- /main -->
+</div><!-- /main-wrap -->
 
-<!-- ══ MODAL: NEW / EDIT TASK ══ -->
-<div class="modal-overlay" id="modal-task">
-  <div class="modal modal-lg">
-    <div class="modal-title" id="modal-task-title">➕ משימה חדשה</div>
-
-    <div class="modal-field">
-      <div class="modal-label">שם המשימה</div>
-      <input class="modal-input" id="tf-name" placeholder="למשל: פסקול של אומה">
+<!-- GRADING SCREEN — full page, outside main -->
+<div class="screen" id="screen-grade" style="position:fixed;inset:0;z-index:40;overflow-y:auto;background:#0f0a04;">
+  <div class="grade-header">
+    <div>
+      <div class="grade-task-name" id="grade-task-name"></div>
+      <div class="grade-student-name" id="grade-student-name"></div>
     </div>
-
-    <div class="modal-row">
-      <div class="modal-field">
-        <div class="modal-label">קבוצת לימוד</div>
-        <select class="modal-input" id="tf-group"></select>
-      </div>
-      <div class="modal-field">
-        <div class="modal-label">סוג משימה</div>
-        <select class="modal-input" id="tf-type">
-          <option value="עבודה">עבודה</option>
-          <option value="בוחן">בוחן</option>
-          <option value="מבחן">מבחן</option>
-          <option value="שיעורי בית">שיעורי בית</option>
-          <option value="פרויקט">פרויקט</option>
-          <option value="מצגת">מצגת</option>
-        </select>
-      </div>
+    <div class="grade-nav">
+      <button class="btn-sm" onclick="gradeNav(-1)">◀ הקודם</button>
+      <span id="grade-nav-pos" style="font-size:.78rem;opacity:.5;padding:0 6px;align-self:center;"></span>
+      <button class="btn-sm" onclick="gradeNav(1)">הבא ▶</button>
     </div>
-
-    <div class="modal-row">
-      <div class="modal-field">
-        <div class="modal-label">תאריך פתיחה</div>
-        <input class="modal-input" id="tf-open" type="date">
-      </div>
-      <div class="modal-field">
-        <div class="modal-label">תאריך הגשה</div>
-        <input class="modal-input" id="tf-due" type="date">
-      </div>
-    </div>
-
-    <div class="modal-row">
-      <div class="modal-field">
-        <div class="modal-label">מועד אחרון לציונים</div>
-        <select class="modal-input" id="tf-gradedays">
-          <option value="21">3 שבועות</option>
-          <option value="14">2 שבועות</option>
-        </select>
-      </div>
-      <div class="modal-field">
-        <div class="modal-label">אופן הגשה</div>
-        <select class="modal-input" id="tf-mode" onchange="onModeChange()">
-          <option value="אישי">אישי</option>
-          <option value="זוגות">זוגות</option>
-          <option value="קבוצה של 3">קבוצה של 3</option>
-          <option value="קבוצה של 4">קבוצה של 4</option>
-          <option value="קבוצה של 5">קבוצה של 5</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- sub-option row (appears when mode != אישי) -->
-    <div class="sub-option-row" id="sub-option-row">
-      <div class="modal-label" style="margin-bottom:4px;">אופן חלוקה לקבוצות</div>
-      <div class="radio-group">
-        <label class="radio-opt" id="ro-free" onclick="selectGroupMethod('free')">
-          <input type="radio" name="gmethod" value="free"> בחירה חופשית
-        </label>
-        <label class="radio-opt" id="ro-manual" onclick="selectGroupMethod('manual')">
-          <input type="radio" name="gmethod" value="manual"> קביעת קבוצות ידנית
-        </label>
-        <label class="radio-opt" id="ro-auto" onclick="selectGroupMethod('auto')">
-          <input type="radio" name="gmethod" value="auto"> חלוקה אוטומטית
-        </label>
-      </div>
-      <div id="groups-panel" class="groups-assignment"></div>
-    </div>
-
-    <div class="modal-field">
-      <div class="modal-label">הוראות המשימה</div>
-      <textarea class="modal-input" id="tf-instructions" rows="3" placeholder="תארי את המשימה בפירוט..."></textarea>
-      <!-- file for instructions -->
-      <div style="margin-top:8px;">
-        <div class="modal-label" style="margin-bottom:4px;">או העלי קובץ (PDF / תמונה)</div>
-        <div class="file-drop" onclick="document.getElementById('tf-instr-file').click()" id="instr-drop">
-          <div class="file-drop-icon">📄</div>
-          <div class="file-drop-text">לחצי לבחירת קובץ הוראות</div>
-          <div class="file-name" id="instr-file-name"></div>
+    <button class="btn-sm" onclick="closeGradingScreen()" style="margin-right:auto;">✕ חזור למשימה</button>
+  </div>
+  <div class="grade-layout">
+    <!-- LEFT: עבודת התלמיד -->
+    <div class="grade-panel">
+      <div class="grade-panel-hd">
+        <span>📄 עבודת התלמיד</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm" id="gm-text" onclick="setGradeMode('text')">📝 טקסט</button>
+          <button class="btn-sm" id="gm-pdf" onclick="setGradeMode('pdf')">📄 PDF</button>
+          <button class="btn-sm" id="gm-image" onclick="setGradeMode('image')">🖼 תמונה</button>
         </div>
-        <input type="file" id="tf-instr-file" accept=".pdf,image/*" style="display:none;" onchange="loadInstrFile(this)">
       </div>
-    </div>
-
-    <!-- rubric section -->
-    <div style="border-top:1px solid rgba(212,168,67,.15);padding-top:14px;margin-top:4px;">
-      <div class="modal-label" style="margin-bottom:8px;font-size:.85rem;color:var(--gold2);">📑 מחוון</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-        <button class="btn-sm" style="color:#c4b5fd;border-color:rgba(109,40,217,.3);" onclick="buildRubricInModal('qa')">📝 בנה — שאלות/תשובות</button>
-        <button class="btn-sm" style="color:#93c5fd;border-color:rgba(37,99,235,.3);" onclick="buildRubricInModal('eval')">📊 בנה — הערכה</button>
-        <div style="font-size:.75rem;opacity:.4;align-self:center;">או</div>
-        <div class="file-drop" style="flex:1;padding:8px 12px;display:flex;align-items:center;gap:8px;" onclick="document.getElementById('tf-rubric-img').click()">
-          <span style="font-size:1.1rem;">🖼️</span>
-          <span style="font-size:.78rem;opacity:.6;">העלי תמונת מחוון קיים</span>
-          <span class="file-name" id="rubric-img-name" style="margin:0;"></span>
+      <div class="grade-panel-bd">
+        <!-- text -->
+        <div id="gm-area-text">
+          <textarea id="grade-work-text" class="grade-fb" rows="14"
+            placeholder="הדביקי את טקסט עבודת התלמיד כאן..." style="width:100%;min-height:300px;"></textarea>
         </div>
-        <input type="file" id="tf-rubric-img" accept="image/*" style="display:none;" onchange="loadRubricImage(this)">
+        <!-- pdf -->
+        <div id="gm-area-pdf" style="display:none;">
+          <div class="file-drop" onclick="document.getElementById('grade-pdf-input').click()">
+            <div style="font-size:1.8rem;margin-bottom:6px;">📄</div>
+            <div style="font-size:.82rem;opacity:.6;">לחצי לבחירת PDF</div>
+            <div class="file-name" id="grade-pdf-name"></div>
+          </div>
+          <input type="file" id="grade-pdf-input" accept=".pdf" style="display:none;" onchange="loadGradeFile(this,'pdf')">
+          <div id="grade-pdf-viewer" style="display:none;margin-top:10px;">
+            <iframe id="grade-pdf-frame" style="width:100%;height:450px;border:none;border-radius:8px;"></iframe>
+          </div>
+        </div>
+        <!-- image -->
+        <div id="gm-area-image" style="display:none;">
+          <div class="file-drop" onclick="document.getElementById('grade-img-input').click()">
+            <div style="font-size:1.8rem;margin-bottom:6px;">🖼</div>
+            <div style="font-size:.82rem;opacity:.6;">לחצי לבחירת תמונה</div>
+            <div class="file-name" id="grade-img-name"></div>
+          </div>
+          <input type="file" id="grade-img-input" accept="image/*" style="display:none;" onchange="loadGradeFile(this,'image')">
+          <div id="grade-img-viewer" style="display:none;margin-top:10px;text-align:center;">
+            <img id="grade-img-el" style="max-width:100%;max-height:450px;border-radius:8px;object-fit:contain;">
+          </div>
+        </div>
+        <!-- AI check button -->
+        <div style="margin-top:12px;">
+          <button class="btn-primary" style="width:100%;background:rgba(109,40,217,.8);" id="btn-grade-ai" onclick="gradeWithAI()">
+            🤖 בדוק לפי מחוון
+          </button>
+        </div>
       </div>
-      <div id="modal-rubric-preview" style="display:none;"></div>
     </div>
-
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
-      <button class="btn-primary" id="btn-save-task" onclick="saveTask()">💾 שמור משימה</button>
+    <!-- RIGHT: מחוון -->
+    <div class="grade-panel">
+      <div class="grade-panel-hd">
+        <span>📑 מחוון</span>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <span id="grade-rubric-status" style="font-size:.72rem;opacity:.6;"></span>
+          <button class="btn-sm" onclick="copyFeedback()">📋 העתק הערה</button>
+        </div>
+      </div>
+      <div class="grade-panel-bd" id="grade-rubric-panel">
+        <div class="empty-state">העלי עבודה ולחצי "בדוק לפי מחוון"</div>
+      </div>
+      <!-- score + feedback + save -->
+      <div id="grade-bottom" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div class="grade-score-row" style="border-radius:8px;margin-bottom:10px;padding:8px 12px;">
+          <span style="font-size:.88rem;font-weight:700;">ציון סופי:</span>
+          <input type="number" min="0" max="100" id="grade-total" class="grade-total-input" onchange="gradeManualTotal()">
+          <span style="font-size:.72rem;opacity:.4;">/ 100</span>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+            <span style="font-size:.76rem;opacity:.6;">הערה מילולית (ניתנת לעריכה והעתקה):</span>
+          </div>
+          <textarea id="grade-feedback" class="grade-fb" rows="4"
+            placeholder="הערה מילולית לתלמיד..." onclick="this.select()"></textarea>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <button class="btn-primary" style="flex:1;" onclick="saveGrade()">💾 שמור ציון ומחוון</button>
+          <button class="btn-sm" onclick="saveGradeAndNext()">שמור + הבא ←</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ══ MODAL: CHECK WORK ══ -->
-<div class="modal-overlay" id="modal-check">
+<!-- ══ WIZARD MODAL ══ -->
+<div class="modal-overlay" id="modal-wizard">
   <div class="modal modal-lg">
-    <div class="modal-title">📎 בדיקת עבודה</div>
-    <div class="modal-field">
-      <div class="modal-label">שם התלמיד/ה</div>
-      <input class="modal-input" id="ck-student" placeholder="שם התלמיד/ה">
-    </div>
-    <div class="modal-field">
-      <div class="modal-label">אופן הגשת העבודה</div>
-      <div class="check-mode-btns">
-        <button class="check-mode-btn active" id="cm-text" onclick="setCheckMode('text')">📝 הדבקת טקסט</button>
-        <button class="check-mode-btn" id="cm-pdf" onclick="setCheckMode('pdf')">📄 קובץ PDF</button>
-        <button class="check-mode-btn" id="cm-image" onclick="setCheckMode('image')">🖼️ תמונה</button>
-      </div>
-      <div id="ck-mode-text">
-        <textarea class="modal-input" id="ck-text" rows="7" placeholder="הדביקי כאן את טקסט העבודה..."></textarea>
-      </div>
-      <div id="ck-mode-pdf" style="display:none;">
-        <div class="file-drop" onclick="document.getElementById('ck-pdf-file').click()">
-          <div class="file-drop-icon">📄</div>
-          <div class="file-drop-text">לחצי לבחירת PDF</div>
-          <div class="file-name" id="ck-pdf-name"></div>
-        </div>
-        <input type="file" id="ck-pdf-file" accept=".pdf" style="display:none;" onchange="loadCheckFile(this,'pdf')">
-      </div>
-      <div id="ck-mode-image" style="display:none;">
-        <div class="file-drop" onclick="document.getElementById('ck-img-file').click()">
-          <div class="file-drop-icon">🖼️</div>
-          <div class="file-drop-text">לחצי לבחירת תמונה</div>
-          <div class="file-name" id="ck-img-name"></div>
-        </div>
-        <input type="file" id="ck-img-file" accept="image/*" style="display:none;" onchange="loadCheckFile(this,'image')">
-        <div id="ck-img-preview" style="display:none;margin-top:8px;text-align:center;">
-          <img id="ck-img-el" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:contain;">
-        </div>
-      </div>
-    </div>
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeModals()">ביטול</button>
-      <button class="btn-primary" style="background:rgba(109,40,217,.8);" id="btn-ck-ai" onclick="checkWorkWithAI()">🤖 בדוק לפי מחוון</button>
-    </div>
-    <div id="ck-result" style="display:none;"></div>
+    <!-- step indicators -->
+    <div class="wizard-steps" id="wizard-steps-bar"></div>
+    <div class="wizard-body" id="wizard-body"></div>
+    <div class="wizard-btns" id="wizard-btns"></div>
   </div>
 </div>
 
-<!-- ══ MODAL: VIEW / BUILD RUBRIC ══ -->
+<!-- ══ RUBRIC MODAL ══ -->
 <div class="modal-overlay" id="modal-rubric">
   <div class="modal modal-lg">
-    <div class="modal-title" id="rubric-modal-title">📑 מחוון</div>
-    <div id="rubric-modal-content"></div>
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeModals()">סגור</button>
+    <div style="padding:20px 22px 0;">
+      <div class="wizard-title" id="rubric-modal-title">📑 מחוון</div>
+    </div>
+    <div style="padding:0 22px 16px;" id="rubric-modal-content"></div>
+    <div class="wizard-btns">
+      <button onclick="closeModals()" style="padding:7px 16px;background:none;border:1px solid var(--border);
+        color:var(--parch);border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">סגור</button>
       <button class="btn-primary" id="btn-rubric-save" style="display:none;" onclick="saveRubricFromModal()">💾 שמור מחוון</button>
     </div>
   </div>
@@ -493,50 +435,56 @@ textarea.modal-input{resize:vertical;direction:rtl;}
 <div id="toast"></div>
 
 <style>
-.rubric-menu-btn{display:block;width:100%;padding:8px 12px;background:none;border:none;
-  color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;text-align:right;
-  cursor:pointer;border-radius:6px;transition:background .15s;}
-.rubric-menu-btn:hover{background:rgba(212,168,67,.1);}
+.rmb{display:block;width:100%;padding:8px 11px;background:none;border:none;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.83rem;text-align:right;cursor:pointer;border-radius:5px;transition:background .15s;}
+.rmb:hover{background:rgba(212,168,67,.1);}
 </style>
 
 <script>
 /* ══════════════════════════════════════
-   FIREBASE INIT
+   FIREBASE + CONFIG
 ══════════════════════════════════════ */
 const firebaseConfig={
   apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
   authDomain:"et-hadaat.firebaseapp.com",
   databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
-  projectId:"et-hadaat",
-  storageBucket:"et-hadaat.firebasestorage.app",
-  messagingSenderId:"141400405468",
-  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+  projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
 
-/* ══════════════════════════════════════
-   STATE
-══════════════════════════════════════ */
-let subjects=[], groups=[], tasks=[];
-let currentSubject=null, currentTaskId=null;
-let _checkFileData=null, _instrFileData=null, _rubricImgData=null;
-let _taskEditId=null;
-let _groupMethod='free';
-let _taskGroups=[];
-// cache: שמור קבצים שהועלו לפי שם תלמיד (key=studentName_replaced)
+/* STATE */
+let subjects=[],groups=[],tasks=[];
+let currentSubject=null,currentTaskId=null;
 let _studentFileCache={};
 
-/* ══════════════════════════════════════
-   INIT
-══════════════════════════════════════ */
+/* WIZARD STATE */
+let _wz={
+  step:1,editId:null,
+  data:{}, // task data accumulated
+  instrFile:null,
+  rubricImgFile:null,
+  rubricType:null,  // 'qa','eval','none'
+  hasExistingRubric:null,
+  rubric:null,
+  taskGroups:[],
+  groupMethod:'free'
+};
+
+/* GRADING STATE */
+let _grade={
+  taskId:null,studentName:null,
+  studentList:[],studentIdx:0,
+  workFile:null,workMode:'text',
+  rubricRows:0
+};
+
+/* ══ INIT ══ */
 window.addEventListener('load',()=>{
-  // check auth
   if(sessionStorage.getItem('teacher_logged_in')!=='yes'){
-    // redirect to dashboard
-    window.location.href='teacher_dashboard.html';
-    return;
+    window.location.href='teacher_dashboard.html';return;
   }
   loadAll();
 });
@@ -545,217 +493,153 @@ function loadAll(){
   db.ref('teacher').once('value',snap=>{
     const data=snap.val()||{};
     groups=data.groups?Object.values(data.groups):[];
-    if(data.subjects){
-      subjects=Object.entries(data.subjects).map(([sid,s])=>({
-        ...s, _fbKey:sid,
-        units:s.units?Object.entries(s.units).map(([uid,u])=>({
-          ...u, _fbKey:uid,
-          lessons:u.lessons?Object.values(u.lessons):[]
-        })):[]
-      }));
-    }
-    db.ref('teacher/tasks').once('value',tsnap=>{
-      tasks=tsnap.val()?Object.entries(tsnap.val()).map(([id,v])=>({id,...v})):[];
+    subjects=data.subjects?Object.entries(data.subjects).map(([sid,s])=>({
+      ...s,_fbKey:sid,
+      units:s.units?Object.entries(s.units).map(([uid,u])=>({
+        ...u,_fbKey:uid,lessons:u.lessons?Object.values(u.lessons):[]
+      })):[]
+    })):[];
+    db.ref('teacher/tasks').once('value',ts=>{
+      tasks=ts.val()?Object.entries(ts.val()).map(([id,v])=>({id,...v})):[];
       renderHome();
     });
   });
 }
 
-/* ══════════════════════════════════════
-   NAVIGATION
-══════════════════════════════════════ */
+/* ══ NAVIGATION ══ */
 function showScreen(id){
+  // hide all except grade (which is fixed overlay)
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // if not grading, ensure grade screen hidden
+  if(id!=='screen-grade')document.getElementById('screen-grade').classList.remove('active');
 }
-function setBreadcrumb(items){
-  let html='<span class="bc-item" onclick="goHome()">🏠 ניהול משימות</span>';
-  items.forEach((item,i)=>{
-    html+='<span class="bc-sep">›</span>';
-    if(item.fn&&i<items.length-1)
-      html+=`<span class="bc-item" onclick="${item.fn}">${item.label}</span>`;
-    else
-      html+=`<span class="bc-item" style="color:var(--gold2);opacity:1;">${item.label}</span>`;
+function setBc(items){
+  let h='<span class="bc-item" onclick="goHome()">🏠</span>';
+  items.forEach((it,i)=>{
+    h+='<span class="bc-sep">›</span>';
+    if(it.fn&&i<items.length-1)h+=`<span class="bc-item" onclick="${it.fn}">${it.label}</span>`;
+    else h+=`<span class="bc-item" style="color:var(--gold2);opacity:1;">${it.label}</span>`;
   });
-  document.getElementById('breadcrumb').innerHTML=html;
+  document.getElementById('breadcrumb').innerHTML=h;
 }
-function goHome(){
-  currentSubject=null; currentTaskId=null;
-  setBreadcrumb([]);
-  renderHome();
-  showScreen('screen-home');
-}
-function goBack(){
-  window.location.href='teacher_dashboard.html';
-}
+function goHome(){currentSubject=null;currentTaskId=null;setBc([]);renderHome();showScreen('screen-home');}
+function goBack(){window.location.href='teacher_dashboard.html';}
 
-/* ══════════════════════════════════════
-   HOME SCREEN
-══════════════════════════════════════ */
-function renderHome(){
-  renderSubjectGrid();
-  renderAlerts();
-  setBreadcrumb([]);
-}
+/* ══ HOME ══ */
+function renderHome(){renderSubjectGrid();renderAlerts();setBc([]);}
 
 function renderSubjectGrid(){
-  const grid=document.getElementById('home-subjects-grid');
-  if(!subjects.length){grid.innerHTML='<div class="empty-state">אין מקצועות. הוסיפי מקצועות בלוח המורה.</div>';return;}
-  grid.innerHTML='';
+  const g=document.getElementById('home-subjects-grid');
+  if(!subjects.length){g.innerHTML='<div class="empty-state">אין מקצועות בלוח המורה.</div>';return;}
+  g.innerHTML='';
   subjects.forEach(sub=>{
-    const count=tasks.filter(t=>t.subjectId===sub.id).length;
-    const urgentCount=tasks.filter(t=>{
-      if(t.subjectId!==sub.id)return false;
-      const d=daysToGradeDeadline(t);
-      return d<=3&&d>=0&&!t.completed;
-    }).length;
-    const card=document.createElement('div');
-    card.className='subject-card';
-    card.style.setProperty('--card-color',sub.color||'var(--gold)');
-    card.innerHTML=`${urgentCount?`<div class="badge-urgent">${urgentCount}</div>`:''}
+    const cnt=tasks.filter(t=>t.subjectId===sub.id).length;
+    const urg=tasks.filter(t=>t.subjectId===sub.id&&!t.completed&&daysLeft(t)<=3&&daysLeft(t)>=0).length;
+    const c=document.createElement('div');
+    c.className='subject-card';c.style.setProperty('--card-color',sub.color||'var(--gold)');
+    c.innerHTML=`${urg?`<div class="badge-urgent">${urg}</div>`:''}
       <div class="subject-icon">${sub.icon||'📚'}</div>
       <div class="subject-name">${esc(sub.name)}</div>
-      <div class="subject-meta">${count} משימות</div>
+      <div class="subject-meta">${cnt} משימות</div>
       <div class="subject-arrow">‹</div>`;
-    card.onclick=()=>openSubject(sub);
-    grid.appendChild(card);
+    c.onclick=()=>openSubject(sub);g.appendChild(c);
   });
 }
 
 function renderAlerts(){
   const list=document.getElementById('alerts-list');
-  const countEl=document.getElementById('alerts-count');
-  const activeTasks=tasks.filter(t=>!t.completed);
-  if(!activeTasks.length){list.innerHTML='<div class="empty-state" style="padding:16px;">אין משימות פעילות</div>';return;}
-  // sort by grade deadline ASC
-  const sorted=[...activeTasks].sort((a,b)=>{
-    const da=new Date(a.due).getTime()+(a.gradeDays||21)*86400000;
-    const db2=new Date(b.due).getTime()+(b.gradeDays||21)*86400000;
-    return da-db2;
-  });
-  list.innerHTML='';
-  let urgentTotal=0;
+  const cnt=document.getElementById('alerts-count');
+  const active=tasks.filter(t=>!t.completed);
+  if(!active.length){list.innerHTML='<div class="empty-state" style="padding:14px;">אין משימות פעילות</div>';return;}
+  const sorted=[...active].sort((a,b)=>daysLeft(a)-daysLeft(b));
+  list.innerHTML='';let urg=0;
   sorted.forEach(t=>{
-    const days=daysToGradeDeadline(t);
-    let cls='ok', dcls='ok';
-    if(days<=1){cls='urgent';dcls='urgent';urgentTotal++;}
-    else if(days<=3){cls='soon';dcls='soon';urgentTotal++;}
-    else if(days<=7){cls='';dcls='ok';}
-    const group=groups.find(g=>g.id===t.groupId);
-    const checked=t.grades?Object.keys(t.grades).length:0;
-    const total=group?.students?.length||0;
+    const d=daysLeft(t);
+    let cl='ok';
+    if(d<=1){cl='urgent';urg++;}else if(d<=3){cl='soon';urg++;}
+    const gr=groups.find(g=>g.id===t.groupId);
     const sub=subjects.find(s=>s.id===t.subjectId);
+    const chk=t.grades?Object.keys(t.grades).length:0;
+    const tot=gr?.students?.length||0;
     const row=document.createElement('div');
-    row.className=`alert-row ${cls}`;
-    row.onclick=()=>{
-      if(sub)openSubject(sub);
-      setTimeout(()=>openTaskDetail(t.id),50);
-    };
-    row.innerHTML=`<div class="alert-dot ${dcls}"></div>
+    row.className=`alert-row ${cl==='ok'?'':cl}`;
+    row.onclick=()=>{if(sub)openSubject(sub);setTimeout(()=>openTaskDetail(t.id),50);};
+    row.innerHTML=`<div class="alert-dot ${cl}"></div>
       <div class="alert-info">
         <div class="alert-name">${esc(t.name)}</div>
-        <div class="alert-sub">${esc(sub?.name||'')} · ${esc(group?.name||'')} · נבדקו ${checked}/${total}</div>
+        <div class="alert-sub">${esc(sub?.name||'')} · ${esc(gr?.name||'')} · ${chk}/${tot} נבדקו</div>
       </div>
-      <div class="alert-days ${dcls}">${days<=0?'🔴 עבר המועד':days===1?'מחר!':days+' ימים'}</div>`;
+      <div class="alert-days ${cl}">${d<=0?'🔴 עבר':d===1?'מחר!':d+' ימים'}</div>`;
     list.appendChild(row);
   });
-  if(urgentTotal>0){countEl.style.display='inline';countEl.textContent=urgentTotal;}
-  else countEl.style.display='none';
+  cnt.style.display=urg?'inline':'none';if(urg)cnt.textContent=urg;
 }
 
-function daysToGradeDeadline(t){
-  const due=new Date(t.due);
-  const deadline=new Date(due.getTime()+(t.gradeDays||21)*86400000);
-  return Math.ceil((deadline-new Date())/(1000*60*60*24));
+function daysLeft(t){
+  const dl=new Date(new Date(t.due).getTime()+(t.gradeDays||21)*86400000);
+  return Math.ceil((dl-new Date())/(1000*60*60*24));
 }
 
-/* ══════════════════════════════════════
-   SUBJECT SCREEN
-══════════════════════════════════════ */
+/* ══ SUBJECT ══ */
 function openSubject(sub){
   currentSubject=sub;
-  setBreadcrumb([{label:sub.name}]);
+  setBc([{label:sub.name}]);
   document.getElementById('subject-title').textContent=(sub.icon||'📚')+' '+sub.name;
-  renderTasksList();
-  showScreen('screen-subject');
+  renderTasksList();showScreen('screen-subject');
 }
 
 function renderTasksList(){
   const col=document.getElementById('tasks-columns');
   const empty=document.getElementById('tasks-empty');
-  const subTasks=tasks.filter(t=>t.subjectId===currentSubject.id);
-  if(!subTasks.length){col.innerHTML='';empty.style.display='block';return;}
+  const subs=tasks.filter(t=>t.subjectId===currentSubject.id);
+  if(!subs.length){col.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
-  // group by groupId — show columns if >1 group
-  const byGroup={};
-  subTasks.forEach(t=>{
-    if(!byGroup[t.groupId])byGroup[t.groupId]=[];
-    byGroup[t.groupId].push(t);
-  });
-  const gids=Object.keys(byGroup);
-  const multiGroup=gids.length>1;
+  const byGrp={};
+  subs.forEach(t=>{if(!byGrp[t.groupId])byGrp[t.groupId]=[];byGrp[t.groupId].push(t);});
+  const gids=Object.keys(byGrp);
+  col.style.display=gids.length>1?'grid':'block';
+  if(gids.length>1){col.style.gridTemplateColumns='repeat(auto-fill,minmax(290px,1fr))';col.style.gap='14px';}
   col.innerHTML='';
-  if(multiGroup){
-    col.style.display='grid';
-    col.style.gridTemplateColumns='repeat(auto-fill,minmax(300px,1fr))';
-    col.style.gap='16px';
-  } else {
-    col.style.display='block';
-  }
   gids.forEach(gid=>{
-    const group=groups.find(g=>g.id===gid);
-    const wrapper=document.createElement('div');
-    if(multiGroup){
-      wrapper.innerHTML=`<div style="font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:8px;opacity:.7;">👥 ${esc(group?.name||gid)}</div>`;
-    }
-    // sort by due date
-    const sorted=[...byGroup[gid]].sort((a,b)=>new Date(a.due)-new Date(b.due));
-    sorted.forEach(t=>{
-      wrapper.appendChild(buildTaskCard(t,group));
-    });
-    col.appendChild(wrapper);
+    const gr=groups.find(g=>g.id===gid);
+    const wrap=document.createElement('div');
+    if(gids.length>1)wrap.innerHTML=`<div style="font-size:.78rem;font-weight:700;color:var(--gold);opacity:.65;margin-bottom:7px;">👥 ${esc(gr?.name||gid)}</div>`;
+    [...byGrp[gid]].sort((a,b)=>new Date(a.due)-new Date(b.due)).forEach(t=>wrap.appendChild(buildTaskCard(t,gr)));
+    col.appendChild(wrap);
   });
 }
 
-function buildTaskCard(t,group){
-  const days=daysToGradeDeadline(t);
-  let urgClass='';
-  if(!t.completed&&days<=1)urgClass='urgent';
-  else if(!t.completed&&days<=3)urgClass='soon';
-  const checked=t.grades?Object.keys(t.grades).length:0;
-  const total=group?.students?.length||0;
-  const pct=total?Math.round(checked/total*100):0;
-  const card=document.createElement('div');
-  card.className='task-card '+urgClass+(t.completed?' opacity-60':'');
-  if(t.completed)card.style.opacity='.5';
-  card.innerHTML=`
+function buildTaskCard(t,gr){
+  const d=daysLeft(t);
+  const chk=t.grades?Object.keys(t.grades).length:0;
+  const tot=gr?.students?.length||0;
+  const pct=tot?Math.round(chk/tot*100):0;
+  const c=document.createElement('div');
+  c.className='task-card'+((!t.completed&&d<=1)?' urgent':(!t.completed&&d<=3)?' soon':'');
+  if(t.completed)c.style.opacity='.5';
+  c.innerHTML=`
     <button class="task-del-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">🗑</button>
     <div class="task-top">
-      <div class="task-main">
-        <div class="task-name">${esc(t.name)}${t.completed?' <span style="font-size:.7rem;color:#6ee7a0;">✅ הושלמה</span>':''}</div>
-        <div class="task-meta">הגשה: ${fmtDate(t.due)} · ${esc(group?.name||'')}</div>
+      <div style="flex:1;">
+        <div class="task-name">${esc(t.name)}${t.completed?' <span style="font-size:.7rem;color:#6ee7a0;">✅</span>':''}</div>
+        <div class="task-meta">${fmtDate(t.due)} · ${esc(gr?.name||'')}</div>
         <div class="task-tags">
           <span class="tag tag-type">${esc(t.type||'')}</span>
           <span class="tag tag-mode">${esc(t.mode||'')}</span>
           ${t.rubric?'<span class="tag tag-rubric">✓ מחוון</span>':'<span class="tag tag-norubric">ללא מחוון</span>'}
+          ${t.submitTypes?.length?`<span class="tag" style="background:rgba(37,99,235,.15);color:#93c5fd;">${t.submitTypes.join('/')}</span>`:''}
         </div>
-        <div class="progress-bar" style="margin-top:8px;">
-          <div class="progress-fill" style="width:${pct}%"></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:.7rem;opacity:.4;margin-top:3px;">${chk}/${tot} נבדקו${!t.completed?' · '+(d<=0?'🔴 עבר':d+' ימים'):''}
         </div>
-        <div class="task-deadline" style="margin-top:4px;opacity:.45;">${checked}/${total} נבדקו${!t.completed?' · '+(!days||days<=0?'🔴 עבר':days+' ימים לציונים'):''}</div>
       </div>
-      <div class="task-stats">
-        <div class="task-stats-n">${checked}</div>
-        <div class="task-stats-l">נבדקו</div>
-      </div>
+      <div class="task-stats"><div class="task-stats-n">${chk}</div><div class="task-stats-l">נבדקו</div></div>
     </div>`;
-  card.onclick=()=>openTaskDetail(t.id);
-  return card;
+  c.onclick=()=>openTaskDetail(t.id);return c;
 }
 
-/* ══════════════════════════════════════
-   TASK DETAIL
-══════════════════════════════════════ */
+/* ══ TASK DETAIL ══ */
 function openTaskDetail(taskId){
   currentTaskId=taskId;
   db.ref('teacher/tasks/'+taskId+'/grades').once('value',snap=>{
@@ -767,953 +651,311 @@ function openTaskDetail(taskId){
 }
 
 function _renderDetail(task){
-  const group=groups.find(g=>g.id===task.groupId);
+  const gr=groups.find(g=>g.id===task.groupId);
   const sub=subjects.find(s=>s.id===task.subjectId);
   document.getElementById('detail-title').textContent=task.name;
-  const btn=document.getElementById('btn-complete');
-  btn.textContent=task.completed?'🔄 פתח מחדש':'✅ סיים';
-  btn.style.color=task.completed?'#fb923c':'#22c55e';
+  const bc=document.getElementById('btn-complete');
+  bc.textContent=task.completed?'🔄 פתח':'✅ סיים';
+  bc.style.color=task.completed?'#fb923c':'#22c55e';
 
-  const students=group?.students||[];
+  const students=gr?.students||[];
   const checked=students.filter(s=>task.grades?.[s.replace(/ /g,'_')]?.score!==undefined).length;
+  const dl=new Date(new Date(task.due).getTime()+(task.gradeDays||21)*86400000);
 
-  const gradeDeadline=new Date(new Date(task.due).getTime()+(task.gradeDays||21)*86400000);
-
-  const studentsHtml=students.length?students.map(s=>{
+  // student rows
+  const sRowsHtml=students.length?students.map(s=>{
     const key=s.replace(/ /g,'_');
     const g=task.grades?.[key]||{};
     const hasScore=g.score!==undefined&&g.score!=='';
     const hasRubric=hasScore&&g.rubricScores?.length;
-    const sEsc=s.replace(/'/g,"\\'").replace(/\\/g,'\\\\');
-    return `<div id="srow-${key}" style="padding:12px 0;border-bottom:1px solid rgba(212,168,67,.08);">
-      <!-- שורה עליונה: שם + ציון + 3 כפתורים -->
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:140px;">
-          <div class="student-name">${esc(s)}</div>
-          ${hasRubric?`<div style="font-size:.7rem;color:var(--gold);opacity:.7;margin-top:2px;">📑 ${g.rubricScores.length} קריטריונים נשמרו</div>`:''}
-        </div>
-        <!-- ציון -->
-        <div style="flex-shrink:0;">
-          ${hasScore
-            ?`<input type="number" min="0" max="100" value="${g.score}" id="sc-${key}"
-                style="width:60px;background:rgba(42,107,42,.15);border:1.5px solid rgba(42,107,42,.4);
-                border-radius:7px;color:#6ee7a0;text-align:center;font-size:1rem;font-weight:700;
-                padding:5px;font-family:Heebo,sans-serif;outline:none;" title="ציון">`
-            :`<span style="opacity:.3;font-size:.8rem;">לא נבדק</span>`}
-        </div>
-        <!-- 3 כפתורים: שמור | ערוך | בדוק -->
-        <div style="display:flex;gap:5px;flex-shrink:0;">
-          ${hasScore?`<button class="btn-check"
-            style="background:rgba(42,107,42,.18);border-color:rgba(42,107,42,.4);color:#6ee7a0;"
-            title="שמור ציון והערה"
-            onclick="event.stopPropagation();quickSave('${task.id}','${sEsc}')">
-            💾 שמור
-          </button>`:''}
-          <button class="btn-check"
-            style="background:${hasRubric?'rgba(212,168,67,.15)':'rgba(80,80,80,.15)'};
-            border-color:${hasRubric?'rgba(212,168,67,.4)':'rgba(80,80,80,.3)'};
-            color:${hasRubric?'var(--gold)':'#777'};"
-            title="${hasRubric?'ערוך מחוון שמור':'אין מחוון בדוק עדיין'}"
-            onclick="event.stopPropagation();editStudentRubric('${task.id}','${sEsc}')">
-            📑 ערוך
-          </button>
-          <button class="btn-check"
-            title="בדיקה עם AI"
-            onclick="event.stopPropagation();openCheckForStudent('${task.id}','${sEsc}')">
-            🤖 בדוק
-          </button>
+    const sEsc=s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="s-row">
+      <div class="s-row-top">
+        <button class="s-name-btn" onclick="openGradingScreen('${task.id}','${sEsc}')">${esc(s)}</button>
+        <div style="flex:1;"></div>
+        ${hasRubric?`<span style="font-size:.7rem;color:var(--gold);opacity:.65;">📑 מחוון שמור</span>`:''}
+        ${hasScore
+          ?`<input type="number" min="0" max="100" value="${g.score}" id="sc-${key}" class="s-score-input" title="ציון">`
+          :`<span style="opacity:.28;font-size:.78rem;">—</span>`}
+        <div style="display:flex;gap:4px;">
+          ${hasScore?`<button class="btn-green" onclick="quickSave('${task.id}','${sEsc}')">💾 שמור</button>`:''}
+          <button class="btn-purple" onclick="editStudentRubric('${task.id}','${sEsc}')">📑 ערוך</button>
+          <button class="btn-sm" onclick="openGradingScreen('${task.id}','${sEsc}')">🤖 בדוק</button>
         </div>
       </div>
-      <!-- הערה מילולית — תמיד גלויה אם קיימת, ניתנת לעריכה והעתקה -->
-      <div style="margin-top:8px;">
-        <textarea id="fb-${key}" rows="${hasScore&&g.feedback?2:1}"
-          style="width:100%;background:rgba(253,245,224,.05);border:1px solid rgba(212,168,67,.15);
-          border-radius:6px;color:var(--parch);font-family:Heebo,sans-serif;font-size:.82rem;
-          padding:6px 8px;outline:none;resize:vertical;direction:rtl;
-          ${!hasScore?'opacity:.4;':''}"
-          placeholder="הערה מילולית לתלמיד (ניתנת לעריכה והעתקה)...">${esc(g.feedback||'')}</textarea>
-      </div>
+      <textarea id="fb-${key}" class="s-fb-area" rows="2"
+        placeholder="הערה מילולית..." onclick="this.select()">${esc(g.feedback||'')}</textarea>
+      ${hasRubric?`<div class="s-rubric-info">📑 ${g.rubricScores.length} קריטריונים · ציון: ${g.score}</div>`:''}
     </div>`;
-  }).join(''):'<div class="empty-state" style="padding:16px;">אין תלמידים בקבוצה זו</div>';
+  }).join(''):'<div class="empty-state" style="padding:14px;">אין תלמידים בקבוצה</div>';
 
   document.getElementById('detail-content').innerHTML=`
-    <div class="card" style="margin-bottom:14px;">
+    <div class="card" style="margin-bottom:12px;">
       <div class="detail-grid">
-        <div class="detail-field"><div class="detail-label">קבוצה</div><div class="detail-val">${esc(group?.name||'—')}</div></div>
+        <div class="detail-field"><div class="detail-label">קבוצה</div><div class="detail-val">${esc(gr?.name||'—')}</div></div>
         <div class="detail-field"><div class="detail-label">סוג</div><div class="detail-val">${esc(task.type||'')} · ${esc(task.mode||'')}</div></div>
-        <div class="detail-field"><div class="detail-label">תאריך פתיחה</div><div class="detail-val">${task.openDate?fmtDate(task.openDate):'—'}</div></div>
+        <div class="detail-field"><div class="detail-label">פתיחה</div><div class="detail-val">${task.openDate?fmtDate(task.openDate):'—'}</div></div>
         <div class="detail-field"><div class="detail-label">הגשה</div><div class="detail-val">${fmtDate(task.due)}</div></div>
-        <div class="detail-field"><div class="detail-label">מועד לציונים</div><div class="detail-val">${fmtDate(gradeDeadline.toISOString().split('T')[0])}</div></div>
+        <div class="detail-field"><div class="detail-label">מועד לציונים</div><div class="detail-val">${fmtDate(dl.toISOString().split('T')[0])}</div></div>
         <div class="detail-field"><div class="detail-label">נבדקו</div><div class="detail-val">${checked}/${students.length}</div></div>
       </div>
-      ${task.instructions?`<div style="margin-top:12px;padding:10px;background:rgba(253,245,224,.04);border-radius:8px;font-size:.82rem;line-height:1.6;opacity:.8;">${esc(task.instructions)}</div>`:''}
-      ${task.rubric?`<div style="margin-top:10px;font-size:.78rem;color:#6ee7a0;">✅ יש מחוון — ${task.rubric.criteria?.length||0} קריטריונים</div>`:'<div style="margin-top:8px;font-size:.78rem;color:#888;">ללא מחוון</div>'}
+      ${task.submitTypes?.length?`<div style="margin-top:9px;font-size:.78rem;opacity:.6;">📎 הגשה: ${task.submitTypes.join(' / ')}</div>`:''}
+      ${task.instructions?`<div style="margin-top:9px;padding:8px 10px;background:rgba(253,245,224,.04);border-radius:7px;font-size:.8rem;line-height:1.6;opacity:.8;">${esc(task.instructions)}</div>`:''}
+      ${task.rubric?`<div style="margin-top:8px;font-size:.76rem;color:#6ee7a0;">✅ מחוון — ${task.rubric.criteria?.length||0} קריטריונים</div>`:'<div style="margin-top:7px;font-size:.76rem;color:#888;">ללא מחוון</div>'}
     </div>
     <div class="card">
-      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
         <span>👥 תלמידים (${students.length})</span>
-        <div style="display:flex;gap:6px;">
-          <button class="btn-sm" onclick="exportGrades('${task.id}','simple')" title="CSV בסיסי למערכת ציונים">📥 CSV ציונים</button>
-          <button class="btn-sm" onclick="exportGrades('${task.id}','full')" title="דוח מפורט עם הערכות ומחוונים" style="color:#c4b5fd;border-color:rgba(109,40,217,.3);">📋 דוח מפורט</button>
+        <div style="display:flex;gap:5px;">
+          <button class="btn-sm" onclick="exportGrades('${task.id}','simple')" title="CSV למערכת ציונים">📥 CSV</button>
+          <button class="btn-sm" style="color:#c4b5fd;border-color:rgba(109,40,217,.3);" onclick="exportGrades('${task.id}','full')" title="דוח מפורט">📋 דוח</button>
         </div>
       </div>
-      ${studentsHtml}
+      ${sRowsHtml}
     </div>`;
 
-  const label=currentSubject?.name||sub?.name||'';
-  setBreadcrumb([
-    {label,fn:'openSubject(currentSubject||subjects.find(s=>s.id===\''+task.subjectId+'\'))'},
+  setBc([
+    {label:currentSubject?.name||sub?.name||'',fn:`openSubject(subjects.find(s=>s.id==='${task.subjectId}')||currentSubject)`},
     {label:task.name}
   ]);
   showScreen('screen-detail');
 }
 
-function openCheckForStudent(taskId,studentName){
-  currentTaskId=taskId;
+/* ══ GRADING SCREEN ══ */
+function openGradingScreen(taskId,studentName){
   const task=tasks.find(t=>t.id===taskId);
-  const key=studentName.replace(/ /g,'_');
-  const existing=task?.grades?.[key]||{};
+  if(!task)return;
+  const gr=groups.find(g=>g.id===task.groupId);
+  const students=gr?.students||[];
+  const idx=students.indexOf(studentName);
+  _grade={taskId,studentName,studentList:students,studentIdx:Math.max(0,idx),workFile:null,workMode:'text',rubricRows:0};
+  currentTaskId=taskId;
+  _renderGradingScreen();
+}
 
-  document.getElementById('ck-student').value=studentName;
-  document.getElementById('ck-text').value='';
-  document.getElementById('ck-result').style.display='none';
-  document.getElementById('ck-pdf-name').textContent='';
-  document.getElementById('ck-img-name').textContent='';
-  document.getElementById('ck-img-preview').style.display='none';
-  // שמור את שם הקובץ הקודם אם יש
-  if(_studentFileCache[key]){
-    _checkFileData=_studentFileCache[key];
-    const fName=_checkFileData.name||'קובץ קיים';
-    if(_checkFileData.type==='pdf')document.getElementById('ck-pdf-name').textContent='✓ '+fName+' (שמור בזיכרון)';
-    else{
-      document.getElementById('ck-img-name').textContent='✓ '+fName+' (שמור בזיכרון)';
-      if(_checkFileData.type==='image'&&document.getElementById('ck-img-el')){
-        document.getElementById('ck-img-el').src='data:'+_checkFileData.mediaType+';base64,'+_checkFileData.base64;
-        document.getElementById('ck-img-preview').style.display='block';
-      }
+function _renderGradingScreen(){
+  const {taskId,studentName,studentList,studentIdx}=_grade;
+  const task=tasks.find(t=>t.id===taskId);
+  if(!task)return;
+  const key=studentName.replace(/ /g,'_');
+  const existing=task.grades?.[key]||{};
+
+  document.getElementById('grade-task-name').textContent=task.name;
+  document.getElementById('grade-student-name').textContent='👤 '+studentName;
+  document.getElementById('grade-nav-pos').textContent=(studentIdx+1)+' / '+studentList.length;
+
+  // reset work area
+  document.getElementById('grade-work-text').value='';
+  document.getElementById('grade-pdf-name').textContent='';
+  document.getElementById('grade-img-name').textContent='';
+  document.getElementById('grade-pdf-viewer').style.display='none';
+  document.getElementById('grade-img-viewer').style.display='none';
+  _grade.workFile=null;
+
+  // restore cached file if any
+  const cached=_studentFileCache[key];
+  if(cached){
+    _grade.workFile=cached;
+    if(cached.type==='pdf'){setGradeMode('pdf');document.getElementById('grade-pdf-name').textContent='✓ '+cached.name;
+      const url='data:application/pdf;base64,'+cached.base64;
+      document.getElementById('grade-pdf-frame').src=url;
+      document.getElementById('grade-pdf-viewer').style.display='block';
+    } else {
+      setGradeMode('image');document.getElementById('grade-img-name').textContent='✓ '+cached.name;
+      document.getElementById('grade-img-el').src='data:'+cached.mediaType+';base64,'+cached.base64;
+      document.getElementById('grade-img-viewer').style.display='block';
     }
   } else {
-    _checkFileData=null;
+    setGradeMode('text');
   }
-  setCheckMode('text');
 
-  // אם יש ציון קיים — הצג אותו מיד ואפשר עריכה
-  if(existing.score!==undefined && existing.rubricScores?.length && task?.rubric?.criteria){
+  // if existing grade — load it
+  if(existing.score!==undefined&&existing.rubricScores?.length&&task.rubric?.criteria){
     const fakeResult={
       scores:task.rubric.criteria.map((c,i)=>({
-        criterion:c.name,
-        score:existing.rubricScores[i]?.score??0,
-        maxScore:c.maxPoints,
-        comment:existing.rubricScores[i]?.comment||''
+        criterion:c.name,score:existing.rubricScores[i]?.score??0,
+        maxScore:c.maxPoints,comment:existing.rubricScores[i]?.comment||''
       })),
-      totalScore:existing.score,
-      verbalFeedback:existing.feedback||''
+      totalScore:existing.score,verbalFeedback:existing.feedback||''
     };
-    renderCheckResult(fakeResult,studentName,task);
-    // הצג הודעה שאלו נתונים שמורים
-    const resultEl=document.getElementById('ck-result');
-    const notice=document.createElement('div');
-    notice.style.cssText='background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:7px;padding:8px 12px;font-size:.78rem;margin-bottom:8px;';
-    notice.innerHTML='📋 <strong>ציון קיים:</strong> '+existing.score+' — הנתונים הבאים שמורים ב-Firebase. ניתן לערוך ולשמור מחדש, או לבדוק שוב עם AI.';
-    resultEl.insertBefore(notice,resultEl.firstChild?.firstChild||resultEl.firstChild);
-  }
-
-  openModal('modal-check');
-}
-
-function openCheckWorkModal(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  const group=groups.find(g=>g.id===task?.groupId);
-  const students=group?.students||[];
-  if(!document.getElementById('ck-student').value&&students.length)
-    document.getElementById('ck-student').value=students[0];
-  document.getElementById('ck-text').value='';
-  document.getElementById('ck-result').style.display='none';
-  _checkFileData=null;
-  setCheckMode('text');
-  openModal('modal-check');
-}
-
-/* ══════════════════════════════════════
-   NEW / EDIT TASK MODAL
-══════════════════════════════════════ */
-function openNewTaskModal(){
-  _taskEditId=null;
-  _taskGroups=[];
-  _groupMethod='free';
-  document.getElementById('modal-task-title').textContent='➕ משימה חדשה';
-  document.getElementById('btn-save-task').textContent='💾 שמור משימה';
-  // reset fields
-  ['tf-name','tf-instructions'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('tf-open').value=today();
-  const d=new Date();d.setDate(d.getDate()+14);
-  document.getElementById('tf-due').value=d.toISOString().split('T')[0];
-  document.getElementById('tf-gradedays').value='21';
-  document.getElementById('tf-type').value='עבודה';
-  document.getElementById('tf-mode').value='אישי';
-  document.getElementById('instr-file-name').textContent='';
-  document.getElementById('rubric-img-name').textContent='';
-  document.getElementById('modal-rubric-preview').style.display='none';
-  document.getElementById('modal-rubric-preview').innerHTML='';
-  document.getElementById('modal-rubric-preview')._rubric=null;
-  _instrFileData=null; _rubricImgData=null;
-  // fill groups
-  const sel=document.getElementById('tf-group');
-  sel.innerHTML=groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
-  if(currentSubject){
-    // pre-select group linked to this subject if any
-  }
-  onModeChange();
-  document.getElementById('sub-option-row').classList.remove('visible');
-  openModal('modal-task');
-}
-
-function editCurrentTask(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!task)return;
-  _taskEditId=currentTaskId;
-  _taskGroups=task.taskGroups||[];
-  _groupMethod=task.groupMethod||'free';
-  document.getElementById('modal-task-title').textContent='✏️ עריכת משימה';
-  document.getElementById('btn-save-task').textContent='💾 עדכן משימה';
-  document.getElementById('tf-name').value=task.name||'';
-  document.getElementById('tf-instructions').value=task.instructions||'';
-  document.getElementById('tf-open').value=task.openDate||today();
-  document.getElementById('tf-due').value=task.due||'';
-  document.getElementById('tf-gradedays').value=task.gradeDays||21;
-  document.getElementById('tf-type').value=task.type||'עבודה';
-  document.getElementById('tf-mode').value=task.mode||'אישי';
-  const sel=document.getElementById('tf-group');
-  sel.innerHTML=groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
-  sel.value=task.groupId||'';
-  document.getElementById('instr-file-name').textContent='';
-  document.getElementById('rubric-img-name').textContent='';
-  _instrFileData=null; _rubricImgData=null;
-  const prev=document.getElementById('modal-rubric-preview');
-  if(task.rubric){
-    prev.style.display='block';
-    prev._rubric=JSON.parse(JSON.stringify(task.rubric));
-    renderEditableRubric(task.rubric,'modal-rubric-preview');
-    document.getElementById('modal-rubric-preview').style.display='block';
+    renderGradeRubric(fakeResult,task);
+    document.getElementById('grade-rubric-status').textContent='📋 ציון שמור: '+existing.score;
   } else {
-    prev.style.display='none';
-    prev._rubric=null;
+    document.getElementById('grade-rubric-panel').innerHTML='<div class="empty-state">העלי עבודה ולחצי "בדוק לפי מחוון"</div>';
+    document.getElementById('grade-bottom').style.display='none';
+    document.getElementById('grade-rubric-status').textContent='';
+    if(!task.rubric)document.getElementById('grade-rubric-panel').innerHTML='<div class="info-box gold">אין מחוון למשימה זו. לחצי "📑 מחוון" כדי לבנות מחוון תחילה.</div>';
   }
-  onModeChange();
-  openModal('modal-task');
+
+  showScreen('screen-grade');
 }
 
-function saveTask(){
-  const name=document.getElementById('tf-name').value.trim();
-  if(!name){toast('נא למלא שם משימה.');return;}
-  const groupId=document.getElementById('tf-group').value;
-  const type=document.getElementById('tf-type').value;
-  const mode=document.getElementById('tf-mode').value;
-  const openDate=document.getElementById('tf-open').value;
-  const due=document.getElementById('tf-due').value;
-  const gradeDays=parseInt(document.getElementById('tf-gradedays').value)||21;
-  const instructions=document.getElementById('tf-instructions').value.trim();
-  const rubric=document.getElementById('modal-rubric-preview')._rubric||null;
-  const subjectId=currentSubject?.id||'';
-  const taskData={name,groupId,type,mode,openDate,due,gradeDays,instructions,subjectId,
-    groupMethod:_groupMethod,taskGroups:_taskGroups};
-  if(rubric)taskData.rubric=rubric;
-
-  if(_taskEditId){
-    // update existing
-    db.ref('teacher/tasks/'+_taskEditId).update(taskData);
-    const t=tasks.find(t=>t.id===_taskEditId);
-    if(t)Object.assign(t,taskData);
-    toast('✓ המשימה עודכנה');
-    closeModals();
-    openTaskDetail(_taskEditId);
-  } else {
-    // create new
-    taskData.createdAt=Date.now();
-    taskData.grades={};
-    const ref=db.ref('teacher/tasks').push(taskData);
-    const newTask={id:ref.key,...taskData};
-    tasks.push(newTask);
-    toast('✓ המשימה נשמרה'+(rubric?' עם מחוון':''));
-    closeModals();
-    renderTasksList();
-    renderAlerts();
-    renderSubjectGrid();
-  }
-}
-
-function deleteTask(taskId){
-  if(!confirm('למחוק את המשימה?'))return;
-  db.ref('teacher/tasks/'+taskId).remove();
-  tasks=tasks.filter(t=>t.id!==taskId);
-  toast('✓ המשימה נמחקה');
-  renderTasksList();
-  renderAlerts();
-  renderSubjectGrid();
-}
-
-function completeCurrentTask(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!task)return;
-  if(task.completed){
-    if(!confirm('לפתוח משימה זו מחדש?'))return;
-    db.ref('teacher/tasks/'+currentTaskId+'/completed').remove();
-    task.completed=false;
-    toast('🔄 המשימה נפתחה מחדש');
-  } else {
-    if(!confirm('לסמן משימה זו כמושלמת?'))return;
-    db.ref('teacher/tasks/'+currentTaskId+'/completed').set(true);
-    task.completed=true;
-    toast('✅ המשימה הושלמה');
-  }
-  _renderDetail(task);
-  renderAlerts();
-}
-
-function deleteCurrentTask(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!confirm(`למחוק "${task?.name||''}"? פעולה זו אינה הפיכה.`))return;
-  db.ref('teacher/tasks/'+currentTaskId).remove();
-  tasks=tasks.filter(t=>t.id!==currentTaskId);
-  toast('✓ המשימה נמחקה');
-  renderTasksList();
-  renderAlerts();
-  renderSubjectGrid();
-  showScreen('screen-subject');
-  setBreadcrumb([{label:currentSubject?.name||''}]);
-}
-
-function duplicateCurrentTask(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!task)return;
-  openNewTaskModal();
-  setTimeout(()=>{
-    document.getElementById('tf-name').value=task.name+' (עותק)';
-    document.getElementById('tf-type').value=task.type||'עבודה';
-    document.getElementById('tf-mode').value=task.mode||'אישי';
-    document.getElementById('tf-instructions').value=task.instructions||'';
-    if(task.due)document.getElementById('tf-due').value=task.due;
-    if(task.openDate)document.getElementById('tf-open').value=task.openDate;
-    document.getElementById('tf-gradedays').value=task.gradeDays||21;
-    document.getElementById('modal-task-title').textContent='📋 שכפול משימה';
-    if(task.rubric){
-      const prev=document.getElementById('modal-rubric-preview');
-      prev._rubric=JSON.parse(JSON.stringify(task.rubric));
-      prev.style.display='block';
-      renderEditableRubric(task.rubric,'modal-rubric-preview');
-    }
-    onModeChange();
-  },50);
-}
-
-/* ══════════════════════════════════════
-   SUBMISSION MODE
-══════════════════════════════════════ */
-function onModeChange(){
-  const mode=document.getElementById('tf-mode').value;
-  const row=document.getElementById('sub-option-row');
-  if(mode==='אישי'){row.classList.remove('visible');return;}
-  row.classList.add('visible');
-  selectGroupMethod(_groupMethod||'free');
-  buildGroupsPanel();
-}
-
-function selectGroupMethod(method){
-  _groupMethod=method;
-  ['free','manual','auto'].forEach(m=>{
-    const el=document.getElementById('ro-'+m);
-    if(el){el.classList.toggle('selected',m===method);}
-  });
-  buildGroupsPanel();
-}
-
-function buildGroupsPanel(){
-  const panel=document.getElementById('groups-panel');
-  if(_groupMethod==='free'){
-    panel.classList.remove('visible');
-    panel.innerHTML='<div style="font-size:.78rem;opacity:.5;margin-top:6px;">התלמידים יחליטו בעצמם. ניתן להשלים בעת בדיקה.</div>';
-    panel.classList.add('visible');
-    return;
-  }
-  const groupId=document.getElementById('tf-group').value;
-  const group=groups.find(g=>g.id===groupId);
-  const students=group?.students||[];
-  if(!students.length){
-    panel.innerHTML='<div style="font-size:.78rem;color:#fb923c;margin-top:6px;">אין תלמידים בקבוצה זו. הוסיפי תלמידים בקבוצות לימוד.</div>';
-    panel.classList.add('visible');
-    return;
-  }
-  const mode=document.getElementById('tf-mode').value;
-  const size=mode==='זוגות'?2:mode==='קבוצה של 3'?3:mode==='קבוצה של 4'?4:5;
-  const numGroups=Math.ceil(students.length/size);
-
-  if(_groupMethod==='auto'){
-    // auto-assign based on saved profiles
-    autoAssignGroups(students,numGroups,size,panel);
-  } else {
-    // manual
-    manualGroupsPanel(students,numGroups,size,panel);
-  }
-  panel.classList.add('visible');
-}
-
-function autoAssignGroups(students,numGroups,size,panel){
-  // Simple balanced assignment
-  const shuffled=[...students].sort(()=>Math.random()-.5);
-  const groups_arr=[];
-  for(let i=0;i<numGroups;i++)groups_arr.push([]);
-  shuffled.forEach((s,i)=>groups_arr[i%numGroups].push(s));
-  _taskGroups=groups_arr.map((members,i)=>({id:'g'+(i+1),name:'קבוצה '+(i+1),members}));
-  renderGroupSlots(panel);
-}
-
-function manualGroupsPanel(students,numGroups,size,panel){
-  if(!_taskGroups.length){
-    _taskGroups=[];
-    for(let i=0;i<numGroups;i++)_taskGroups.push({id:'g'+(i+1),name:'קבוצה '+(i+1),members:[]});
-  }
-  renderGroupSlots(panel,students);
-}
-
-function renderGroupSlots(panel,allStudents){
-  const mode=document.getElementById('tf-mode').value;
-  const size=mode==='זוגות'?2:mode==='קבוצה של 3'?3:mode==='קבוצה של 4'?4:5;
-  const groupId=document.getElementById('tf-group').value;
-  const group=groups.find(g=>g.id===groupId);
-  const students=allStudents||group?.students||[];
-  const assigned=_taskGroups.flatMap(g=>g.members);
-  const unassigned=students.filter(s=>!assigned.includes(s));
-
-  let html='';
-  if(unassigned.length){
-    html+=`<div style="margin-bottom:10px;padding:8px;background:rgba(212,168,67,.06);border-radius:6px;">
-      <div style="font-size:.72rem;color:var(--gold);margin-bottom:5px;">לא שובצו:</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;">${unassigned.map(s=>`<span class="member-tag" onclick="addToNextGroup('${s.replace(/'/g,'\\\'')}')">${esc(s)} ＋</span>`).join('')}</div>
-    </div>`;
-  }
-  _taskGroups.forEach((g,gi)=>{
-    html+=`<div class="group-slot">
-      <div class="group-slot-header">
-        <div class="group-slot-title">${esc(g.name)}</div>
-        <button onclick="addGroupSlot()" style="font-size:.7rem;padding:2px 7px;background:rgba(212,168,67,.1);border:1px solid var(--border);border-radius:4px;color:var(--gold);cursor:pointer;font-family:Heebo,sans-serif;">＋ קבוצה</button>
-      </div>
-      <div class="group-slot-members">
-        ${g.members.map(s=>`<span class="member-tag selected" onclick="removeFromGroup(${gi},'${s.replace(/'/g,'\\\'')}')">${esc(s)} ✕</span>`).join('')}
-        ${g.members.length===0?'<span style="font-size:.72rem;opacity:.35;">ריק</span>':''}
-      </div>
-    </div>`;
-  });
-  panel.innerHTML=html;
-}
-
-function addGroupSlot(){
-  _taskGroups.push({id:'g'+(_taskGroups.length+1),name:'קבוצה '+(_taskGroups.length+1),members:[]});
-  buildGroupsPanel();
-}
-
-function addToNextGroup(student){
-  const g=_taskGroups.find(g=>g.members.length<5);
-  if(g){g.members.push(student);buildGroupsPanel();}
-}
-
-function removeFromGroup(gi,student){
-  _taskGroups[gi].members=_taskGroups[gi].members.filter(s=>s!==student);
-  buildGroupsPanel();
-}
-
-/* ══════════════════════════════════════
-   RUBRIC BUILDER
-══════════════════════════════════════ */
-async function buildRubricInModal(rubricType){
-  const name=document.getElementById('tf-name').value.trim();
-  const rawInstr=document.getElementById('tf-instructions').value.trim();
-  const type=document.getElementById('tf-type').value;
-  if(!name&&!rawInstr){toast('נא למלא שם משימה או הוראות לפני בניית המחוון.');return;}
-  const instructions=(rawInstr||name).replace(/"/g,"'").replace(/\\/g,'').replace(/[\r\n]+/g,' ').slice(0,600);
-  const btn=rubricType==='qa'?document.querySelector('[onclick*="buildRubricInModal(\'qa\')"]'):document.querySelector('[onclick*="buildRubricInModal(\'eval\')"]');
-  if(btn){const orig=btn.textContent;btn.textContent='⏳ בונה...';btn.disabled=true;
-    try{await _buildRubric(rubricType,name,type,instructions,'modal-rubric-preview');}catch(e){toast('שגיאה: '+e.message);}
-    btn.textContent=orig;btn.disabled=false;
-  } else {
-    await _buildRubric(rubricType,name,type,instructions,'modal-rubric-preview');
-  }
-}
-
-async function buildTaskRubricFromRubricModal(rubricType){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!task)return;
-  const name=task.name;
-  const instructions=(task.instructions||name).replace(/"/g,"'").slice(0,600);
-  document.getElementById('rubric-modal-title').textContent='⏳ בונה מחוון...';
-  try{
-    await _buildRubric(rubricType,name,task.type||'עבודה',instructions,'rubric-modal-preview');
-    document.getElementById('btn-rubric-save').style.display='inline-block';
-    document.getElementById('rubric-modal-title').textContent='📑 מחוון: '+task.name;
-  } catch(e){
-    toast('שגיאה: '+e.message);
-    document.getElementById('rubric-modal-title').textContent='📑 מחוון';
-  }
-}
-
-async function _buildRubric(rubricType,name,type,instructions,previewId){
-  const isQA=rubricType==='qa';
-  const prompt=isQA
-    ?`משימה: ${name}. סוג: ${type}. הוראות: ${instructions}\n\nזהה שאלות ובנה מחוון.\nהחזר JSON בלבד:\n{"rubricType":"qa","criteria":[{"name":"שם שאלה","maxPoints":20,"description":"מה נבדק","answerKey":""}],"totalPoints":100}\nעד 12 קריטריונים, סה"כ 100 בדיוק.`
-    :`משימה: ${name}. סוג: ${type}. הוראות: ${instructions}\n\nבנה מחוון הערכה.\nהחזר JSON בלבד:\n{"rubricType":"eval","criteria":[{"name":"קריטריון","maxPoints":20,"description":"מה נבדק"}],"totalPoints":100}\nעד 8 קריטריונים, סה"כ 100 בדיוק.`;
-
-  const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,
-      system:'אתה עוזר הוראה. החזר JSON תקני בלבד. ללא טקסט לפני או אחרי.',
-      messages:[{role:'user',content:prompt}]})});
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  const d=await r.json();
-  if(d.error)throw new Error(d.error.message||'AI error');
-  const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
-  if(!raw)throw new Error('תשובה ריקה');
-  let rubric;
-  try{rubric=JSON.parse(raw);}
-  catch(e){
-    const m=raw.match(/\{[\s\S]*\}/);
-    if(m)rubric=JSON.parse(m[0]);
-    else throw new Error('JSON לא תקין');
-  }
-  if(!rubric?.criteria?.length)throw new Error('מחוון לא תקין');
-  rubric.rubricType=rubricType;
-  renderEditableRubric(rubric,previewId);
-  document.getElementById(previewId).style.display='block';
-}
-
-async function loadRubricImage(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const base64=e.target.result.split(',')[1];
-    _rubricImgData={base64,mediaType:file.type};
-    document.getElementById('rubric-img-name').textContent='✓ '+file.name;
-    // send to AI to extract rubric
-    toast('🤖 קורא מחוון מהתמונה...');
-    try{
-      const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
-          system:'אתה עוזר הוראה. החזר JSON תקני בלבד.',
-          messages:[{role:'user',content:[
-            {type:'image',source:{type:'base64',media_type:file.type,data:base64}},
-            {type:'text',text:'קרא את המחוון בתמונה והחזר JSON:\n{"rubricType":"eval","criteria":[{"name":"שם קריטריון","maxPoints":20,"description":"תיאור"}],"totalPoints":100}'}
-          ]}]})});
-      const d=await r.json();
-      const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
-      const m=raw.match(/\{[\s\S]*\}/);
-      const rubric=JSON.parse(m?m[0]:raw);
-      if(rubric?.criteria){
-        renderEditableRubric(rubric,'modal-rubric-preview');
-        document.getElementById('modal-rubric-preview').style.display='block';
-        toast('✓ מחוון נקרא מהתמונה');
-      }
-    }catch(e){toast('שגיאה בקריאת המחוון. נסי שוב.');}
-  };
-  reader.readAsDataURL(file);
-}
-
-function renderEditableRubric(rubric,containerId){
-  const container=document.getElementById(containerId);
-  container._rubric=rubric;
-  const isQA=rubric.rubricType==='qa';
-  const total=rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
-  rubric.totalPoints=total;
-
-  const rows=rubric.criteria.map((c,i)=>`
-    <tr>
-      <td>
-        <input class="rubric-input" value="${esc(c.name||'')}"
-          onchange="updateCrit('${containerId}',${i},'name',this.value)"
-          style="margin-bottom:3px;">
-        <div style="font-size:.7rem;opacity:.35;">${esc(c.description||'')}</div>
-        ${isQA?`<textarea rows="2" class="rubric-input" placeholder="תשובה נכונה..."
-          style="margin-top:4px;background:rgba(109,40,217,.08);border-color:rgba(109,40,217,.3);color:#c4b5fd;"
-          onchange="updateCrit('${containerId}',${i},'answerKey',this.value)">${esc(c.answerKey||'')}</textarea>`:''}
-      </td>
-      <td style="width:70px;">
-        <input type="number" min="0" max="100" value="${parseInt(c.maxPoints)||0}"
-          class="rubric-input rubric-num"
-          onchange="updateCrit('${containerId}',${i},'maxPoints',parseInt(this.value)||0);updateTotal('${containerId}')">
-      </td>
-      <td style="width:32px;text-align:center;">
-        <button onclick="removeCrit('${containerId}',${i})"
-          style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem;">✕</button>
-      </td>
-    </tr>`).join('');
-
-  container.innerHTML=`
-    <div style="background:rgba(42,107,42,.08);border:1px solid rgba(42,107,42,.25);border-radius:10px;padding:14px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-        <div style="font-size:.82rem;font-weight:700;color:#6ee7a0;">✅ מחוון — ערכי לפי הצורך</div>
-        <span style="padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700;
-          background:${isQA?'rgba(109,40,217,.2)':'rgba(212,168,67,.12)'};
-          color:${isQA?'#c4b5fd':'var(--gold)'};">${isQA?'📝 שאלות/תשובות':'📊 הערכה'}</span>
-      </div>
-      <table class="rubric-table">
-        <thead><tr>
-          <th>${isQA?'שאלה + תשובה נכונה':'קריטריון'}</th>
-          <th style="width:70px;text-align:center;">ניקוד</th>
-          <th style="width:32px;"></th>
-        </tr></thead>
-        <tbody id="${containerId}-rows">${rows}</tbody>
-      </table>
-      <div class="rubric-total-row">
-        <button onclick="addCrit('${containerId}')"
-          style="padding:5px 12px;background:rgba(212,168,67,.08);border:1px dashed rgba(212,168,67,.3);
-          border-radius:6px;color:var(--gold);font-size:.78rem;cursor:pointer;font-family:Heebo,sans-serif;">
-          ＋ הוסף ${isQA?'שאלה':'קריטריון'}
-        </button>
-        <div>סה"כ: <span id="${containerId}-total" style="font-weight:700;color:${total===100?'#6ee7a0':'#f87171'};">${total}</span>
-          ${total!==100?'<span style="color:#f87171;font-size:.72rem;"> ⚠️ חייב 100</span>':'<span style="color:#6ee7a0;font-size:.72rem;"> ✅</span>'}
-        </div>
-      </div>
-    </div>`;
-}
-
-function updateCrit(cid,i,field,val){
-  const el=document.getElementById(cid);
-  if(el?._rubric)el._rubric.criteria[i][field]=val;
-}
-function updateTotal(cid){
-  const el=document.getElementById(cid);
-  if(!el?._rubric)return;
-  const total=el._rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
-  el._rubric.totalPoints=total;
-  const t=document.getElementById(cid+'-total');
-  if(t){t.textContent=total;t.style.color=total===100?'#6ee7a0':'#f87171';}
-}
-function removeCrit(cid,i){
-  const el=document.getElementById(cid);
-  if(!el?._rubric)return;
-  el._rubric.criteria.splice(i,1);
-  renderEditableRubric(el._rubric,cid);
-}
-function addCrit(cid){
-  const el=document.getElementById(cid);
-  if(!el?._rubric)return;
-  el._rubric.criteria.push({name:'קריטריון חדש',maxPoints:10,description:''});
-  renderEditableRubric(el._rubric,cid);
-}
-
-/* ══════════════════════════════════════
-   RUBRIC MODAL (view/build for existing task)
-══════════════════════════════════════ */
-function toggleRubricMenu(){
-  const m=document.getElementById('rubric-menu');
-  m.style.display=m.style.display==='block'?'none':'block';
-}
-function closeRubricMenu(){document.getElementById('rubric-menu').style.display='none';}
-document.addEventListener('click',e=>{
-  if(!e.target.closest('[onclick*="toggleRubricMenu"]')&&!document.getElementById('rubric-menu').contains(e.target))
-    closeRubricMenu();
-});
-
-function openBuildRubric(rubricType){
-  document.getElementById('rubric-modal-title').textContent='⏳ בונה מחוון...';
-  document.getElementById('rubric-modal-content').innerHTML=`
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <button class="btn-sm" style="color:#c4b5fd;border-color:rgba(109,40,217,.3);" onclick="buildTaskRubricFromRubricModal('qa')">📝 שאלות/תשובות</button>
-      <button class="btn-sm" style="color:#93c5fd;" onclick="buildTaskRubricFromRubricModal('eval')">📊 הערכה</button>
-    </div>
-    <div id="rubric-modal-preview" style="display:none;"></div>`;
-  document.getElementById('btn-rubric-save').style.display='none';
-  openModal('modal-rubric');
-  buildTaskRubricFromRubricModal(rubricType);
-}
-
-function viewRubric(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!task?.rubric){toast('אין מחוון למשימה זו');return;}
-  document.getElementById('rubric-modal-title').textContent='📑 מחוון: '+task.name;
-  document.getElementById('btn-rubric-save').style.display='inline-block';
-  // render editable copy
-  const prev=document.createElement('div');
-  prev.id='rubric-modal-preview';
-  document.getElementById('rubric-modal-content').innerHTML='';
-  document.getElementById('rubric-modal-content').appendChild(prev);
-  renderEditableRubric(JSON.parse(JSON.stringify(task.rubric)),'rubric-modal-preview');
-  openModal('modal-rubric');
-}
-
-function saveRubricFromModal(){
-  const prev=document.getElementById('rubric-modal-preview');
-  const rubric=prev?._rubric;
-  if(!rubric||!currentTaskId)return;
-  db.ref('teacher/tasks/'+currentTaskId+'/rubric').set(rubric);
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(task)task.rubric=rubric;
-  toast('✓ המחוון נשמר');
-  closeModals();
-  _renderDetail(task);
-}
-
-/* ══════════════════════════════════════
-   CHECK WORK
-══════════════════════════════════════ */
-function setCheckMode(mode){
+function setGradeMode(mode){
+  _grade.workMode=mode;
   ['text','pdf','image'].forEach(m=>{
-    const el=document.getElementById('ck-mode-'+m);
-    const btn=document.getElementById('cm-'+m);
+    const el=document.getElementById('gm-area-'+m);
+    const btn=document.getElementById('gm-'+m);
     if(el)el.style.display=m===mode?'block':'none';
-    if(btn)btn.classList.toggle('active',m===mode);
+    if(btn){btn.style.background=m===mode?'rgba(212,168,67,.22)':'rgba(212,168,67,.1)';
+      btn.style.borderColor=m===mode?'var(--gold)':'var(--border)';}
   });
-  _checkFileData=null;
 }
 
-function loadCheckFile(input,type){
+function loadGradeFile(input,type){
   const file=input.files[0];if(!file)return;
-  // reset value so same file can be re-selected
   input.value='';
   const reader=new FileReader();
   reader.onload=e=>{
     const base64=e.target.result.split(',')[1];
-    const fileData={type,base64,mediaType:type==='pdf'?'application/pdf':file.type,name:file.name};
-    _checkFileData=fileData;
-    // שמור ב-cache לפי שם תלמיד
-    const sName=document.getElementById('ck-student').value.trim();
-    if(sName)_studentFileCache[sName.replace(/ /g,'_')]=fileData;
+    const fd={type,base64,mediaType:type==='pdf'?'application/pdf':file.type,name:file.name};
+    _grade.workFile=fd;
+    const key=_grade.studentName?.replace(/ /g,'_');
+    if(key)_studentFileCache[key]=fd;
     if(type==='pdf'){
-      const el=document.getElementById('ck-pdf-name');
-      if(el)el.textContent='✓ '+file.name;
+      document.getElementById('grade-pdf-name').textContent='✓ '+file.name;
+      document.getElementById('grade-pdf-frame').src='data:application/pdf;base64,'+base64;
+      document.getElementById('grade-pdf-viewer').style.display='block';
     } else {
-      const el=document.getElementById('ck-img-name');if(el)el.textContent='✓ '+file.name;
-      const img=document.getElementById('ck-img-el');
-      const prev=document.getElementById('ck-img-preview');
-      if(img)img.src=e.target.result;
-      if(prev)prev.style.display='block';
+      document.getElementById('grade-img-name').textContent='✓ '+file.name;
+      document.getElementById('grade-img-el').src=e.target.result;
+      document.getElementById('grade-img-viewer').style.display='block';
     }
   };
   reader.readAsDataURL(file);
 }
 
-async function checkWorkWithAI(){
-  const task=tasks.find(t=>t.id===currentTaskId);
-  if(!task){toast('משימה לא נמצאה');return;}
-  if(!task.rubric){toast('אין מחוון. בני מחוון תחילה.');return;}
-  const studentName=document.getElementById('ck-student').value.trim();
-  if(!studentName){toast('נא להזין שם תלמיד.');return;}
-  const activeMode=['text','pdf','image'].find(m=>{
-    const el=document.getElementById('ck-mode-'+m);
-    return el&&el.style.display!=='none';
-  })||'text';
+async function gradeWithAI(){
+  const task=tasks.find(t=>t.id===_grade.taskId);
+  if(!task?.rubric){toast('אין מחוון. בני מחוון תחילה.');return;}
+  const btn=document.getElementById('btn-grade-ai');
+  btn.textContent='⏳ בודק...';btn.disabled=true;
   const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description||''}`).join('\n');
   const answerKeys=task.rubric.rubricType==='qa'?
-    task.rubric.criteria.map(c=>c.answerKey?`${c.name}: ${c.answerKey}`:'').filter(Boolean).join('\n'):'';
-  const jsonPrompt=`\n\nחובה להחזיר JSON בלבד — ללא טקסט נוסף לפני או אחרי:\n{"scores":[{"criterion":"שם הקריטריון בדיוק כפי שמופיע במחוון","score":מספר_שלם,"maxScore":מספר_שלם,"comment":"הערה קצרה וספציפית"}],"totalScore":מספר_שלם,"verbalFeedback":"הערה מילולית אישית לתלמיד — 3-4 משפטים. פתחי בנקודה חיובית, הצביעי על מה שאפשר לשפר, סיימי בעידוד."}`;
-  const btn=document.getElementById('btn-ck-ai');
-  const origTxt=btn.textContent;
-  btn.textContent='⏳ בודק...';btn.disabled=true;
+    task.rubric.criteria.filter(c=>c.answerKey).map(c=>`${c.name}: ${c.answerKey}`).join('\n'):'';
+  const jp=`\n\nהחזר JSON בלבד:\n{"scores":[{"criterion":"שם הקריטריון בדיוק","score":מספר,"maxScore":מספר,"comment":"הערה ספציפית לתלמיד"}],"totalScore":מספר,"verbalFeedback":"הערה מילולית אישית 3-4 משפטים — פתחי בחיובי, הצביעי על שיפורים, סיימי בעידוד."}`;
   try{
     let body;
-    if(activeMode==='text'){
-      const workText=document.getElementById('ck-text').value.trim();
-      if(!workText){toast('נא להדביק את תוכן העבודה.');btn.textContent=origTxt;btn.disabled=false;return;}
-      body={model:'claude-sonnet-4-20250514',max_tokens:1800,
-        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
-        messages:[{role:'user',content:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}\n\nעבודת ${studentName}:\n${workText}${jsonPrompt}`}]};
+    if(_grade.workMode==='text'){
+      const txt=document.getElementById('grade-work-text').value.trim();
+      if(!txt){toast('הדביקי את תוכן העבודה.');btn.textContent='🤖 בדוק לפי מחוון';btn.disabled=false;return;}
+      body={model:'claude-sonnet-4-20250514',max_tokens:2000,
+        system:'אתה עוזר הוראה מנוסה. בדוק בצורה מקצועית ומדויקת. ענה רק ב-JSON תקני.',
+        messages:[{role:'user',content:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}\n\nעבודת ${_grade.studentName}:\n${txt}${jp}`}]};
     } else {
-      if(!_checkFileData){toast('נא לבחור קובץ.');btn.textContent=origTxt;btn.disabled=false;return;}
-      const fileContent=_checkFileData.type==='pdf'
-        ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_checkFileData.base64}}
-        :{type:'image',source:{type:'base64',media_type:_checkFileData.mediaType,data:_checkFileData.base64}};
-      body={model:'claude-sonnet-4-20250514',max_tokens:1800,
-        system:'אתה עוזר הוראה. ענה אך ורק ב-JSON תקני.',
-        messages:[{role:'user',content:[fileContent,{type:'text',text:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}${jsonPrompt}`}]}]};
+      if(!_grade.workFile){toast('טעני קובץ תחילה.');btn.textContent='🤖 בדוק לפי מחוון';btn.disabled=false;return;}
+      const fc=_grade.workFile.type==='pdf'
+        ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_grade.workFile.base64}}
+        :{type:'image',source:{type:'base64',media_type:_grade.workFile.mediaType,data:_grade.workFile.base64}};
+      body={model:'claude-sonnet-4-20250514',max_tokens:2000,
+        system:'אתה עוזר הוראה מנוסה. בדוק בצורה מקצועית. ענה רק ב-JSON תקני.',
+        messages:[{role:'user',content:[fc,{type:'text',text:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}${jp}`}]}]};
     }
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
     const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
     let result;
     try{result=JSON.parse(raw);}
     catch{const m=raw.match(/\{[\s\S]*\}/);if(m)result=JSON.parse(m[0]);else throw new Error('JSON לא תקין');}
-    renderCheckResult(result,studentName,task);
-  }catch(e){toast('שגיאה בבדיקה: '+e.message);}
-  btn.textContent=origTxt;btn.disabled=false;
+    renderGradeRubric(result,task);
+    document.getElementById('grade-rubric-status').textContent='✅ AI בדק';
+  }catch(e){toast('שגיאה: '+e.message);}
+  btn.textContent='🤖 בדוק לפי מחוון';btn.disabled=false;
 }
 
-function renderCheckResult(result,studentName,task){
-  const resultEl=document.getElementById('ck-result');
+function renderGradeRubric(result,task){
   const rows=result.scores.map((s,i)=>`
-    <div class="result-row">
-      <div class="result-name">${esc(s.criterion)}</div>
-      <div class="result-max">${s.maxScore}</div>
-      <input type="number" min="0" max="${s.maxScore}" value="${s.score}" id="rs-${i}"
-        class="result-score-input" onchange="updateResTotal(${result.scores.length})">
-      <input value="${esc(s.comment)}" id="rc-${i}" class="result-comment">
+    <div class="rubric-row-grade">
+      <div class="rg-name"><span style="font-weight:600;">${esc(s.criterion)}</span></div>
+      <div class="rg-max">${s.maxScore}</div>
+      <input type="number" min="0" max="${s.maxScore}" value="${s.score}" id="gr-s-${i}"
+        class="rg-score" onchange="gradeCalcTotal(${result.scores.length})">
+      <textarea rows="1" id="gr-c-${i}" class="rg-comment"
+        style="height:32px;">${esc(s.comment)}</textarea>
     </div>`).join('');
-  resultEl.style.display='block';
-  resultEl.innerHTML=`<div class="result-box">
-    <div style="font-size:.9rem;font-weight:700;color:#6ee7a0;margin-bottom:12px;">📋 מחוון עבודת ${esc(studentName)}</div>
-    <div style="font-size:.72rem;color:var(--gold);opacity:.7;margin-bottom:8px;display:grid;grid-template-columns:1fr 40px 65px 2fr;gap:8px;padding:0 0 4px;">
-      <span>קריטריון</span><span style="text-align:center;">מקס׳</span><span style="text-align:center;">ניקוד</span><span>הערה</span>
+  _grade.rubricRows=result.scores.length;
+  document.getElementById('grade-rubric-panel').innerHTML=`
+    <div style="font-size:.72rem;color:var(--gold);opacity:.6;display:grid;
+      grid-template-columns:1fr 36px 52px 1.5fr;gap:6px;padding:0 0 6px;border-bottom:1px solid rgba(212,168,67,.12);margin-bottom:4px;">
+      <span>קריטריון</span><span style="text-align:center;">מקס׳</span>
+      <span style="text-align:center;">ניקוד</span><span>הערה</span>
     </div>
-    ${rows}
-    <div style="display:flex;align-items:center;gap:12px;margin:14px 0;padding:10px;background:rgba(212,168,67,.08);border-radius:8px;">
-      <div style="font-size:.88rem;font-weight:700;">ציון סופי:</div>
-      <input type="number" min="0" max="100" value="${result.totalScore}" id="rs-total"
-        style="width:70px;background:rgba(253,245,224,.06);border:2px solid var(--gold);border-radius:7px;
-        color:var(--gold);text-align:center;font-size:1.1rem;font-weight:900;padding:5px;font-family:Heebo,sans-serif;outline:none;">
-      <span style="font-size:.72rem;opacity:.4;">ניתן לשינוי ידני</span>
-    </div>
-    <div style="margin-bottom:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-        <div style="font-size:.78rem;opacity:.6;">הערה מילולית לתלמיד:</div>
-        <button onclick="navigator.clipboard.writeText(document.getElementById('rs-feedback').value).then(()=>toast('✓ הועתק'))"
-          style="padding:3px 10px;background:rgba(212,168,67,.1);border:1px solid var(--border);
-          border-radius:5px;color:var(--gold);font-size:.72rem;cursor:pointer;font-family:Heebo,sans-serif;">
-          📋 העתק
-        </button>
-      </div>
-      <textarea id="rs-feedback" rows="4"
-        style="width:100%;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.25);
-        border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;padding:10px;
-        outline:none;resize:vertical;direction:rtl;user-select:text;line-height:1.6;"
-        onclick="this.select()">${esc(result.verbalFeedback||'')}</textarea>
-      <div style="font-size:.68rem;opacity:.35;margin-top:2px;">לחצי על הטקסט לסימון הכל · Ctrl+C להעתקה</div>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="saveFromResult('${currentTaskId}','${studentName}',${result.scores.length})"
-        class="btn-primary" style="flex:1;font-size:.88rem;padding:10px;">
-        💾 שמור ציון ומחוון
-      </button>
-      <button onclick="document.getElementById('ck-result').style.display='none'"
-        class="btn-danger" style="padding:10px 14px;">ביטול</button>
-    </div>
-  </div>`;
+    ${rows}`;
+  document.getElementById('grade-total').value=result.totalScore;
+  document.getElementById('grade-feedback').value=result.verbalFeedback||'';
+  document.getElementById('grade-bottom').style.display='block';
 }
 
-function updateResTotal(n){
-  let t=0;for(let i=0;i<n;i++){const el=document.getElementById('rs-'+i);if(el)t+=parseInt(el.value)||0;}
-  const tot=document.getElementById('rs-total');if(tot)tot.value=t;
+function gradeCalcTotal(n){
+  let t=0;for(let i=0;i<n;i++){const el=document.getElementById('gr-s-'+i);if(el)t+=parseInt(el.value)||0;}
+  const tot=document.getElementById('grade-total');if(tot)tot.value=t;
 }
+function gradeManualTotal(){}
 
-function saveFromResult(taskId,studentName,n){
-  const score=parseInt(document.getElementById('rs-total').value)||0;
-  const feedback=document.getElementById('rs-feedback').value.trim();
-  const task=tasks.find(t=>t.id===taskId);
-  // שמור rubricScores עם שם הקריטריון כדי שאפשר יהיה לשחזר
+function saveGrade(andNext){
+  const score=parseInt(document.getElementById('grade-total').value)||0;
+  const feedback=document.getElementById('grade-feedback').value.trim();
+  const task=tasks.find(t=>t.id===_grade.taskId);
   const rubricScores=[];
-  for(let i=0;i<n;i++){
-    const s=document.getElementById('rs-'+i);
-    const c=document.getElementById('rc-'+i);
-    // שמור גם את שם הקריטריון
-    const criterionName=task?.rubric?.criteria?.[i]?.name||('קריטריון '+(i+1));
-    const maxScore=task?.rubric?.criteria?.[i]?.maxPoints||0;
-    rubricScores.push({
-      criterion:criterionName,
-      score:parseInt(s?.value)||0,
-      maxScore,
-      comment:c?.value||''
-    });
+  for(let i=0;i<_grade.rubricRows;i++){
+    const s=document.getElementById('gr-s-'+i);
+    const c=document.getElementById('gr-c-'+i);
+    const cName=task?.rubric?.criteria?.[i]?.name||('קריטריון '+(i+1));
+    const mScore=task?.rubric?.criteria?.[i]?.maxPoints||0;
+    rubricScores.push({criterion:cName,score:parseInt(s?.value)||0,maxScore:mScore,comment:c?.value||''});
   }
-  const key=studentName.replace(/ /g,'_');
+  const key=_grade.studentName.replace(/ /g,'_');
   const gradeData={score,feedback,rubricScores,gradedAt:Date.now()};
-  db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gradeData);
+  db.ref('teacher/tasks/'+_grade.taskId+'/grades/'+key).set(gradeData);
   if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
-  toast('✓ הציון והמחוון נשמרו');
-  closeModals();
-  openTaskDetail(taskId);
+  document.getElementById('grade-rubric-status').textContent='✅ נשמר: '+score;
+  toast('✓ '+_grade.studentName+' — ציון '+score+' נשמר');
+  if(andNext)gradeNav(1);
+}
+function saveGradeAndNext(){saveGrade(true);}
+
+function gradeNav(dir){
+  const sl=_grade.studentList;
+  const ni=_grade.studentIdx+dir;
+  if(ni<0||ni>=sl.length){toast(dir>0?'זה התלמיד האחרון':'זה התלמיד הראשון');return;}
+  _grade.studentIdx=ni;
+  _grade.studentName=sl[ni];
+  _grade.workFile=null;
+  _renderGradingScreen();
 }
 
-// שמירה מהירה של ציון + הערה מהשורה
+function closeGradingScreen(){
+  document.getElementById('screen-grade').classList.remove('active');
+  openTaskDetail(currentTaskId);
+}
+
+function copyFeedback(){
+  const fb=document.getElementById('grade-feedback')?.value;
+  if(!fb){toast('אין הערה להעתקה');return;}
+  navigator.clipboard.writeText(fb).then(()=>toast('✓ הערה הועתקה'));
+}
+
+/* ══ QUICK SAVE FROM DETAIL ══ */
 function quickSave(taskId,studentName){
   const key=studentName.replace(/ /g,'_');
   const scoreEl=document.getElementById('sc-'+key);
   const fbEl=document.getElementById('fb-'+key);
   if(!scoreEl){toast('לא נמצא שדה ציון');return;}
   const score=parseInt(scoreEl.value);
-  if(isNaN(score)||score<0||score>100){toast('ציון לא תקין (0-100)');return;}
+  if(isNaN(score)||score<0||score>100){toast('ציון לא תקין');return;}
   const feedback=fbEl?.value.trim()||'';
   const task=tasks.find(t=>t.id===taskId);
   const existing=task?.grades?.[key]||{};
-  const gradeData={...existing,score,feedback,editedAt:Date.now()};
-  if(!gradeData.gradedAt)gradeData.gradedAt=Date.now();
-  db.ref('teacher/tasks/'+taskId+'/grades/'+key).update(gradeData);
-  if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
-  // visual feedback
+  const gd={...existing,score,feedback,editedAt:Date.now()};
+  if(!gd.gradedAt)gd.gradedAt=Date.now();
+  db.ref('teacher/tasks/'+taskId+'/grades/'+key).update(gd);
+  if(task){if(!task.grades)task.grades={};task.grades[key]=gd;}
   scoreEl.style.borderColor='rgba(42,107,42,.8)';
-  setTimeout(()=>scoreEl.style.borderColor='rgba(42,107,42,.4)',1200);
-  toast('✓ '+studentName+' — ציון '+score+' נשמר');
+  setTimeout(()=>scoreEl.style.borderColor='rgba(42,107,42,.35)',1200);
+  toast('✓ '+studentName+' — '+score);
 }
 
-function showStudentRubric(taskId,studentName){
-  const task=tasks.find(t=>t.id===taskId);
-  if(!task||!task.rubric)return;
-  const key=studentName.replace(/ /g,'_');
-  const grades=task.grades?.[key];
-  if(!grades)return;
-  const rubricScores=grades.rubricScores||[];
-  const criteria=task.rubric.criteria||[];
-  let html=`<div style="margin-bottom:10px;font-weight:700;font-size:.9rem;color:var(--gold2);">
-    ${esc(studentName)} · ציון: <span style="color:var(--gold);font-size:1.1rem;">${grades.score}</span>
-  </div>`;
-  criteria.forEach((c,i)=>{
-    const rs=rubricScores[i]||{};
-    html+=`<div class="rubric-view-row">
-      <div class="rubric-view-name">${esc(c.name)}</div>
-      <div class="rubric-view-pts">${rs.score||0}/${c.maxPoints}</div>
-      <div class="rubric-view-desc">${esc(rs.comment||'')}</div>
-    </div>`;
-  });
-  if(grades.feedback)html+=`<div style="margin-top:12px;padding:10px;background:rgba(42,107,42,.1);border-radius:8px;font-size:.83rem;">${esc(grades.feedback)}</div>`;
-  document.getElementById('rubric-modal-title').textContent='📋 מחוון מפורט — '+esc(studentName);
-  document.getElementById('rubric-modal-content').innerHTML=html;
-  document.getElementById('btn-rubric-save').style.display='none';
-  openModal('modal-rubric');
-}
-
-/* ══════════════════════════════════════
-   INSTRUCTIONS FILE
-══════════════════════════════════════ */
-function loadInstrFile(input){
-  const file=input.files[0];if(!file)return;
-  document.getElementById('instr-file-name').textContent='✓ '+file.name;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const base64=e.target.result.split(',')[1];
-    _instrFileData={base64,mediaType:file.type.includes('pdf')?'application/pdf':file.type,name:file.name};
-  };
-  reader.readAsDataURL(file);
-}
-
-/* ══════════════════════════════════════
-   INLINE SCORE EDIT
-══════════════════════════════════════ */
-function saveInlineScore(taskId,studentName,scoreInputId,fbInputId){
-  const scoreEl=document.getElementById(scoreInputId);
-  const fbWrap=document.getElementById('inline-fb-wrap-'+studentName.replace(/ /g,'_'));
-  // toggle feedback textarea visibility on first click
-  if(fbWrap&&fbWrap.style.display==='none'){
-    fbWrap.style.display='block';
-    toast('ערכי את ההערה ולחצי שוב "שמור"');
-    return;
-  }
-  const score=parseInt(scoreEl?.value);
-  if(isNaN(score)){toast('נא להזין ציון תקין.');return;}
-  const fbEl=document.getElementById(fbInputId);
-  const feedback=fbEl?.value.trim()||'';
-  const key=studentName.replace(/ /g,'_');
-  const task=tasks.find(t=>t.id===taskId);
-  const existingGrade=task?.grades?.[key]||{};
-  const gradeData={...existingGrade,score,gradedAt:Date.now()};
-  if(feedback)gradeData.feedback=feedback;
-  db.ref('teacher/tasks/'+taskId+'/grades/'+key).update(gradeData);
-  if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
-  // update preview text
-  const fbPreview=document.getElementById('fb-preview-'+key);
-  if(fbPreview&&feedback){
-    fbPreview.textContent=feedback.substring(0,80)+(feedback.length>80?'...':'');
-    fbPreview.style.display='block';
-  }
-  if(fbWrap)fbWrap.style.display='none';
-  toast('✓ הציון נשמר');
-}
-
-/* ══════════════════════════════════════
-   EDIT STUDENT RUBRIC (מחוון בדוק)
-══════════════════════════════════════ */
+/* ══ EDIT STUDENT RUBRIC ══ */
 function editStudentRubric(taskId,studentName){
   const task=tasks.find(t=>t.id===taskId);
   const key=studentName.replace(/ /g,'_');
@@ -1721,90 +963,57 @@ function editStudentRubric(taskId,studentName){
   const rubricScores=grades.rubricScores||[];
   const hasData=rubricScores.length>0;
 
-  // בנה קריטריונים: העדף את הנתונים השמורים ב-rubricScores, גבה עם task.rubric.criteria
-  let criteria=[];
-  if(hasData){
-    // rubricScores החדשים שומרים criterion+maxScore
-    criteria=rubricScores.map((rs,i)=>({
-      name:rs.criterion||task?.rubric?.criteria?.[i]?.name||('קריטריון '+(i+1)),
-      maxPoints:rs.maxScore||task?.rubric?.criteria?.[i]?.maxPoints||10,
-      score:rs.score??0,
-      comment:rs.comment||''
-    }));
-  } else if(task?.rubric?.criteria){
-    criteria=task.rubric.criteria.map(c=>({
-      name:c.name,maxPoints:c.maxPoints,score:0,comment:''
-    }));
-  } else {
-    toast('אין מחוון למשימה זו ואין נתונים שמורים לתלמיד זה.');
-    return;
-  }
+  let criteria=hasData
+    ?rubricScores.map((rs,i)=>({name:rs.criterion||task?.rubric?.criteria?.[i]?.name||('קריטריון '+(i+1)),
+        maxPoints:rs.maxScore||task?.rubric?.criteria?.[i]?.maxPoints||10,score:rs.score??0,comment:rs.comment||''}))
+    :task?.rubric?.criteria?.map(c=>({name:c.name,maxPoints:c.maxPoints,score:0,comment:''}));
+
+  if(!criteria?.length){toast('אין מחוון למשימה. בני מחוון תחילה.');return;}
 
   const rows=criteria.map((c,i)=>`
-    <tr style="border-bottom:1px solid rgba(212,168,67,.07);">
-      <td style="padding:8px;font-size:.85rem;font-weight:600;">${esc(c.name)}</td>
-      <td style="padding:8px;text-align:center;font-size:.75rem;opacity:.5;">${c.maxPoints}</td>
-      <td style="padding:8px;text-align:center;">
+    <tr>
+      <td style="padding:7px;font-size:.84rem;font-weight:600;">${esc(c.name)}</td>
+      <td style="padding:7px;text-align:center;font-size:.72rem;opacity:.45;">${c.maxPoints}</td>
+      <td style="padding:7px;text-align:center;">
         <input type="number" min="0" max="${c.maxPoints}" value="${c.score}" id="er-s-${i}"
-          style="width:55px;background:rgba(253,245,224,.08);border:1px solid rgba(212,168,67,.3);
-          border-radius:5px;color:var(--gold);text-align:center;font-size:.9rem;font-weight:700;
-          padding:4px;font-family:Heebo,sans-serif;outline:none;"
-          onchange="updateErTotal(${criteria.length})">
-      </td>
-      <td style="padding:8px;">
-        <input value="${esc(c.comment)}" id="er-c-${i}"
-          style="width:100%;background:rgba(253,245,224,.04);border:1px solid rgba(255,255,255,.08);
-          border-radius:5px;color:var(--parch);font-size:.78rem;padding:4px 7px;
-          font-family:Heebo,sans-serif;outline:none;">
-      </td>
+          class="ri ri-num" style="width:52px;" onchange="erCalcTotal(${criteria.length})"></td>
+      <td style="padding:7px;">
+        <input value="${esc(c.comment)}" id="er-c-${i}" class="ri"></td>
     </tr>`).join('');
 
-  const calcTotal=criteria.reduce((s,c)=>s+c.score,0);
-
+  const calc=criteria.reduce((s,c)=>s+c.score,0);
   document.getElementById('rubric-modal-title').textContent=(hasData?'✏️ עריכת':'📝 מילוי ')+' מחוון — '+esc(studentName);
   document.getElementById('rubric-modal-content').innerHTML=`
-    <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <div style="font-size:.9rem;font-weight:700;color:var(--gold2);">${esc(studentName)}</div>
-      ${hasData?`<span style="font-size:.72rem;padding:2px 8px;border-radius:10px;
-        background:rgba(42,107,42,.2);color:#6ee7a0;">✓ מחוון שמור מ-${fmtDate(new Date(grades.gradedAt||Date.now()).toISOString().split('T')[0])}</span>`
-        :'<span style="font-size:.72rem;opacity:.5;">מחוון ריק — מלאי ציונים</span>'}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="font-size:.9rem;font-weight:700;color:var(--gold2);">${esc(studentName)}</span>
+      ${hasData?`<span style="font-size:.7rem;padding:2px 8px;border-radius:9px;background:rgba(42,107,42,.2);color:#6ee7a0;">✓ מחוון שמור</span>`
+        :'<span style="font-size:.7rem;opacity:.45;">מחוון ריק</span>'}
     </div>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-      <thead><tr style="border-bottom:1px solid rgba(212,168,67,.2);">
-        <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:right;">קריטריון</th>
-        <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:center;width:50px;">מקס׳</th>
-        <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);text-align:center;width:65px;">ניקוד</th>
-        <th style="padding:6px 8px;font-size:.72rem;color:var(--gold);">הערה לקריטריון</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
+    <table class="rubric-tbl" style="margin-bottom:10px;">
+      <thead><tr>
+        <th>קריטריון</th><th style="width:45px;text-align:center;">מקס׳</th>
+        <th style="width:60px;text-align:center;">ניקוד</th><th>הערה</th>
+      </tr></thead><tbody>${rows}</tbody>
     </table>
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
-      background:rgba(212,168,67,.07);border-radius:8px;margin-bottom:12px;">
-      <div style="font-size:.88rem;font-weight:700;">ציון סופי:</div>
-      <input type="number" min="0" max="100" value="${grades.score??calcTotal}" id="er-total"
-        style="width:65px;background:rgba(253,245,224,.07);border:2px solid var(--gold);
-        border-radius:7px;color:var(--gold);text-align:center;font-size:1rem;font-weight:900;
-        padding:4px;font-family:Heebo,sans-serif;outline:none;">
-      <span style="font-size:.72rem;opacity:.4;">ניתן לשינוי ידני</span>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(212,168,67,.07);border-radius:7px;margin-bottom:10px;">
+      <span style="font-size:.87rem;font-weight:700;">ציון סופי:</span>
+      <input type="number" min="0" max="100" value="${grades.score??calc}" id="er-total"
+        style="width:62px;background:rgba(253,245,224,.07);border:2px solid var(--gold);border-radius:7px;
+        color:var(--gold);text-align:center;font-size:1rem;font-weight:900;padding:4px;font-family:'Heebo',sans-serif;outline:none;">
     </div>
-    <div style="margin-bottom:4px;">
-      <div style="font-size:.75rem;opacity:.6;margin-bottom:5px;">הערה מילולית (ניתנת להעתקה):</div>
-      <textarea id="er-feedback" rows="4"
-        style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.2);
-        border-radius:8px;color:#fdf5e0;font-family:Heebo,sans-serif;font-size:.88rem;
-        padding:9px;outline:none;resize:vertical;direction:rtl;user-select:text;"
+    <div><div style="font-size:.74rem;opacity:.55;margin-bottom:4px;">הערה מילולית (לחצי לסימון הכל):</div>
+      <textarea id="er-feedback" rows="3"
+        style="width:100%;background:rgba(253,245,224,.06);border:1px solid rgba(212,168,67,.18);border-radius:7px;
+        color:#fdf5e0;font-family:'Heebo',sans-serif;font-size:.85rem;padding:8px;outline:none;resize:vertical;direction:rtl;"
         onclick="this.select()">${esc(grades.feedback||'')}</textarea>
-      <div style="font-size:.7rem;opacity:.4;margin-top:3px;">לחצי על הטקסט לסימון הכל, Ctrl+C להעתקה</div>
     </div>`;
-
   document.getElementById('btn-rubric-save').style.display='inline-block';
   document.getElementById('btn-rubric-save').onclick=()=>saveEditedStudentRubric(taskId,studentName,criteria.length);
   openModal('modal-rubric');
 }
 
-function updateErTotal(n){
-  let t=0;
-  for(let i=0;i<n;i++){const el=document.getElementById('er-s-'+i);if(el)t+=parseInt(el.value)||0;}
+function erCalcTotal(n){
+  let t=0;for(let i=0;i<n;i++){const e=document.getElementById('er-s-'+i);if(e)t+=parseInt(e.value)||0;}
   const tot=document.getElementById('er-total');if(tot)tot.value=t;
 }
 
@@ -1818,137 +1027,658 @@ function saveEditedStudentRubric(taskId,studentName,n){
   for(let i=0;i<n;i++){
     const s=document.getElementById('er-s-'+i);
     const c=document.getElementById('er-c-'+i);
-    // שמור שם קריטריון גם כאן
-    const criterionName=existing.rubricScores?.[i]?.criterion
-      ||task?.rubric?.criteria?.[i]?.name
-      ||('קריטריון '+(i+1));
-    const maxScore=existing.rubricScores?.[i]?.maxScore
-      ||task?.rubric?.criteria?.[i]?.maxPoints||0;
-    rubricScores.push({
-      criterion:criterionName,
-      score:parseInt(s?.value)||0,
-      maxScore,
-      comment:c?.value||''
-    });
+    const cn=existing.rubricScores?.[i]?.criterion||task?.rubric?.criteria?.[i]?.name||('קריטריון '+(i+1));
+    const ms=existing.rubricScores?.[i]?.maxScore||task?.rubric?.criteria?.[i]?.maxPoints||0;
+    rubricScores.push({criterion:cn,score:parseInt(s?.value)||0,maxScore:ms,comment:c?.value||''});
   }
-  const gradeData={...existing,score,feedback,rubricScores,editedAt:Date.now()};
-  if(!gradeData.gradedAt)gradeData.gradedAt=Date.now();
-  db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gradeData);
-  if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
-  toast('✓ המחוון נשמר — '+studentName);
-  closeModals();
-  openTaskDetail(taskId);
+  const gd={...existing,score,feedback,rubricScores,editedAt:Date.now()};
+  if(!gd.gradedAt)gd.gradedAt=Date.now();
+  db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gd);
+  if(task){if(!task.grades)task.grades={};task.grades[key]=gd;}
+  toast('✓ מחוון נשמר — '+studentName);
+  closeModals();openTaskDetail(taskId);
 }
 
 /* ══════════════════════════════════════
-   EXPORT
+   WIZARD — 4 STEPS
 ══════════════════════════════════════ */
-function exportGrades(taskId, mode='simple'){
-  const task=tasks.find(t=>t.id===taskId);if(!task)return;
-  const group=groups.find(g=>g.id===task.groupId);
-  const students=group?.students||[];
+const WIZARD_STEPS=[
+  {n:1,label:'פרטי משימה'},
+  {n:2,label:'הוראות'},
+  {n:3,label:'מחוון'},
+  {n:4,label:'תשובות מפתח'}
+];
 
-  // helper: escape cell for CSV
-  const csvCell=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
-
-  if(mode==='simple'){
-    // CSV פשוט למערכת ציונים
-    const header=[csvCell('שם תלמיד/ה'),csvCell('ציון'),csvCell('הערה מילולית'),csvCell('תאריך בדיקה')];
-    const rows=[header.join(',')];
-    students.forEach(s=>{
-      const key=s.replace(/ /g,'_');
-      const g=task.grades?.[key]||{};
-      rows.push([
-        csvCell(s),
-        csvCell(g.score??''),
-        csvCell(g.feedback||''),
-        csvCell(g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):'')
-      ].join(','));
-    });
-    downloadFile('\uFEFF'+rows.join('\r\n'), task.name+'_ציונים.csv', 'text/csv;charset=utf-8');
-    toast('✓ CSV ציונים הורד ('+students.length+' תלמידים)');
-
-  } else {
-    // דוח מפורט: ציון + כל קריטריון + הערה
-    // קבל רשימת קריטריונים מהמשימה או מהנתונים הקיימים
-    const criteriaNames=[];
-    if(task.rubric?.criteria){
-      task.rubric.criteria.forEach(c=>criteriaNames.push(c.name));
-    } else {
-      // נסה לאסוף מהנתונים הקיימים
-      students.forEach(s=>{
-        const key=s.replace(/ /g,'_');
-        const rs=task.grades?.[key]?.rubricScores||[];
-        rs.forEach((r,i)=>{if(r.criterion&&!criteriaNames[i])criteriaNames[i]=r.criterion;});
-      });
+function openWizard(editId){
+  _wz={step:1,editId:editId||null,data:{},instrFile:null,rubricImgFile:null,
+    rubricType:null,hasExistingRubric:null,rubric:null,taskGroups:[],groupMethod:'free'};
+  if(editId){
+    const t=tasks.find(t=>t.id===editId);
+    if(t){_wz.data={name:t.name,groupId:t.groupId,type:t.type,mode:t.mode,
+      openDate:t.openDate,due:t.due,gradeDays:t.gradeDays,instructions:t.instructions,
+      submitTypes:t.submitTypes||[],subjectId:t.subjectId};
+      _wz.rubric=t.rubric||null;_wz.rubricType=t.rubricType||null;
+      _wz.taskGroups=t.taskGroups||[];_wz.groupMethod=t.groupMethod||'free';
     }
+  }
+  renderWizardStep();
+  openModal('modal-wizard');
+}
 
-    const header=[csvCell('שם תלמיד/ה'),csvCell('ציון סופי')];
-    criteriaNames.forEach(n=>{
-      header.push(csvCell('ניקוד — '+n));
-      header.push(csvCell('הערה — '+n));
-    });
-    header.push(csvCell('הערה מילולית כוללת'));
-    header.push(csvCell('תאריך בדיקה'));
+function renderWizardStep(){
+  // step bar
+  const total=_wz.rubricType==='qa'?4:3;
+  const steps=WIZARD_STEPS.slice(0,total);
+  let barHtml='';
+  steps.forEach((s,i)=>{
+    const st=s.n<_wz.step?'done':s.n===_wz.step?'active':'';
+    barHtml+=`<div class="wstep">
+      <div class="wstep-wrap"><div class="wstep-dot ${st}">${s.n<_wz.step?'✓':s.n}</div>
+      <div class="wstep-label">${s.label}</div></div>
+      ${i<steps.length-1?`<div class="wstep-line ${s.n<_wz.step?'done':''}"></div>`:''}
+    </div>`;
+  });
+  document.getElementById('wizard-steps-bar').innerHTML=barHtml;
+  // body + buttons
+  if(_wz.step===1)renderWizStep1();
+  else if(_wz.step===2)renderWizStep2();
+  else if(_wz.step===3)renderWizStep3();
+  else if(_wz.step===4)renderWizStep4();
+}
 
-    const rows=[header.join(',')];
-    students.forEach(s=>{
-      const key=s.replace(/ /g,'_');
-      const g=task.grades?.[key]||{};
-      const rubricScores=g.rubricScores||[];
-      const row=[csvCell(s),csvCell(g.score??'')];
-      criteriaNames.forEach((_,i)=>{
-        const rs=rubricScores[i]||{};
-        row.push(csvCell(rs.score??''));
-        row.push(csvCell(rs.comment||''));
-      });
-      row.push(csvCell(g.feedback||''));
-      row.push(csvCell(g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):''));
-      rows.push(row.join(','));
-    });
-    downloadFile('\uFEFF'+rows.join('\r\n'), task.name+'_דוח_מפורט.csv', 'text/csv;charset=utf-8');
-    toast('✓ דוח מפורט הורד ('+criteriaNames.length+' קריטריונים)');
+/* STEP 1 */
+function renderWizStep1(){
+  const d=_wz.data;
+  const dft=new Date();dft.setDate(dft.getDate()+14);
+  const grOpts=groups.map(g=>`<option value="${g.id}" ${d.groupId===g.id?'selected':''}>${esc(g.name)}</option>`).join('');
+  const sub=_wz.data.submitTypes||[];
+  const subItems=[['טקסט','📝'],['תמונה','🖼'],['מצגת','📊'],['וידאו','🎥'],['קובץ','📎'],['אחר','📌']];
+  document.getElementById('wizard-title')||0;
+  document.getElementById('wizard-body').innerHTML=`
+    <div class="wizard-title">${_wz.editId?'✏️ עריכת':'➕ '}משימה — שלב 1: פרטי משימה</div>
+    <div class="mf"><div class="ml">שם המשימה</div>
+      <input class="mi" id="wf-name" value="${esc(d.name||'')}" placeholder="למשל: ניתוח מקור היסטורי"></div>
+    <div class="mrow">
+      <div class="mf"><div class="ml">קבוצת לימוד</div><select class="mi" id="wf-group">${grOpts}</select></div>
+      <div class="mf"><div class="ml">סוג משימה</div>
+        <select class="mi" id="wf-type">
+          ${['עבודה','בוחן','מבחן','שיעורי בית','פרויקט','מצגת'].map(v=>`<option ${d.type===v?'selected':''}>${v}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="mrow">
+      <div class="mf"><div class="ml">תאריך פתיחה</div>
+        <input class="mi" type="date" id="wf-open" value="${d.openDate||today()}"></div>
+      <div class="mf"><div class="ml">תאריך הגשה</div>
+        <input class="mi" type="date" id="wf-due" value="${d.due||dft.toISOString().split('T')[0]}"></div>
+    </div>
+    <div class="mrow">
+      <div class="mf"><div class="ml">מועד לציונים</div>
+        <select class="mi" id="wf-gradedays">
+          <option value="21" ${(d.gradeDays||21)==21?'selected':''}>3 שבועות</option>
+          <option value="14" ${d.gradeDays==14?'selected':''}>2 שבועות</option>
+        </select></div>
+      <div class="mf"><div class="ml">אופן הגשה</div>
+        <select class="mi" id="wf-mode" onchange="wzModeChange()">
+          ${['אישי','זוגות','קבוצה של 3','קבוצה של 4','קבוצה של 5'].map(v=>`<option ${d.mode===v?'selected':''}>${v}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="sub-opt-row ${d.mode&&d.mode!=='אישי'?'vis':''}" id="wz-subopt">
+      <div class="ml" style="margin-bottom:6px;">אופן חלוקה לקבוצות</div>
+      <div class="radio-group">
+        ${[['free','בחירה חופשית'],['manual','קביעה ידנית'],['auto','אוטומטי']].map(([v,l])=>
+          `<div class="radio-opt ${_wz.groupMethod===v?'sel':''}" onclick="wzSelectMethod('${v}')">${l}</div>`).join('')}
+      </div>
+      <div id="wz-groups-panel" style="margin-top:8px;"></div>
+    </div>
+    <div class="mf" style="margin-top:4px;">
+      <div class="ml">מה התלמיד מגיש? (ניתן לסמן יותר מאחד)</div>
+      <div class="check-grid" id="submit-types-grid">
+        ${subItems.map(([v,ic])=>`<label class="check-opt ${sub.includes(v)?'sel':''}" onclick="wzToggleSubmit('${v}',this)">
+          <input type="checkbox" ${sub.includes(v)?'checked':''} style="display:none;"> ${ic} ${v}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('wizard-btns').innerHTML=`
+    <button onclick="closeModals()" style="padding:7px 15px;background:none;border:1px solid var(--border);
+      color:var(--parch);border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">ביטול</button>
+    <button class="btn-primary" onclick="wzNext1()">שמור והמשך להוראות ←</button>`;
+  wzModeChange();
+}
+
+function wzModeChange(){
+  const mode=document.getElementById('wf-mode')?.value||'אישי';
+  const row=document.getElementById('wz-subopt');
+  if(row)row.classList.toggle('vis',mode!=='אישי');
+  if(mode!=='אישי')wzBuildGroupsPanel();
+}
+
+function wzSelectMethod(m){
+  _wz.groupMethod=m;
+  document.querySelectorAll('#wz-subopt .radio-opt').forEach(el=>{
+    el.classList.toggle('sel',el.textContent.trim()===({'free':'בחירה חופשית','manual':'קביעה ידנית','auto':'אוטומטי'}[m]));
+  });
+  wzBuildGroupsPanel();
+}
+
+function wzToggleSubmit(val,label){
+  label.classList.toggle('sel');
+  const inp=label.querySelector('input');
+  if(inp)inp.checked=label.classList.contains('sel');
+}
+
+function wzBuildGroupsPanel(){
+  const panel=document.getElementById('wz-groups-panel');
+  if(!panel)return;
+  if(_wz.groupMethod==='free'){
+    panel.innerHTML='<div class="info-box gold" style="margin:4px 0;font-size:.78rem;">התלמידים יבחרו בעצמם. תוכלי לסמן בעת הבדיקה.</div>';
+    return;
+  }
+  const gid=document.getElementById('wf-group')?.value;
+  const gr=groups.find(g=>g.id===gid);
+  const students=gr?.students||[];
+  if(!students.length){panel.innerHTML='<div style="font-size:.75rem;color:#fb923c;margin-top:4px;">אין תלמידים בקבוצה זו.</div>';return;}
+  const mode=document.getElementById('wf-mode')?.value||'אישי';
+  const size=mode.includes('3')?3:mode.includes('4')?4:mode.includes('5')?5:2;
+  const numGrps=Math.ceil(students.length/size);
+  if(_wz.groupMethod==='auto'||!_wz.taskGroups.length){
+    const sh=[...students].sort(()=>Math.random()-.5);
+    _wz.taskGroups=[];
+    for(let i=0;i<numGrps;i++)_wz.taskGroups.push({id:'g'+(i+1),name:'קבוצה '+(i+1),members:[]});
+    sh.forEach((s,i)=>_wz.taskGroups[i%numGrps].members.push(s));
+  }
+  if(_wz.groupMethod==='auto'){
+    panel.innerHTML=_wz.taskGroups.map(g=>`<div class="group-slot">
+      <div class="gs-title">${g.name}: ${g.members.map(m=>`<span class="member-tag sel">${esc(m)}</span>`).join('')}</div>
+    </div>`).join('');
+  } else {
+    const assigned=_wz.taskGroups.flatMap(g=>g.members);
+    const unassigned=students.filter(s=>!assigned.includes(s));
+    let html=unassigned.length?`<div style="padding:7px;background:rgba(212,168,67,.05);border-radius:6px;margin-bottom:7px;">
+      <div style="font-size:.7rem;color:var(--gold);margin-bottom:4px;">לא שובצו:</div>
+      <div>${unassigned.map(s=>`<span class="member-tag" onclick="wzAddToGroup('${s.replace(/'/g,"\\'")}',this)">${esc(s)} +</span>`).join('')}</div>
+    </div>`:'';
+    html+=_wz.taskGroups.map((g,gi)=>`<div class="group-slot">
+      <div class="gs-header"><span class="gs-title">${g.name}</span>
+        <button onclick="wzAddGroupSlot()" style="font-size:.68rem;padding:2px 6px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:4px;color:var(--gold);cursor:pointer;font-family:Heebo,sans-serif;">+ קבוצה</button>
+      </div>
+      <div>${g.members.map(m=>`<span class="member-tag sel" onclick="wzRemoveFromGroup(${gi},'${m.replace(/'/g,"\\'")}',this)">${esc(m)} ✕</span>`).join('')}
+        ${!g.members.length?'<span style="font-size:.7rem;opacity:.3;">ריק</span>':''}</div>
+    </div>`).join('');
+    panel.innerHTML=html;
   }
 }
 
-function downloadFile(content,filename,mimeType){
-  const blob=new Blob([content],{type:mimeType});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=filename;a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+function wzAddToGroup(student){
+  const g=_wz.taskGroups.find(g=>g.members.length<6);
+  if(g){g.members.push(student);wzBuildGroupsPanel();}
+}
+function wzRemoveFromGroup(gi,student){
+  _wz.taskGroups[gi].members=_wz.taskGroups[gi].members.filter(s=>s!==student);
+  wzBuildGroupsPanel();
+}
+function wzAddGroupSlot(){
+  _wz.taskGroups.push({id:'g'+(_wz.taskGroups.length+1),name:'קבוצה '+(_wz.taskGroups.length+1),members:[]});
+  wzBuildGroupsPanel();
 }
 
-/* ══════════════════════════════════════
-   MODAL HELPERS
-══════════════════════════════════════ */
-function openModal(id){
-  document.getElementById(id).classList.add('open');
-  document.getElementById(id).style.display='flex';
-}
-function closeModals(){
-  document.querySelectorAll('.modal-overlay').forEach(m=>{
-    m.classList.remove('open');m.style.display='none';
+function wzNext1(){
+  const name=document.getElementById('wf-name').value.trim();
+  if(!name){toast('נא למלא שם משימה.');return;}
+  const submitTypes=[];
+  document.querySelectorAll('#submit-types-grid .check-opt.sel').forEach(el=>{
+    submitTypes.push(el.textContent.trim().replace(/^[^\s]+\s/,'').trim());
   });
+  _wz.data={..._wz.data,
+    name,groupId:document.getElementById('wf-group').value,
+    type:document.getElementById('wf-type').value,
+    mode:document.getElementById('wf-mode').value,
+    openDate:document.getElementById('wf-open').value,
+    due:document.getElementById('wf-due').value,
+    gradeDays:parseInt(document.getElementById('wf-gradedays').value)||21,
+    submitTypes,subjectId:currentSubject?.id||_wz.data.subjectId||''
+  };
+  _wz.step=2;renderWizardStep();
 }
+
+/* STEP 2 */
+function renderWizStep2(){
+  document.getElementById('wizard-body').innerHTML=`
+    <div class="wizard-title">שלב 2: הוראות המשימה</div>
+    <div class="mf"><div class="ml">הדביקי טקסט הוראות</div>
+      <textarea class="mi" id="wf-instr" rows="5" placeholder="הדביקי כאן את הוראות המשימה...">${esc(_wz.data.instructions||'')}</textarea>
+    </div>
+    <div class="ml" style="margin-bottom:5px;">או העלי קובץ (PDF / תמונה)</div>
+    <div class="file-drop" onclick="document.getElementById('wf-instr-file').click()">
+      <div style="font-size:1.6rem;margin-bottom:4px;">📄</div>
+      <div style="font-size:.8rem;opacity:.6;">לחצי לבחירת קובץ הוראות</div>
+      <div class="file-name" id="wf-instr-fname">${_wz.instrFile?'✓ '+_wz.instrFile.name:''}</div>
+    </div>
+    <input type="file" id="wf-instr-file" accept=".pdf,image/*" style="display:none;" onchange="wzLoadInstrFile(this)">
+    <div id="wz-ai-status" style="display:none;margin-top:10px;"></div>
+    <div id="wz-rubric-type-section" style="display:${_wz.rubricType?'block':'none'};margin-top:12px;">
+      <div class="ml">איזה סוג מחוון?</div>
+      <div class="radio-group">
+        ${[['qa','📝 שאלות ותשובות'],['eval','📊 קריטריונים'],['none','ללא מחוון']].map(([v,l])=>
+          `<div class="radio-opt ${_wz.rubricType===v?'sel':''}" onclick="wzSetRubricType('${v}',this)">${l}</div>`).join('')}
+      </div>
+      <div id="wz-rubric-type-hint" style="margin-top:6px;font-size:.76rem;opacity:.5;"></div>
+    </div>`;
+  document.getElementById('wizard-btns').innerHTML=`
+    <button onclick="_wz.step=1;renderWizardStep()" style="padding:7px 15px;background:none;border:1px solid var(--border);
+      color:var(--parch);border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">← ערוך</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn-sm" onclick="wzAnalyzeInstructions()">🤖 נתח הוראות</button>
+      <button class="btn-primary" onclick="wzNext2()">שמור והמשך לבניית מחוון ←</button>
+    </div>`;
+}
+
+function wzLoadInstrFile(input){
+  const file=input.files[0];if(!file)return;
+  input.value='';
+  const r=new FileReader();
+  r.onload=e=>{
+    _wz.instrFile={base64:e.target.result.split(',')[1],mediaType:file.type.includes('pdf')?'application/pdf':file.type,name:file.name};
+    document.getElementById('wf-instr-fname').textContent='✓ '+file.name;
+  };
+  r.readAsDataURL(file);
+}
+
+async function wzAnalyzeInstructions(){
+  const txt=document.getElementById('wf-instr').value.trim();
+  if(!txt&&!_wz.instrFile){toast('הדביקי הוראות או העלי קובץ תחילה.');return;}
+  const status=document.getElementById('wz-ai-status');
+  status.style.display='block';
+  status.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>AI קורא את ההוראות...</div>`;
+  const jp='החזר JSON בלבד: {"rubricType":"qa|eval","rationale":"הסבר קצר"}';
+  try{
+    let body;
+    if(txt){
+      body={model:'claude-sonnet-4-20250514',max_tokens:300,
+        system:'אתה עוזר הוראה. ענה ב-JSON בלבד.',
+        messages:[{role:'user',content:`קרא את הוראות המשימה הבאות וזהה: האם המשימה כוללת שאלות ספציפיות (qa) או קריטריונים כלליים להערכה (eval)?\n\n${txt.slice(0,800)}\n\n${jp}`}]};
+    } else {
+      const fc={type:_wz.instrFile.mediaType.includes('pdf')?'document':'image',
+        source:{type:'base64',media_type:_wz.instrFile.mediaType,data:_wz.instrFile.base64}};
+      body={model:'claude-sonnet-4-20250514',max_tokens:300,
+        system:'אתה עוזר הוראה. ענה ב-JSON בלבד.',
+        messages:[{role:'user',content:[fc,{type:'text',text:`זהה את סוג המשימה: qa (שאלות ספציפיות) או eval (קריטריונים).\n${jp}`}]}]};
+    }
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const res=JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0]||raw);
+    _wz.rubricType=res.rubricType||'eval';
+    document.getElementById('wz-rubric-type-section').style.display='block';
+    const hints={qa:'זוהו שאלות ספציפיות — האפליקציה תבנה מחוון לפי שאלות',eval:'זוהו קריטריונים להערכה — האפליקציה תציע קריטריונים מקצועיים'};
+    status.innerHTML=`<div class="info-box green">✅ ${res.rationale||hints[_wz.rubricType]||''}</div>`;
+    document.querySelectorAll('#wz-rubric-type-section .radio-opt').forEach(el=>{
+      const map={'qa':'📝 שאלות ותשובות','eval':'📊 קריטריונים','none':'ללא מחוון'};
+      el.classList.toggle('sel',el.textContent.trim()===map[_wz.rubricType]);
+    });
+  }catch(e){status.innerHTML=`<div class="info-box" style="background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.3);color:#fca5a5;">⚠️ לא הצלחתי לנתח. בחרי סוג מחוון ידנית.</div>`;
+    document.getElementById('wz-rubric-type-section').style.display='block';}
+}
+
+function wzSetRubricType(v,el){
+  _wz.rubricType=v;
+  document.querySelectorAll('#wz-rubric-type-section .radio-opt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function wzNext2(){
+  _wz.data.instructions=document.getElementById('wf-instr').value.trim();
+  if(!_wz.rubricType){toast('נא לבחור סוג מחוון או לחצי "נתח הוראות".');return;}
+  if(_wz.rubricType==='none'){saveWizardTask();return;}
+  _wz.step=3;renderWizardStep();
+}
+
+/* STEP 3 */
+function renderWizStep3(){
+  document.getElementById('wizard-body').innerHTML=`
+    <div class="wizard-title">שלב 3: בניית מחוון</div>
+    ${_wz.rubric?`<div class="info-box green">✅ מחוון קיים — ${_wz.rubric.criteria?.length} קריטריונים</div>`:''}
+    <div class="ml" style="margin-bottom:8px;">האם יש לך מחוון מוכן?</div>
+    <div class="radio-group" style="margin-bottom:14px;">
+      <div class="radio-opt ${_wz.hasExistingRubric===true?'sel':''}" onclick="wzSetExisting(true,this)">✅ כן, יש לי מחוון</div>
+      <div class="radio-opt ${_wz.hasExistingRubric===false?'sel':''}" onclick="wzSetExisting(false,this)">🤖 לא, בנה עבורי</div>
+    </div>
+    <div id="wz-existing-section" style="display:${_wz.hasExistingRubric===true?'block':'none'};">
+      <div class="file-drop" onclick="document.getElementById('wf-rubric-img').click()">
+        <div style="font-size:1.6rem;margin-bottom:4px;">🖼</div>
+        <div style="font-size:.8rem;opacity:.6;">העלי תמונה / PDF של המחוון</div>
+        <div class="file-name" id="wf-rubric-fname">${_wz.rubricImgFile?'✓ '+_wz.rubricImgFile.name:''}</div>
+      </div>
+      <input type="file" id="wf-rubric-img" accept="image/*,.pdf" style="display:none;" onchange="wzLoadRubricImg(this)">
+      <button class="btn-purple" style="margin-top:8px;width:100%;" onclick="wzBuildFromImage()">🤖 קרא מחוון מהתמונה</button>
+    </div>
+    <div id="wz-auto-section" style="display:${_wz.hasExistingRubric===false?'block':'none'};">
+      <button class="btn-purple" style="width:100%;padding:9px;" onclick="wzBuildRubricAuto()">🤖 בנה מחוון אוטומטית</button>
+    </div>
+    <div id="wz-ai-build-status" style="margin-top:10px;"></div>
+    <div id="wz-rubric-preview" style="margin-top:10px;"></div>`;
+  document.getElementById('wizard-btns').innerHTML=`
+    <button onclick="_wz.step=2;renderWizardStep()" style="padding:7px 15px;background:none;border:1px solid var(--border);
+      color:var(--parch);border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">← ערוך</button>
+    <button class="btn-primary" id="wz-step3-next" onclick="wzNext3()">
+      ${_wz.rubricType==='qa'?'שמור והמשך לתשובות מפתח ←':'שמור מחוון ✓'}
+    </button>`;
+  if(_wz.rubric)renderWzRubricPreview(_wz.rubric);
+}
+
+function wzSetExisting(val,el){
+  _wz.hasExistingRubric=val;
+  document.querySelectorAll('#wizard-body .radio-opt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('wz-existing-section').style.display=val?'block':'none';
+  document.getElementById('wz-auto-section').style.display=!val?'block':'none';
+}
+
+function wzLoadRubricImg(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  const r=new FileReader();
+  r.onload=e=>{
+    _wz.rubricImgFile={base64:e.target.result.split(',')[1],mediaType:file.type.includes('pdf')?'application/pdf':file.type,name:file.name};
+    document.getElementById('wf-rubric-fname').textContent='✓ '+file.name;
+  };
+  r.readAsDataURL(file);
+}
+
+async function wzBuildFromImage(){
+  if(!_wz.rubricImgFile){toast('העלי תמונת מחוון תחילה.');return;}
+  const st=document.getElementById('wz-ai-build-status');
+  st.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>קורא מחוון מהתמונה...</div>`;
+  try{
+    const fc={type:_wz.rubricImgFile.mediaType.includes('pdf')?'document':'image',
+      source:{type:'base64',media_type:_wz.rubricImgFile.mediaType,data:_wz.rubricImgFile.base64}};
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+        system:'אתה עוזר הוראה. ענה ב-JSON תקני בלבד.',
+        messages:[{role:'user',content:[fc,{type:'text',text:'קרא את המחוון בתמונה והחזר JSON:\n{"rubricType":"eval","criteria":[{"name":"שם","maxPoints":20,"description":"תיאור"}],"totalPoints":100}'}]}]})});
+    const d=await r.json();
+    const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const rubric=JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0]||raw);
+    if(!rubric?.criteria?.length)throw new Error('לא נמצא מחוון');
+    rubric.rubricType=_wz.rubricType||'eval';
+    _wz.rubric=rubric;
+    st.innerHTML=`<div class="info-box green">✅ מחוון נקרא — ${rubric.criteria.length} קריטריונים</div>`;
+    renderWzRubricPreview(rubric);
+  }catch(e){st.innerHTML=`<div class="info-box" style="background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.3);color:#fca5a5;">שגיאה: ${e.message}</div>`;}
+}
+
+async function wzBuildRubricAuto(){
+  const name=_wz.data.name||'';
+  const instr=(_wz.data.instructions||name).replace(/"/g,"'").slice(0,700);
+  const type=_wz.data.type||'עבודה';
+  const isQA=_wz.rubricType==='qa';
+  const st=document.getElementById('wz-ai-build-status');
+  st.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>בונה מחוון...</div>`;
+  const prompt=isQA
+    ?`משימה: ${name}. סוג: ${type}. הוראות:\n${instr}\n\nזהה שאלות וסעיפים. בנה מחוון שאלות/תשובות.\nכללים חשובים:\n- כותרות בלבד ללא תיאור (לדוגמא: "שאלה 1 – סעיף א – זיהוי")\n- אל תמלא description\n- החזר JSON בלבד:\n{"rubricType":"qa","criteria":[{"name":"שאלה 1 – סעיף א – זיהוי","maxPoints":20,"description":"","answerKey":""}],"totalPoints":100}`
+    :`משימה: ${name}. סוג: ${type}. הוראות:\n${instr}\n\nהצע קריטריונים מקצועיים מתאימים לסוג המשימה.\nקריטריונים מומלצים: דיוק מידע, ארגון וסדר, יצירתיות, שימוש במקורות, ביטוי בכתב.\nהחזר JSON בלבד:\n{"rubricType":"eval","criteria":[{"name":"קריטריון","maxPoints":20,"description":"מה נבדק"}],"totalPoints":100}`;
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+        system:'אתה עוזר הוראה. ענה ב-JSON תקני בלבד. ללא טקסט לפני או אחרי.',
+        messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const rubric=JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0]||raw);
+    if(!rubric?.criteria?.length)throw new Error('מחוון לא תקין');
+    rubric.rubricType=_wz.rubricType;
+    _wz.rubric=rubric;
+    st.innerHTML=`<div class="info-box green">✅ מחוון נבנה — ${rubric.criteria.length} קריטריונים</div>`;
+    renderWzRubricPreview(rubric);
+  }catch(e){st.innerHTML=`<div class="info-box" style="background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.3);color:#fca5a5;">שגיאה: ${e.message}</div>`;}
+}
+
+function renderWzRubricPreview(rubric){
+  const isQA=rubric.rubricType==='qa';
+  const total=rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
+  rubric.totalPoints=total;
+  const rows=rubric.criteria.map((c,i)=>`
+    <tr>
+      <td style="padding:6px 7px;">
+        <input class="ri" value="${esc(c.name||'')}" onchange="wzUpdateCrit(${i},'name',this.value)" style="margin-bottom:2px;">
+        ${isQA?'<div style="font-size:.7rem;opacity:.35;margin-top:2px;">כותרת בלבד — תשובה מפתח בשלב הבא</div>':'<div style="font-size:.7rem;opacity:.35;margin-top:1px;">'+esc(c.description||'')+'</div>'}
+      </td>
+      <td style="width:62px;padding:6px 7px;">
+        <input type="number" min="0" max="100" value="${parseInt(c.maxPoints)||0}"
+          class="ri ri-num" onchange="wzUpdateCrit(${i},'maxPoints',parseInt(this.value)||0);wzUpdateTotal()">
+      </td>
+      <td style="width:30px;text-align:center;">
+        <button onclick="wzRemoveCrit(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.82rem;">✕</button>
+      </td>
+    </tr>`).join('');
+  const prev=document.getElementById('wz-rubric-preview');
+  prev._rubric=rubric;
+  prev.innerHTML=`
+    <div style="background:rgba(42,107,42,.08);border:1px solid rgba(42,107,42,.22);border-radius:9px;padding:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:.8rem;font-weight:700;color:#6ee7a0;">✅ מחוון — ערכי לפי הצורך</span>
+        <span style="padding:2px 7px;border-radius:9px;font-size:.68rem;font-weight:700;
+          background:${isQA?'rgba(109,40,217,.2)':'rgba(212,168,67,.12)'};
+          color:${isQA?'#c4b5fd':'var(--gold)'};">${isQA?'📝 שאלות/תשובות':'📊 קריטריונים'}</span>
+      </div>
+      <table class="rubric-tbl">
+        <thead><tr><th>${isQA?'שאלה / סעיף':'קריטריון'}</th><th style="width:62px;text-align:center;">ניקוד</th><th style="width:30px;"></th></tr></thead>
+        <tbody id="wz-rubric-rows">${rows}</tbody>
+      </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <button onclick="wzAddCrit()" style="padding:4px 10px;background:rgba(212,168,67,.07);border:1px dashed rgba(212,168,67,.28);
+          border-radius:5px;color:var(--gold);font-size:.75rem;cursor:pointer;font-family:Heebo,sans-serif;">+ הוסף</button>
+        <div style="font-size:.82rem;">סה"כ: <span id="wz-rubric-total" style="font-weight:700;color:${total===100?'#6ee7a0':'#f87171'};">${total}</span>
+          ${total!==100?'<span style="color:#f87171;font-size:.72rem;"> ⚠️ חייב 100</span>':'<span style="color:#6ee7a0;font-size:.72rem;"> ✅</span>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+function wzUpdateCrit(i,f,v){
+  const p=document.getElementById('wz-rubric-preview');
+  if(p?._rubric)p._rubric.criteria[i][f]=v;
+}
+function wzUpdateTotal(){
+  const p=document.getElementById('wz-rubric-preview');
+  if(!p?._rubric)return;
+  const t=p._rubric.criteria.reduce((s,c)=>s+(parseInt(c.maxPoints)||0),0);
+  p._rubric.totalPoints=t;
+  const el=document.getElementById('wz-rubric-total');
+  if(el){el.textContent=t;el.style.color=t===100?'#6ee7a0':'#f87171';}
+}
+function wzRemoveCrit(i){
+  const p=document.getElementById('wz-rubric-preview');
+  if(!p?._rubric)return;
+  p._rubric.criteria.splice(i,1);renderWzRubricPreview(p._rubric);
+}
+function wzAddCrit(){
+  const p=document.getElementById('wz-rubric-preview');
+  if(!p?._rubric)return;
+  p._rubric.criteria.push({name:'קריטריון חדש',maxPoints:10,description:'',answerKey:''});
+  renderWzRubricPreview(p._rubric);
+}
+
+function wzNext3(){
+  const p=document.getElementById('wz-rubric-preview');
+  if(!p?._rubric&&!_wz.rubric){toast('בני מחוון תחילה.');return;}
+  _wz.rubric=p?._rubric||_wz.rubric;
+  if(_wz.rubricType==='qa'){_wz.step=4;renderWizardStep();}
+  else{saveWizardTask();}
+}
+
+/* STEP 4 — answer keys */
+function renderWizStep4(){
+  const criteria=_wz.rubric?.criteria||[];
+  const rows=criteria.map((c,i)=>`
+    <div style="margin-bottom:12px;padding:10px 12px;background:rgba(44,26,14,.5);border:1px solid var(--border);border-radius:8px;">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:6px;color:var(--gold2);">${esc(c.name)}</div>
+      <div class="ml" style="margin-bottom:4px;">תשובה נכונה / רכיבי חובה:</div>
+      <textarea class="mi" id="ak-${i}" rows="3"
+        placeholder="הזיני תשובה מלאה או רכיבים נדרשים..."
+        style="background:rgba(109,40,217,.08);border-color:rgba(109,40,217,.3);color:#c4b5fd;">${esc(c.answerKey||'')}</textarea>
+    </div>`).join('');
+  document.getElementById('wizard-body').innerHTML=`
+    <div class="wizard-title">שלב 4: תשובות מפתח</div>
+    <div class="info-box purple" style="margin-bottom:12px;">💡 מלאי תשובות מפתח — האפליקציה תשתמש בהן לבדיקה אוטומטית. ניתן להשאיר ריק.</div>
+    ${rows||'<div class="empty-state">אין קריטריונים</div>'}`;
+  document.getElementById('wizard-btns').innerHTML=`
+    <button onclick="_wz.step=3;renderWizardStep()" style="padding:7px 15px;background:none;border:1px solid var(--border);
+      color:var(--parch);border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">← ערוך</button>
+    <button class="btn-primary" onclick="wzSaveWithKeys()">💾 שמור מחוון ✓</button>`;
+}
+
+function wzSaveWithKeys(){
+  if(_wz.rubric?.criteria){
+    _wz.rubric.criteria.forEach((c,i)=>{
+      const el=document.getElementById('ak-'+i);
+      if(el)c.answerKey=el.value.trim();
+    });
+  }
+  saveWizardTask();
+}
+
+function saveWizardTask(){
+  const taskData={..._wz.data,groupMethod:_wz.groupMethod,taskGroups:_wz.taskGroups,rubricType:_wz.rubricType};
+  if(_wz.rubric)taskData.rubric=_wz.rubric;
+  if(_wz.editId){
+    db.ref('teacher/tasks/'+_wz.editId).update(taskData);
+    const t=tasks.find(t=>t.id===_wz.editId);
+    if(t)Object.assign(t,taskData);
+    toast('✓ המשימה עודכנה');
+    closeModals();openTaskDetail(_wz.editId);
+  } else {
+    taskData.createdAt=Date.now();taskData.grades={};
+    const ref=db.ref('teacher/tasks').push(taskData);
+    tasks.push({id:ref.key,...taskData});
+    toast('✓ המשימה נשמרה'+(taskData.rubric?' עם מחוון':''));
+    closeModals();renderTasksList();renderAlerts();renderSubjectGrid();
+  }
+}
+
+/* ══ TASK ACTIONS ══ */
+function editCurrentTask(){openWizard(currentTaskId);}
+function deleteTask(id){
+  if(!confirm('למחוק?'))return;
+  db.ref('teacher/tasks/'+id).remove();
+  tasks=tasks.filter(t=>t.id!==id);
+  toast('✓ נמחקה');renderTasksList();renderAlerts();renderSubjectGrid();
+}
+function deleteCurrentTask(){
+  const t=tasks.find(t=>t.id===currentTaskId);
+  if(!confirm(`למחוק "${t?.name||''}"?`))return;
+  db.ref('teacher/tasks/'+currentTaskId).remove();
+  tasks=tasks.filter(t=>t.id!==currentTaskId);
+  toast('✓ נמחקה');
+  openSubject(currentSubject);
+}
+function completeCurrentTask(){
+  const task=tasks.find(t=>t.id===currentTaskId);if(!task)return;
+  if(task.completed){
+    if(!confirm('לפתוח מחדש?'))return;
+    db.ref('teacher/tasks/'+currentTaskId+'/completed').remove();
+    task.completed=false;toast('🔄 נפתחה מחדש');
+  } else {
+    if(!confirm('לסמן כמושלמת?'))return;
+    db.ref('teacher/tasks/'+currentTaskId+'/completed').set(true);
+    task.completed=true;toast('✅ הושלמה');
+  }
+  _renderDetail(task);renderAlerts();
+}
+function duplicateCurrentTask(){
+  const t=tasks.find(t=>t.id===currentTaskId);if(!t)return;
+  _wz={step:1,editId:null,
+    data:{...t,name:t.name+' (עותק)',grades:undefined,createdAt:undefined},
+    rubric:t.rubric?JSON.parse(JSON.stringify(t.rubric)):null,
+    rubricType:t.rubricType||null,
+    instrFile:null,rubricImgFile:null,hasExistingRubric:t.rubric?true:false,
+    taskGroups:t.taskGroups||[],groupMethod:t.groupMethod||'free'
+  };
+  renderWizardStep();openModal('modal-wizard');
+}
+
+/* ══ RUBRIC MODAL ══ */
+function toggleRubricMenu(){const m=document.getElementById('rubric-menu');m.style.display=m.style.display==='block'?'none':'block';}
+function closeRubricMenu(){document.getElementById('rubric-menu').style.display='none';}
+document.addEventListener('click',e=>{
+  const m=document.getElementById('rubric-menu');
+  if(m&&!e.target.closest('[onclick*="toggleRubricMenu"]')&&!m.contains(e.target))closeRubricMenu();
+});
+
+function viewRubric(){
+  const task=tasks.find(t=>t.id===currentTaskId);
+  if(!task?.rubric){toast('אין מחוון למשימה זו');return;}
+  const isQA=task.rubric.rubricType==='qa';
+  const criteria=task.rubric.criteria||[];
+  let html=`<div style="margin-bottom:8px;font-size:.8rem;font-weight:700;color:${isQA?'#c4b5fd':'var(--gold)'};">${isQA?'📝 שאלות/תשובות':'📊 קריטריונים'} · סה"כ ${task.rubric.totalPoints||100} נק׳</div>`;
+  html+=criteria.map(c=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(212,168,67,.07);">
+    <div style="flex:1;font-size:.84rem;">${esc(c.name)}</div>
+    <div style="width:45px;text-align:center;font-size:.84rem;font-weight:700;color:var(--gold);">${c.maxPoints}</div>
+    ${isQA&&c.answerKey?`<div style="flex:2;font-size:.76rem;color:#c4b5fd;opacity:.8;">${esc(c.answerKey)}</div>`:''}
+  </div>`).join('');
+  document.getElementById('rubric-modal-title').textContent='📑 מחוון: '+task.name;
+  document.getElementById('rubric-modal-content').innerHTML=html;
+  document.getElementById('btn-rubric-save').style.display='none';
+  openModal('modal-rubric');
+}
+
+function openBuildRubric(rubricType){
+  _wz.rubricType=rubricType;
+  _wz.editId=currentTaskId;
+  _wz.rubric=null;
+  _wz.step=3;
+  renderWizardStep();
+  openModal('modal-wizard');
+  // change title
+  document.querySelector('#wizard-body .wizard-title').textContent='בניית מחוון — '+tasks.find(t=>t.id===currentTaskId)?.name;
+}
+
+function saveRubricFromModal(){}
+
+/* ══ EXPORT ══ */
+function exportGrades(taskId,mode){
+  const task=tasks.find(t=>t.id===taskId);if(!task)return;
+  const gr=groups.find(g=>g.id===task.groupId);
+  const students=gr?.students||[];
+  const cell=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
+  if(mode==='simple'){
+    const rows=[['שם תלמיד/ה','ציון','הערה מילולית','תאריך בדיקה'].map(cell).join(',')];
+    students.forEach(s=>{const key=s.replace(/ /g,'_');const g=task.grades?.[key]||{};
+      rows.push([s,g.score??'',g.feedback||'',g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):''].map(cell).join(','));});
+    dlFile('\uFEFF'+rows.join('\r\n'),task.name+'_ציונים.csv','text/csv;charset=utf-8');
+    toast('✓ CSV הורד');
+  } else {
+    const cNames=task.rubric?.criteria?.map(c=>c.name)||
+      (()=>{const n=[];students.forEach(s=>{const rs=task.grades?.[s.replace(/ /g,'_')]?.rubricScores||[];rs.forEach((r,i)=>{if(r.criterion&&!n[i])n[i]=r.criterion;});});return n;})();
+    const hdr=['שם','ציון'];
+    cNames.forEach(n=>{hdr.push('ניקוד — '+n,'הערה — '+n);});
+    hdr.push('הערה מילולית','תאריך');
+    const rows=[hdr.map(cell).join(',')];
+    students.forEach(s=>{const key=s.replace(/ /g,'_');const g=task.grades?.[key]||{};
+      const rs=g.rubricScores||[];const row=[s,g.score??''];
+      cNames.forEach((_,i)=>{row.push(rs[i]?.score??'',rs[i]?.comment||'');});
+      row.push(g.feedback||'',g.gradedAt?fmtDate(new Date(g.gradedAt).toISOString().split('T')[0]):'');
+      rows.push(row.map(cell).join(','));});
+    dlFile('\uFEFF'+rows.join('\r\n'),task.name+'_דוח_מפורט.csv','text/csv;charset=utf-8');
+    toast('✓ דוח מפורט הורד');
+  }
+}
+function dlFile(content,name,mime){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+
+/* ══ MODAL HELPERS ══ */
+function openModal(id){const m=document.getElementById(id);m.classList.add('open');m.style.display='flex';}
+function closeModals(){document.querySelectorAll('.modal-overlay').forEach(m=>{m.classList.remove('open');m.style.display='none';});}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModals();});
 
-/* ══════════════════════════════════════
-   UTILS
-══════════════════════════════════════ */
+/* ══ UTILS ══ */
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function today(){return new Date().toISOString().split('T')[0];}
-function fmtDate(iso){
-  if(!iso)return '—';
-  const d=new Date(iso);
-  if(isNaN(d))return iso;
-  return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'numeric'});
-}
+function fmtDate(iso){if(!iso)return '—';const d=new Date(iso);return isNaN(d)?iso:d.toLocaleDateString('he-IL');}
 function toast(msg,ms=2500){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.style.display='block';
-  clearTimeout(toast._timer);
-  toast._timer=setTimeout(()=>t.style.display='none',ms);
+  const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',ms);
 }
 </script>
 </body>
