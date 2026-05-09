@@ -294,7 +294,7 @@ select.modal-input option{background:#2c1a0e;}
           <div class="home-card-title">דוחות</div>
           <div class="home-card-sub">מעקב תלמידים וציונים</div>
         </div>
-        <div class="home-card" onclick="window.location.href='task_management.html'" style="border-color:rgba(139,92,246,.35);" id="tasks-home-card">
+        <div class="home-card" onclick="openTasksScreen()" style="border-color:rgba(139,92,246,.35);" id="tasks-home-card">
           <div class="home-card-icon">📋</div>
           <div class="home-card-title">ניהול משימות</div>
           <div class="home-card-sub">מחוונים, ציונים והתראות</div>
@@ -2735,44 +2735,59 @@ function saveAllProfiles(){
 
 // ── דוח שיעורים ──
 function renderLessonsReport(){
-  if(!currentSubject){
-    document.getElementById('report-lessons-list').innerHTML='<div style="opacity:.5;font-size:.85rem;">נא לבחור מקצוע ויחידה תחילה מהדשבורד.</div>';
-    return;
-  }
-  const subject=subjects.find(s=>s.id===currentSubject.id)||currentSubject;
-  const units=subject.units||[];
   const list=document.getElementById('report-lessons-list');
   list.innerHTML='';
-  units.forEach(unit=>{
-    const lessons=unit.lessons||[];
-    const myLessons=lessons.filter(l=>unit.groups&&unit.groups[reportGroupId]);
-    if(!myLessons.length)return;
-    myLessons.forEach((lesson,i)=>{
-      if(!lesson.url&&lesson.topic===undefined)return;
-      const name=lesson.topic||lesson.name||'שיעור '+(i+1);
-      const btn=document.createElement('button');
-      btn.style.cssText='padding:10px 16px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:8px;color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.85rem;text-align:right;transition:all .18s;';
-      btn.textContent='📋 '+name;
-      btn.onclick=()=>loadLessonReport(lesson,i,unit.id,name);
-      list.appendChild(btn);
+
+  // סרוק את כל המקצועות — לא רק currentSubject
+  const allSubjects=subjects.length?subjects:[];
+  let found=0;
+
+  allSubjects.forEach(subject=>{
+    const units=subject.units||[];
+    units.forEach(unit=>{
+      // בדוק אם הקבוצה הנבחרת משויכת ליחידה זו
+      if(!unit.groups||!unit.groups[reportGroupId])return;
+      const lessons=unit.lessons||[];
+      if(!lessons.length)return;
+
+      // כותרת מקצוע + יחידה
+      const sectionTitle=document.createElement('div');
+      sectionTitle.style.cssText='font-size:.78rem;font-weight:700;color:var(--gold);opacity:.7;margin:8px 0 4px;';
+      sectionTitle.textContent=(subject.icon||'📚')+' '+subject.name+' — '+unit.name;
+      list.appendChild(sectionTitle);
+
+      lessons.forEach((lesson,i)=>{
+        if(!lesson.url&&lesson.topic===undefined)return;
+        const name=lesson.topic||lesson.name||'שיעור '+(i+1);
+        const btn=document.createElement('button');
+        btn.style.cssText='padding:10px 16px;background:rgba(212,168,67,.08);border:1px solid var(--border);border-radius:8px;color:var(--parch);cursor:pointer;font-family:Heebo,sans-serif;font-size:.85rem;text-align:right;transition:all .18s;display:block;width:100%;';
+        btn.textContent='📋 '+name;
+        btn.onmouseover=()=>btn.style.background='rgba(212,168,67,.18)';
+        btn.onmouseout=()=>btn.style.background='rgba(212,168,67,.08)';
+        btn.onclick=()=>loadLessonReport(lesson,i,unit.id,name,subject.id);
+        list.appendChild(btn);
+        found++;
+      });
     });
   });
-  if(!list.children.length){
-    list.innerHTML='<div style="opacity:.5;font-size:.85rem;">אין שיעורים משויכים לקבוצה זו.</div>';
+
+  if(!found){
+    list.innerHTML='<div style="opacity:.5;font-size:.85rem;">אין שיעורים משויכים לקבוצה זו.<br>שייכי קבוצה ליחידת לימוד תחת "מקצועות".</div>';
   }
 }
 
-function loadLessonReport(lesson,lessonIdx,unitId,lessonName){
+function loadLessonReport(lesson,lessonIdx,unitId,lessonName,subjectId){
   const content=document.getElementById('report-lesson-content');
   content.innerHTML='<div style="opacity:.5;padding:20px;">טוען...</div>';
   const group=groups.find(g=>g.id===reportGroupId);
   const students=group?.students||[];
+  // השתמש בsubjectId שהועבר, או במקרה ישן — currentSubject
+  const sid=subjectId||currentSubject?.id||'';
 
   db.ref('studentAnswers/'+group.code).once('value',snap=>{
     const allAnswers=snap.val()||{};
     const lessonKey='lesson_'+lessonIdx;
-    // טען תשובות דוגמא
-    db.ref('teacherAnswers/'+currentSubject.id+'/'+unitId+'/lesson_'+lessonIdx).once('value',snapT=>{
+    db.ref('teacherAnswers/'+sid+'/'+unitId+'/lesson_'+lessonIdx).once('value',snapT=>{
       const modelAnswers=snapT.val()||{};
       renderLessonReportContent(content,students,allAnswers,lessonKey,modelAnswers,lessonName);
     });
