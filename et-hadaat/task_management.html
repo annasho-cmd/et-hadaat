@@ -400,7 +400,6 @@ textarea.mi{resize:vertical;direction:rtl;}
         </div>
         <div style="display:flex;gap:7px;">
           <button class="btn-primary" style="flex:1;" onclick="saveGrade()">💾 שמור ציון ומחוון</button>
-          <button class="btn-sm" onclick="saveGradeAndNext()">שמור + הבא ←</button>
         </div>
       </div>
     </div>
@@ -700,7 +699,6 @@ function _renderDetail(task){
         <div class="detail-field"><div class="detail-label">נבדקו</div><div class="detail-val">${checked}/${students.length}</div></div>
       </div>
       ${task.submitTypes?.length?`<div style="margin-top:9px;font-size:.78rem;opacity:.6;">📎 הגשה: ${task.submitTypes.join(' / ')}</div>`:''}
-      ${task.instructions?`<div style="margin-top:9px;padding:8px 10px;background:rgba(253,245,224,.04);border-radius:7px;font-size:.8rem;line-height:1.6;opacity:.8;">${esc(task.instructions)}</div>`:''}
       ${task.rubric?`<div style="margin-top:8px;font-size:.76rem;color:#6ee7a0;">✅ מחוון — ${task.rubric.criteria?.length||0} קריטריונים</div>`:'<div style="margin-top:7px;font-size:.76rem;color:#888;">ללא מחוון</div>'}
     </div>
     <div class="card">
@@ -892,7 +890,7 @@ function gradeCalcTotal(n){
 }
 function gradeManualTotal(){}
 
-function saveGrade(andNext){
+function saveGrade(){
   const score=parseInt(document.getElementById('grade-total').value)||0;
   const feedback=document.getElementById('grade-feedback').value.trim();
   const task=tasks.find(t=>t.id===_grade.taskId);
@@ -910,9 +908,87 @@ function saveGrade(andNext){
   if(task){if(!task.grades)task.grades={};task.grades[key]=gradeData;}
   document.getElementById('grade-rubric-status').textContent='✅ נשמר: '+score;
   toast('✓ '+_grade.studentName+' — ציון '+score+' נשמר');
-  if(andNext)gradeNav(1);
+
+  // אם עבודה קבוצתית + בחירה חופשית — הצג popup לסימון חברי הקבוצה
+  const isGroupTask=task?.mode&&task.mode!=='אישי';
+  const isFreeChoice=task?.groupMethod==='free'||!task?.groupMethod;
+  if(isGroupTask&&isFreeChoice){
+    showCopyToGroupPopup(task,_grade.studentName,gradeData);
+  } else {
+    closeGradingScreen();
+  }
 }
-function saveGradeAndNext(){saveGrade(true);}
+function saveGradeAndNext(){saveGrade();}
+
+function showCopyToGroupPopup(task,gradedStudent,gradeData){
+  const gr=groups.find(g=>g.id===task.groupId);
+  const allStudents=(gr?.students||[]).filter(s=>s!==gradedStudent);
+  if(!allStudents.length){closeGradingScreen();return;}
+
+  // בנה popup
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const size=task.mode.includes('3')?3:task.mode.includes('4')?4:task.mode.includes('5')?5:2;
+  const maxSelect=size-1; // כבר בדקנו את הראשון
+
+  overlay.innerHTML=`
+    <div style="background:#1a0e05;border:2px solid var(--gold);border-radius:14px;padding:24px;
+      width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">
+      <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);margin-bottom:6px;">👥 העתק ציון לחברי הקבוצה</div>
+      <div style="font-size:.82rem;opacity:.6;margin-bottom:14px;">
+        סמני עד ${maxSelect} תלמידים נוספים שעבדו עם <strong>${esc(gradedStudent)}</strong>.<br>
+        הציון (${gradeData.score}), ההערה המילולית והמחוון יועתקו אליהם.
+      </div>
+      <div id="copy-group-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
+        ${allStudents.map(s=>`
+          <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;
+            background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;cursor:pointer;
+            transition:background .15s;" onmouseover="this.style.background='rgba(212,168,67,.08)'" onmouseout="this.style.background='rgba(253,245,224,.04)'">
+            <input type="checkbox" value="${esc(s)}" style="width:17px;height:17px;accent-color:var(--gold);cursor:pointer;"
+              onchange="cgLimitCheck(this,${maxSelect})">
+            <span style="font-size:.9rem;font-weight:600;">${esc(s)}</span>
+          </label>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="this.closest('div[style*=fixed]').remove();closeGradingScreen();"
+          style="padding:8px 18px;background:none;border:1px solid var(--border);color:var(--parch);
+          border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">דלג — חזור למשימה</button>
+        <button onclick="copyCradeToGroup(this,'${task.id}');"
+          style="padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);
+          border:none;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;">
+          📋 העתק ציון לסומנות
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  // שמור gradeData לשימוש בהעתקה
+  overlay._gradeData=gradeData;
+  overlay._gradedStudent=gradedStudent;
+}
+
+function cgLimitCheck(cb,max){
+  const all=document.querySelectorAll('#copy-group-list input[type=checkbox]');
+  const checked=[...all].filter(c=>c.checked);
+  if(checked.length>max){cb.checked=false;toast(`ניתן לסמן עד ${max} תלמידים`);}
+}
+
+function copyCradeToGroup(btn,taskId){
+  const overlay=btn.closest('div[style*="position:fixed"]');
+  const gradeData=overlay._gradeData;
+  const checked=[...overlay.querySelectorAll('#copy-group-list input:checked')];
+  if(!checked.length){toast('לא סומנה אף תלמידה. לחצי "דלג" לחזרה.');return;}
+  const task=tasks.find(t=>t.id===taskId);
+  checked.forEach(cb=>{
+    const sName=cb.value;
+    const key=sName.replace(/ /g,'_');
+    const gd={...gradeData,copiedFrom:overlay._gradedStudent,gradedAt:Date.now()};
+    db.ref('teacher/tasks/'+taskId+'/grades/'+key).set(gd);
+    if(task){if(!task.grades)task.grades={};task.grades[key]=gd;}
+  });
+  toast(`✓ ציון הועתק ל-${checked.length} תלמידים`);
+  overlay.remove();
+  closeGradingScreen();
+}
 
 function gradeNav(dir){
   const sl=_grade.studentList;
