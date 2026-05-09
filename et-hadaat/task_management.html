@@ -1663,15 +1663,95 @@ function completeCurrentTask(){
   _renderDetail(task);renderAlerts();
 }
 function duplicateCurrentTask(){
-  const t=tasks.find(t=>t.id===currentTaskId);if(!t)return;
-  _wz={step:1,editId:null,
-    data:{...t,name:t.name+' (עותק)',grades:undefined,createdAt:undefined},
-    rubric:t.rubric?JSON.parse(JSON.stringify(t.rubric)):null,
-    rubricType:t.rubricType||null,
-    instrFile:null,rubricImgFile:null,hasExistingRubric:t.rubric?true:false,
-    taskGroups:t.taskGroups||[],groupMethod:t.groupMethod||'free'
+  const t=tasks.find(t=>t.id===currentTaskId);
+  if(!t)return;
+
+  // בנה modal פשוט — קבוצה ותאריכים בלבד
+  const existing=document.getElementById('dup-modal-overlay');
+  if(existing)existing.remove();
+
+  const dft=new Date();dft.setDate(dft.getDate()+14);
+  const grOpts=groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
+
+  const overlay=document.createElement('div');
+  overlay.id='dup-modal-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML=`
+    <div style="background:#1a0e05;border:2px solid var(--gold);border-radius:14px;padding:24px;
+      width:100%;max-width:460px;">
+      <div style="font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);margin-bottom:4px;">📋 שכפול משימה</div>
+      <div style="font-size:.8rem;opacity:.55;margin-bottom:18px;">כל הנתונים, ההוראות והמחוון יועתקו. שנני רק את הקבוצה והתאריכים.</div>
+
+      <div style="background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.82rem;opacity:.7;">
+        <div style="font-weight:700;margin-bottom:3px;">${esc(t.name)}</div>
+        <div>${esc(t.type||'')} · ${esc(t.mode||'')} ${t.rubric?'· ✅ מחוון ('+( t.rubric.criteria?.length||0)+' קריטריונים)':''}</div>
+      </div>
+
+      <div style="margin-bottom:13px;">
+        <div style="font-size:.77rem;color:var(--gold);opacity:.82;margin-bottom:5px;">קבוצת לימוד</div>
+        <select id="dup-group" style="width:100%;padding:9px 11px;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;appearance:auto;">
+          ${grOpts}
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:13px;">
+        <div>
+          <div style="font-size:.77rem;color:var(--gold);opacity:.82;margin-bottom:5px;">תאריך פתיחה</div>
+          <input type="date" id="dup-open" value="${t.openDate||today()}"
+            style="width:100%;padding:9px 11px;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;">
+        </div>
+        <div>
+          <div style="font-size:.77rem;color:var(--gold);opacity:.82;margin-bottom:5px;">תאריך הגשה</div>
+          <input type="date" id="dup-due" value="${dft.toISOString().split('T')[0]}"
+            style="width:100%;padding:9px 11px;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;">
+        </div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:.77rem;color:var(--gold);opacity:.82;margin-bottom:5px;">מועד אחרון לציונים</div>
+        <select id="dup-gradedays" style="width:100%;padding:9px 11px;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;appearance:auto;">
+          <option value="21" ${(t.gradeDays||21)==21?'selected':''}>3 שבועות</option>
+          <option value="14" ${t.gradeDays==14?'selected':''}>2 שבועות</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="document.getElementById('dup-modal-overlay').remove()"
+          style="padding:8px 18px;background:none;border:1px solid rgba(212,168,67,.22);color:var(--parch);
+          border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;">ביטול</button>
+        <button onclick="saveDuplicate('${t.id}')"
+          style="padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);
+          border:none;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;">
+          📋 שמור עותק ✓
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  // סגירה בלחיצה מחוץ
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
+
+function saveDuplicate(srcId){
+  const t=tasks.find(t=>t.id===srcId);
+  if(!t)return;
+  const groupId=document.getElementById('dup-group').value;
+  const openDate=document.getElementById('dup-open').value;
+  const due=document.getElementById('dup-due').value;
+  const gradeDays=parseInt(document.getElementById('dup-gradedays').value)||21;
+  if(!due){toast('נא למלא תאריך הגשה.');return;}
+
+  // העתק הכל חוץ מציונים ותאריך יצירה
+  const {grades:_,createdAt:__,...rest}=t;
+  const newTask={
+    ...rest,
+    groupId,openDate,due,gradeDays,
+    grades:{},
+    createdAt:Date.now()
   };
-  renderWizardStep();openModal('modal-wizard');
+  const ref=db.ref('teacher/tasks').push(newTask);
+  tasks.push({id:ref.key,...newTask});
+  document.getElementById('dup-modal-overlay')?.remove();
+  toast('✓ המשימה שוכפלה'+(newTask.rubric?' עם המחוון':''));
+  renderTasksList();
+  renderAlerts();
+  renderSubjectGrid();
 }
 
 /* ══ RUBRIC MODAL ══ */
