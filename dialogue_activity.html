@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דו-שיח בין דמויות — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--surface:rgba(44,26,14,0.88);
+  --border:rgba(212,168,67,0.22);--border2:rgba(212,168,67,0.4);
+  --c1:rgba(59,130,246,0.12);--c2:rgba(139,92,246,0.12);
+  --blue:#3b82f6;--purple:#8b5cf6;--green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#0a1628,#0f0a04 60%,#1a0a1a);color:var(--parch);min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── TOPBAR ── */
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+.btn-sm{padding:5px 14px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;}
+.btn-sm:hover{background:rgba(212,168,67,.1);}
+.btn-primary{background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;padding:8px 20px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+.btn-primary:hover{opacity:.9;}
+.btn-primary:disabled{opacity:.4;cursor:default;}
+
+/* ── SCREENS ── */
+.screen{display:none;flex:1;padding:24px;max-width:800px;margin:0 auto;width:100%;}
+.screen.active{display:block;}
+
+/* ── SHARED ── */
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px;margin-bottom:16px;}
+.card-title{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:14px;}
+.form-label{display:block;font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.form-input{width:100%;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.95rem;outline:none;transition:border .2s;}
+.form-input:focus{border-color:var(--gold);}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.72rem;font-weight:700;}
+
+/* ── TEACHER SETUP ── */
+.context-box{background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);border-radius:10px;padding:14px;margin-bottom:16px;}
+.context-row{display:flex;gap:6px;align-items:baseline;margin-bottom:4px;}
+.context-label{font-size:.72rem;color:var(--gold);opacity:.7;min-width:70px;}
+.context-val{font-size:.88rem;color:var(--parch);}
+
+.ai-loading{text-align:center;padding:24px;opacity:.6;}
+.ai-loading-spinner{font-size:2rem;display:block;margin-bottom:8px;animation:spin 1.2s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Character cards grid */
+.chars-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px;}
+.char-card{
+  border:2px solid var(--border);border-radius:12px;padding:14px;
+  background:rgba(253,245,224,.04);cursor:pointer;transition:all .2s;
+  position:relative;
+}
+.char-card:hover{border-color:rgba(212,168,67,.4);background:rgba(212,168,67,.06);}
+.char-card.selected{border-color:var(--gold);background:rgba(212,168,67,.12);}
+.char-card.approved{border-color:#22c55e;background:rgba(34,197,94,.08);}
+.char-icon{font-size:1.8rem;margin-bottom:6px;}
+.char-name{font-weight:700;font-size:.92rem;margin-bottom:3px;}
+.char-desc{font-size:.72rem;opacity:.55;line-height:1.4;}
+.char-gender{position:absolute;top:8px;left:8px;font-size:.65rem;background:rgba(212,168,67,.15);border:1px solid var(--border);border-radius:8px;padding:1px 7px;color:var(--gold);}
+.char-del{position:absolute;top:6px;left:6px;background:none;border:none;color:#f87171;cursor:pointer;font-size:.75rem;opacity:.7;}
+.char-del:hover{opacity:1;}
+
+/* Opening sentences */
+.opening-cards{display:flex;flex-direction:column;gap:8px;}
+.opening-card{
+  border:2px solid var(--border);border-radius:10px;padding:12px 14px;
+  cursor:pointer;transition:all .2s;font-size:.88rem;line-height:1.6;
+  background:rgba(253,245,224,.04);
+}
+.opening-card:hover{border-color:rgba(212,168,67,.4);}
+.opening-card.selected{border-color:var(--gold);background:rgba(212,168,67,.1);}
+
+/* Add char form */
+.add-char-form{border:1px dashed var(--border);border-radius:10px;padding:14px;margin-top:10px;}
+.add-char-grid{display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end;}
+
+/* ── STUDENT: CHARACTER SELECT ── */
+.student-chars-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+.student-char-card{
+  border:2px solid var(--border);border-radius:14px;padding:18px 14px;
+  text-align:center;cursor:pointer;transition:all .2s;
+  background:rgba(253,245,224,.04);
+}
+.student-char-card:hover{border-color:rgba(212,168,67,.5);transform:translateY(-2px);}
+.student-char-card.selected-a{border-color:var(--blue);background:rgba(59,130,246,.12);}
+.student-char-card.selected-b{border-color:var(--purple);background:rgba(139,92,246,.12);}
+.student-char-card.me-card{border-color:var(--green);background:rgba(34,197,94,.08);}
+.student-char-icon{font-size:2.2rem;margin-bottom:8px;}
+.student-char-name{font-weight:700;font-size:.9rem;}
+.student-char-desc{font-size:.72rem;opacity:.5;margin-top:3px;line-height:1.4;}
+.selection-hint{
+  display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;
+}
+.sel-badge{padding:6px 14px;border-radius:10px;font-size:.82rem;font-weight:700;border:2px solid;min-width:120px;text-align:center;}
+.sel-a{border-color:var(--blue);background:rgba(59,130,246,.1);color:#93c5fd;}
+.sel-b{border-color:var(--purple);background:rgba(139,92,246,.1);color:#c4b5fd;}
+
+/* ── DIALOGUE WRITING ── */
+.dialogue-header{
+  background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);
+  border-radius:12px;padding:16px;margin-bottom:16px;
+}
+.dialogue-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);margin-bottom:8px;}
+.dialogue-chars{display:flex;gap:12px;flex-wrap:wrap;}
+.dchar-badge{padding:5px 14px;border-radius:20px;font-size:.82rem;font-weight:700;}
+.dchar-a{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#93c5fd;}
+.dchar-b{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;}
+
+/* Phase headers */
+.phase-header{
+  display:flex;align-items:center;gap:10px;margin:20px 0 12px;
+  padding:10px 14px;border-radius:10px;
+}
+.phase-1{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);}
+.phase-2{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);}
+.phase-3{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);}
+.phase-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0;}
+.phase-1 .phase-num{background:rgba(34,197,94,.2);color:#86efac;}
+.phase-2 .phase-num{background:rgba(245,158,11,.2);color:#fcd34d;}
+.phase-3 .phase-num{background:rgba(139,92,246,.2);color:#c4b5fd;}
+.phase-info{}
+.phase-name{font-weight:700;font-size:.9rem;}
+.phase-1 .phase-name{color:#86efac;}
+.phase-2 .phase-name{color:#fcd34d;}
+.phase-3 .phase-name{color:#c4b5fd;}
+.phase-desc{font-size:.72rem;opacity:.55;margin-top:2px;}
+
+/* Exchange rows */
+.exchange-row{
+  background:rgba(253,245,224,.03);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;margin-bottom:8px;
+}
+.exchange-row.fixed{background:rgba(212,168,67,.05);border-color:rgba(212,168,67,.2);}
+.exchange-label{
+  font-size:.75rem;font-weight:700;margin-bottom:6px;
+  display:flex;align-items:center;gap:6px;
+}
+.label-a{color:#93c5fd;}
+.label-b{color:#c4b5fd;}
+.exchange-textarea{
+  width:100%;background:rgba(253,245,224,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:7px;padding:8px 12px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.9rem;line-height:1.7;
+  outline:none;resize:none;transition:border .2s;
+  min-height:52px;
+}
+.exchange-textarea:focus{border-color:rgba(212,168,67,.3);}
+.exchange-fixed-text{
+  font-size:.9rem;line-height:1.7;color:var(--parch);opacity:.8;
+  font-style:italic;
+}
+.exchange-hint{font-size:.68rem;opacity:.35;margin-top:4px;}
+
+/* Progress bar */
+.progress-wrap{margin-bottom:16px;}
+.progress-label{display:flex;justify-content:space-between;font-size:.72rem;opacity:.45;margin-bottom:5px;}
+.progress-bar{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#22c55e,#f59e0b);border-radius:3px;transition:width .4s;}
+
+/* Closing sentence */
+.closing-section{
+  background:rgba(139,92,246,.08);border:2px solid rgba(139,92,246,.25);
+  border-radius:12px;padding:16px;margin-top:16px;
+}
+.closing-title{font-size:.85rem;font-weight:700;color:#c4b5fd;margin-bottom:8px;}
+.closing-desc{font-size:.75rem;opacity:.55;margin-bottom:10px;line-height:1.5;}
+.closing-textarea{
+  width:100%;background:rgba(253,245,224,.05);border:1px solid rgba(139,92,246,.2);
+  border-radius:8px;padding:10px 14px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.9rem;line-height:1.7;
+  outline:none;resize:vertical;min-height:60px;transition:border .2s;
+}
+.closing-textarea:focus{border-color:rgba(139,92,246,.5);}
+
+/* Save bar */
+.save-bar{
+  position:sticky;bottom:0;background:rgba(15,8,2,.97);
+  border-top:1px solid var(--border);padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;
+}
+.save-msg{font-size:.8rem;color:#86efac;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">💬 דו-שיח בין דמויות</div>
+  <div class="topbar-right">
+    <span id="topbar-context" style="font-size:.74rem;opacity:.45;"></span>
+    <button class="btn-sm" onclick="history.back()">← חזרה</button>
+  </div>
+</div>
+
+<!-- ══════════════ TEACHER SETUP SCREEN ══════════════ -->
+<div class="screen active" id="screen-teacher">
+
+  <!-- Context display -->
+  <div class="card">
+    <div class="card-title">📌 הקשר השיעור</div>
+    <div class="context-box" id="context-box">
+      <div class="context-row"><span class="context-label">יחידה:</span><span class="context-val" id="ctx-unit">—</span></div>
+      <div class="context-row"><span class="context-label">נושא שיעור:</span><span class="context-val" id="ctx-topic">—</span></div>
+      <div class="context-row"><span class="context-label">מטרות:</span><span class="context-val" id="ctx-goals">—</span></div>
+    </div>
+    <div id="ai-loading" class="ai-loading" style="display:none;">
+      <span class="ai-loading-spinner">🤖</span>
+      AI מציע דמויות ומשפטי פתיחה...
+    </div>
+  </div>
+
+  <!-- Characters -->
+  <div class="card" id="chars-card" style="display:none;">
+    <div class="card-title">👥 דמויות מוצעות <span style="font-size:.72rem;font-weight:400;opacity:.5;">(בחרי עד 6 לאישור)</span></div>
+    <div class="chars-grid" id="chars-grid"></div>
+
+    <!-- Add character manually -->
+    <div class="add-char-form">
+      <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:10px;">➕ הוסיפי דמות ידנית</div>
+      <div class="add-char-grid">
+        <div>
+          <label class="form-label">שם הדמות</label>
+          <input class="form-input" id="new-char-name" placeholder="שם..." />
+        </div>
+        <div>
+          <label class="form-label">תיאור קצר</label>
+          <input class="form-input" id="new-char-desc" placeholder="תפקיד/רקע..." />
+        </div>
+        <div>
+          <label class="form-label">מין</label>
+          <select class="form-input" id="new-char-gender">
+            <option value="m">זכר</option>
+            <option value="f">נקבה</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-sm" style="margin-top:10px;" onclick="addManualChar()">+ הוסיפי</button>
+    </div>
+  </div>
+
+  <!-- Opening sentences -->
+  <div class="card" id="opening-card" style="display:none;">
+    <div class="card-title">✍️ משפטי פתיחה מוצעים <span style="font-size:.72rem;font-weight:400;opacity:.5;">(בחרי אחד)</span></div>
+    <div class="opening-cards" id="opening-cards"></div>
+  </div>
+
+  <!-- Save button -->
+  <div id="save-teacher-wrap" style="display:none;margin-top:8px;">
+    <button class="btn-primary" style="width:100%;padding:13px;" onclick="saveTeacherConfig()">✅ אשרי והפעילי לתלמידים</button>
+  </div>
+
+</div>
+
+<!-- ══════════════ STUDENT: CHARACTER SELECT ══════════════ -->
+<div class="screen" id="screen-char-select">
+  <div class="card">
+    <div class="card-title">👥 בחרי שתי דמויות לדו-שיח</div>
+
+    <div class="selection-hint">
+      <div class="sel-badge sel-a" id="sel-a-display">דמות א: לא נבחרה</div>
+      <div class="sel-badge sel-b" id="sel-b-display">דמות ב: לא נבחרה</div>
+    </div>
+
+    <div style="font-size:.8rem;opacity:.55;margin-bottom:14px;">לחצי על דמות ראשונה (כחולה), אחר כך על השנייה (סגולה). "אני" — תהיה אחת הדמויות בעצמך.</div>
+
+    <div class="student-chars-grid" id="student-chars-grid"></div>
+  </div>
+
+  <button class="btn-primary" id="btn-start-dialogue" onclick="startDialogue()" disabled style="width:100%;padding:13px;margin-top:4px;">✍️ התחילי לכתוב</button>
+</div>
+
+<!-- ══════════════ DIALOGUE WRITING ══════════════ -->
+<div class="screen" id="screen-dialogue" style="padding-bottom:80px;">
+
+  <div class="dialogue-header">
+    <div class="dialogue-title" id="dialogue-title">דו-שיח</div>
+    <div class="dialogue-chars">
+      <span class="dchar-badge dchar-a" id="dchar-a-badge">דמות א</span>
+      <span class="dchar-badge dchar-b" id="dchar-b-badge">דמות ב</span>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>התקדמות</span>
+      <span id="progress-text">0 / 12 שורות</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Opening sentence (fixed) -->
+  <div class="exchange-row fixed">
+    <div class="exchange-label" style="color:var(--gold);opacity:.6;">📖 פתיחה</div>
+    <div class="exchange-fixed-text" id="opening-sentence-display">...</div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase-header phase-1">
+    <div class="phase-num">1</div>
+    <div class="phase-info">
+      <div class="phase-name">פתיחת השיחה</div>
+      <div class="phase-desc">הצגת הדמויות, הרקע והסיבה לפגישה — 3 החלפות</div>
+    </div>
+  </div>
+  <div id="phase-1-rows"></div>
+
+  <!-- Phase 2 -->
+  <div class="phase-header phase-2">
+    <div class="phase-num">2</div>
+    <div class="phase-info">
+      <div class="phase-name">ליבת השיחה</div>
+      <div class="phase-desc">ההתנגשות, הוויכוח, הדעות — 6 החלפות</div>
+    </div>
+  </div>
+  <div id="phase-2-rows"></div>
+
+  <!-- Phase 3 -->
+  <div class="phase-header phase-3">
+    <div class="phase-num">3</div>
+    <div class="phase-info">
+      <div class="phase-name">סיום השיחה</div>
+      <div class="phase-desc">התקרבות לסיום, קבלת עמדות — 3 החלפות</div>
+    </div>
+  </div>
+  <div id="phase-3-rows"></div>
+
+  <!-- Closing sentence -->
+  <div class="closing-section">
+    <div class="closing-title">✍️ משפט הסיום — שלך!</div>
+    <div class="closing-desc">כתבי משפט אחד שמסכם את הדו-שיח או מראה את תוצאתו. זו ההזדמנות שלך לסיים את הסיפור.</div>
+    <textarea class="closing-textarea" id="closing-sentence" placeholder="כתבי משפט סיום..." oninput="updateProgress()"></textarea>
+  </div>
+
+</div>
+
+<!-- Save bar -->
+<div class="save-bar" id="save-bar" style="display:none;">
+  <span class="save-msg" id="save-msg"></span>
+  <button class="btn-primary" onclick="saveStudentWork()">💾 שמרי את הדו-שיח</button>
+</div>
+
+<script>
+// ── FIREBASE ──
+const FB = {
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+firebase.initializeApp(FB);
+const db = firebase.database();
+
+// ── STATE ──
+const params = new URLSearchParams(window.location.search);
+const MODE = params.get('mode') || 'teacher'; // teacher | student
+const SUBJECT_ID = params.get('subject') || '';
+const UNIT_ID = params.get('unit') || '';
+const LESSON_IDX = parseInt(params.get('lesson') || '0');
+const STUDENT_NAME = decodeURIComponent(params.get('student') || params.get('name') || '');
+const FB_KEY = `dialogue_${SUBJECT_ID}_${UNIT_ID}_${LESSON_IDX}`;
+
+let lessonContext = { unit:'', topic:'', goals:'' };
+let suggestedChars = []; // [{name, desc, gender, icon}]
+let suggestedOpenings = [];
+let selectedOpeningIdx = 0;
+let approvedChars = [];
+let approvedOpening = '';
+
+let selectedA = null; // index in approvedChars, or 'me'
+let selectedB = null;
+let charA = null; // {name, desc, gender}
+let charB = null;
+
+const TOTAL_EXCHANGES = 12; // 3+6+3
+const PHASE_CONFIG = [
+  { id:'phase-1-rows', count:3, hints:['הציגי את הדמות והסיבה לפגישה','הגיבי בצורה המתאימה לדמות','המשיכי את ההיכרות'] },
+  { id:'phase-2-rows', count:6, hints:['פתחי בטיעון מרכזי','השיבי בנימוק נגדי','חזקי את עמדתך','הביאי דוגמה','הגיבי לדוגמה','סכמי את העמדות'] },
+  { id:'phase-3-rows', count:3, hints:['התחילי להתקרב לסיום','הביעי את עמדתך הסופית','פרדי בצורה המתאימה לדמות'] },
+];
+
+// ── INIT ──
+window.onload = async function() {
+  document.getElementById('topbar-context').textContent = STUDENT_NAME || '';
+
+  if (MODE === 'teacher') {
+    await loadLessonContext();
+    callAIForChars();
+  } else {
+    // Student mode
+    document.getElementById('screen-teacher').classList.remove('active');
+    document.getElementById('screen-char-select').classList.add('active');
+    loadApprovedConfig();
+  }
+};
+
+// ── LOAD LESSON CONTEXT ──
+async function loadLessonContext() {
+  return new Promise(resolve => {
+    db.ref('teacher/subjects').once('value', snap => {
+      const subjects = snap.val() || {};
+      const subj = Object.values(subjects).find(s => s.id === SUBJECT_ID);
+      if (subj) {
+        const units = subj.units ? Object.values(subj.units) : [];
+        const unit = units.find(u => u.id === UNIT_ID);
+        if (unit) {
+          const lessons = unit.lessons ? Object.values(unit.lessons) : [];
+          const lesson = lessons[LESSON_IDX];
+          lessonContext = {
+            unit: unit.name || unit.title || '',
+            topic: lesson?.topic || lesson?.name || '',
+            goals: lesson?.goals || ''
+          };
+        }
+      }
+      document.getElementById('ctx-unit').textContent = lessonContext.unit || '—';
+      document.getElementById('ctx-topic').textContent = lessonContext.topic || '—';
+      document.getElementById('ctx-goals').textContent = lessonContext.goals || '—';
+      resolve();
+    });
+  });
+}
+
+// ── AI: SUGGEST CHARS & OPENINGS ──
+async function callAIForChars() {
+  document.getElementById('ai-loading').style.display = 'block';
+
+  const prompt = `אתה עוזר פדגוגי לתוכנית לימוד עברית/היסטוריה.
+
+הקשר השיעור:
+יחידה: ${lessonContext.unit || 'לא צוין'}
+נושא: ${lessonContext.topic || 'לא צוין'}
+מטרות: ${lessonContext.goals || 'לא צוין'}
+
+משימה: הצע עד 6 דמויות היסטוריות/ספרותיות רלוונטיות לנושא השיעור לפעילות דו-שיח, ו-3 משפטי פתיחה לדו-שיח.
+
+החזר JSON בדיוק כך ללא שום טקסט נוסף:
+{
+  "characters": [
+    {"name": "שם", "desc": "תפקיד/רקע קצר", "gender": "m/f", "icon": "אמוג'י מתאים"}
+  ],
+  "openings": [
+    "משפט פתיחה ראשון עם X ו-Y כ-placeholders לשמות הדמויות",
+    "משפט פתיחה שני",
+    "משפט פתיחה שלישי"
+  ]
+}`;
+
+  try {
+    const res = await fetch('https://anthropic-proxy.anna-sho.workers.dev', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:800,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b=>b.text||'').join('');
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    suggestedChars = parsed.characters || [];
+    suggestedOpenings = parsed.openings || [];
+  } catch(e) {
+    // Fallback
+    suggestedChars = [
+      {name:'דמות א', desc:'דמות היסטורית', gender:'m', icon:'👑'},
+      {name:'דמות ב', desc:'דמות היסטורית', gender:'f', icon:'⚔️'},
+    ];
+    suggestedOpenings = ['X ו-Y נפגשו ועמדו זה מול זה.'];
+  }
+
+  // Always add "אני" option
+  suggestedChars.unshift({name:'אני', desc:'התלמיד/ה בעצמו/ה', gender:'student', icon:'🧑‍🎓', isMe:true});
+
+  document.getElementById('ai-loading').style.display = 'none';
+  document.getElementById('chars-card').style.display = 'block';
+  document.getElementById('opening-card').style.display = 'block';
+  document.getElementById('save-teacher-wrap').style.display = 'block';
+  renderTeacherChars();
+  renderOpenings();
+}
+
+// ── TEACHER: RENDER ──
+function renderTeacherChars() {
+  const grid = document.getElementById('chars-grid');
+  grid.innerHTML = suggestedChars.map((c,i) => `
+    <div class="char-card ${c.approved?'approved':''}" id="tchar-${i}" onclick="toggleCharApproval(${i})">
+      ${!c.isMe ? `<button class="char-del" onclick="event.stopPropagation();deleteChar(${i})">✕</button>` : ''}
+      ${c.gender !== 'student' ? `<span class="char-gender">${c.gender==='m'?'זכר':'נקבה'}</span>` : ''}
+      <div class="char-icon">${c.icon||'👤'}</div>
+      <div class="char-name">${c.name}</div>
+      <div class="char-desc">${c.desc}</div>
+      ${c.approved ? '<div style="color:#86efac;font-size:.72rem;margin-top:6px;">✓ מאושרת</div>' : ''}
+    </div>
+  `).join('');
+}
+
+function toggleCharApproval(i) {
+  suggestedChars[i].approved = !suggestedChars[i].approved;
+  const approved = suggestedChars.filter(c=>c.approved);
+  if (approved.length > 6) { suggestedChars[i].approved = false; return; }
+  renderTeacherChars();
+}
+
+function deleteChar(i) {
+  suggestedChars.splice(i,1);
+  renderTeacherChars();
+}
+
+function addManualChar() {
+  const name = document.getElementById('new-char-name').value.trim();
+  const desc = document.getElementById('new-char-desc').value.trim();
+  const gender = document.getElementById('new-char-gender').value;
+  if (!name) return;
+  suggestedChars.push({name,desc,gender,icon:gender==='f'?'👩':'👨',approved:true});
+  document.getElementById('new-char-name').value = '';
+  document.getElementById('new-char-desc').value = '';
+  renderTeacherChars();
+}
+
+function renderOpenings() {
+  const cont = document.getElementById('opening-cards');
+  cont.innerHTML = suggestedOpenings.map((o,i) => `
+    <div class="opening-card ${i===selectedOpeningIdx?'selected':''}" onclick="selectOpening(${i})">
+      ${o}
+    </div>
+  `).join('');
+}
+
+function selectOpening(i) {
+  selectedOpeningIdx = i;
+  renderOpenings();
+}
+
+function saveTeacherConfig() {
+  const approved = suggestedChars.filter(c=>c.approved);
+  if (approved.length < 2) { alert('יש לאשר לפחות 2 דמויות.'); return; }
+  const config = {
+    chars: approved,
+    opening: suggestedOpenings[selectedOpeningIdx] || '',
+    topic: lessonContext.topic || '',
+    unit: lessonContext.unit || '',
+    savedAt: Date.now()
+  };
+  db.ref(`teacher/dialogueConfigs/${FB_KEY}`).set(config).then(() => {
+    alert('✓ הדו-שיח הוגדר ונשמר! התלמידים יכולים לגשת אליו עכשיו.');
+  });
+}
+
+// ── STUDENT: LOAD CONFIG ──
+function loadApprovedConfig() {
+  db.ref(`teacher/dialogueConfigs/${FB_KEY}`).once('value', snap => {
+    const config = snap.val();
+    if (!config) {
+      document.getElementById('student-chars-grid').innerHTML = '<div style="opacity:.5;text-align:center;padding:24px;">הפעילות עדיין לא הוגדרה על ידי המורה.</div>';
+      return;
+    }
+    approvedChars = config.chars || [];
+    approvedOpening = config.opening || '';
+
+    document.getElementById('topbar-context').textContent = config.topic || '';
+    renderStudentChars();
+    loadStudentWork();
+  });
+}
+
+function renderStudentChars() {
+  const grid = document.getElementById('student-chars-grid');
+  grid.innerHTML = approvedChars.map((c,i) => `
+    <div class="student-char-card ${c.isMe?'me-card':''}" id="schar-${i}" onclick="selectStudentChar(${i})">
+      <div class="student-char-icon">${c.icon||'👤'}</div>
+      <div class="student-char-name">${c.name}</div>
+      <div class="student-char-desc">${c.desc||''}</div>
+    </div>
+  `).join('');
+}
+
+function selectStudentChar(i) {
+  if (selectedA === null) {
+    selectedA = i;
+    document.getElementById(`schar-${i}`).classList.add('selected-a');
+    document.getElementById('sel-a-display').textContent = 'דמות א: ' + approvedChars[i].name;
+  } else if (selectedB === null && i !== selectedA) {
+    selectedB = i;
+    document.getElementById(`schar-${i}`).classList.add('selected-b');
+    document.getElementById('sel-b-display').textContent = 'דמות ב: ' + approvedChars[i].name;
+    document.getElementById('btn-start-dialogue').disabled = false;
+  } else {
+    // Reset
+    document.querySelectorAll('.student-char-card').forEach(el => el.classList.remove('selected-a','selected-b'));
+    selectedA = i;
+    selectedB = null;
+    document.getElementById(`schar-${i}`).classList.add('selected-a');
+    document.getElementById('sel-a-display').textContent = 'דמות א: ' + approvedChars[i].name;
+    document.getElementById('sel-b-display').textContent = 'דמות ב: לא נבחרה';
+    document.getElementById('btn-start-dialogue').disabled = true;
+  }
+}
+
+function startDialogue() {
+  charA = approvedChars[selectedA];
+  charB = approvedChars[selectedB];
+
+  // Adapt opening sentence to character names
+  let opening = approvedOpening
+    .replace(/X/g, charA.name)
+    .replace(/Y/g, charB.name);
+
+  // Switch to dialogue screen
+  document.getElementById('screen-char-select').classList.remove('active');
+  document.getElementById('screen-dialogue').classList.add('active');
+  document.getElementById('save-bar').style.display = 'flex';
+
+  document.getElementById('dialogue-title').textContent =
+    `דו-שיח: ${charA.name} ✦ ${charB.name}`;
+  document.getElementById('dchar-a-badge').textContent = charA.name;
+  document.getElementById('dchar-b-badge').textContent = charB.name;
+  document.getElementById('opening-sentence-display').textContent = opening;
+
+  renderPhases();
+  updateProgress();
+}
+
+function renderPhases() {
+  let exchangeNum = 0;
+  PHASE_CONFIG.forEach(phase => {
+    const cont = document.getElementById(phase.id);
+    cont.innerHTML = '';
+    for (let i = 0; i < phase.count; i++) {
+      exchangeNum++;
+      const isA = exchangeNum % 2 === 1;
+      const char = isA ? charA : charB;
+      const colorClass = isA ? 'label-a' : 'label-b';
+      const hint = phase.hints[i] || '';
+      const row = document.createElement('div');
+      row.className = 'exchange-row';
+      row.innerHTML = `
+        <div class="exchange-label ${colorClass}">
+          ${char.name}:
+        </div>
+        <textarea class="exchange-textarea" id="ex-${exchangeNum}"
+          placeholder="${char.name}: &quot;${hint}&quot;"
+          oninput="updateProgress()"></textarea>
+        <div class="exchange-hint">השתמשי בנקודותיים ובגרשיים: ${char.name}: "..."</div>
+      `;
+      cont.appendChild(row);
+    }
+  });
+}
+
+function updateProgress() {
+  let filled = 0;
+  for (let i = 1; i <= TOTAL_EXCHANGES; i++) {
+    const ta = document.getElementById('ex-' + i);
+    if (ta && ta.value.trim()) filled++;
+  }
+  const closing = document.getElementById('closing-sentence')?.value.trim();
+  if (closing) filled++;
+  const total = TOTAL_EXCHANGES + 1;
+  const pct = Math.round(filled / total * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${filled} / ${total} שורות`;
+}
+
+// ── SAVE/LOAD STUDENT WORK ──
+function saveStudentWork() {
+  const key = STUDENT_NAME.replace(/ /g,'_') || 'anonymous';
+  const exchanges = [];
+  for (let i = 1; i <= TOTAL_EXCHANGES; i++) {
+    exchanges.push(document.getElementById('ex-' + i)?.value || '');
+  }
+  const data = {
+    charA: charA?.name || '',
+    charB: charB?.name || '',
+    exchanges,
+    closing: document.getElementById('closing-sentence')?.value || '',
+    savedAt: Date.now()
+  };
+  db.ref(`teacher/dialogueWork/${FB_KEY}/${key}`).set(data).then(() => {
+    const msg = document.getElementById('save-msg');
+    msg.textContent = '✓ הדו-שיח נשמר!';
+    setTimeout(() => msg.textContent = '', 2500);
+  });
+}
+
+function loadStudentWork() {
+  if (!STUDENT_NAME) return;
+  const key = STUDENT_NAME.replace(/ /g,'_');
+  db.ref(`teacher/dialogueWork/${FB_KEY}/${key}`).once('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    // Restore after startDialogue is called
+    window._savedWork = d;
+  });
+}
+
+function restoreSavedWork() {
+  const d = window._savedWork;
+  if (!d) return;
+  (d.exchanges || []).forEach((val, i) => {
+    const ta = document.getElementById('ex-' + (i+1));
+    if (ta) ta.value = val;
+  });
+  const closing = document.getElementById('closing-sentence');
+  if (closing && d.closing) closing.value = d.closing;
+  updateProgress();
+}
+</script>
+</body>
+</html>

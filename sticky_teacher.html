@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>פתקיות — בקרת מורה</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);
+  --border2:rgba(212,168,67,0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#0a1628,#0f0a04);color:var(--parch);min-height:100vh;padding:20px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px;margin-bottom:16px;}
+.card-title{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;font-weight:700;color:var(--gold2);margin-bottom:14px;}
+.label{display:block;font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:6px;text-transform:uppercase;}
+.input{width:100%;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;outline:none;transition:border .2s;margin-bottom:12px;}
+.input:focus{border-color:var(--gold);}
+.btn{padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;transition:opacity .2s;}
+.btn:hover{opacity:.9;}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;}
+.btn-blue{background:#2563eb;color:white;}
+.btn-green{background:#16a34a;color:white;}
+.btn-red{background:#dc2626;color:white;}
+.btn-ghost{background:none;border:1px solid var(--border2);color:var(--gold);}
+.btn-sm{padding:5px 12px;font-size:.78rem;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.toggle-label{font-size:.88rem;}
+.toggle{width:44px;height:24px;background:#334155;border-radius:12px;cursor:pointer;position:relative;transition:background .2s;}
+.toggle.on{background:#16a34a;}
+.toggle::after{content:'';position:absolute;top:3px;right:3px;width:18px;height:18px;background:white;border-radius:50%;transition:transform .2s;}
+.toggle.on::after{transform:translateX(-20px);}
+.status-badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:.75rem;font-weight:700;}
+.badge-active{background:rgba(34,197,94,.2);color:#86efac;border:1px solid rgba(34,197,94,.3);}
+.badge-inactive{background:rgba(100,116,139,.2);color:#94a3b8;border:1px solid rgba(100,116,139,.3);}
+
+/* Sticky preview grid */
+.stickies-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.sticky-preview{
+  width:130px;min-height:120px;border-radius:8px;padding:10px;
+  font-size:.78rem;cursor:pointer;position:relative;
+  box-shadow:2px 3px 8px rgba(0,0,0,.3);transition:transform .2s;
+  word-break:break-word;
+}
+.sticky-preview:hover{transform:scale(1.05);}
+.sticky-preview.starred{outline:3px solid var(--gold);}
+.sticky-name{font-size:.65rem;opacity:.7;margin-top:6px;font-weight:700;}
+.sticky-star{position:absolute;top:4px;left:4px;font-size:.9rem;cursor:pointer;}
+.sticky-del{position:absolute;top:2px;right:2px;background:none;border:none;color:rgba(0,0,0,.4);cursor:pointer;font-size:.75rem;}
+.sticky-img{width:100%;border-radius:4px;margin-top:6px;max-height:60px;object-fit:cover;}
+
+/* Boards history */
+.board-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.board-row:hover{background:rgba(212,168,67,.06);}
+.board-name{font-size:.88rem;font-weight:600;}
+.board-meta{font-size:.72rem;opacity:.45;}
+.boards-list{max-height:220px;overflow-y:auto;}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+.stat-box{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.stat-num{font-size:1.6rem;font-weight:700;color:var(--gold2);}
+.stat-lbl{font-size:.7rem;opacity:.5;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title">🗒️ פתקיות — בקרת מורה</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-blue" onclick="openBoard()">📺 פתח לוח הקרנה</button>
+    <button class="btn btn-ghost" onclick="history.back()">← חזרה</button>
+  </div>
+</div>
+
+<!-- לוח פעיל -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div class="card-title" style="margin:0;">לוח פעיל</div>
+    <span class="status-badge badge-inactive" id="status-badge">לא פעיל</span>
+  </div>
+
+  <label class="label">שם הלוח</label>
+  <input class="input" id="board-name" placeholder='למשל: "שמות שונים לתנ"ך — ח׳3"' />
+
+  <label class="label">הוראה לתלמידים</label>
+  <input class="input" id="board-instruction" placeholder='למשל: "כתבו שם אחד לתנ"ך שלמדתם"' />
+
+  <div class="toggle-row">
+    <span class="toggle-label">הצג שם תלמיד על הפתקית</span>
+    <div class="toggle on" id="toggle-name" onclick="toggleSetting('showName')"></div>
+  </div>
+  <div class="toggle-row" style="border:none;">
+    <span class="toggle-label">אפשר תמונות בפתקיות</span>
+    <div class="toggle on" id="toggle-img" onclick="toggleSetting('allowImages')"></div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+    <button class="btn btn-green" id="btn-activate" onclick="activateBoard()">▶ פתח לתלמידים</button>
+    <button class="btn btn-red" id="btn-stop" onclick="stopBoard()" style="display:none;">■ סגור לוח</button>
+    <button class="btn btn-ghost" onclick="clearBoard()">🗑 מחק פתקיות</button>
+  </div>
+</div>
+
+<!-- סטטיסטיקה + פתקיות -->
+<div class="card">
+  <div class="card-title">פתקיות בזמן אמת</div>
+  <div class="stats">
+    <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">פתקיות</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-students">0</div><div class="stat-lbl">תלמידים</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-starred">0</div><div class="stat-lbl">קיבלו בונוס</div></div>
+  </div>
+  <div class="stickies-grid" id="stickies-grid">
+    <div style="opacity:.4;font-size:.82rem;padding:16px;">אין פתקיות עדיין</div>
+  </div>
+</div>
+
+<!-- היסטוריית לוחות -->
+<div class="card">
+  <div class="card-title">📋 לוחות שמורים</div>
+  <div class="boards-list" id="boards-list">
+    <div style="opacity:.4;font-size:.82rem;text-align:center;padding:16px;">אין לוחות שמורים</div>
+  </div>
+</div>
+
+<script>
+const FB={
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+try{firebase.initializeApp(FB);}catch(e){}
+const db=firebase.database();
+
+let currentBoardId=null;
+let settings={showName:true,allowImages:true};
+let stickiesListener=null;
+
+window.onload=function(){
+  loadBoards();
+  db.ref('stickies/active').once('value',snap=>{
+    const d=snap.val();
+    if(d&&d.active&&d.boardId){
+      currentBoardId=d.boardId;
+      document.getElementById('board-name').value=d.name||'';
+      document.getElementById('board-instruction').value=d.instruction||'';
+      if(d.settings) settings=d.settings;
+      applySettings();
+      setActiveUI(true);
+      listenToStickies(d.boardId);
+    }
+  });
+};
+
+function toggleSetting(key){
+  settings[key]=!settings[key];
+  document.getElementById('toggle-'+{showName:'name',allowImages:'img'}[key]).classList.toggle('on',settings[key]);
+}
+
+function applySettings(){
+  document.getElementById('toggle-name').classList.toggle('on',settings.showName);
+  document.getElementById('toggle-img').classList.toggle('on',settings.allowImages);
+}
+
+function activateBoard(){
+  const name=document.getElementById('board-name').value.trim();
+  const instr=document.getElementById('board-instruction').value.trim();
+  if(!name){alert('יש לתת שם ללוח.');return;}
+  currentBoardId='board_'+Date.now();
+  const boardData={
+    active:true,boardId:currentBoardId,
+    name,instruction:instr,
+    settings,startedAt:Date.now()
+  };
+  db.ref('stickies/active').set(boardData);
+  db.ref('stickies/boards/'+currentBoardId).set({...boardData,stickies:{}});
+  setActiveUI(true);
+  listenToStickies(currentBoardId);
+}
+
+function stopBoard(){
+  if(!currentBoardId)return;
+  db.ref('stickies/active').update({active:false});
+  setActiveUI(false);
+  if(stickiesListener){
+    db.ref('stickies/boards/'+currentBoardId+'/stickies').off('value',stickiesListener);
+    stickiesListener=null;
+  }
+  loadBoards();
+}
+
+function clearBoard(){
+  if(!currentBoardId||!confirm('למחוק את כל הפתקיות?'))return;
+  db.ref('stickies/boards/'+currentBoardId+'/stickies').remove();
+}
+
+function setActiveUI(active){
+  document.getElementById('status-badge').textContent=active?'● פעיל':'לא פעיל';
+  document.getElementById('status-badge').className='status-badge '+(active?'badge-active':'badge-inactive');
+  document.getElementById('btn-activate').style.display=active?'none':'';
+  document.getElementById('btn-stop').style.display=active?'':'none';
+}
+
+function listenToStickies(boardId){
+  stickiesListener=db.ref('stickies/boards/'+boardId+'/stickies').on('value',snap=>{
+    const data=snap.val()||{};
+    renderStickies(data);
+  });
+}
+
+function renderStickies(data){
+  const stickies=Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
+  const students=new Set(stickies.map(([,s])=>s.studentName).filter(Boolean));
+  const starred=stickies.filter(([,s])=>s.starred).length;
+  document.getElementById('stat-total').textContent=stickies.length;
+  document.getElementById('stat-students').textContent=students.size;
+  document.getElementById('stat-starred').textContent=starred;
+
+  const cont=document.getElementById('stickies-grid');
+  if(!stickies.length){
+    cont.innerHTML='<div style="opacity:.4;font-size:.82rem;padding:16px;">אין פתקיות עדיין</div>';
+    return;
+  }
+  cont.innerHTML=stickies.map(([id,s])=>`
+    <div class="sticky-preview ${s.starred?'starred':''}" style="background:${s.color||'#fef08a'};color:#1c1208;"
+      onclick="toggleStar('${id}','${s.studentName||''}',${!s.starred})">
+      <span class="sticky-star">${s.starred?'⭐':''}</span>
+      <button class="sticky-del" onclick="event.stopPropagation();deleteSticky('${id}')">✕</button>
+      <div>${s.text||''}</div>
+      ${s.imageUrl?`<img class="sticky-img" src="${s.imageUrl}" />`:''}
+      ${settings.showName&&s.studentName?`<div class="sticky-name">— ${s.studentName}</div>`:''}
+    </div>
+  `).join('');
+}
+
+function toggleStar(stickyId,studentName,starred){
+  if(!currentBoardId)return;
+  db.ref('stickies/boards/'+currentBoardId+'/stickies/'+stickyId).update({starred});
+  // Give bonus points
+  if(starred&&studentName){
+    const key=studentName.replace(/ /g,'_');
+    db.ref('teacher/bonuses/'+key+'/points').transaction(v=>(v||0)+1);
+    db.ref('stickies/active').update({lastBonus:{student:studentName,at:Date.now()}});
+  }
+}
+
+function deleteSticky(id){
+  if(!currentBoardId)return;
+  db.ref('stickies/boards/'+currentBoardId+'/stickies/'+id).remove();
+}
+
+function loadBoards(){
+  db.ref('stickies/boards').orderByChild('startedAt').limitToLast(10).once('value',snap=>{
+    const data=snap.val()||{};
+    const boards=Object.entries(data).sort((a,b)=>b[1].startedAt-a[1].startedAt);
+    const cont=document.getElementById('boards-list');
+    if(!boards.length){
+      cont.innerHTML='<div style="opacity:.4;font-size:.82rem;text-align:center;padding:16px;">אין לוחות שמורים</div>';
+      return;
+    }
+    cont.innerHTML=boards.map(([id,b])=>{
+      const d=new Date(b.startedAt).toLocaleDateString('he-IL');
+      const cnt=Object.keys(b.stickies||{}).length;
+      return`<div class="board-row" onclick="importBoard('${id}')">
+        <div>
+          <div class="board-name">${b.name||'ללא שם'}</div>
+          <div class="board-meta">${d} · ${cnt} פתקיות</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();viewBoard('${id}')">👁 הצג</button>
+      </div>`;
+    }).join('');
+  });
+}
+
+function importBoard(id){
+  db.ref('stickies/boards/'+id).once('value',snap=>{
+    const d=snap.val();
+    if(!d)return;
+    document.getElementById('board-name').value=d.name||'';
+    document.getElementById('board-instruction').value=d.instruction||'';
+  });
+}
+
+function viewBoard(id){
+  const base=window.location.href.replace('sticky_teacher.html','sticky_board.html');
+  window.open(base+'?board='+id,'_blank');
+}
+
+function openBoard(){
+  const base=window.location.href.replace('sticky_teacher.html','sticky_board.html');
+  window.open(base+(currentBoardId?'?board='+currentBoardId:''),'_blank');
+}
+</script>
+</body>
+</html>

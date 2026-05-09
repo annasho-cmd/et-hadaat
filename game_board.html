@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>לוח כיתה — משחק היסטוריה</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@700;900&family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+
+const app = initializeApp(firebaseConfig, 'board_' + Date.now());
+const db = getDatabase(app);
+
+// ── State ──
+const params = new URLSearchParams(window.location.search);
+const gameCode = params.get('code') || '';
+let questions = [];
+let currentQ = 0;
+let gameState = 'lobby';
+let answers = {};
+let students = {};
+let timerInterval = null;
+let timerSeconds = 0;
+let timerStarted = false;
+let previewCountdown = null;
+
+// ── Init ──
+if (!gameCode) {
+  document.getElementById('error').textContent = 'חסר קוד משחק בכתובת';
+} else {
+  document.getElementById('code-display').textContent = gameCode;
+  listenToGame();
+}
+
+function listenToGame() {
+  // Questions
+  onValue(ref(db, `games/${gameCode}/questions`), snap => {
+    const data = snap.val();
+    if (!data) return;
+    questions = Array.isArray(data) ? data : Object.values(data);
+    renderQuestion();
+  });
+
+  // Current question index
+  onValue(ref(db, `games/${gameCode}/currentQuestion`), snap => {
+    const val = snap.val();
+    if (val !== null && val !== undefined) {
+      currentQ = val;
+      timerStarted = false;
+      clearInterval(timerInterval);
+      clearInterval(previewCountdown);
+      document.getElementById('timer-bar').style.width = '100%';
+      document.getElementById('timer-val').textContent = '';
+      document.getElementById('timer-wrap').style.display = 'none';
+      answers = {};
+      renderQuestion();
+      renderAnswers();
+      // Start 10s preview countdown
+      startPreviewCountdown();
+    }
+  });
+
+  // Timer settings — synced from Firebase
+  onValue(ref(db, `games/${gameCode}/timerSeconds`), snap => {
+    const val = snap.val();
+    if (val !== null && val !== undefined) timerSecondsTotal = val;
+  });
+
+  // Game state
+  onValue(ref(db, `games/${gameCode}/state`), snap => {
+    gameState = snap.val() || 'lobby';
+    renderState();
+  });
+
+  // Answers — structure: answers/q0/studentId = value
+  onValue(ref(db, `games/${gameCode}/answers`), snap => {
+    answers = snap.val() || {};
+    renderAnswers();
+    updateCount();
+  });
+
+  // Students — structure: students/studentId = {name, ...}
+  onValue(ref(db, `games/${gameCode}/students`), snap => {
+    students = snap.val() || {};
+    updateCount();
+  });
+}
+
+let timerSecondsTotal = 60;
+
+// ── Preview countdown (10s before timer) ──
+function startPreviewCountdown() {
+  if (gameState !== 'question') return;
+  if (timerSecondsTotal === 0) return; // no timer
+  let secs = 10;
+  const el = document.getElementById('preview-countdown');
+  el.style.display = 'block';
+  el.textContent = `⏳ הטיימר יתחיל בעוד ${secs} שניות`;
+  previewCountdown = setInterval(() => {
+    secs--;
+    if (secs <= 0) {
+      clearInterval(previewCountdown);
+      el.style.display = 'none';
+      startTimer();
+    } else {
+      el.textContent = `⏳ הטיימר יתחיל בעוד ${secs} שניות`;
+    }
+  }, 1000);
+}
+
+// ── Timer ──
+function startTimer() {
+  if (timerSecondsTotal === 0) return;
+  timerSeconds = timerSecondsTotal;
+  const wrap = document.getElementById('timer-wrap');
+  const bar = document.getElementById('timer-bar');
+  const val = document.getElementById('timer-val');
+  wrap.style.display = 'block';
+  timerStarted = true;
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    val.textContent = timerSeconds + 'ש';
+    bar.style.width = (timerSeconds / timerSecondsTotal * 100) + '%';
+    if (timerSeconds <= 10) bar.style.background = '#e53e3e';
+    else if (timerSeconds <= 30) bar.style.background = '#ed8936';
+    else bar.style.background = '#48bb78';
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      val.textContent = '⏰ זמן!';
+      bar.style.width = '0%';
+      document.getElementById('time-up').style.display = 'block';
+      setTimeout(() => document.getElementById('time-up').style.display = 'none', 3000);
+    }
+  }, 1000);
+}
+
+// ── Render question ──
+function renderQuestion() {
+  if (!questions.length) return;
+  const q = questions[currentQ];
+  if (!q) return;
+
+  document.getElementById('q-num').textContent = `שאלה ${currentQ + 1} מתוך ${questions.length}`;
+  document.getElementById('q-text').textContent = q.text || '';
+
+  // Media
+  const mediaEl = document.getElementById('q-media');
+  if (q.media && q.media.src) {
+    mediaEl.innerHTML = `<img src="${q.media.src}" alt="תמונה" style="max-height:280px;max-width:100%;border-radius:8px;object-fit:contain;" />`;
+    mediaEl.style.display = 'block';
+  } else {
+    mediaEl.style.display = 'none';
+    mediaEl.innerHTML = '';
+  }
+
+  // Type label
+  const types = {
+    'multiple_choice': 'רב-ברירה',
+    'true_false': 'נכון / לא נכון',
+    'open_text': 'שאלה פתוחה',
+    'ordering': 'סדר כרונולוגי'
+  };
+  document.getElementById('q-type').textContent = types[q.type] || '';
+
+  // Options for MC / TF
+  const optionsEl = document.getElementById('q-options');
+  optionsEl.innerHTML = '';
+  if (q.type === 'multiple_choice' && q.options) {
+    const labels = ['א','ב','ג','ד'];
+    q.options.forEach((opt, i) => {
+      const div = document.createElement('div');
+      div.className = 'option-item';
+      div.id = 'opt-' + i;
+      div.innerHTML = `<span class="opt-label">${labels[i]}</span><span>${opt}</span>`;
+      optionsEl.appendChild(div);
+    });
+  } else if (q.type === 'true_false') {
+    ['✅ נכון', '❌ לא נכון'].forEach((opt, i) => {
+      const div = document.createElement('div');
+      div.className = 'option-item tf-item';
+      div.id = 'opt-' + i;
+      div.textContent = opt;
+      optionsEl.appendChild(div);
+    });
+  }
+
+  renderAnswers();
+}
+
+// ── Render answers ──
+function renderAnswers() {
+  if (!questions.length) return;
+  const q = questions[currentQ];
+  if (!q) return;
+
+  // Get answers for current question: answers/q{currentQ}/{studentId} = value
+  const qKey = 'q' + currentQ;
+  const qAnswers = answers[qKey] || {};
+  const answerValues = Object.entries(qAnswers); // [[studentId, value], ...]
+  const container = document.getElementById('answers-container');
+  container.innerHTML = '';
+
+  if (q.type === 'multiple_choice') {
+    const opts = q.options || [];
+    const counts = {};
+    answerValues.forEach(([sid, val]) => { counts[val] = (counts[val]||0) + 1; });
+    const total = answerValues.length || 1;
+    const labels = ['א','ב','ג','ד'];
+    opts.forEach((opt, i) => {
+      const count = counts[opt] || 0;
+      const pct = Math.round(count / total * 100);
+      const div = document.createElement('div');
+      div.className = 'bar-row';
+      div.innerHTML = `
+        <div class="bar-label">${labels[i]}. ${opt}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:${pct>0?'#4299e1':'#2d3748'}"></div>
+        </div>
+        <div class="bar-count">${count} (${pct}%)</div>`;
+      container.appendChild(div);
+    });
+
+  } else if (q.type === 'true_false') {
+    let trueCount = 0, falseCount = 0;
+    answerValues.forEach(([sid, val]) => {
+      if (val === true || val === 'true' || val === 1) trueCount++;
+      else falseCount++;
+    });
+    const total = answerValues.length || 1;
+    container.innerHTML = `
+      <div class="tf-bars">
+        <div class="tf-bar-item green">
+          <div class="tf-icon">✅</div>
+          <div class="tf-bar-track"><div class="tf-bar-fill" style="width:${Math.round(trueCount/total*100)}%"></div></div>
+          <div class="tf-count">נכון — ${trueCount} (${Math.round(trueCount/total*100)}%)</div>
+        </div>
+        <div class="tf-bar-item red">
+          <div class="tf-icon">❌</div>
+          <div class="tf-bar-track"><div class="tf-bar-fill" style="width:${Math.round(falseCount/total*100)}%;background:#e53e3e;"></div></div>
+          <div class="tf-count">לא נכון — ${falseCount} (${Math.round(falseCount/total*100)}%)</div>
+        </div>
+      </div>`;
+
+  } else if (q.type === 'open_text') {
+    if (!answerValues.length) {
+      container.innerHTML = '<div class="no-answers">ממתין לתשובות...</div>';
+      return;
+    }
+    const first12 = answerValues.slice(0, 12);
+    first12.forEach(([sid, val]) => {
+      const studentData = students[sid] || {};
+      const name = studentData.name || sid;
+      const div = document.createElement('div');
+      div.className = 'open-card';
+      div.innerHTML = `<span class="open-name">${name}</span><span class="open-text">${val||''}</span>`;
+      container.appendChild(div);
+    });
+    if (answerValues.length > 12) {
+      const more = document.createElement('div');
+      more.className = 'more-answers';
+      more.textContent = `+ עוד ${answerValues.length - 12} תשובות`;
+      container.appendChild(more);
+    }
+
+  } else if (q.type === 'ordering') {
+    const done = answerValues.filter(([sid,val]) => val && val.completed).length;
+    container.innerHTML = `<div class="ordering-count">
+      <span style="font-size:3rem;font-weight:900;color:#48bb78;">${done}</span>
+      <span style="opacity:.6;margin-right:8px;">תלמידים סיימו לסדר</span>
+    </div>`;
+  }
+}
+
+function updateCount() {
+  const qKey = 'q' + currentQ;
+  const qAnswers = answers[qKey] || {};
+  const answered = Object.keys(qAnswers).length;
+  const total = Object.keys(students).length;
+  document.getElementById('answered-count').textContent = answered + ' / ' + total + ' ענו';
+}
+
+function renderState() {
+  const lobby = document.getElementById('lobby-screen');
+  const game = document.getElementById('game-screen');
+  if (gameState === 'lobby' || gameState === 'ended') {
+    lobby.style.display = 'flex';
+    game.style.display = 'none';
+  } else {
+    lobby.style.display = 'none';
+    game.style.display = 'block';
+  }
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:#0f0a04;color:#fdf5e0;
+  min-height:100vh;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.2) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.08) 0%,transparent 50%);
+}
+
+/* ── LOBBY ── */
+#lobby-screen{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:20px;z-index:10;
+}
+.lobby-icon{font-size:5rem;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.lobby-title{font-family:'Frank Ruhl Libre',serif;font-size:2.5rem;font-weight:900;color:#f0c060;}
+.lobby-code{font-size:1.2rem;opacity:.6;}
+.lobby-code span{
+  font-size:2.5rem;font-weight:900;letter-spacing:8px;
+  color:#d4a843;font-family:monospace;
+  background:rgba(212,168,67,.1);padding:8px 20px;border-radius:8px;
+}
+.lobby-wait{font-size:.9rem;opacity:.5;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+
+/* ── GAME SCREEN ── */
+#game-screen{display:none;min-height:100vh;padding:20px;position:relative;z-index:1;}
+
+/* ── HEADER ── */
+.board-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:16px;
+}
+.q-num{font-size:1rem;opacity:.5;}
+.q-type-badge{
+  background:rgba(212,168,67,.15);border:1px solid rgba(212,168,67,.3);
+  border-radius:20px;padding:4px 14px;font-size:.82rem;color:#d4a843;
+}
+.answered-count{font-size:1rem;font-weight:700;color:#48bb78;}
+
+/* ── QUESTION ── */
+.q-text{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:2rem;font-weight:700;
+  color:#f0c060;text-align:center;
+  margin-bottom:20px;line-height:1.4;
+  max-width:900px;margin-left:auto;margin-right:auto;
+}
+#q-media{text-align:center;margin-bottom:20px;}
+
+/* ── LAYOUT ── */
+.board-layout{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:24px;max-width:1200px;margin:0 auto;
+}
+@media(max-width:768px){.board-layout{grid-template-columns:1fr;}}
+
+/* ── OPTIONS ── */
+.option-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;margin-bottom:10px;
+  background:rgba(255,255,255,.06);
+  border:1.5px solid rgba(212,168,67,.2);
+  border-radius:8px;font-size:1rem;
+  transition:background .3s,border-color .3s;
+}
+.option-item.correct{background:rgba(72,187,120,.2);border-color:#48bb78;}
+.opt-label{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(212,168,67,.2);color:#d4a843;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;flex-shrink:0;
+}
+.tf-item{justify-content:center;font-size:1.3rem;font-weight:700;}
+
+/* ── BARS ── */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.bar-label{flex:0 0 180px;font-size:.85rem;text-align:right;}
+.bar-track{flex:1;height:28px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;transition:width .5s ease;border-radius:4px;}
+.bar-count{flex:0 0 80px;font-size:.85rem;text-align:left;color:#d4a843;font-weight:700;}
+
+/* ── TF BARS ── */
+.tf-bars{display:flex;flex-direction:column;gap:16px;}
+.tf-bar-item{display:flex;align-items:center;gap:12px;}
+.tf-icon{font-size:1.8rem;flex-shrink:0;}
+.tf-bar-track{flex:1;height:36px;background:rgba(255,255,255,.08);border-radius:6px;overflow:hidden;}
+.tf-bar-fill{height:100%;background:#48bb78;transition:width .5s ease;border-radius:6px;}
+.tf-count{flex:0 0 180px;font-size:.9rem;font-weight:700;}
+
+/* ── OPEN CARDS ── */
+.open-card{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 14px;margin-bottom:8px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(212,168,67,.15);border-radius:6px;
+}
+.open-name{flex:0 0 90px;font-size:.78rem;color:#d4a843;font-weight:700;}
+.open-text{font-size:.85rem;line-height:1.5;flex:1;}
+.more-answers{text-align:center;opacity:.5;font-size:.82rem;padding:8px;}
+.no-answers{text-align:center;opacity:.4;padding:30px;font-size:.9rem;}
+
+/* ── ORDERING ── */
+.ordering-count{
+  text-align:center;padding:40px;
+  font-size:1.2rem;display:flex;align-items:center;justify-content:center;
+}
+
+/* ── TIMER ── */
+#timer-wrap{
+  display:none;margin:16px 0;
+}
+.timer-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:6px;font-size:.85rem;opacity:.7;
+}
+.timer-track{
+  height:16px;background:rgba(255,255,255,.1);
+  border-radius:8px;overflow:hidden;
+}
+#timer-bar{
+  height:100%;background:#48bb78;
+  transition:width 1s linear,background .3s;
+  border-radius:8px;
+}
+#timer-val{font-weight:700;font-size:1rem;color:#48bb78;}
+
+/* ── PREVIEW COUNTDOWN ── */
+#preview-countdown{
+  display:none;text-align:center;
+  font-size:1.1rem;color:#d4a843;
+  padding:10px;opacity:.8;
+}
+
+/* ── TIME UP ── */
+#time-up{
+  display:none;position:fixed;inset:0;
+  background:rgba(229,62,62,.3);
+  backdrop-filter:blur(4px);
+  z-index:100;
+  align-items:center;justify-content:center;
+  font-size:5rem;font-weight:900;
+  color:#fff;text-align:center;
+}
+
+/* ── CODE BADGE ── */
+.code-badge{
+  position:fixed;bottom:16px;left:16px;
+  background:rgba(212,168,67,.15);
+  border:1px solid rgba(212,168,67,.3);
+  border-radius:8px;padding:8px 16px;
+  font-family:monospace;font-size:1.2rem;
+  font-weight:700;color:#d4a843;letter-spacing:3px;
+  z-index:50;
+}
+#error{color:#e07070;text-align:center;padding:40px;font-size:1.2rem;}
+</style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="lobby-screen">
+  <div class="lobby-icon">🎮</div>
+  <div class="lobby-title">משחק היסטוריה</div>
+  <div class="lobby-code">קוד: <span id="code-display"></span></div>
+  <div class="lobby-wait">ממתין להפעלת המשחק...</div>
+  <div id="error"></div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div class="board-header">
+    <div class="q-num" id="q-num"></div>
+    <div class="q-type-badge" id="q-type"></div>
+    <div class="answered-count" id="answered-count"></div>
+  </div>
+
+  <!-- TIMER -->
+  <div id="timer-wrap">
+    <div class="timer-header">
+      <span>⏱ זמן שנותר</span>
+      <span id="timer-val"></span>
+    </div>
+    <div class="timer-track">
+      <div id="timer-bar" style="width:100%;"></div>
+    </div>
+  </div>
+
+  <!-- PREVIEW COUNTDOWN -->
+  <div id="preview-countdown"></div>
+
+  <!-- QUESTION TEXT -->
+  <div class="q-text" id="q-text"></div>
+
+  <!-- MEDIA -->
+  <div id="q-media" style="display:none;"></div>
+
+  <!-- LAYOUT: OPTIONS + ANSWERS -->
+  <div class="board-layout">
+    <div id="q-options"></div>
+    <div id="answers-container"></div>
+  </div>
+</div>
+
+<!-- TIME UP OVERLAY -->
+<div id="time-up" style="display:none;display:none;">⏰<br>זמן!</div>
+
+<!-- CODE BADGE -->
+<div class="code-badge" id="code-badge"></div>
+
+<script>
+  // Set code badge
+  const p = new URLSearchParams(window.location.search);
+  document.getElementById('code-badge').textContent = p.get('code') || '';
+</script>
+</body>
+</html>

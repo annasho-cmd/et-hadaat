@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ענן מילים — בקרת מורה</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#0a1628,#0f0a04);color:var(--parch);min-height:100vh;padding:24px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
+.label{display:block;font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:6px;text-transform:uppercase;}
+.input{width:100%;background:rgba(253,245,224,.07);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.95rem;outline:none;}
+.input:focus{border-color:var(--gold);}
+.btn{padding:10px 24px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;transition:opacity .2s;}
+.btn:hover{opacity:.9;}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;}
+.btn-green{background:#16a34a;color:white;}
+.btn-red{background:#dc2626;color:white;}
+.btn-blue{background:#2563eb;color:white;}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--gold);}
+.status-badge{display:inline-block;padding:4px 14px;border-radius:12px;font-size:.78rem;font-weight:700;}
+.active{background:rgba(34,197,94,.2);color:#86efac;border:1px solid rgba(34,197,94,.3);}
+.inactive{background:rgba(100,116,139,.2);color:#94a3b8;border:1px solid rgba(100,116,139,.3);}
+.word-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.word-chip{padding:4px 12px;border-radius:12px;font-size:.82rem;background:rgba(212,168,67,.12);border:1px solid var(--border);color:var(--parch);display:flex;align-items:center;gap:6px;}
+.word-count{font-size:.7rem;background:rgba(212,168,67,.3);padding:1px 6px;border-radius:8px;color:var(--gold2);}
+.word-del{background:none;border:none;color:#f87171;cursor:pointer;font-size:.75rem;padding:0;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;}
+.stat-box{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.stat-num{font-size:1.6rem;font-weight:700;color:var(--gold2);}
+.stat-lbl{font-size:.72rem;opacity:.5;margin-top:2px;}
+.sessions-list{max-height:200px;overflow-y:auto;}
+.session-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.session-row:hover{background:rgba(212,168,67,.06);}
+.session-q{font-size:.85rem;}
+.session-meta{font-size:.72rem;opacity:.45;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title">☁️ ענן מילים — בקרת מורה</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-blue" onclick="openBoard()">📺 פתח לוח הקרנה</button>
+    <button class="btn btn-ghost" onclick="history.back()">← חזרה</button>
+  </div>
+</div>
+
+<!-- מצב נוכחי -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:.9rem;font-weight:700;color:var(--gold2);">מצב הענן</div>
+    <span class="status-badge inactive" id="status-badge">לא פעיל</span>
+  </div>
+
+  <label class="label">שאלה / הנחייה לתלמידים</label>
+  <input class="input" id="question-input" placeholder='למשל: "כתבו מילה אחת שמסכמת את השיעור"' style="margin-bottom:10px;" />
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+    <button class="btn btn-green" id="btn-activate" onclick="activateCloud()">▶ פתח לתלמידים</button>
+    <button class="btn btn-red" id="btn-stop" onclick="stopCloud()" style="display:none;">■ סגור</button>
+    <button class="btn btn-ghost" onclick="clearWords()">🗑 מחק תשובות</button>
+  </div>
+</div>
+
+<!-- סטטיסטיקה -->
+<div class="card">
+  <div style="font-size:.85rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">תשובות בזמן אמת</div>
+  <div class="stats">
+    <div class="stat-box"><div class="stat-num" id="stat-students">0</div><div class="stat-lbl">תלמידים ענו</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-words">0</div><div class="stat-lbl">מילים שונות</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">תשובות סה"כ</div></div>
+  </div>
+  <div class="word-list" id="word-list"></div>
+</div>
+
+<!-- היסטוריה -->
+<div class="card">
+  <div style="font-size:.85rem;font-weight:700;color:var(--gold2);margin-bottom:10px;">📋 שאלות קודמות</div>
+  <div class="sessions-list" id="sessions-list">
+    <div style="opacity:.4;font-size:.82rem;text-align:center;padding:16px;">אין היסטוריה עדיין</div>
+  </div>
+</div>
+
+<script>
+const FB = {
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+try{firebase.initializeApp(FB);}catch(e){}
+const db = firebase.database();
+
+let currentSessionId = null;
+let wordsListener = null;
+
+window.onload = function(){
+  loadHistory();
+  // Check if there's an active session
+  db.ref('wordcloud/active').once('value', snap => {
+    const d = snap.val();
+    if(d && d.active){
+      currentSessionId = d.sessionId;
+      document.getElementById('question-input').value = d.question || '';
+      setActiveUI(true);
+      listenToWords(d.sessionId);
+    }
+  });
+};
+
+function activateCloud(){
+  const q = document.getElementById('question-input').value.trim();
+  if(!q){alert('יש להזין שאלה תחילה.');return;}
+  currentSessionId = 'wc_' + Date.now();
+  db.ref('wordcloud/active').set({
+    active: true,
+    sessionId: currentSessionId,
+    question: q,
+    startedAt: Date.now()
+  });
+  db.ref('wordcloud/sessions/' + currentSessionId).set({
+    question: q,
+    startedAt: Date.now(),
+    words: {}
+  });
+  setActiveUI(true);
+  listenToWords(currentSessionId);
+}
+
+function stopCloud(){
+  if(!currentSessionId)return;
+  db.ref('wordcloud/active').update({active:false});
+  setActiveUI(false);
+  if(wordsListener){
+    db.ref('wordcloud/sessions/' + currentSessionId + '/words').off('value', wordsListener);
+    wordsListener = null;
+  }
+  loadHistory();
+}
+
+function clearWords(){
+  if(!currentSessionId)return;
+  if(!confirm('למחוק את כל התשובות?'))return;
+  db.ref('wordcloud/sessions/' + currentSessionId + '/words').remove();
+}
+
+function setActiveUI(active){
+  document.getElementById('status-badge').textContent = active ? '● פעיל' : 'לא פעיל';
+  document.getElementById('status-badge').className = 'status-badge ' + (active?'active':'inactive');
+  document.getElementById('btn-activate').style.display = active ? 'none' : '';
+  document.getElementById('btn-stop').style.display = active ? '' : 'none';
+}
+
+function listenToWords(sessionId){
+  if(wordsListener) db.ref('wordcloud/sessions/' + (currentSessionId||sessionId) + '/words').off('value', wordsListener);
+  wordsListener = db.ref('wordcloud/sessions/' + sessionId + '/words').on('value', snap => {
+    const data = snap.val() || {};
+    renderWords(data);
+  });
+}
+
+function renderWords(data){
+  // data: { studentKey: {word, name} }
+  const wordCount = {};
+  const studentSet = new Set();
+  Object.values(data).forEach(entry => {
+    if(!entry.word)return;
+    const w = entry.word.trim();
+    if(!w)return;
+    wordCount[w] = (wordCount[w]||0) + 1;
+    if(entry.name) studentSet.add(entry.name);
+  });
+
+  const sorted = Object.entries(wordCount).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('stat-students').textContent = studentSet.size;
+  document.getElementById('stat-words').textContent = sorted.length;
+  document.getElementById('stat-total').textContent = Object.values(data).length;
+
+  const cont = document.getElementById('word-list');
+  cont.innerHTML = sorted.map(([w,c]) =>
+    `<span class="word-chip">${w}<span class="word-count">${c}</span></span>`
+  ).join('');
+}
+
+function loadHistory(){
+  db.ref('wordcloud/sessions').orderByChild('startedAt').limitToLast(10).once('value', snap => {
+    const data = snap.val() || {};
+    const sessions = Object.entries(data).sort((a,b)=>b[1].startedAt-a[1].startedAt);
+    const cont = document.getElementById('sessions-list');
+    if(!sessions.length){
+      cont.innerHTML = '<div style="opacity:.4;font-size:.82rem;text-align:center;padding:16px;">אין היסטוריה עדיין</div>';
+      return;
+    }
+    cont.innerHTML = sessions.map(([id,s]) => {
+      const wc = Object.keys(s.words||{}).length;
+      const d = new Date(s.startedAt).toLocaleDateString('he-IL');
+      return `<div class="session-row" onclick="loadSession('${id}')">
+        <span class="session-q">${s.question||'—'}</span>
+        <span class="session-meta">${d} · ${wc} תשובות</span>
+      </div>`;
+    }).join('');
+  });
+}
+
+function loadSession(id){
+  db.ref('wordcloud/sessions/' + id).once('value', snap => {
+    const d = snap.val();
+    if(!d)return;
+    document.getElementById('question-input').value = d.question||'';
+    renderWords(d.words||{});
+  });
+}
+
+function openBoard(){
+  const base = window.location.href.replace('wordcloud_teacher.html','wordcloud_board.html');
+  window.open(base, '_blank');
+}
+</script>
+</body>
+</html>

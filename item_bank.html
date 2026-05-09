@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>בנק הפריטים — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1c1208;--gold:#d4a843;--gold2:#f0c060;
+  --parch:#fdf5e0;--surface:rgba(44,26,14,0.88);
+  --border:rgba(212,168,67,0.18);--border2:rgba(212,168,67,0.38);
+  --green:#1a5c2a;--red:#8b2020;
+  --cat1:#1a2e1a;--cat2:#1a1a2e;--cat3:#2e1a0d;--cat4:#2e0d2e;--cat5:#0d2e2e;--cat6:#2e2a0d;
+  --cat1b:rgba(42,110,42,.35);--cat2b:rgba(42,42,180,.3);
+  --cat3b:rgba(180,90,20,.3);--cat4b:rgba(140,20,140,.3);--cat5b:rgba(20,140,140,.3);--cat6b:rgba(212,168,67,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);direction:rtl;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{background:rgba(15,8,2,.97);border-bottom:1px solid var(--border2);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;font-weight:700;color:var(--gold2);}
+.btn-add{padding:8px 18px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .18s;}
+.btn-add:hover{opacity:.9;}
+.btn-back{padding:5px 14px;background:none;border:1px solid var(--border2);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;}
+.btn-back:hover{background:rgba(212,168,67,.1);}
+
+/* MAIN */
+.main{padding:24px;max-width:1100px;margin:0 auto;}
+
+/* CATEGORY */
+.category-section{margin-bottom:32px;}
+.category-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.category-icon{font-size:1.3rem;}
+.category-name{font-family:'Frank Ruhl Libre',serif;font-size:1rem;font-weight:700;color:var(--gold2);}
+.category-count{font-size:.75rem;opacity:.4;}
+
+/* ITEMS GRID */
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+
+/* ITEM CUBE */
+.item-cube{
+  border-radius:12px;padding:14px 10px;text-align:center;
+  cursor:pointer;transition:all .2s;
+  border:1.5px solid var(--border);
+  background:var(--surface);
+  position:relative;
+}
+.item-cube:hover{transform:translateY(-3px);border-color:var(--gold);}
+.item-cube .cube-icon{font-size:1.6rem;margin-bottom:6px;display:block;}
+.item-cube .cube-name{font-size:.8rem;font-weight:700;line-height:1.3;}
+.item-cube .cube-edit{
+  position:absolute;top:6px;left:6px;
+  padding:2px 7px;font-size:.65rem;font-weight:700;
+  background:rgba(212,168,67,.15);border:1px solid var(--border);
+  border-radius:10px;color:var(--gold);cursor:pointer;
+  opacity:0;transition:opacity .18s;font-family:'Heebo',sans-serif;
+}
+.item-cube:hover .cube-edit{opacity:1;}
+
+/* category colors */
+.cat-1{background:var(--cat1);border-color:var(--cat1b);}
+.cat-1:hover{border-color:#6ee7a0;}
+.cat-2{background:var(--cat2);border-color:var(--cat2b);}
+.cat-2:hover{border-color:#93c5fd;}
+.cat-3{background:var(--cat3);border-color:var(--cat3b);}
+.cat-3:hover{border-color:#fcd34d;}
+.cat-4{background:var(--cat4);border-color:var(--cat4b);}
+.cat-4:hover{border-color:#c4b5fd;}
+.cat-5{background:var(--cat5);border-color:var(--cat5b);}
+.cat-5:hover{border-color:#67e8f9;}
+.cat-6{background:var(--cat6);border-color:var(--cat6b);}
+.cat-6:hover{border-color:#f0c060;}
+
+/* MODAL OVERLAY */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:#1a0f05;border:1px solid var(--border2);border-radius:18px;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+
+/* MODAL HEADER */
+.modal-header{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.modal-icon{font-size:2.2rem;flex-shrink:0;}
+.modal-title-wrap{flex:1;}
+.modal-title{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
+.modal-cat-badge{font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:12px;display:inline-block;margin-top:4px;opacity:.7;}
+.modal-close{padding:6px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--parch);cursor:pointer;font-size:.9rem;flex-shrink:0;}
+
+/* MODAL BODY */
+.modal-body{padding:16px 24px 24px;}
+.modal-section{margin-bottom:18px;}
+.modal-section-title{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:8px;}
+.modal-desc{font-size:.88rem;line-height:1.65;opacity:.8;}
+.modal-desc p{margin-bottom:6px;}
+
+/* STYLES LIST */
+.styles-list{display:flex;flex-direction:column;gap:7px;}
+.style-item{background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
+.style-name{font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:3px;}
+.style-desc{font-size:.78rem;opacity:.6;line-height:1.5;}
+
+/* WRITE AREA */
+.write-area{width:100%;background:rgba(253,245,224,.05);border:1.5px solid var(--border);border-radius:10px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:12px;resize:vertical;min-height:90px;outline:none;transition:border .18s;}
+.write-area:focus{border-color:var(--gold);}
+.write-area::placeholder{opacity:.3;}
+.ai-strip{display:flex;gap:8px;margin-top:8px;}
+.ai-input{flex:1;background:rgba(253,245,224,.05);border:1px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.83rem;padding:8px 12px;outline:none;}
+.ai-input:focus{border-color:var(--gold);}
+.ai-btn{padding:8px 14px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:700;}
+.ai-reply{background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.15);border-radius:8px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin-top:8px;display:none;}
+.ai-thinking{font-size:.75rem;opacity:.4;font-style:italic;margin-top:6px;display:none;}
+
+/* MODAL FOOTER */
+.modal-footer{padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end;}
+.btn-save{padding:10px 24px;background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--ink);border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;}
+.btn-cancel{padding:10px 18px;background:none;border:1.5px solid var(--border2);color:var(--parch);border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;cursor:pointer;}
+.btn-delete{padding:10px 18px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.4);color:#f87171;border-radius:8px;font-family:'Heebo',sans-serif;font-size:.9rem;cursor:pointer;}
+
+/* ADD ITEM MODAL */
+.form-row{margin-bottom:14px;}
+.form-label{font-size:.82rem;font-weight:700;margin-bottom:6px;display:block;opacity:.7;}
+.form-input{width:100%;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:9px 12px;outline:none;}
+.form-input:focus{border-color:var(--gold);}
+.form-select{width:100%;background:rgba(20,10,2,.9);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;padding:9px 12px;outline:none;}
+.form-textarea{width:100%;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;padding:9px 12px;resize:vertical;min-height:80px;outline:none;}
+.form-textarea:focus,.form-input:focus,.form-select:focus{border-color:var(--gold);}
+.form-textarea::placeholder,.form-input::placeholder{opacity:.3;}
+
+/* styles editor */
+.styles-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.style-edit-row{display:flex;gap:8px;}
+.style-edit-name{width:150px;flex-shrink:0;}
+.style-edit-desc{flex:1;}
+.style-remove{padding:0 8px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);border-radius:6px;color:#f87171;cursor:pointer;font-size:.8rem;}
+.btn-add-style{padding:6px 14px;background:rgba(212,168,67,.1);border:1px solid var(--border2);border-radius:6px;color:var(--gold);font-family:'Heebo',sans-serif;font-size:.78rem;cursor:pointer;}
+
+.empty-bank{text-align:center;padding:60px 20px;opacity:.3;font-size:.9rem;}
+.spin{display:inline-block;animation:spin 1.2s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* used-in chips */
+.used-chip{padding:4px 12px;border-radius:14px;font-size:.78rem;font-weight:700;}
+.used-chip.on{background:rgba(42,110,42,.25);border:1px solid rgba(42,180,42,.35);color:#6ee7a0;}
+.used-chip.off{background:rgba(253,245,224,.04);border:1px solid var(--border);color:var(--parch);opacity:.3;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="btn-back" onclick="history.back()">← חזרה</button>
+    <div class="topbar-title">📦 בנק הפריטים</div>
+  </div>
+  <button class="btn-add" onclick="openAddModal()">+ הוסף פריט</button>
+</div>
+
+<div class="main" id="main-content">
+  <div class="empty-bank"><span class="spin">⏳</span><br>טוען פריטים...</div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="view-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon" id="vm-icon">📄</div>
+      <div class="modal-title-wrap">
+        <div class="modal-title" id="vm-title">שם הפריט</div>
+        <span class="modal-cat-badge" id="vm-cat"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal('view-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section" id="vm-desc-section">
+        <div class="modal-section-title">על הפריט</div>
+        <div class="modal-desc" id="vm-desc"></div>
+      </div>
+      <div class="modal-section" id="vm-styles-section">
+        <div class="modal-section-title">סגנונות ודוגמאות</div>
+        <div class="styles-list" id="vm-styles"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">מומלץ לשימוש ב</div>
+        <div id="vm-used-in" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;"></div>
+        <div style="font-size:.72rem;opacity:.35;font-style:italic;">המלצה בלבד — ניתן למשוך לכל קרון</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">תקציר הפריט</div>
+        <textarea class="write-area" id="vm-notes" placeholder="כתבי תקציר קצר על הפריט, מתי מומלץ להשתמש בו ודוגמאות מהניסיון..."></textarea>
+        <div class="ai-strip">
+          <input class="ai-input" id="vm-ai-input" placeholder="שאלי את עוזר ההוראה..." onkeydown="if(event.key==='Enter') askViewAI()">
+          <button class="ai-btn" onclick="askViewAI()">🤖 שאלי</button>
+        </div>
+        <div class="ai-thinking" id="vm-ai-thinking">חושב...</div>
+        <div class="ai-reply" id="vm-ai-reply"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('view-modal')">סגור</button>
+      <button class="btn-save" onclick="saveItemNotes()">💾 שמור תקציר</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon">✏️</div>
+      <div class="modal-title-wrap">
+        <div class="modal-title" id="em-title">פריט חדש</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">שם הפריט</label>
+        <input class="form-input" id="em-name" placeholder="למשל: שאלה פתוחה">
+      </div>
+      <div class="form-row">
+        <label class="form-label">אייקון (אמוג׳י)</label>
+        <input class="form-input" id="em-icon" placeholder="למשל: ❓" style="width:100px;">
+      </div>
+      <div class="form-row">
+        <label class="form-label">קטגוריה</label>
+        <select class="form-select" id="em-cat">
+          <option value="0">📝 שאלות ומשימות</option>
+          <option value="1">✍️ כתיבה ויצירה</option>
+          <option value="2">🎬 מדיה</option>
+          <option value="3">🎮 משחקי ידע ותחרות</option>
+          <option value="4">🔍 גילוי מיון והתאמה</option>
+          <option value="5">🌟 קרון העשרה</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">הסבר על הפריט</label>
+        <textarea class="form-textarea" id="em-desc" placeholder="תיאור קצר של הפריט, מטרתו ואופן השימוש..."></textarea>
+      </div>
+      <div class="form-row">
+        <label class="form-label">סגנונות / דוגמאות</label>
+        <div class="styles-editor" id="em-styles-editor"></div>
+        <button class="btn-add-style" onclick="addStyleRow()">+ הוסף סגנון</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-delete" id="em-delete-btn" style="display:none;" onclick="deleteItem()">🗑 מחק פריט</button>
+      <button class="btn-cancel" onclick="closeModal('edit-modal')">ביטול</button>
+      <button class="btn-save" onclick="saveItem()">💾 שמור פריט</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.database();
+const AI_PROXY='https://anthropic-proxy.anna-sho.workers.dev';
+
+// ── CATEGORIES ──
+const CATS=[
+  {id:'questions', icon:'📝', name:'שאלות ומשימות', cls:'cat-1'},
+  {id:'writing',   icon:'✍️', name:'כתיבה ויצירה',  cls:'cat-2'},
+  {id:'media',     icon:'🎬', name:'מדיה',           cls:'cat-3'},
+  {id:'games',     icon:'🎮', name:'משחקי ידע ותחרות',cls:'cat-4'},
+  {id:'discovery', icon:'🔍', name:'גילוי מיון והתאמה',cls:'cat-5'},
+  {id:'enrichment',icon:'🌟', name:'קרון העשרה',     cls:'cat-6'},
+];
+
+// ── DEFAULT ITEMS ──
+const DEFAULT_ITEMS=[
+  // ── קטגוריה 0: שאלות ומשימות ──
+  {id:'open_q', cat:0, icon:'❓', name:'שאלה פתוחה',
+    desc:'שאלה המאתגרת תלמידים לחשיבה עמוקה ואישית. בחרי סגנון בהתאם למטרת השיעור. תשובות התלמידים נשמרות לבדיקת המורה.',
+    styles:[
+      {name:'שאלה פתוחה',    desc:'שאלה שאין לה תשובה אחת חד-משמעית, אלא מספר תשובות אפשריות שלעיתים סותרות זו את זו. למשל: "האם הצדק תמיד מנצח בהיסטוריה?"'},
+      {name:'שאלה מערערת',   desc:'מטילה ספק במובן מאליו וחושפת קונפליקטים. למשל: "האם מנהיג שעושה רע לאדם אחד כדי להציל רבים הוא מנהיג טוב?"'},
+      {name:'שאלה עשירה',    desc:'מצריכה התמודדות עם תכנים עשירים ומתפרקת לתת-שאלות. למשל: "מה גרם לנפילת האימפריה הרומית — ואיזה גורם לדעתך היה המכריע?"'},
+      {name:'שאלה מחוברת',   desc:'רלוונטית לחיי הלומדים ולחברה שבה הם חיים. למשל: "האם גם היום יש מנהיגים שמקריבים את טובת הפרט למען הכלל?"'},
+      {name:'שאלה טעונה',    desc:'בעלת ממד אתי, רגשי או מטאפיזי. למשל: "האם מותר לשקר כדי להציל חיים?"'},
+      {name:'שאלה מעשית',    desc:'יש עליה מידע נגיש המאפשר מיזוג מקורות וחקר. למשל: "אילו ראיות היסטוריות תומכות בטענה ש...?"'},
+      {name:'שאלה מרכזית',   desc:'שאלה מקיפה ורחבה המוצגת בתחילת השיעור ומשמשת כציר ומארגן. למשל: "מה הופך מנהיג לגדול?"'},
+    ],
+    usedIn:['intro','body','closing']},
+  {id:'mc_q', cat:0, icon:'🔘', name:'שאלות רב-ברירה',
+    desc:'שאלה סגורה עם 4 אפשרויות תשובה. המורה מגדירה שאלה, 4 אפשרויות ומסמנת את הנכונה. האפליקציה בודקת אוטומטית ומציגה משוב מיידי לתלמיד.',
+    styles:[
+      {name:'עובדה ישירה', desc:'בדיקת ידע עובדתי. למשל: "באיזו שנה פרצה מלחמת העולם הראשונה?" עם 4 שנים כאפשרויות.'},
+      {name:'מושג והגדרה', desc:'התאמת מושג להגדרתו. המסיחים הם הגדרות דומות אך שגויות.'},
+      {name:'סיבה ותוצאה', desc:'זיהוי הקשר הסיבתי הנכון. למשל: "מה גרם ל...?" עם 4 סיבות אפשריות.'},
+      {name:'זיהוי דמות/אירוע', desc:'"מי אמר...?" / "איזה אירוע...?" עם 4 אפשרויות.'},
+    ],
+    usedIn:['intro','body','closing']},
+  {id:'tf_q', cat:0, icon:'✅', name:'נכון / לא נכון',
+    desc:'טענה שהתלמיד מחליט אם נכונה או לא. אפשר כסקר (ללא תשובה נכונה) לשיח כיתתי, או עם תשובה נכונה לבדיקת ידע.',
+    styles:[
+      {name:'בדיקת עובדה', desc:'טענה עובדתית חד-משמעית. למשל: "נפוליאון נולד בצרפת".'},
+      {name:'טענה מוטעית', desc:'נראית נכונה אך שגויה — מאתגרת הנחות יסוד.'},
+      {name:'סקר דעות', desc:'ללא תשובה נכונה — לפתיחת דיון. למשל: "המנהיג הטוב הוא מי שנולד עם כישרון".'},
+      {name:'דילמה ערכית', desc:'בעלת ממד אתי — המורה מבקשת נימוק לאחר הבחירה.'},
+    ],
+    usedIn:['intro','body','closing']},
+  {id:'snowman', cat:3, icon:'⛄', name:'איש השלג',
+    desc:'משחק ניחוש מילים קלאסי. תלמידים מנחשים אות אחת בכל פעם — ניחוש נכון מגלה את האות בכל מקומות הופעתה, ניחוש שגוי מוסיף חלק לאיש השלג. המורה מכינה 4–10 מילים מהנושא הנלמד.',
+    styles:[
+      {name:'רמה א — קלה', desc:'6 שלבים: גוף תחתון, גוף עליון, ראש, יד שמאל, יד ימין, כפתורים. מתאים לכיתות ו–ח.'},
+      {name:'רמה ב — מאתגרת', desc:'10 שלבים: כמו רמה א + אף גזר, כובע, צעיף, חיוך, כפתורי פה. מתאים למילים ארוכות ומושגים מורכבים.'},
+    ],
+    gameFile:'snowman_game.html',
+    usedIn:['body','enrichment']},
+  {id:'sources', cat:0, icon:'📜', name:'קריאת מקורות',
+    desc:'הצגת מקור ראשוני (טקסט או תמונה) עם שאלות מלוות. הטקסט מוצג עם שורות ממוספרות בצד שמאל, השאלות בצד ימין — התלמיד יכול לגלול בשאלות בזמן שהמקור נשאר קבוע. תמיכה בהדגשת טקסט.',
+    styles:[
+      {name:'טקסט + שאלות', desc:'העלאת טקסט (עד 15 שורות) עם שאלות מלוות. הטקסט ממוספר אוטומטית.'},
+      {name:'תמונת מקור + שאלות', desc:'העלאת תמונה של מקור ראשוני עם שאלות מלוות.'},
+      {name:'הפניה לספר הלימוד', desc:'הפניה לעמודים ספציפיים בספר + שאלות. המורה מציינת עמודים ונושא.'},
+    ],
+    usedIn:['intro','body']},
+  {id:'entry', cat:0, icon:'🚪', name:'כרטיס כניסה',
+    desc:'כלי הערכה מעצבת קצר המוגש בתחילת השיעור. מטרתו לבדוק מוכנות, לוודא הבנה של חומר קודם או לעורר סקרנות לקראת הנושא החדש. זהו "כרטיס המעבר" של התלמיד מההפסקה אל הלמידה הפעילה.',
+    styles:[
+      {name:'רפלקסיבי-רגשי', desc:'חיבור אישי לנושא או בדיקת מצב רוח. למשל: "ציינו שם של אדם שאתם מחשיבים כמנהיג ומילה אחת שמסבירה למה"'},
+      {name:'בדיקת ידע קודם', desc:'שליפת מושגים מהשיעור הקודם. למשל: "הגדירו במילים שלכם את המושג X" / "נכון או לא נכון — תקנו את השגוי"'},
+      {name:'סקרנות ושאלות', desc:'עידוד שאלות על נושא חדש לפני ההוראה. למשל: "דבר אחד שאני יודע על הנושא ודבר אחד שהייתי רוצה לגלות"'},
+      {name:'יישומי-חשיבתי', desc:'אתגר קצר הדורש יישום מיומנות. למשל: "מיינו 5 פריטים לשתי קבוצות ותנו שם לכל קבוצה"'},
+    ],
+    usedIn:['intro']},
+  {id:'exit', cat:0, icon:'🎫', name:'כרטיס יציאה',
+    desc:'כלי הערכה מעצבת בסיום השיעור. מאפשר למורה לקבל משוב מיידי על אפקטיביות ההוראה, לזהות פערי הבנה ולתכנן את השיעור הבא בהתאם.',
+    styles:[
+      {name:'סיכום וזיקוק', desc:'זיהוי העיקר מהטפל. למשל: "כתבו רעיון אחד מרכזי מהשיעור ב-10 מילים" / "שלושה מושגים חדשים + הסבר אחד"'},
+      {name:'רפלקציה על למידה', desc:'מטה-קוגניציה. למשל: "3 דברים שלמדתי, 2 שמעניינים אותי, שאלה אחת פתוחה" / "מתי נפל לי האסימון?"'},
+      {name:'בדיקת הבנה יישומית', desc:'יישום הידע. למשל: "הפריכו טענה הפוכה למה שלמדנו" / "הסבירו את הנושא למי שלא היה בשיעור"'},
+      {name:'משוב והכנה להמשך', desc:'תכנון השיעור הבא. למשל: "דרגו הבנה מ-1 עד 5 — מה חסר לכם?" / "על מה הייתם רוצים לחזור בשיעור הבא?"'},
+    ],
+    usedIn:['closing']},
+  {id:'fortune_wheel', cat:0, icon:'🎡', name:'גלגל המזל',
+    desc:'כלי מצוין להגברת המעורבות, ליצירת הפתעה ולבחירה אקראית בשיעור. המורה בוחרת סגנון ומגדירה את תוכן הגלגל. הגלגל נפתח בשיעור עצמו.',
+    styles:[
+      {name:'שמות תלמידים', desc:'האפליקציה שולפת אוטומטית את שמות התלמידים מרשימת קבוצת הלימוד. לבחירה אקראית למענה על שאלה.'},
+      {name:'שאלות ומשימות', desc:'המורה מגדירה כמה משבצות — נפתחת תיבת טקסט לכל משבצת. עד 40 שאלות.'},
+      {name:'מספרים', desc:'המורה מגדירה "עד מספר X" — האפליקציה ממלאת אוטומטית. עד 40.'},
+      {name:'חלוקה לקבוצות', desc:'המורה מגדירה מספר קבוצות (2–8) — האפליקציה שובצת תלמידים מרשימת הכיתה.'},
+      {name:'תחרות בין קבוצות', desc:'משבצות קבועות: מספרים, תור חופשי, הפתעה, הפסד תור, פשיטת רגל. המורה מגדירה תוכן לכל משבצת.'},
+    ],
+    popup:{
+      fields:[
+        {id:'style', type:'select', label:'סגנון'},
+        {id:'max_num', type:'number', label:'עד מספר', showIf:'style===מספרים', min:1, max:40},
+        {id:'num_groups', type:'number', label:'מספר קבוצות', showIf:'style===חלוקה לקבוצות', min:2, max:8},
+        {id:'items', type:'list', label:'פריטים', showIf:'style===שאלות ומשימות', maxItems:40},
+        {id:'competition', type:'competition_setup', showIf:'style===תחרות בין קבוצות'},
+      ]
+    },
+    usedIn:['intro','body','closing','enrichment']},
+  {id:'hist_research', cat:0, icon:'🔭', name:'אירוע היסטורי — חקר',
+    desc:'המורה פותחת את שם האירוע ותחתיו 6 שאלות קבועות (חמשת המהיים + תוצאות). ניתן להוסיף שאלה נוספת. כל השאלות מוצגות בו-זמנית.',
+    styles:[
+      {name:'מחקר מונחה', desc:'6 שאלות קבועות: מה קרה? מתי? היכן? מדוע? מי השתתף? מה היו התוצאות? + אפשרות להוסיף שאלה.'},
+    ],
+    popup:{
+      fields:[
+        {id:'event_name', type:'text', label:'שם האירוע'},
+        {id:'extra_q', type:'text', label:'שאלה נוספת (אופציונלי)'},
+      ]
+    },
+    usedIn:['intro','body','closing','enrichment']},
+  // ── קטגוריה 1: כתיבה ויצירה ──
+  {id:'argue', cat:1, icon:'🖊️', name:'כתיבה טיעונית',
+    desc:'תבנית מובנית לכתיבת פסקה טיעונית בשלושה חלקים: פתיחה, גוף וסיכום. המורה בוחרת את רמת ההנחיה בעת משיכה לשיעור.',
+    styles:[
+      {name:'תבנית עצמאית', desc:'כותרות בלבד — פתיחה, גוף, סיכום. לתלמידים מתקדמים שמכירים את המבנה.'},
+      {name:'תבנית מונחית', desc:'כותרות + תיאור תפקיד כל חלק + מילות קישור לחיצות. לתלמידים שלומדים את המבנה.'},
+      {name:'עם בנק מילים', desc:'כותרות בלבד + פאנל צדדי עם מילות קישור — התלמיד בוחר אם להיעזר. לתלמידים שצריכים תמיכה גמישה.'},
+    ],
+    gameFile:'argumentative_writing.html',
+    usedIn:['body','closing','enrichment']},
+  {id:'dialogue', cat:1, icon:'💬', name:'דו-שיח בין דמויות',
+    desc:'פעילות כתיבה יצירתית שבה תלמידים כותבים דו-שיח בין שתי דמויות היסטוריות/ספרותיות. AI מציע דמויות לפי נושא השיעור. מבנה מובנה: פתיחה, ליבת השיחה, סיום.',
+    styles:[
+      {name:'שתי דמויות מוצעות', desc:'התלמיד בוחר שתי דמויות מהרשימה המאושרת.'},
+      {name:'אני + דמות', desc:'התלמיד הוא אחת הדמויות ובוחר עם מי לדבר.'},
+    ],
+    gameFile:'dialogue_activity.html',
+    usedIn:['body','enrichment']},
+  {id:'newspaper', cat:1, icon:'📰', name:'עיתון וירטואלי',
+    desc:'יצירת עיתון דיגיטלי קבוצתי. המורה מגדירה נושא, קבוצות ורשימת תלמידים לכל קבוצה. ראש הקבוצה בוחר תבנית עיתון מתוך 5 אפשרויות. כל תלמיד תופס משבצת (כתבה/כותרת/תמונה) ועובד עליה בלעדית — לאחר תפיסה המשבצת נעולה לאחרים. ניתן להגדיר כמשימת הערכה חלופית עם מחוון (ניתן ליצור בעזרת AI). המורה רואה את העיתון מתמלא בזמן אמת.',
+    styles:[
+      {name:'כתבה עיתונאית', desc:'תבנית קלאסית: כותרת ראשית, כותרת משנה, גוף הכתבה, תמונה וכיתוב.'},
+      {name:'עיתון חדשות', desc:'עמוד ראשי עם כמה כתבות קצרות, כותרות בולטות ותמונות.'},
+      {name:'עיתון תחקיר', desc:'כתבה מעמיקה עם שאלות חמשת המחוונים: מי, מה, מתי, איפה, מדוע.'},
+      {name:'עיתון דעות', desc:'טור אישי עם עמדה, טיעונים ומסקנה.'},
+      {name:'עיתון תרבות', desc:'סקירה תרבותית/היסטורית עם ציטוטים, תמונות ורקע.'},
+    ],
+    usedIn:['body','closing','enrichment']},
+  {id:'stickies', cat:1, icon:'🗒️', name:'פתקיות',
+    desc:'לוח שיתופי בזמן אמת. כל תלמיד כותב פתקית (טקסט + תמונה אופציונלי) ובוחר צבע. הפתקיות מופיעות על לוח משותף מוקרן לכיתה. המורה יכולה לתת נקודות בונוס על פתקית מצוינת.',
+    styles:[
+      {name:'הטרמה', desc:'בדיקת ידע קודם — כל תלמיד כותב מה הוא יודע על הנושא.'},
+      {name:'סיכום', desc:'כל תלמיד כותב מסקנה אחת מהשיעור.'},
+      {name:'סיעור מוחות', desc:'רעיונות חופשיים — כולם רואים את הלוח מתמלא.'},
+      {name:'יצירה', desc:'תלמיד מייצר תמונה ומעלה ללוח השיתופי.'},
+    ],
+    gameFile:'sticky_teacher.html',
+    usedIn:['intro','closing']},
+  {id:'wordcloud', cat:1, icon:'☁️', name:'ענן מילים',
+    desc:'כלי ויזואלי אינטראקטיבי בזמן אמת. המורה מזינה שאלה, התלמידים כותבים מילה אחת או שתיים, והענן נבנה על הלוח — גודל המילה לפי כמות התלמידים שכתבו אותה.',
+    styles:[
+      {name:'הטרמה', desc:'בדיקת ידע קודם או העלאת רעיונות ראשונים לנושא חדש.'},
+      {name:'סיכום ורפלקציה', desc:'מיפוי המושגים החשובים שנלמדו בשיעור.'},
+      {name:'ניתוח טקסט', desc:'זיהוי מילות מפתח מתוך מאמר או טקסט.'},
+      {name:'סיעור מוחות', desc:'כלי דינמי לסיעור מוחות קבוצתי.'},
+    ],
+    gameFile:'wordcloud_teacher.html',
+    usedIn:['intro','closing']},
+  {id:'debate', cat:1, icon:'🎤', name:'דיבייט דיגיטלי',
+    desc:'פעילות דיון כיתתית בת שלושה שלבים. שלב א — כל תלמיד בוחר עמדה (צד א או צד ב) וכותב 2-3 טיעונים עצמאיים. שלב ב — המורה פותחת את הלוח לכל הכיתה לצפייה בטיעוני שני הצדדים. שלב ג — כל תלמיד כותב סיכום אישי הכולל חובה התייחסות לטיעון של תלמיד מהצד הנגדי; אם בחר טיעון מהצד שלו — חייב להוסיף טיעון חדש שלא כתב קודם. המורה מגדירה את נושא הדיבייט, שם צד א ושם צד ב, ופתיח קצר לנושא.',
+    styles:[
+      {name:'דיבייט פתוח', desc:'שאלה דו-צדדית פתוחה — כל תלמיד בוחר עמדה עצמאית. למשל: "תחת איזה שלטון היית מעדיף לחיות — מוסלמי או נוצרי?"'},
+      {name:'דיבייט מונחה', desc:'המורה מספקת מקורות לשני הצדדים. התלמיד מבסס טיעונים על המקורות.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'full_ans',  cat:1, icon:'📝', name:'כתיבת תשובה מלאה',
+    desc:'תבנית מובנית לכתיבת תשובה מלאה. תשובה מלאה מתחילה מהיגד מכליל (ניתן להעתיק מגוף השאלה או לנסח עצמאית), ממשיכה בפירוט עם דוגמאות ומסתיימת במסקנה. המורה בוחרת רמת הנחיה בעת משיכה לשיעור. תשובות התלמידים נשמרות לבדיקת המורה.',
+    styles:[
+      {name:'תבנית עצמאית', desc:'כותרות בלבד — היגד מכליל, פירוט ודוגמאות, מסקנה. לתלמידים מתקדמים שמכירים את המבנה.'},
+      {name:'תבנית מונחית', desc:'כותרות + תיאור תפקיד כל חלק + מילות קישור לחיצות. לתלמידים שלומדים את המבנה.'},
+      {name:'עם בנק מילים', desc:'כותרות בלבד + פאנל צדדי עם מילות קישור — התלמיד בוחר אם להיעזר. לתלמידים שצריכים תמיכה גמישה.'},
+    ],
+    usedIn:['intro','body','closing','enrichment']},
+  // ── קטגוריה 2: מדיה ──
+  {id:'video', cat:2, icon:'▶️', name:'סרטונים',
+    desc:'הצגת סרטון יוטיוב או Google Drive. המורה יכולה להגדיר נקודת התחלה וסוף. הסרטון מוצג עם אפשרות להשהיה ושליטה מלאה.',
+    styles:[
+      {name:'סרטון מלא', desc:'הצגת הסרטון מהתחלה עד הסוף.'},
+      {name:'קטע נבחר', desc:'המורה מגדירה נקודת התחלה וסוף (דקות:שניות).'},
+    ],
+    usedIn:['intro','body']},
+  {id:'image', cat:2, icon:'🖼️', name:'תמונות',
+    desc:'הצגת תמונה מהמחשב (דרך Cloudinary) או מקישור ישיר. אפשר להוסיף כיתוב ושאלה נלווית.',
+    cloudinary:{cloudName:'da6mdtjhh', uploadPreset:'w8rzehkl'},
+    styles:[
+      {name:'תמונה בלבד', desc:'הצגת תמונה ללא שאלה נלווית.'},
+      {name:'תמונה + שאלה', desc:'תמונה עם שאלה מלווה — התלמיד כותב תשובה.'},
+      {name:'תמונה + כיתוב', desc:'תמונה עם כיתוב הסבר מהמורה.'},
+    ],
+    usedIn:['intro','body','enrichment']},
+  // ── קטגוריה 3: משחקי ידע ותחרות ──
+  {id:'escape', cat:3, icon:'🔐', name:'חדר בריחה',
+    desc:'חוויה לימודית קבוצתית (עד 4 תלמידים) בת 5 חידות עוקבות — פתרון אחד פותח את הבא. המורה מגדירה נושא וסיפור מסגרת. לכל חדר 7 תמונות: פתיחה + 5 חידות + סיום. עוזר ההוראה מייצר פרומפטים לתמונות לפי הנושא והחידה. סוגי חידות: שאלת ידע / חידת הגיון / מציאת פריט בתמונה. קבוצות מוגדרות על ידי המורה.',
+    styles:[
+      {name:'חדר ידע', desc:'5 שאלות ידע עוקבות הקשורות לנושא הלימוד.'},
+      {name:'חדר חקר', desc:'שילוב של שאלות ידע, חידות הגיון ומציאת פריט בתמונה.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'trivia', cat:3, icon:'🎯', name:'טריוויה',
+    desc:'בוחן ידע עם שאלות רב-ברירה (3-4 תשובות). המורה מגדירה עד 10 שאלות ויכולה להיעזר בעוזר הוראה לניסוחן. הנתונים נשמרים ברמה אישית וכיתתית למעקב המורה.',
+    styles:[
+      {name:'אישי', desc:'כל תלמיד עונה בנפרד וצובר נקודות בונוס.'},
+      {name:'כיתתי', desc:'תחרות בין תלמידים — כולם רואים את הלוח יחד.'},
+      {name:'ראש בראש', desc:'תלמיד מזמין תלמיד אחר למשחק. מומלץ לקרון העשרה.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'puzzle_p', cat:3, icon:'🎲', name:'פיצוחים',
+    desc:'משחק אסטרטגי על לוח כוורת 4×4 (16 תאים עם אותיות א"ב). שתי קבוצות: כחולה (רצף מלמעלה למטה) ואדומה (רצף מימין לשמאל). לכל אות 2 הגדרות (קלה וקשה) שהתשובה מתחילה באותה אות. תשובה נכונה צובעת תא בצבע הקבוצה. תשובה שגויה עוברת ליריב. שתי קבוצות נכשלו — התא נצבע שחור. המורה מגדירה הגדרות ל-22 אותיות (2 לכל אות = 32 הגדרות); אותיות ריקות יורדות מהלוח. מתאים לסיכום יחידת לימוד.',
+    styles:[
+      {name:'כיתתי', desc:'שתי קבוצות מתחרות על הלוח בניהול המורה.'},
+    ],
+    usedIn:['body','closing','enrichment']},
+  {id:'nine_sq', cat:3, icon:'⬜', name:'תשע בריבוע',
+    desc:'משחק איקס-עיגול עם שאלות. לוח 3×3, שתי קבוצות X ו-O. מגרילים מי מתחיל. הקבוצה בוחרת משבצת ← מקבלת שאלה עם 2 תשובות ← ענתה נכון = המשבצת נצבעת בסימנה. המנצחת היא שיוצרת רצף של 3 בשורה/עמודה/אלכסון. המורה מגדירה 9 שאלות (אחת לכל משבצת) ומסמנת תשובה נכונה.',
+    styles:[
+      {name:'כיתתי', desc:'שתי קבוצות מתחרות על הלוח בניהול האפליקציה.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'bingo', cat:3, icon:'🎰', name:'בינגו',
+    desc:'לוח בינגו 3×3 (9 משבצות) עם מושגים. המורה מגדירה הגדרות + תמונה אופציונלית לכל מושג (לפחות 20 מושגים לגיוון הלוחות). כל תלמיד מקבל לוח שונה עם תמונות המושגים. המורה מקריאה הגדרה, התלמיד מזהה את המושג ומסמן בלוחו. המטרה: שורה/עמודה/אלכסון — ובסוף כל הלוח.',
+    styles:[
+      {name:'מושגים במילים', desc:'בלוח התלמיד מופיעים המושגים כטקסט.'},
+      {name:'מושגים בתמונות', desc:'בלוח התלמיד מופיעות תמונות — רמה גבוהה יותר של זיהוי.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'cipher', cat:3, icon:'🔏', name:'כתב סתרים',
+    desc:'צופן שבו כל אות מוחלפת בסמל. המורה מגדירה נושא + עד 5 משפטים לפענוח ובוחרת סגנון צופן. מפתח הצופן מוצג לתלמיד בצד. התלמיד מפענח משפט אחד בכל פעם עם מד התקדמות 1/5.',
+    styles:[
+      {name:'אימוג׳י', desc:'כל אות מיוצגת באימוג׳י.'},
+      {name:'כתב חרטומים', desc:'כל אות מיוצגת בסמל חרטומים מצרי.'},
+      {name:'סמלים גיאומטריים', desc:'כל אות מיוצגת בצורה גיאומטרית.'},
+      {name:'מספרים', desc:'כל אות מיוצגת במספר.'},
+      {name:'אותיות לועזיות', desc:'כל אות עברית מיוצגת באות לטינית.'},
+    ],
+    usedIn:['intro','body','closing','enrichment']},
+  {id:'flashcard', cat:3, icon:'📇', name:'כרטיסיות — שאלה תשובה',
+    desc:'עד 10 כרטיסיות. התלמיד הופך כרטיסייה ← רואה שאלה ← כותב תשובה ← הופך לבדיקה. תואם = ניקוד, לא תואם = ללא ניקוד. מד התקדמות 1/10. משחק זיכרון: לוח עם עד 20 כרטיסיות הפוכות (10 צמדים). צמד יכול להיות מושג-הגדרה / מילה-תמונה / תמונה-תמונה. התלמיד הופך שתי כרטיסיות — תואמות נשארות גלויות.',
+    styles:[
+      {name:'כרטיסיות אישי', desc:'כל תלמיד עובר את הכרטיסיות בנפרד.'},
+      {name:'זיכרון אישי', desc:'תלמיד מחפש צמדים תואמים לבד.'},
+      {name:'זיכרון ראש בראש', desc:'שני תלמידים מתחרים לסירוגין — מי מוצא יותר צמדים.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'quiz', cat:3, icon:'📋', name:'קוויז',
+    desc:'בוחן מהיר על זמן עם עד 10 שאלות רב-ברירה. המורה מגדירה שאלות, תשובות ומסמנת נכונה. הנתונים נשמרים לניתוח ברמה אישית וכיתתית.',
+    styles:[
+      {name:'אישי על זמן', desc:'כל תלמיד עונה בנפרד נגד השעון.'},
+      {name:'כיתתי — סגנון קהות', desc:'שאלה מוקרנת לכולם — מי שעונה ראשון ונכון מנצח.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'board', cat:3, icon:'🎲', name:'משחק מסלול',
+    desc:'משחק לוח בסגנון נחשים וסולמות. לוח 30 משבצות: 10 שאלות רב-ברירה (2-4 תשובות), 4 הפתעות, 4 הפסד תור, 6 סולמות/נחשים. עד 4 שחקנים עם אווטאר אישי. האפליקציה קובעת סדר ומיקום אקראי. תשובה נכונה = תור נוסף, שגויה = חזרה 2 צעדים. המורה מגדירה נושא + 10 שאלות.',
+    styles:[
+      {name:'עד 4 שחקנים', desc:'כל שחקן בוחר אווטאר וסמל. מומלץ לקרון העשרה.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'riddles_hevhee', cat:3, icon:'🎭', name:'חידות הוא והיא',
+    desc:'חידות לשון עברית. לכל חידה שתי הגדרות — הוא (זכר) והיא (נקבה) — שמתאימות לאותה מילה. למשל: הוא = מים קפואים / היא = נמצאת על הראש → קֶרַח/קַרְחַת. המורה מגדירה עד 10 חידות עם הגדרות ותשובות. התלמיד רואה שתי שורות וכותב תשובה אחת. מד התקדמות 1/10.',
+    styles:[
+      {name:'אישי', desc:'כל תלמיד פותר את החידות בנפרד.'},
+      {name:'ראש בראש', desc:'שני תלמידים מתחרים מי פותר ראשון.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'jeopardy', cat:3, icon:'🏆', name:'ג\'פרדי',
+    desc:'משחק כיתתי הפוך מטריוויה — התשובה גלויה והתלמידים צריכים לנחש מה השאלה. לוח 5 קטגוריות × 5 רמות קושי (100-500 נקודות). הקבוצה בוחרת משבצת ← מתגלה התשובה ← הקבוצה כותבת: "מהו/מיהו...?". נכון = זוכה בנקודות, לא נכון = עובר ליריב. המורה מגדירה 5 קטגוריות + 5 תשובות לכל קטגוריה לפי רמות קושי.',
+    styles:[
+      {name:'כיתתי', desc:'קבוצות מתחרות על הלוח בניהול האפליקציה. מומלץ לסיכום יחידה.'},
+    ],
+    usedIn:['body','closing','enrichment']},
+  // ── קטגוריה 4: גילוי מיון והתאמה ──
+  {id:'sort_rel', cat:4, icon:'🔗', name:'מה הקשר?',
+    desc:'התלמיד בוחר 2 פריטים מתוך עד 20 (מילים או תמונות) וכותב את הקשר ביניהם. פריט יכול להופיע במספר צמדים. חייב למצוא 10 קשרים לסיום. המורה רואה את כל הצמדים והקשרים.',
+    styles:[
+      {name:'מילים', desc:'20 מושגים/מילים — התלמיד מחבר ומנמק.'},
+      {name:'תמונות', desc:'20 תמונות — התלמיד מחבר ומנמק את הקשר הויזואלי.'},
+      {name:'מעורב', desc:'שילוב מילים ותמונות.'},
+    ],
+    usedIn:['intro','body','enrichment']},
+  {id:'sort_table',cat:4, icon:'📊', name:'טבלת מיון',
+    desc:'התלמיד גורר פריטים לעמודות הנכונות בטבלה. המורה מגדירה קטגוריות, פריטים ומחוון תשובות. הפריטים מוצגים בסדר אקראי.',
+    styles:[
+      {name:'מיון לקטגוריות', desc:'גרירת פריטים לעמודות (למשל ספרי תנ"ך לתורה/נביאים/כתובים)'},
+      {name:'מיון לקבוצות', desc:'מיון מושגים, דמויות או אירועים לפי תקופה/נושא'},
+      {name:'מיון עם טעויות', desc:'טבלה עם ערכים מוטמעים — התלמיד מזהה ומתקן'},
+    ],
+    usedIn:['intro','body','enrichment']},
+  {id:'sort_cloze',cat:4, icon:'✍️', name:'קלוז',
+    desc:'התלמיד משלים מילים חסרות בפסקה (עד 10 מילים). המורה מעלה פסקה שלמה ומסמנת את המילים להעלמה.',
+    styles:[
+      {name:'עם מחסן מילים', desc:'המילים החסרות מופיעות במחסן — התלמיד גורר למקום.'},
+      {name:'ללא מחסן', desc:'התלמיד כותב את המילים החסרות בעצמו — רמה גבוהה יותר.'},
+    ],
+    usedIn:['body']},
+  {id:'timeline', cat:4, icon:'📅', name:'ציר הזמן',
+    desc:'המורה מגדירה טווח ושנתות, ממלאת את הציר המלא ובוחרת אילו חלקים יוסתרו לתלמיד. החלקים המוסתרים יכולים להופיע כמחסן מילים.',
+    styles:[
+      {name:'עם מחסן', desc:'השנים והאירועים המוסתרים מופיעים במחסן — התלמיד גורר למקום.'},
+      {name:'ללא מחסן', desc:'התלמיד כותב בעצמו — רמה גבוהה יותר.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'sort_seq', cat:4, icon:'🔢', name:'רצף אירועים',
+    desc:'המורה כותבת עד 10 משפטים לפי הסדר הנכון. התלמיד מקבל אותם מבולבלים וממספר כל משפט לפי דעתו. האפליקציה בודקת מול הסדר הנכון.',
+    styles:[
+      {name:'רצף אירועים', desc:'סידור אירועים היסטוריים/ספרותיים לפי סדר כרונולוגי.'},
+      {name:'רצף תהליך', desc:'סידור שלבים של תהליך (מדעי/היסטורי) לפי הסדר הנכון.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'sort_sent', cat:4, icon:'✏️', name:'השלמת משפטים',
+    desc:'דומה לקלוז אך ברמת משפט בודד. המורה כותבת עד 10 משפטים ומסמנת מילה אחת להעלמה בכל משפט.',
+    styles:[
+      {name:'עם מחסן מילים', desc:'המילים החסרות מופיעות במחסן — התלמיד גורר למקום.'},
+      {name:'ללא מחסן', desc:'התלמיד כותב את המילה החסרה בעצמו.'},
+    ],
+    usedIn:['body']},
+  {id:'reveal_img',cat:4, icon:'🖼️', name:'גלה את התמונה',
+    desc:'תמונה מכוסה בריבועי שאלות. התלמיד בוחר ריבוע ← נפתחת שאלה (נכון/לא נכון או 4 תשובות) ← ענה נכון = הריבוע נעלם ומתגלה חלק התמונה. כיתתי בלבד — מוקרן על הלוח.',
+    styles:[
+      {name:'6 חלקים', desc:'6 שאלות — קל יותר.'},
+      {name:'8 חלקים', desc:'8 שאלות — רמה בינונית.'},
+      {name:'10 חלקים', desc:'10 שאלות — מאתגר.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'zoom', cat:4, icon:'🔎', name:'זום תמונה',
+    desc:'מתחיל בזום אין (רואים פרט קטן מאוד) ← כל ניחוש שגוי = זום אאוט (מתגלה יותר). עד 10 ניחושים. כיתתי בלבד — מוקרן על הלוח.',
+    styles:[
+      {name:'מושג אחד', desc:'תמונה אחת עם 10 הזדמנויות ניחוש.'},
+    ],
+    usedIn:['intro','body','enrichment']},
+  {id:'puzzle', cat:4, icon:'🧩', name:'פאזל',
+    desc:'המורה מעלה תמונה ומגדירה שאלה לכל חלק. התלמיד עונה נכון ← מקבל חלק ← גורר למקום הנכון. אם לא הצליח — רמז אופציונלי (אם המורה הוסיפה). אחרת השאלה עוברת לסוף. תמיד זמין סוכן הלמידה.',
+    styles:[
+      {name:'6 חלקים', desc:'6 שאלות — קל.'},
+      {name:'8 חלקים', desc:'8 שאלות — בינוני.'},
+      {name:'10 חלקים', desc:'10 שאלות — מאתגר.'},
+      {name:'15 חלקים', desc:'15 שאלות — קשה.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'memory', cat:4, icon:'🃏', name:'משחק זיכרון',
+    desc:'לוח עם עד 20 כרטיסיות הפוכות (10 צמדים). התלמיד הופך שתיים — תואמות נשארות גלויות.',
+    styles:[
+      {name:'מושג-הגדרה', desc:'כרטיסיית מושג מול כרטיסיית הגדרה.'},
+      {name:'מילה-תמונה', desc:'כרטיסיית מילה מול כרטיסיית תמונה.'},
+      {name:'תמונה-תמונה', desc:'שתי תמונות קשורות זו לזו.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'matchline', cat:4, icon:'↔️', name:'מתיחת קו',
+    desc:'עד 10 צמדים בשני עמודות (שמאל וימין, מעורבבים). התלמיד מותח קו בין הצמדים התואמים. סוגי צמדים: מילה-מילה / תמונה-תמונה / מילה-תמונה. אישי בלבד.',
+    styles:[
+      {name:'מילה-מילה', desc:'מושג מול הגדרה או תרגום.'},
+      {name:'מילה-תמונה', desc:'מושג מול תמונה מתאימה.'},
+      {name:'תמונה-תמונה', desc:'שתי תמונות קשורות.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'crossword', cat:4, icon:'📐', name:'תשבץ',
+    desc:'המורה מגדירה עד 20 מושגים עם הגדרות. האפליקציה בונה את התשבץ אוטומטית. אם לא הצליחה להכניס את כל המושגים — הודעה למורה לתקן. כיתתי: המורה מקרינה על הלוח והתלמידים ממלאים באפליקציה.',
+    styles:[
+      {name:'אישי', desc:'כל תלמיד פותר את התשבץ בנפרד.'},
+      {name:'כיתתי', desc:'מוקרן על הלוח — התלמידים ממלאים באפליקציה ורואים תוצאות.'},
+    ],
+    usedIn:['body','closing','enrichment']},
+  {id:'wordsearch', cat:4, icon:'🔤', name:'תפזורת',
+    desc:'המורה מגדירה עד 20 מילים עם הגדרות. האפליקציה בונה את התפזורת אוטומטית (מילים אופקיות/אנכיות/אלכסוניות — לא הפוך). ההגדרות מוצגות מתחת. התלמיד מסמן את המילה בתפזורת.',
+    styles:[
+      {name:'אישי', desc:'כל תלמיד מחפש בנפרד.'},
+      {name:'כיתתי', desc:'מוקרן על הלוח — תחרות מי מוצא ראשון.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'pic_riddle', cat:4, icon:'🎨', name:'חידות בציורים',
+    desc:'המורה מעלה עד 10 תמונות-חידות וכותבת את המושג לכל אחת. התלמיד רואה תמונה וכותב את המושג. האפליקציה בודקת. כיתתי: מוקרן על הלוח והתלמידים עונים באפליקציה.',
+    styles:[
+      {name:'אישי', desc:'כל תלמיד פותר בנפרד.'},
+      {name:'כיתתי', desc:'מוקרן על הלוח — תחרות כיתתית.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'rev_concept', cat:4, icon:'🔍', name:'גלה את המושג',
+    desc:'כמו 4 תמונות מילה אחת. המורה מגדירה עד 10 מושגים, לכל מושג 4 תמונות רמזים (הרביעית הכי מפורשת). התלמיד מנחש לפי כמה שפחות תמונות. מספר תיבות = מספר אותיות במושג.',
+    styles:[
+      {name:'אישי', desc:'כל תלמיד מנחש בנפרד.'},
+    ],
+    usedIn:['body','enrichment']},
+  {id:'mark_image', cat:4, icon:'🖱️', name:'גלה פרטים מסתתרים',
+    desc:'המורה מעלה תמונה ומסמנת עד 10 פריטים מוסתרים (אזורי יעד). התלמיד לוחץ על מקומות בתמונה — לחץ על אזור נכון = חיווי חיובי + "נשארו לך X פריטים". אישי בלבד.',
+    styles:[
+      {name:'גלה פרטים', desc:'התלמיד מוצא פרטים נסתרים בתמונה.'},
+    ],
+    usedIn:['body','enrichment']},
+  // ── קטגוריה 5: קרון העשרה ──
+  {id:'enrich_pairs', cat:5, icon:'🔗', name:'תבנית א׳ — צמדים',
+    desc:'המורה מזינה 10 צמדים (מושג ↔ הגדרה או תמונה). מהתוכן הזה האפליקציה מייצרת את כל המשחקים בתבנית. המורה בוחרת אילו משחקים לפתוח לתלמידים (כולם או חלק).',
+    styles:[
+      {name:'מושג + הגדרה', desc:'טקסט משני הצדדים.'},
+      {name:'מושג + תמונה', desc:'מושג בטקסט, תמונה בצד השני.'},
+      {name:'תמונה + תמונה', desc:'שתי תמונות קשורות.'},
+    ],
+    enrichGames:['מתיחת קו','משחק זיכרון','כרטיסיות','בינגו','תשבץ','תפזורת','כתב סתרים','גלה את המושג'],
+    usedIn:['enrichment']},
+  {id:'enrich_questions', cat:5, icon:'❓', name:'תבנית ב׳ — שאלה + תשובות',
+    desc:'המורה מזינה 10 שאלות עם תשובות (2-4 אפשרויות, תשובה נכונה מסומנת). מהתוכן הזה האפליקציה מייצרת את כל המשחקים בתבנית. המורה בוחרת אילו משחקים לפתוח לתלמידים.',
+    styles:[
+      {name:'2 תשובות', desc:'שאלה עם 2 אפשרויות — קל יותר.'},
+      {name:'4 תשובות', desc:'שאלה עם 4 אפשרויות — מאתגר יותר.'},
+    ],
+    enrichGames:['טריוויה','ג\'פרדי','קוויז','חדר בריחה','משחק מסלול','גלגל המזל','פיצוחים','תשע בריבוע','פאזל','זום תמונה','גלה את התמונה'],
+    usedIn:['enrichment']},
+];
+
+let bankItems=[];
+let currentItemId=null;
+let editingItemId=null;
+
+// ── INIT ──
+window.onload=function(){
+  db.ref('teacher/itemBank').once('value',snap=>{
+    const saved=snap.val();
+    if(saved){
+      bankItems=Object.values(saved);
+    } else {
+      // טעינת ברירת מחדל
+      bankItems=DEFAULT_ITEMS.map(item=>({...item}));
+      saveBankToFirebase();
+    }
+    renderBank();
+  });
+};
+
+function saveBankToFirebase(){
+  const obj={};
+  bankItems.forEach(item=>obj[item.id]=item);
+  db.ref('teacher/itemBank').set(obj);
+}
+
+// ── RENDER ──
+function renderBank(){
+  const main=document.getElementById('main-content');
+  main.innerHTML='';
+  CATS.forEach((cat,ci)=>{
+    const items=bankItems.filter(it=>it.cat===ci);
+    if(!items.length)return;
+    const sec=document.createElement('div');
+    sec.className='category-section';
+    sec.innerHTML=`<div class="category-header">
+      <span class="category-icon">${cat.icon}</span>
+      <span class="category-name">${cat.name}</span>
+      <span class="category-count">(${items.length} פריטים)</span>
+    </div>
+    <div class="items-grid">
+      ${items.map(item=>`
+        <div class="item-cube ${cat.cls}" onclick="openViewModal('${item.id}')">
+          <button class="cube-edit" style="display:none;"></button>
+          <span class="cube-icon">${item.icon||'📄'}</span>
+          <div class="cube-name">${item.name}</div>
+        </div>`).join('')}
+    </div>`;
+    main.appendChild(sec);
+  });
+}
+
+// ── VIEW MODAL ──
+function openViewModal(id){
+  currentItemId=id;
+  const item=bankItems.find(it=>it.id===id);
+  if(!item)return;
+  const cat=CATS[item.cat];
+  document.getElementById('vm-icon').textContent=item.icon||'📄';
+  document.getElementById('vm-title').textContent=item.name;
+  const badge=document.getElementById('vm-cat');
+  badge.textContent=cat?.name||'';
+  badge.style.background=`rgba(212,168,67,.15)`;
+  badge.style.color='var(--gold)';
+  // desc
+  const descEl=document.getElementById('vm-desc');
+  descEl.innerHTML=`<p>${item.desc||''}</p>`;
+  document.getElementById('vm-desc-section').style.display=item.desc?'block':'none';
+  // styles
+  const stylesEl=document.getElementById('vm-styles');
+  const stylesSec=document.getElementById('vm-styles-section');
+  if(item.styles&&item.styles.length){
+    stylesEl.innerHTML=item.styles.map(s=>`
+      <div class="style-item">
+        <div class="style-name">${s.name}</div>
+        <div class="style-desc">${s.desc||''}</div>
+      </div>`).join('');
+    stylesSec.style.display='block';
+  } else {
+    stylesSec.style.display='none';
+  }
+  document.getElementById('vm-notes').value=item.notes||'';
+  document.getElementById('vm-ai-reply').style.display='none';
+  document.getElementById('vm-ai-input').value='';
+  // usedIn
+  const usedIn=item.usedIn||[];
+  const usedLabels=[{key:'intro',label:'🌅 פתיח'},{key:'body',label:'🚂 גוף השיעור'},{key:'closing',label:'🌇 סיום'},{key:'enrichment',label:'⭐ העשרה'}];
+  document.getElementById('vm-used-in').innerHTML=usedLabels.map(u=>
+    `<span class="used-chip ${usedIn.includes(u.key)?'on':'off'}">${u.label}</span>`).join('');
+  document.getElementById('view-modal').classList.add('open');
+}
+
+function saveItemNotes(){
+  const item=bankItems.find(it=>it.id===currentItemId);
+  if(!item)return;
+  item.notes=document.getElementById('vm-notes').value;
+  db.ref(`teacher/itemBank/${item.id}`).update({notes:item.notes});
+  closeModal('view-modal');
+}
+
+function editFromView(){
+  closeModal('view-modal');
+  openEditModal(currentItemId);
+}
+
+// ── EDIT MODAL ──
+function openEditModal(id){
+  editingItemId=id||null;
+  const item=id?bankItems.find(it=>it.id===id):null;
+  document.getElementById('em-title').textContent=item?'ערכי פריט':'פריט חדש';
+  document.getElementById('em-name').value=item?.name||'';
+  document.getElementById('em-icon').value=item?.icon||'';
+  document.getElementById('em-cat').value=item?.cat||0;
+  document.getElementById('em-desc').value=item?.desc||'';
+  document.getElementById('em-delete-btn').style.display=item?'block':'none';
+  buildStylesEditor(item?.styles||[]);
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function openAddModal(){openEditModal(null);}
+
+function buildStylesEditor(styles){
+  const editor=document.getElementById('em-styles-editor');
+  editor.innerHTML=(styles.length?styles:[{name:'',desc:''}]).map((s,i)=>`
+    <div class="style-edit-row">
+      <input class="form-input style-edit-name" placeholder="שם הסגנון" value="${esc(s.name||'')}">
+      <input class="form-input style-edit-desc" placeholder="תיאור קצר" value="${esc(s.desc||'')}">
+      <button class="style-remove" onclick="removeStyleRow(this)">✕</button>
+    </div>`).join('');
+}
+
+function addStyleRow(){
+  const editor=document.getElementById('em-styles-editor');
+  const row=document.createElement('div');
+  row.className='style-edit-row';
+  row.innerHTML=`<input class="form-input style-edit-name" placeholder="שם הסגנון">
+    <input class="form-input style-edit-desc" placeholder="תיאור קצר">
+    <button class="style-remove" onclick="removeStyleRow(this)">✕</button>`;
+  editor.appendChild(row);
+}
+
+function removeStyleRow(btn){btn.parentElement.remove();}
+
+async function saveItem(){
+  const name=document.getElementById('em-name').value.trim();
+  if(!name){alert('יש להזין שם פריט');return;}
+  const rows=document.querySelectorAll('#em-styles-editor .style-edit-row');
+  const styles=Array.from(rows)
+    .map(r=>({name:r.querySelector('.style-edit-name').value.trim(),desc:r.querySelector('.style-edit-desc').value.trim()}))
+    .filter(s=>s.name);
+  const item={
+    id:editingItemId||'item_'+Date.now(),
+    name,
+    icon:document.getElementById('em-icon').value.trim()||'📄',
+    cat:parseInt(document.getElementById('em-cat').value),
+    desc:document.getElementById('em-desc').value.trim(),
+    styles,
+    notes:editingItemId?bankItems.find(it=>it.id===editingItemId)?.notes||'':''
+  };
+  if(editingItemId){
+    const idx=bankItems.findIndex(it=>it.id===editingItemId);
+    if(idx>=0)bankItems[idx]=item;
+  } else {
+    bankItems.push(item);
+  }
+  await db.ref(`teacher/itemBank/${item.id}`).set(item);
+  closeModal('edit-modal');
+  renderBank();
+}
+
+async function deleteItem(){
+  if(!editingItemId)return;
+  if(!confirm('למחוק את הפריט?'))return;
+  bankItems=bankItems.filter(it=>it.id!==editingItemId);
+  await db.ref(`teacher/itemBank/${editingItemId}`).remove();
+  closeModal('edit-modal');
+  renderBank();
+}
+
+// ── AI ──
+async function askViewAI(){
+  const input=document.getElementById('vm-ai-input');
+  const msg=input.value.trim();if(!msg)return;
+  input.value='';
+  const item=bankItems.find(it=>it.id===currentItemId);
+  document.getElementById('vm-ai-thinking').style.display='block';
+  document.getElementById('vm-ai-reply').style.display='none';
+  const sys=`אתה עוזר הוראה. המורה שואלת על הפריט הפדגוגי "${item?.name||''}". ענה בעברית, קצר ומועיל.`;
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,
+        messages:[{role:'user',content:msg}]})});
+    const d=await r.json();
+    const text=d.content?.[0]?.text||'לא קיבלתי תשובה';
+    document.getElementById('vm-ai-reply').textContent=text;
+    document.getElementById('vm-ai-reply').style.display='block';
+  }catch(e){
+    document.getElementById('vm-ai-reply').textContent='שגיאה בחיבור';
+    document.getElementById('vm-ai-reply').style.display='block';
+  }
+  document.getElementById('vm-ai-thinking').style.display='none';
+}
+
+// ── UTILS ──
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');});
+});
+</script>
+</body>
+</html>

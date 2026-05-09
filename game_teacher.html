@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מרכז שליטה – משחק היסטוריה</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0f172a;
+      --navy2: #1e293b;
+      --navy3: #334155;
+      --blue: #3b82f6;
+      --blue-dark: #1d4ed8;
+      --teal: #0ea5e9;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --bg: #f8fafc;
+      --white: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); direction: rtl; min-height: 100vh; }
+
+    /* ── LAYOUT ── */
+    .layout { display: grid; grid-template-rows: 56px 1fr; min-height: 100vh; }
+    header { background: var(--navy); color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; gap: 1rem; }
+    header h1 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    .header-code { background: var(--amber); color: var(--navy); font-size: 0.75rem; font-weight: 900; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.12em; }
+    .main { display: grid; grid-template-columns: 220px 1fr; overflow: hidden; }
+
+    /* ── SIDEBAR ── */
+    .sidebar { background: var(--navy2); color: white; padding: 1.5rem 0; display: flex; flex-direction: column; gap: 0.25rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1.5rem; cursor: pointer; font-size: 0.9rem; color: #94a3b8; border-right: 3px solid transparent; transition: all 0.15s; }
+    .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
+    .nav-item.active { color: white; border-right-color: var(--blue); background: rgba(59,130,246,0.12); }
+    .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .nav-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 0.75rem 1.5rem; }
+    .sidebar-bottom { margin-top: auto; padding: 0 1.5rem; }
+    .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-left: 0.5rem; animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── CONTENT ── */
+    .content { overflow-y: auto; }
+    .section { display: none; padding: 1.5rem; max-width: 1000px; }
+    .section.active { display: block; }
+
+    /* ── CARDS ── */
+    .card { background: var(--white); border-radius: 12px; padding: 1.25rem 1.5rem; box-shadow: var(--card-shadow); margin-bottom: 1rem; }
+    .card-title { font-size: 0.9rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+
+    /* ── BUTTONS ── */
+    button { cursor: pointer; border: none; border-radius: 8px; padding: 0.55rem 1.1rem; font-size: 0.875rem; font-weight: 600; font-family: 'Heebo', sans-serif; transition: all 0.15s; }
+    .btn-primary { background: var(--blue); color: white; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-success { background: var(--green); color: white; }
+    .btn-success:hover { filter: brightness(0.9); }
+    .btn-danger { background: var(--red); color: white; }
+    .btn-danger:hover { filter: brightness(0.9); }
+    .btn-ghost { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-amber { background: var(--amber); color: var(--navy); }
+    .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
+    .btn-lg { padding: 0.8rem 1.5rem; font-size: 1rem; width: 100%; border-radius: 10px; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── FORMS ── */
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; color: var(--navy2); }
+    input[type="text"], input[type="url"], textarea, select { width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Heebo', sans-serif; font-size: 0.9rem; color: var(--text); background: white; transition: border-color 0.15s; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* ── QUESTION LIST ── */
+    .q-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.25rem; }
+    .q-item { background: white; border: 1.5px solid var(--border); border-radius: 10px; padding: 0.9rem 1.1rem; display: flex; align-items: center; gap: 0.9rem; transition: border-color 0.15s; }
+    .q-item:hover { border-color: var(--blue); }
+    .q-num { min-width: 28px; height: 28px; background: var(--navy); color: white; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; }
+    .q-badge { font-size: 0.72rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 20px; font-weight: 700; white-space: nowrap; }
+    .q-badge.tf { background: #fef3c7; color: #92400e; }
+    .q-badge.open { background: #f0fdf4; color: #166534; }
+    .q-badge.order { background: #fdf4ff; color: #7e22ce; }
+    .q-text { flex: 1; font-size: 0.9rem; line-height: 1.4; }
+    .q-media-icon { font-size: 1rem; opacity: 0.6; }
+
+    /* ── MODAL ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(3px); }
+    .modal { background: white; border-radius: 16px; padding: 2rem; max-width: 620px; width: 94%; max-height: 92vh; overflow-y: auto; box-shadow: 0 25px 80px rgba(0,0,0,0.3); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .modal-header h2 { font-size: 1.15rem; font-weight: 800; }
+    .hidden { display: none !important; }
+
+    /* ── MEDIA TABS ── */
+    .media-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .media-tab { padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid var(--border); cursor: pointer; color: var(--muted); transition: all 0.15s; background: white; }
+    .media-tab.active { background: var(--navy); color: white; border-color: var(--navy); }
+    .media-preview { margin-top: 0.5rem; border-radius: 8px; overflow: hidden; max-height: 160px; }
+    .media-preview img { width: 100%; max-height: 160px; object-fit: contain; background: var(--bg); }
+
+    /* ── MC OPTIONS ── */
+    .mc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .mc-row { display: flex; align-items: center; gap: 0.6rem; }
+    .mc-row input[type="radio"] { width: auto; accent-color: var(--green); transform: scale(1.2); }
+    .mc-letter { font-size: 0.8rem; font-weight: 700; color: var(--muted); width: 16px; }
+
+    /* ── GAME PANEL ── */
+    .game-grid { display: grid; grid-template-columns: 280px 1fr; gap: 1rem; }
+    @media (max-width: 900px) { .game-grid { grid-template-columns: 1fr; } .main { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .join-panel { background: var(--navy); color: white; border-radius: 14px; padding: 1.5rem; text-align: center; margin-bottom: 1rem; }
+    .big-code { font-size: 2.8rem; font-weight: 900; letter-spacing: 0.25em; color: var(--amber); line-height: 1; margin: 0.5rem 0; }
+    .join-url-box { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.4rem 0.75rem; font-size: 0.78rem; font-family: monospace; margin-top: 0.5rem; word-break: break-all; cursor: pointer; }
+    .join-url-box:hover { background: rgba(255,255,255,0.18); }
+
+    .status-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+    .chip-lobby { background: #fef3c7; color: #92400e; }
+    .chip-question { background: #dcfce7; color: #166534; }
+    .chip-review { background: #e0f2fe; color: #0369a1; }
+    .chip-ended { background: #f1f5f9; color: var(--muted); }
+
+    .ctrl-btn-group { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem; }
+
+    /* ── STUDENTS GRID ── */
+    .students-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.6rem; }
+    .stu-card { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 0.75rem 0.6rem; text-align: center; transition: all 0.2s; }
+    .stu-card.answered { background: #f0fdf4; border-color: #86efac; }
+    .stu-name { font-size: 0.82rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .stu-ans { font-size: 0.74rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── CHART ── */
+    .chart-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
+    .chart-lbl { width: 130px; font-size: 0.82rem; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+    .chart-track { flex: 1; background: var(--bg); border-radius: 6px; height: 26px; overflow: hidden; }
+    .chart-bar { height: 100%; border-radius: 6px; background: var(--blue); transition: width 0.5s ease; display: flex; align-items: center; padding: 0 8px; min-width: 26px; }
+    .chart-bar.correct-bar { background: var(--green); }
+    .chart-pct { font-size: 0.75rem; font-weight: 700; color: white; white-space: nowrap; }
+    .chart-cnt { font-size: 0.8rem; font-weight: 700; color: var(--muted); width: 28px; text-align: left; }
+
+    /* ── PROGRESS ── */
+    .progress-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease; }
+
+    /* ── Q DOTS ── */
+    .q-dots { display: flex; gap: 5px; flex-wrap: wrap; }
+    .q-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background 0.2s; cursor: default; }
+    .q-dot.active { background: var(--blue); transform: scale(1.3); }
+    .q-dot.done { background: var(--green); }
+
+    /* ── SETTINGS ── */
+    .cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    /* ── ORDERING ── */
+    .order-items { display: flex; flex-direction: column; gap: 0.5rem; }
+    .order-row { display: flex; align-items: center; gap: 0.6rem; }
+    .order-idx { font-size: 0.8rem; font-weight: 700; color: var(--muted); width: 20px; text-align: center; }
+
+    .flex-end { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.5rem; }
+    .current-q-box { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 1rem 1.1rem; margin-top: 0.75rem; font-size: 0.9rem; line-height: 1.5; }
+    .tag { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+<header>
+  <h1>🏛️ משחק היסטוריה <span id="connDot"></span></h1>
+  <div style="display:flex; align-items:center; gap:0.75rem;">
+    <span id="headerCodeBadge" class="header-code" style="display:none;"></span>
+    <span id="headerStatus" style="font-size:0.8rem; color:#94a3b8;"></span>
+  </div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-item active" data-tab="editor" onclick="switchTab('editor')">
+      <span class="nav-icon">📝</span> עריכת שאלות
+    </div>
+    <div class="nav-item" data-tab="game" onclick="switchTab('game')">
+      <span class="nav-icon">🎮</span> ניהול משחק
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+      <span class="nav-icon">⚙️</span> הגדרות Firebase
+    </div>
+    <div class="sidebar-bottom">
+      <div id="fbStatus" style="font-size:0.78rem; color:#64748b; padding-bottom:1rem;">לא מחובר</div>
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- ══════════════════ EDITOR ══════════════════ -->
+    <div id="editor" class="section active">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+        <div>
+          <h2 style="font-size:1.3rem; font-weight:900;">שאלות המשחק</h2>
+          <p id="qCount" style="font-size:0.85rem; color:var(--muted); margin-top:0.2rem;">0 שאלות</p>
+        </div>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+          <button class="btn-ghost btn-sm" onclick="exportQuestions()">📤 ייצוא</button>
+          <button class="btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">📥 ייבוא</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importQuestions(event)">
+          <button class="btn-success btn-sm" onclick="saveQuestionsToFirebase()">💾 שמור ל-Firebase</button>
+          <button class="btn-primary" onclick="openQuestionModal()">+ שאלה חדשה</button>
+        </div>
+      </div>
+
+      <div id="questionList" class="q-list">
+        <div class="card" style="text-align:center; padding:2.5rem; color:var(--muted);">
+          <div style="font-size:2.5rem; margin-bottom:0.75rem;">📋</div>
+          <div>עוד אין שאלות — לחצי על <strong>"+ שאלה חדשה"</strong> להתחיל</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ GAME ══════════════════ -->
+    <div id="game" class="section">
+      <div class="game-grid">
+
+        <!-- Controls column -->
+        <div>
+          <div class="join-panel">
+            <div style="font-size:0.78rem; opacity:0.65; margin-bottom:0.25rem;">תלמידים מתחברים עם הקוד:</div>
+            <div class="big-code" id="gameCodeDisplay">----</div>
+            <div class="join-url-box" id="joinUrlDisplay" onclick="copyJoinUrl()" title="לחצי להעתקה">🔗 לחצי להעתקת קישור</div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+              <span style="font-size:0.85rem; font-weight:600;">מצב:</span>
+              <span id="statusChip" class="status-chip chip-lobby">⏳ ממתין</span>
+            </div>
+
+            <div class="progress-track" style="margin-bottom:0.4rem;">
+              <div class="progress-fill" id="answerProgress" style="width:0%"></div>
+            </div>
+            <div id="answerCountText" style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">0 / 0 ענו</div>
+
+            <div class="ctrl-btn-group" id="ctrlBtns">
+              <button id="btnStart" class="btn-success btn-lg" onclick="startGame()">🚀 התחל משחק</button>
+              <button id="btnBoardBtn" class="btn-primary btn-lg" style="background:#6b46c1;border-color:#553c9a;" onclick="openBoardWindow()">📺 הצג על לוח</button>
+              <div id="timerRow" style="display:none;align-items:center;gap:8px;margin-bottom:4px;">
+                <label style="font-size:0.82rem;color:var(--muted);">זמן לשאלה:</label>
+                <select id="timerSelect" style="padding:4px 8px;border-radius:6px;border:1px solid #cbd5e0;font-size:0.85rem;">
+                  <option value="0">ללא טיימר</option>
+                  <option value="30">30 שניות</option>
+                  <option value="60" selected>60 שניות</option>
+                  <option value="90">90 שניות</option>
+                  <option value="120">2 דקות</option>
+                </select>
+                <span id="teacherTimerDisplay" style="font-size:1.1rem;font-weight:700;color:#e53e3e;min-width:40px;"></span>
+              </div>
+              <button id="btnOpen" class="btn-amber btn-lg hidden" onclick="openCurrentQuestion()">📖 פתח שאלה לתלמידים</button>
+              <button id="btnReview" class="btn-primary btn-lg hidden" onclick="showReview()">📊 הצג תוצאות לכיתה</button>
+              <button id="btnNext" class="btn-ghost btn-lg hidden" onclick="nextQuestion()">⏭ שאלה הבאה</button>
+              <button id="btnEnd" class="btn-danger btn-lg hidden" onclick="endGame()">🏁 סיים משחק</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">התקדמות</div>
+            <div class="q-dots" id="qDots"></div>
+            <div class="current-q-box" id="currentQBox">לא התחיל</div>
+          </div>
+        </div>
+
+        <!-- Live data column -->
+        <div>
+          <div class="card">
+            <div class="card-title">תלמידים מחוברים (<span id="stuCount">0</span>)</div>
+            <div id="studentsGrid" class="students-grid">
+              <div style="color:var(--muted); font-size:0.85rem;">ממתין לתלמידים...</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">סיכום תשובות</div>
+            <div id="answersChart">
+              <div style="color:var(--muted); font-size:0.85rem;">אין תשובות עדיין</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ SETTINGS ══════════════════ -->
+    <div id="settings" class="section">
+      <div style="max-width:580px;">
+        <div class="card">
+          <div class="card-title">🔥 פרטי חיבור Firebase</div>
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:1.25rem;">
+            הפרטים נשמרים בדפדפן בלבד ולא נשלחים לשום שרת.
+          </p>
+          <div class="cfg-grid">
+            <div class="form-group"><label>API Key</label><input type="text" id="cfg_apiKey" placeholder="AIzaSy..."></div>
+            <div class="form-group"><label>Auth Domain</label><input type="text" id="cfg_authDomain" placeholder="project.firebaseapp.com"></div>
+            <div class="form-group"><label>Database URL</label><input type="text" id="cfg_databaseURL" placeholder="https://project-rtdb.firebaseio.com"></div>
+            <div class="form-group"><label>Project ID</label><input type="text" id="cfg_projectId" placeholder="project-id"></div>
+            <div class="form-group"><label>Storage Bucket</label><input type="text" id="cfg_storageBucket" placeholder="project.appspot.com"></div>
+            <div class="form-group"><label>App ID</label><input type="text" id="cfg_appId" placeholder="1:123:web:abc"></div>
+          </div>
+          <button class="btn-primary" style="width:100%;" onclick="saveConfig()">שמור והתחבר לFirebase</button>
+          <div id="cfgStatus" style="margin-top:0.75rem; font-size:0.88rem; text-align:center;"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🔑 קוד המשחק הנוכחי</div>
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:0.75rem;">זהו הקוד שתלמידים מזינים כשמצטרפים.</p>
+          <div style="display:flex; align-items:center; gap:1rem;">
+            <div style="font-size:2rem; font-weight:900; letter-spacing:0.2em; color:var(--blue);" id="settingsGameCode">----</div>
+            <button class="btn-ghost btn-sm" onclick="regenerateCode()">🔄 קוד חדש</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+
+<!-- ══════════════════ QUESTION MODAL ══════════════════ -->
+<div id="questionModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">שאלה חדשה</h2>
+      <button class="btn-ghost btn-sm" onclick="closeModal()">✕ סגור</button>
+    </div>
+
+    <div class="form-group">
+      <label>סוג שאלה</label>
+      <select id="qType" onchange="updateTypeUI()">
+        <option value="multiple_choice">רב-ברירה (Multiple Choice)</option>
+        <option value="true_false">נכון / לא נכון</option>
+        <option value="open_text">שאלה פתוחה (טקסט חופשי)</option>
+        <option value="ordering">סדר כרונולוגי (גרירה)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>טקסט השאלה</label>
+      <textarea id="qText" placeholder="הכניסי כאן את השאלה..."></textarea>
+    </div>
+
+    <!-- MEDIA -->
+    <div class="form-group">
+      <label>מדיה (אופציונלי)</label>
+      <div class="media-tabs">
+        <div class="media-tab active" onclick="setMediaTab('none')">ללא</div>
+        <div class="media-tab" onclick="setMediaTab('image_url')">🖼 קישור תמונה</div>
+        <div class="media-tab" onclick="setMediaTab('image_upload')">📁 העלאת תמונה</div>
+        <div class="media-tab" onclick="setMediaTab('youtube')">▶ YouTube</div>
+        <div class="media-tab" onclick="setMediaTab('video_upload')">🎬 העלאת וידאו</div>
+      </div>
+      <div id="mediaInputArea">
+        <div id="mi_none"></div>
+        <div id="mi_image_url" class="hidden">
+          <input type="url" id="qImageUrl" placeholder="https://..." oninput="previewImageUrl()">
+          <div id="imgUrlPreview" class="media-preview"></div>
+        </div>
+        <div id="mi_image_upload" class="hidden">
+          <input type="file" id="qImageFile" accept="image/*" onchange="previewImageFile()">
+          <div id="imgFilePreview" class="media-preview"></div>
+          <div id="imgUploadStatus" style="font-size:0.82rem; color:var(--muted); margin-top:0.4rem;"></div>
+        </div>
+        <div id="mi_youtube" class="hidden">
+          <input type="url" id="qYouTubeUrl" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div id="mi_video_upload" class="hidden">
+          <input type="file" id="qVideoFile" accept="video/*">
+          <div id="vidUploadStatus" style="font-size:0.82rem; color:var(--muted); margin-top:0.4rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MULTIPLE CHOICE -->
+    <div id="sec_mc">
+      <div class="form-group">
+        <label>תשובות — סמני ● את הנכונה</label>
+        <div class="mc-grid" id="mcOptionsGrid">
+          <div class="mc-row"><input type="radio" name="mcCorrect" value="0"><span class="mc-letter">א</span><input type="text" class="mc-opt" placeholder="תשובה א"></div>
+          <div class="mc-row"><input type="radio" name="mcCorrect" value="1"><span class="mc-letter">ב</span><input type="text" class="mc-opt" placeholder="תשובה ב"></div>
+          <div class="mc-row"><input type="radio" name="mcCorrect" value="2"><span class="mc-letter">ג</span><input type="text" class="mc-opt" placeholder="תשובה ג"></div>
+          <div class="mc-row"><input type="radio" name="mcCorrect" value="3"><span class="mc-letter">ד</span><input type="text" class="mc-opt" placeholder="תשובה ד"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRUE/FALSE -->
+    <div id="sec_tf" class="hidden">
+      <div class="form-group">
+        <label>תשובה נכונה</label>
+        <div style="display:flex; gap:1.5rem;">
+          <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+            <input type="radio" name="tfCorrect" value="true" style="accent-color:var(--green); transform:scale(1.3)"> ✅ נכון
+          </label>
+          <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+            <input type="radio" name="tfCorrect" value="false" style="accent-color:var(--red); transform:scale(1.3)"> ❌ לא נכון
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPEN TEXT -->
+    <div id="sec_open" class="hidden">
+      <div class="form-group">
+        <label>מילות מפתח / תשובה לדוגמה (לעזרתך בבדיקה — לא מוצג לתלמידים)</label>
+        <input type="text" id="qSampleAnswer" placeholder="לא חובה">
+      </div>
+    </div>
+
+    <!-- ORDERING -->
+    <div id="sec_order" class="hidden">
+      <div class="form-group">
+        <label>פריטים לסידור — הכניסי בסדר הנכון מלמעלה למטה</label>
+        <div id="orderItems" class="order-items">
+          <div class="order-row"><span class="order-idx">1</span><input type="text" class="order-opt" placeholder="אירוע ראשון"></div>
+          <div class="order-row"><span class="order-idx">2</span><input type="text" class="order-opt" placeholder="אירוע שני"></div>
+          <div class="order-row"><span class="order-idx">3</span><input type="text" class="order-opt" placeholder="אירוע שלישי"></div>
+          <div class="order-row"><span class="order-idx">4</span><input type="text" class="order-opt" placeholder="אירוע רביעי"></div>
+        </div>
+        <button class="btn-ghost btn-sm" onclick="addOrderRow()" style="margin-top:0.5rem;">+ הוסף פריט</button>
+      </div>
+    </div>
+
+    <div class="flex-end">
+      <button class="btn-ghost" onclick="closeModal()">ביטול</button>
+      <button class="btn-primary" onclick="saveQuestion()">💾 שמור שאלה</button>
+    </div>
+  </div>
+</div>
+
+
+<script type="module">
+// ═══════════════════════════════════════════════════════
+//  Firebase SDK
+// ═══════════════════════════════════════════════════════
+import { initializeApp, getApps, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+// ═══════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════
+let db = null, fbStorage = null;
+
+// ── AUTO-INIT Firebase with default config ──
+const DEFAULT_FB_CONFIG = {
+  apiKey: "AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain: "et-hadaat.firebaseapp.com",
+  databaseURL: "https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId: "et-hadaat",
+  storageBucket: "et-hadaat.firebasestorage.app",
+  messagingSenderId: "141400405468",
+  appId: "1:141400405468:web:c1090c52477d14a159cb19"
+};
+let questions = [];
+let editingIdx = -1;
+let mediaTab = 'none';
+let gameCode = localStorage.getItem('gameCode') || genCode();
+let gs = { state: 'lobby', currentQuestion: 0 };
+let studentsLive = {};
+let answersLive = {};
+
+// Read groupCode from URL param (passed from teacher_dashboard)
+const _urlParams = new URLSearchParams(window.location.search);
+const groupCode = _urlParams.get('group') || '';
+
+localStorage.setItem('gameCode', gameCode);
+
+// Auto-init with default config if not configured
+const savedCfg = localStorage.getItem('fbConfig');
+if (!savedCfg) {
+  localStorage.setItem('fbConfig', JSON.stringify(DEFAULT_FB_CONFIG));
+}
+
+function genCode() { return Math.random().toString(36).substr(2,6).toUpperCase(); }
+
+// ═══════════════════════════════════════════════════════
+//  Expose to window (onclick handlers)
+// ═══════════════════════════════════════════════════════
+Object.assign(window, {
+  switchTab, openQuestionModal, closeModal, updateTypeUI, setMediaTab,
+  saveQuestion, editQuestion, deleteQuestion, addOrderRow,
+  saveQuestionsToFirebase, exportQuestions, importQuestions,
+  saveConfig, regenerateCode, copyJoinUrl,
+  startGame, openCurrentQuestion, showReview, nextQuestion, endGame,
+  previewImageUrl, previewImageFile
+});
+
+// ═══════════════════════════════════════════════════════
+//  Init UI
+// ═══════════════════════════════════════════════════════
+document.getElementById('gameCodeDisplay').textContent = gameCode;
+document.getElementById('settingsGameCode').textContent = gameCode;
+document.getElementById('headerCodeBadge').textContent = gameCode;
+document.getElementById('headerCodeBadge').style.display = '';
+updateJoinUrl();
+
+function updateJoinUrl() {
+  const url = window.location.href.replace('teacher.html', 'student.html') + '?code=' + gameCode;
+  document.getElementById('joinUrlDisplay').textContent = url;
+  document.getElementById('joinUrlDisplay').dataset.url = url;
+}
+
+function copyJoinUrl() {
+  navigator.clipboard.writeText(document.getElementById('joinUrlDisplay').dataset.url);
+  document.getElementById('joinUrlDisplay').textContent = '✅ הועתק!';
+  setTimeout(updateJoinUrl, 2000);
+}
+
+function regenerateCode() {
+  if (!confirm('ליצור קוד משחק חדש? הקוד הנוכחי לא יעבוד יותר.')) return;
+  gameCode = genCode();
+  localStorage.setItem('gameCode', gameCode);
+
+// Auto-init with default config if not configured
+const savedCfg = localStorage.getItem('fbConfig');
+if (!savedCfg) {
+  localStorage.setItem('fbConfig', JSON.stringify(DEFAULT_FB_CONFIG));
+}
+  document.getElementById('gameCodeDisplay').textContent = gameCode;
+  document.getElementById('settingsGameCode').textContent = gameCode;
+  document.getElementById('headerCodeBadge').textContent = gameCode;
+  updateJoinUrl();
+}
+
+// ═══════════════════════════════════════════════════════
+//  Tabs
+// ═══════════════════════════════════════════════════════
+function switchTab(id) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === id));
+  document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+//  Firebase
+// ═══════════════════════════════════════════════════════
+async function saveConfig() {
+  const cfg = {
+    apiKey: v('cfg_apiKey'), authDomain: v('cfg_authDomain'),
+    databaseURL: v('cfg_databaseURL'), projectId: v('cfg_projectId'),
+    storageBucket: v('cfg_storageBucket'), appId: v('cfg_appId')
+  };
+  localStorage.setItem('fbConfig', JSON.stringify(cfg));
+  await initFirebase(cfg);
+}
+
+async function initFirebase(cfg) {
+  try {
+    getApps().forEach(a => deleteApp(a));
+    const app = initializeApp(cfg);
+    db = getDatabase(app);
+    fbStorage = getStorage(app);
+    document.getElementById('cfgStatus').innerHTML = '<span style="color:var(--green)">✅ מחובר בהצלחה!</span>';
+    document.getElementById('fbStatus').innerHTML = '<span class="connection-dot"></span> מחובר';
+    document.getElementById('fbStatus').style.color = '#4ade80';
+    setupListeners();
+    await loadQuestionsFromFB();
+  } catch(e) {
+    document.getElementById('cfgStatus').innerHTML = `<span style="color:var(--red)">❌ ${e.message}</span>`;
+  }
+}
+
+// Auto-load config
+const saved = localStorage.getItem('fbConfig');
+if (saved) {
+  const c = JSON.parse(saved);
+  ['apiKey','authDomain','databaseURL','projectId','storageBucket','appId'].forEach(k => {
+    const el = document.getElementById('cfg_' + k);
+    if (el && c[k]) el.value = c[k];
+  });
+  initFirebase(c);
+}
+
+async function loadQuestionsFromFB() {
+  const snap = await get(ref(db, `games/${gameCode}/questions`));
+  if (snap.val()) { questions = snap.val(); renderQList(); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Firebase Listeners
+// ═══════════════════════════════════════════════════════
+function setupListeners() {
+  onValue(ref(db, `games/${gameCode}/students`), snap => {
+    studentsLive = snap.val() || {};
+    renderStudents();
+    document.getElementById('stuCount').textContent = Object.keys(studentsLive).length;
+  });
+  onValue(ref(db, `games/${gameCode}/state`), snap => {
+    gs.state = snap.val() || 'lobby';
+    renderStatusChip();
+  });
+  onValue(ref(db, `games/${gameCode}/currentQuestion`), snap => {
+    gs.currentQuestion = snap.val() || 0;
+    renderQDots();
+    renderCurrentQBox();
+  });
+  onValue(ref(db, `games/${gameCode}/answers`), snap => {
+    answersLive = snap.val() || {};
+    renderStudents();
+    renderAnswersChart();
+    renderAnswerCount();
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  Question Editor
+// ═══════════════════════════════════════════════════════
+function renderQList() {
+  const el = document.getElementById('questionList');
+  document.getElementById('qCount').textContent = questions.length + ' שאלות';
+  if (!questions.length) {
+    el.innerHTML = `<div class="card" style="text-align:center; padding:2.5rem; color:var(--muted);">
+      <div style="font-size:2.5rem; margin-bottom:0.75rem;">📋</div>
+      <div>עוד אין שאלות — לחצי על <strong>"+ שאלה חדשה"</strong> להתחיל</div>
+    </div>`;
+    return;
+  }
+  const badges = { multiple_choice:['רב-ברירה',''], true_false:['נכון/לא נכון','tf'], open_text:['פתוחה','open'], ordering:['כרונולוגי','order'] };
+  el.innerHTML = questions.map((q, i) => {
+    const [lbl, cls] = badges[q.type] || ['?',''];
+    const hasMedia = q.media && q.media.type !== 'none' && q.media.src;
+    return `<div class="q-item">
+      <div class="q-num">${i+1}</div>
+      <span class="q-badge ${cls}">${lbl}</span>
+      <div class="q-text">${q.text}</div>
+      ${hasMedia ? '<span class="q-media-icon">📎</span>' : ''}
+      <div style="display:flex; gap:0.4rem; flex-shrink:0;">
+        <button class="btn-ghost btn-sm" onclick="editQuestion(${i})">✏️</button>
+        <button class="btn-ghost btn-sm" style="color:var(--red)" onclick="deleteQuestion(${i})">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openQuestionModal(idx) {
+  editingIdx = (idx !== undefined) ? idx : -1;
+  document.getElementById('modalTitle').textContent = editingIdx >= 0 ? 'עריכת שאלה' : 'שאלה חדשה';
+
+  if (editingIdx >= 0) {
+    const q = questions[editingIdx];
+    document.getElementById('qType').value = q.type;
+    document.getElementById('qText').value = q.text;
+
+    if (q.type === 'multiple_choice') {
+      const opts = document.querySelectorAll('.mc-opt');
+      opts.forEach((el, i) => el.value = q.options?.[i] || '');
+      document.querySelectorAll('input[name="mcCorrect"]').forEach(r => r.checked = (r.value == q.correct));
+    } else if (q.type === 'true_false') {
+      document.querySelectorAll('input[name="tfCorrect"]').forEach(r => r.checked = (r.value === String(q.correct)));
+    } else if (q.type === 'open_text') {
+      document.getElementById('qSampleAnswer').value = q.sampleAnswer || '';
+    } else if (q.type === 'ordering') {
+      const rows = document.querySelectorAll('.order-opt');
+      rows.forEach((el, i) => el.value = q.items?.[i] || '');
+    }
+
+    if (q.media && q.media.type !== 'none') {
+      setMediaTab(q.media.type);
+      if (q.media.type === 'image_url') { document.getElementById('qImageUrl').value = q.media.src; previewImageUrl(); }
+      if (q.media.type === 'youtube') document.getElementById('qYouTubeUrl').value = q.media.src;
+    } else {
+      setMediaTab('none');
+    }
+  } else {
+    // reset
+    document.getElementById('qType').value = 'multiple_choice';
+    document.getElementById('qText').value = '';
+    document.querySelectorAll('.mc-opt').forEach(e => e.value = '');
+    document.querySelectorAll('input[name="mcCorrect"]').forEach(r => r.checked = false);
+    document.getElementById('qSampleAnswer').value = '';
+    document.querySelectorAll('.order-opt').forEach(e => e.value = '');
+    document.getElementById('qImageUrl').value = '';
+    document.getElementById('imgUrlPreview').innerHTML = '';
+    setMediaTab('none');
+  }
+  updateTypeUI();
+  document.getElementById('questionModal').classList.remove('hidden');
+}
+
+function editQuestion(idx) { openQuestionModal(idx); }
+function deleteQuestion(idx) {
+  if (!confirm('למחוק שאלה זו?')) return;
+  questions.splice(idx, 1);
+  renderQList();
+}
+function closeModal() { document.getElementById('questionModal').classList.add('hidden'); }
+
+function updateTypeUI() {
+  const t = document.getElementById('qType').value;
+  ['mc','tf','open','order'].forEach(s => {
+    document.getElementById('sec_' + s).classList.toggle('hidden',
+      !({multiple_choice:'mc', true_false:'tf', open_text:'open', ordering:'order'}[t] === s)
+    );
+  });
+}
+
+function setMediaTab(tab) {
+  mediaTab = tab;
+  document.querySelectorAll('.media-tab').forEach((el, i) => {
+    const tabs = ['none','image_url','image_upload','youtube','video_upload'];
+    el.classList.toggle('active', tabs[i] === tab);
+  });
+  ['none','image_url','image_upload','youtube','video_upload'].forEach(t => {
+    document.getElementById('mi_' + t)?.classList.toggle('hidden', t !== tab);
+  });
+}
+
+function previewImageUrl() {
+  const url = document.getElementById('qImageUrl').value.trim();
+  document.getElementById('imgUrlPreview').innerHTML = url ? `<img src="${url}" alt="preview">` : '';
+}
+function previewImageFile() {
+  const file = document.getElementById('qImageFile').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('imgFilePreview').innerHTML = `<img src="${e.target.result}" alt="preview">`; };
+  reader.readAsDataURL(file);
+}
+
+function addOrderRow() {
+  const container = document.getElementById('orderItems');
+  const n = container.querySelectorAll('.order-row').length + 1;
+  const row = document.createElement('div');
+  row.className = 'order-row';
+  row.innerHTML = `<span class="order-idx">${n}</span><input type="text" class="order-opt" placeholder="אירוע ${n}" style="width:100%; padding:0.6rem; border:1.5px solid var(--border); border-radius:8px; font-family:inherit;">`;
+  container.appendChild(row);
+}
+
+async function saveQuestion() {
+  const text = document.getElementById('qText').value.trim();
+  const type = document.getElementById('qType').value;
+  if (!text) { alert('יש להזין טקסט לשאלה'); return; }
+
+  const q = { type, text };
+
+  // Media
+  q.media = { type: 'none', src: '' };
+  if (mediaTab === 'image_url') {
+    q.media = { type: 'image_url', src: document.getElementById('qImageUrl').value.trim() };
+  } else if (mediaTab === 'image_upload') {
+    const file = document.getElementById('qImageFile').files[0];
+    if (file && fbStorage) {
+      document.getElementById('imgUploadStatus').textContent = 'מעלה...';
+      const r = sRef(fbStorage, `games/${gameCode}/media/${Date.now()}_${file.name}`);
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+      q.media = { type: 'image_url', src: url };
+    }
+  } else if (mediaTab === 'youtube') {
+    const raw = document.getElementById('qYouTubeUrl').value.trim();
+    q.media = { type: 'youtube', src: extractYTId(raw) };
+  } else if (mediaTab === 'video_upload') {
+    const file = document.getElementById('qVideoFile').files[0];
+    if (file && fbStorage) {
+      document.getElementById('vidUploadStatus').textContent = 'מעלה...';
+      const r = sRef(fbStorage, `games/${gameCode}/media/${Date.now()}_${file.name}`);
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+      q.media = { type: 'video_url', src: url };
+    }
+  }
+
+  // Type-specific
+  if (type === 'multiple_choice') {
+    q.options = Array.from(document.querySelectorAll('.mc-opt')).map(e => e.value.trim());
+    const checked = document.querySelector('input[name="mcCorrect"]:checked');
+    q.correct = checked ? parseInt(checked.value) : 0;
+  } else if (type === 'true_false') {
+    const checked = document.querySelector('input[name="tfCorrect"]:checked');
+    q.correct = checked ? (checked.value === 'true') : true;
+  } else if (type === 'open_text') {
+    q.sampleAnswer = document.getElementById('qSampleAnswer').value.trim();
+  } else if (type === 'ordering') {
+    q.items = Array.from(document.querySelectorAll('.order-opt')).map(e => e.value.trim()).filter(Boolean);
+  }
+
+  if (editingIdx >= 0) questions[editingIdx] = q;
+  else questions.push(q);
+
+  renderQList();
+  closeModal();
+}
+
+async function saveQuestionsToFirebase() {
+  if (!db) { alert('יש להגדיר Firebase תחילה בלשונית "הגדרות"'); return; }
+  await set(ref(db, `games/${gameCode}/questions`), questions);
+  showToast('✅ השאלות נשמרו בהצלחה!');
+}
+
+function exportQuestions() {
+  const blob = new Blob([JSON.stringify(questions, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `questions_${gameCode}.json`; a.click();
+}
+
+function importQuestions(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { try { questions = JSON.parse(ev.target.result); renderQList(); } catch { alert('קובץ לא תקין'); } };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Game Control
+// ═══════════════════════════════════════════════════════
+function openBoard() {
+  const base = window.location.href.replace('game_teacher.html', 'game_board.html');
+  const url = base + '?code=' + gameCode;
+  // Open in new tab (avoids popup blockers)
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function startGame() {
+  if (!db) { alert('יש להגדיר Firebase תחילה'); return; }
+  if (!questions.length) { alert('הוסיפי שאלות לפני תחילת המשחק'); return; }
+  await set(ref(db, `games/${gameCode}`), {
+    state: 'lobby', currentQuestion: 0, questions,
+    students: studentsLive, answers: {}, startedAt: Date.now()
+  });
+  // הודע ללוח התלמיד שמשחק פעיל — עם קוד קבוצה
+  await set(ref(db, 'teacher/liveGame'), { active: true, code: gameCode, groupCode: groupCode || '' });
+  gs = { state: 'lobby', currentQuestion: 0 };
+  setButtons({ start:false, open:true, end:true });
+  const timerRow = document.getElementById('timerRow');
+  if (timerRow) timerRow.style.display = 'flex';
+  renderQDots();
+  renderCurrentQBox();
+}
+
+let teacherTimerInterval = null;
+
+async function openCurrentQuestion() {
+  const timerSec = parseInt(document.getElementById('timerSelect')?.value || '0');
+  await update(ref(db, `games/${gameCode}`), {
+    state: 'question',
+    currentQuestion: gs.currentQuestion,
+    timerSeconds: timerSec,
+    timerStartedAt: timerSec > 0 ? Date.now() : 0
+  });
+  setButtons({ open:false, review:true, end:true });
+
+  // Start countdown in teacher panel
+  if (teacherTimerInterval) clearInterval(teacherTimerInterval);
+  const display = document.getElementById('teacherTimerDisplay');
+  if (timerSec > 0 && display) {
+    let remaining = timerSec;
+    display.textContent = remaining + 'ש';
+    display.style.color = '#e53e3e';
+    teacherTimerInterval = setInterval(async () => {
+      remaining--;
+      display.textContent = remaining + 'ש';
+      if (remaining <= 0) {
+        clearInterval(teacherTimerInterval);
+        display.textContent = '';
+        // Auto-show results
+        await showReview();
+      }
+    }, 1000);
+  } else if (display) {
+    display.textContent = '';
+  }
+}
+
+async function showReview() {
+  await update(ref(db, `games/${gameCode}`), { state: 'review' });
+  const isLast = gs.currentQuestion >= questions.length - 1;
+  setButtons({ review:false, next: !isLast, end:true });
+  if (isLast) setButtons({ end:true, start:true });
+}
+
+async function nextQuestion() {
+  const next = gs.currentQuestion + 1;
+  if (next >= questions.length) { await endGame(); return; }
+  gs.currentQuestion = next;
+  await update(ref(db, `games/${gameCode}`), { state: 'lobby', currentQuestion: next });
+  setButtons({ next:false, open:true, end:true });
+}
+
+async function endGame() {
+  await update(ref(db, `games/${gameCode}`), { state: 'ended' });
+  // הסר את המשחק הפעיל מלוח התלמיד
+  await set(ref(db, 'teacher/liveGame'), { active: false });
+  setButtons({ start:true });
+  document.getElementById('btnStart').textContent = '🔄 משחק חדש';
+}
+
+function setButtons(map) {
+  const ids = { start:'btnStart', open:'btnOpen', review:'btnReview', next:'btnNext', end:'btnEnd' };
+  Object.keys(ids).forEach(k => document.getElementById(ids[k]).classList.add('hidden'));
+  Object.entries(map).forEach(([k, show]) => {
+    if (show) document.getElementById(ids[k])?.classList.remove('hidden');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  Live Display
+// ═══════════════════════════════════════════════════════
+function renderStatusChip() {
+  const map = {
+    lobby: ['⏳ ממתין לשאלה','chip-lobby'],
+    question: ['✏️ שאלה פתוחה','chip-question'],
+    review: ['📊 סקירת תוצאות','chip-review'],
+    ended: ['🏁 הסתיים','chip-ended']
+  };
+  const [txt, cls] = map[gs.state] || ['?','chip-lobby'];
+  const el = document.getElementById('statusChip');
+  el.textContent = txt;
+  el.className = 'status-chip ' + cls;
+}
+
+function renderStudents() {
+  const el = document.getElementById('studentsGrid');
+  const qKey = 'q' + gs.currentQuestion;
+  const qAns = answersLive[qKey] || {};
+  if (!Object.keys(studentsLive).length) {
+    el.innerHTML = '<div style="color:var(--muted); font-size:0.85rem;">ממתין לתלמידים...</div>';
+    return;
+  }
+  el.innerHTML = Object.entries(studentsLive).map(([id, s]) => {
+    const ans = qAns[id];
+    const ansDisplay = ans !== undefined ? fmtAns(ans) : '';
+    return `<div class="stu-card ${ans !== undefined ? 'answered' : ''}">
+      <div class="stu-name">${s.name}</div>
+      <div class="stu-ans">${ansDisplay || '...'}</div>
+    </div>`;
+  }).join('');
+}
+
+function fmtAns(a) {
+  if (Array.isArray(a)) return a.join(' → ');
+  const q = questions[gs.currentQuestion];
+  if (q?.type === 'multiple_choice' && q.options?.[a] !== undefined) return q.options[a];
+  if (a === true || a === 'true') return '✅ נכון';
+  if (a === false || a === 'false') return '❌ לא נכון';
+  return String(a);
+}
+
+function renderAnswersChart() {
+  const el = document.getElementById('answersChart');
+  const qKey = 'q' + gs.currentQuestion;
+  const qAns = answersLive[qKey] || {};
+  const q = questions[gs.currentQuestion];
+
+  if (!q || !Object.keys(qAns).length) {
+    el.innerHTML = '<div style="color:var(--muted); font-size:0.85rem;">אין תשובות עדיין</div>';
+    return;
+  }
+
+  let counts = {};
+  if (q.type === 'multiple_choice') {
+    q.options.forEach(opt => counts[opt] = 0);
+    Object.values(qAns).forEach(a => { if (q.options[a] !== undefined) counts[q.options[a]]++; });
+  } else if (q.type === 'true_false') {
+    counts = { 'נכון': 0, 'לא נכון': 0 };
+    Object.values(qAns).forEach(a => { (a === true || a === 'true') ? counts['נכון']++ : counts['לא נכון']++; });
+  } else {
+    Object.values(qAns).forEach(a => {
+      const k = Array.isArray(a) ? a.join(' → ') : String(a);
+      counts[k] = (counts[k] || 0) + 1;
+    });
+  }
+
+  const total = Math.max(Object.values(counts).reduce((a,b) => a+b, 0), 1);
+  el.innerHTML = Object.entries(counts).map(([lbl, cnt]) => {
+    const pct = Math.round(cnt / total * 100);
+    const isCorrect = q.type === 'multiple_choice' ? lbl === q.options[q.correct] :
+                      q.type === 'true_false' ? ((q.correct && lbl === 'נכון') || (!q.correct && lbl === 'לא נכון')) : false;
+    return `<div class="chart-row">
+      <div class="chart-lbl" title="${lbl}">${lbl}</div>
+      <div class="chart-track"><div class="chart-bar ${isCorrect ? 'correct-bar' : ''}" style="width:${Math.max(pct,3)}%">
+        ${pct >= 12 ? `<span class="chart-pct">${pct}%</span>` : ''}
+      </div></div>
+      <div class="chart-cnt">${cnt}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAnswerCount() {
+  const qKey = 'q' + gs.currentQuestion;
+  const answered = Object.keys(answersLive[qKey] || {}).length;
+  const total = Object.keys(studentsLive).length;
+  document.getElementById('answerCountText').textContent = `${answered} / ${total} ענו`;
+  document.getElementById('answerProgress').style.width = total ? (answered / total * 100) + '%' : '0%';
+}
+
+function renderQDots() {
+  document.getElementById('qDots').innerHTML = questions.map((_, i) => {
+    let cls = 'q-dot';
+    if (i < gs.currentQuestion) cls += ' done';
+    else if (i === gs.currentQuestion) cls += ' active';
+    return `<div class="${cls}" title="שאלה ${i+1}"></div>`;
+  }).join('');
+}
+
+function renderCurrentQBox() {
+  const q = questions[gs.currentQuestion];
+  const el = document.getElementById('currentQBox');
+  if (!q) { el.textContent = 'לא הוגדרו שאלות'; return; }
+  const types = { multiple_choice:'רב-ברירה', true_false:'נכון/לא נכון', open_text:'פתוחה', ordering:'כרונולוגי' };
+  el.innerHTML = `<strong>שאלה ${gs.currentQuestion + 1} / ${questions.length}</strong>
+    <span class="tag" style="background:#e0f2fe; color:#0369a1; margin-right:0.4rem;">${types[q.type]}</span>
+    <br><span style="display:block; margin-top:0.4rem;">${q.text}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Utils
+// ═══════════════════════════════════════════════════════
+function extractYTId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
+  return m ? m[1] : url;
+}
+
+function v(id) { return document.getElementById(id)?.value.trim() || ''; }
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, { position:'fixed', bottom:'1.5rem', left:'50%', transform:'translateX(-50%)',
+    background:'var(--navy)', color:'white', padding:'0.75rem 1.5rem', borderRadius:'10px',
+    fontWeight:'600', fontSize:'0.9rem', zIndex:'9999', boxShadow:'0 4px 20px rgba(0,0,0,0.25)' });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+renderQList();
+renderQDots();
+renderCurrentQBox();
+
+// ── AUTO-INIT Firebase on load ──
+(function() {
+  const cfg = JSON.parse(localStorage.getItem('fbConfig') || 'null') || DEFAULT_FB_CONFIG;
+  // Pre-fill the settings form
+  const fields = {
+    cfg_apiKey: cfg.apiKey, cfg_authDomain: cfg.authDomain,
+    cfg_databaseURL: cfg.databaseURL, cfg_projectId: cfg.projectId,
+    cfg_storageBucket: cfg.storageBucket, cfg_appId: cfg.appId
+  };
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el && val) el.value = val;
+  });
+  // Auto-connect
+  if (cfg.apiKey) {
+    setTimeout(() => { if (typeof initFirebase === 'function') initFirebase(cfg); }, 500);
+  }
+})();
+</script>
+<script>
+function openBoardWindow() {
+  const code = localStorage.getItem('gameCode') || '';
+  if (!code) { alert('יש להפעיל משחק תחילה'); return; }
+  const base = window.location.href.split('?')[0].replace('game_teacher.html','game_board.html');
+  const a = document.createElement('a');
+  a.href = base + '?code=' + code;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+</script>
+</body>
+</html>

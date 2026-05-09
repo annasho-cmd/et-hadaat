@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>פתקיות — תלמיד</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:radial-gradient(ellipse at center,#1a1a2e,#0f0a04);
+  color:white;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;
+}
+.box{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;padding:28px;max-width:480px;width:100%;
+}
+.note-icon{font-size:2.5rem;text-align:center;margin-bottom:10px;}
+.board-name{
+  font-family:'Frank Ruhl Libre',serif;font-size:1.2rem;font-weight:700;
+  color:#f0c060;text-align:center;margin-bottom:6px;
+}
+.instruction{font-size:.85rem;opacity:.6;text-align:center;margin-bottom:20px;line-height:1.5;}
+
+/* Color picker */
+.color-section{margin-bottom:16px;}
+.color-label{font-size:.75rem;font-weight:700;color:#d4a843;margin-bottom:8px;text-transform:uppercase;}
+.color-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.color-opt{
+  width:32px;height:32px;border-radius:50%;cursor:pointer;
+  border:3px solid transparent;transition:transform .15s;
+}
+.color-opt:hover{transform:scale(1.15);}
+.color-opt.selected{border-color:white;transform:scale(1.15);}
+
+/* Sticky preview */
+.sticky-live{
+  border-radius:10px;padding:16px;min-height:100px;
+  margin-bottom:14px;position:relative;
+  box-shadow:3px 4px 12px rgba(0,0,0,.3);
+  transition:background .3s;
+}
+.sticky-textarea{
+  width:100%;background:transparent;border:none;
+  font-family:'Heebo',sans-serif;font-size:.95rem;color:#1c1208;
+  resize:none;outline:none;min-height:70px;line-height:1.7;
+}
+.sticky-student-name{font-size:.7rem;color:rgba(28,18,8,.5);margin-top:6px;font-weight:700;}
+
+/* Image upload */
+.img-section{margin-bottom:14px;}
+.btn-upload{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:8px;
+  background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.3);
+  color:white;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;
+  width:100%;justify-content:center;transition:background .15s;
+}
+.btn-upload:hover{background:rgba(255,255,255,.18);}
+.img-preview{width:100%;border-radius:8px;margin-top:8px;max-height:120px;object-fit:cover;display:none;}
+.upload-progress{font-size:.75rem;opacity:.5;text-align:center;margin-top:4px;}
+
+/* Submit */
+.btn-submit{
+  width:100%;padding:13px;background:linear-gradient(135deg,#d4a843,#b8860b);
+  color:#1c1208;border:none;border-radius:10px;
+  font-family:'Heebo',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;
+}
+.btn-submit:disabled{opacity:.4;cursor:default;}
+.success-msg{
+  text-align:center;padding:14px;
+  background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);
+  border-radius:10px;color:#86efac;font-size:.9rem;margin-top:12px;display:none;
+}
+.waiting-state{text-align:center;opacity:.4;padding:24px;}
+
+/* Bonus notification */
+.bonus-notif{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);
+  background:linear-gradient(135deg,#d4a843,#b8860b);color:#1c1208;
+  padding:12px 24px;border-radius:14px;font-weight:700;font-size:1rem;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);transition:transform .5s;z-index:999;
+}
+.bonus-notif.show{transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="bonus-notif" id="bonus-notif">⭐ כל הכבוד! קיבלת נקודת בונוס!</div>
+
+<div class="box" id="box-waiting">
+  <div class="waiting-state">
+    <div style="font-size:2rem;margin-bottom:10px;">🗒️</div>
+    <div>ממתין לפתיחת לוח מהמורה...</div>
+  </div>
+</div>
+
+<div class="box" id="box-active" style="display:none;">
+  <div class="note-icon">🗒️</div>
+  <div class="board-name" id="board-name-display"></div>
+  <div class="instruction" id="instruction-display"></div>
+
+  <!-- Color picker -->
+  <div class="color-section">
+    <div class="color-label">בחרי צבע לפתקית שלך</div>
+    <div class="color-opts" id="color-opts"></div>
+  </div>
+
+  <!-- Live sticky preview -->
+  <div class="sticky-live" id="sticky-live" style="background:#fef08a;">
+    <textarea class="sticky-textarea" id="sticky-text"
+      placeholder="כתבי כאן..." maxlength="200" rows="3"
+      oninput="updatePreview()"></textarea>
+    <div class="sticky-student-name" id="sticky-name-preview"></div>
+  </div>
+
+  <!-- Image upload -->
+  <div class="img-section" id="img-section">
+    <label class="btn-upload" for="img-input">
+      📷 הוסיפי תמונה (אופציונלי)
+    </label>
+    <input type="file" id="img-input" accept="image/*" style="display:none;" onchange="handleImage(this)"/>
+    <img id="img-preview" class="img-preview"/>
+    <div class="upload-progress" id="upload-progress"></div>
+  </div>
+
+  <button class="btn-submit" id="btn-submit" onclick="submitSticky()">✦ הצגי על הלוח</button>
+  <div class="success-msg" id="success-msg">✓ הפתקית שלך הופיעה על הלוח!</div>
+</div>
+
+<script>
+const FB={
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+try{firebase.initializeApp(FB);}catch(e){}
+const db=firebase.database();
+
+// Cloudinary
+const CLOUD_NAME='da6mdtjhh';
+const UPLOAD_PRESET='w8rzehkl';
+
+const params=new URLSearchParams(window.location.search);
+const studentName=decodeURIComponent(params.get('student')||params.get('name')||'');
+
+const COLORS=[
+  {hex:'#fef08a',name:'צהוב'},
+  {hex:'#86efac',name:'ירוק'},
+  {hex:'#93c5fd',name:'כחול'},
+  {hex:'#f9a8d4',name:'ורוד'},
+  {hex:'#fcd34d',name:'כתום'},
+  {hex:'#c4b5fd',name:'סגול'},
+  {hex:'#fdba74',name:'גזר'},
+  {hex:'#ffffff',name:'לבן'},
+];
+
+let selectedColor='#fef08a';
+let uploadedImageUrl='';
+let currentBoardId=null;
+let boardSettings={showName:true,allowImages:true};
+
+// Init color picker
+const colorOpts=document.getElementById('color-opts');
+COLORS.forEach(c=>{
+  const div=document.createElement('div');
+  div.className='color-opt'+(c.hex===selectedColor?' selected':'');
+  div.style.background=c.hex;
+  div.title=c.name;
+  div.onclick=()=>{
+    selectedColor=c.hex;
+    document.querySelectorAll('.color-opt').forEach(o=>o.classList.remove('selected'));
+    div.classList.add('selected');
+    document.getElementById('sticky-live').style.background=c.hex;
+  };
+  colorOpts.appendChild(div);
+});
+
+document.getElementById('sticky-name-preview').textContent=studentName?'— '+studentName:'';
+
+// Listen to active board
+db.ref('stickies/active').on('value',snap=>{
+  const d=snap.val();
+  if(d&&d.active&&d.boardId){
+    currentBoardId=d.boardId;
+    boardSettings=d.settings||{showName:true,allowImages:true};
+    document.getElementById('board-name-display').textContent=d.name||'';
+    document.getElementById('instruction-display').textContent=d.instruction||'';
+    document.getElementById('img-section').style.display=boardSettings.allowImages?'':'none';
+    document.getElementById('box-waiting').style.display='none';
+    document.getElementById('box-active').style.display='block';
+  } else {
+    document.getElementById('box-waiting').style.display='block';
+    document.getElementById('box-active').style.display='none';
+  }
+});
+
+// Listen for bonus
+db.ref('stickies/active/lastBonus').on('value',snap=>{
+  const d=snap.val();
+  if(d&&d.student===studentName&&Date.now()-d.at<5000){
+    showBonus();
+  }
+});
+
+function updatePreview(){
+  // just typing
+}
+
+async function handleImage(input){
+  const file=input.files[0];
+  if(!file)return;
+  const prog=document.getElementById('upload-progress');
+  prog.textContent='מעלה תמונה...';
+  try{
+    const formData=new FormData();
+    formData.append('file',file);
+    formData.append('upload_preset',UPLOAD_PRESET);
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{
+      method:'POST',body:formData
+    });
+    const data=await res.json();
+    uploadedImageUrl=data.secure_url;
+    const preview=document.getElementById('img-preview');
+    preview.src=uploadedImageUrl;
+    preview.style.display='block';
+    prog.textContent='✓ תמונה הועלתה';
+  }catch(e){
+    prog.textContent='שגיאה בהעלאת תמונה';
+  }
+}
+
+function submitSticky(){
+  const text=document.getElementById('sticky-text').value.trim();
+  if(!text&&!uploadedImageUrl){alert('יש לכתוב משהו על הפתקית.');return;}
+  if(!currentBoardId)return;
+
+  const sticky={
+    text,
+    color:selectedColor,
+    studentName:studentName||'אנונימי',
+    imageUrl:uploadedImageUrl||'',
+    starred:false,
+    createdAt:Date.now()
+  };
+
+  const key=(studentName||'anon').replace(/ /g,'_')+'_'+Date.now();
+  db.ref('stickies/boards/'+currentBoardId+'/stickies/'+key).set(sticky);
+
+  document.getElementById('btn-submit').disabled=true;
+  document.getElementById('success-msg').style.display='block';
+  setTimeout(()=>{
+    document.getElementById('btn-submit').disabled=false;
+    document.getElementById('success-msg').style.display='none';
+    document.getElementById('sticky-text').value='';
+    uploadedImageUrl='';
+    document.getElementById('img-preview').style.display='none';
+    document.getElementById('upload-progress').textContent='';
+  },3000);
+}
+
+function showBonus(){
+  const notif=document.getElementById('bonus-notif');
+  notif.classList.add('show');
+  setTimeout(()=>notif.classList.remove('show'),3500);
+}
+</script>
+</body>
+</html>

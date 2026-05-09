@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>לוח פתקיות — הקרנה</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Heebo',sans-serif;
+  background:radial-gradient(ellipse at center,#1a1a2e 0%,#0a0a16 100%);
+  color:white;min-height:100vh;
+  display:flex;flex-direction:column;
+}
+.board-header{
+  padding:18px 28px 12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  flex-shrink:0;
+}
+.board-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
+.board-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:1.5rem;font-weight:700;color:#f0c060;
+}
+.board-instruction{font-size:.88rem;opacity:.55;margin-top:4px;}
+.board-stats{display:flex;gap:16px;font-size:.75rem;opacity:.4;}
+.stat span{color:rgba(255,255,255,.75);font-weight:700;}
+
+/* Grid */
+.stickies-area{
+  flex:1;padding:20px 24px;
+  display:flex;flex-wrap:wrap;
+  align-content:flex-start;
+  gap:14px;overflow-y:auto;
+}
+
+.sticky-card{
+  width:180px;min-height:150px;
+  border-radius:10px;padding:14px;
+  box-shadow:3px 4px 14px rgba(0,0,0,.4);
+  position:relative;
+  animation:popIn .4s cubic-bezier(0.34,1.56,0.64,1);
+  word-break:break-word;
+  display:flex;flex-direction:column;
+}
+@keyframes popIn{
+  from{opacity:0;transform:scale(0.6);}
+  to{opacity:1;transform:scale(1);}
+}
+.sticky-text{font-size:.88rem;color:#1c1208;line-height:1.6;flex:1;}
+.sticky-img{width:100%;border-radius:6px;margin-top:8px;max-height:80px;object-fit:cover;}
+.sticky-name{font-size:.65rem;color:rgba(28,18,8,.5);margin-top:8px;font-weight:700;}
+.sticky-star-badge{
+  position:absolute;top:-6px;right:-6px;
+  font-size:1.1rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));
+}
+
+/* Waiting */
+.waiting{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;opacity:.3;
+}
+.waiting-icon{font-size:3rem;margin-bottom:12px;}
+
+/* New sticky animation overlay */
+.new-sticky-flash{
+  position:fixed;bottom:24px;right:24px;
+  background:rgba(212,168,67,.9);color:#1c1208;
+  padding:10px 20px;border-radius:12px;font-weight:700;font-size:.88rem;
+  opacity:0;transition:opacity .4s;pointer-events:none;
+}
+.new-sticky-flash.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="board-header">
+  <div class="board-top">
+    <div>
+      <div class="board-title" id="board-title">🗒️ לוח פתקיות</div>
+      <div class="board-instruction" id="board-instruction"></div>
+    </div>
+    <div class="board-stats">
+      <div class="stat">פתקיות: <span id="s-total">0</span></div>
+      <div class="stat">תלמידים: <span id="s-students">0</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="stickies-area" id="stickies-area">
+  <div class="waiting" id="waiting">
+    <div class="waiting-icon">🗒️</div>
+    <div>ממתין לפתקיות...</div>
+  </div>
+</div>
+
+<div class="new-sticky-flash" id="new-flash">פתקית חדשה הגיעה! 🗒️</div>
+
+<script>
+const FB={
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",
+  storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",
+  appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+try{firebase.initializeApp(FB);}catch(e){}
+const db=firebase.database();
+
+const params=new URLSearchParams(window.location.search);
+const fixedBoard=params.get('board');
+
+let showNames=true;
+let knownStickies={};
+
+// Listen to active board or fixed board
+if(fixedBoard){
+  db.ref('stickies/boards/'+fixedBoard).once('value',snap=>{
+    const d=snap.val();
+    if(!d)return;
+    showNames=d.settings?.showName!==false;
+    document.getElementById('board-title').textContent='🗒️ '+d.name;
+    document.getElementById('board-instruction').textContent=d.instruction||'';
+    renderAll(d.stickies||{});
+  });
+} else {
+  db.ref('stickies/active').on('value',snap=>{
+    const d=snap.val();
+    if(d&&d.active){
+      showNames=d.settings?.showName!==false;
+      document.getElementById('board-title').textContent='🗒️ '+d.name;
+      document.getElementById('board-instruction').textContent=d.instruction||'';
+      listenLive(d.boardId);
+    }
+  });
+}
+
+function listenLive(boardId){
+  db.ref('stickies/boards/'+boardId+'/stickies').on('value',snap=>{
+    renderAll(snap.val()||{});
+  });
+}
+
+function renderAll(data){
+  const stickies=Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
+  const students=new Set(stickies.map(([,s])=>s.studentName).filter(Boolean));
+  document.getElementById('s-total').textContent=stickies.length;
+  document.getElementById('s-students').textContent=students.size;
+
+  const area=document.getElementById('stickies-area');
+  document.getElementById('waiting').style.display=stickies.length?'none':'block';
+
+  // Add new stickies only
+  stickies.forEach(([id,s])=>{
+    if(knownStickies[id]){
+      // Update star
+      const el=document.getElementById('sticky-'+id);
+      if(el){
+        const star=el.querySelector('.sticky-star-badge');
+        if(star) star.style.display=s.starred?'':'none';
+      }
+      return;
+    }
+    knownStickies[id]=true;
+
+    const card=document.createElement('div');
+    card.className='sticky-card';
+    card.id='sticky-'+id;
+    card.style.background=s.color||'#fef08a';
+    card.innerHTML=`
+      ${s.starred?'<div class="sticky-star-badge">⭐</div>':'<div class="sticky-star-badge" style="display:none">⭐</div>'}
+      <div class="sticky-text">${s.text||''}</div>
+      ${s.imageUrl?`<img class="sticky-img" src="${s.imageUrl}" />`:''}
+      ${showNames&&s.studentName?`<div class="sticky-name">— ${s.studentName}</div>`:''}
+    `;
+    area.appendChild(card);
+
+    // Flash notification
+    const flash=document.getElementById('new-flash');
+    flash.classList.add('show');
+    setTimeout(()=>flash.classList.remove('show'),2000);
+  });
+
+  // Remove deleted
+  Object.keys(knownStickies).forEach(id=>{
+    if(!data[id]){
+      document.getElementById('sticky-'+id)?.remove();
+      delete knownStickies[id];
+    }
+  });
+}
+</script>
+</body>
+</html>
