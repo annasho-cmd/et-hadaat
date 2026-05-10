@@ -1150,6 +1150,8 @@ function goToTaskManagement(){
   }
   tryNext(0);
 }
+
+function goHome() {
   if (dbListener) { db.ref(dbListener).off(); dbListener=null; }
   currentSubject=null; currentUnit=null;
   updateBreadcrumb([]);
