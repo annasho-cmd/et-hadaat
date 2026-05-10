@@ -189,7 +189,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;transition:border .2s;}
 .mi:focus{border-color:var(--gold);}
 select.mi{appearance:auto;}
-select.mi option{background:#2c1a0e;}
+select.mi option{background:#2c1a0e;color:var(--parch);}
 textarea.mi{resize:vertical;direction:rtl;}
 .mrow{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
 /* CHECKBOXES GRID */
@@ -1689,7 +1689,7 @@ function duplicateCurrentTask(){
 
       <div style="margin-bottom:13px;">
         <div style="font-size:.77rem;color:var(--gold);opacity:.82;margin-bottom:5px;">קבוצת לימוד</div>
-        <select id="dup-group" style="width:100%;padding:9px 11px;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;appearance:auto;">
+        <select id="dup-group" style="width:100%;padding:9px 11px;background:#2c1a0e;border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;appearance:auto;">
           ${grOpts}
         </select>
       </div>
@@ -1707,7 +1707,7 @@ function duplicateCurrentTask(){
       </div>
       <div style="margin-bottom:18px;">
         <div style="font-size:.77rem;color:var(--gold);opacity:.82;margin-bottom:5px;">מועד אחרון לציונים</div>
-        <select id="dup-gradedays" style="width:100%;padding:9px 11px;background:rgba(253,245,224,.07);border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;appearance:auto;">
+        <select id="dup-gradedays" style="width:100%;padding:9px 11px;background:#2c1a0e;border:1.5px solid rgba(212,168,67,.22);border-radius:7px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.88rem;outline:none;appearance:auto;">
           <option value="21" ${(t.gradeDays||21)==21?'selected':''}>3 שבועות</option>
           <option value="14" ${t.gradeDays==14?'selected':''}>2 שבועות</option>
         </select>
@@ -1841,4 +1841,3 @@ function toast(msg,ms=2500){
 </script>
 </body>
 </html>
-
