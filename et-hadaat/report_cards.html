@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ממני אליך — עת הדעת</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
+  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);
+  --muted:rgba(253,245,224,0.45);--green:#2a6b2a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.18) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.08) 0%,transparent 50%);}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;
+  background:rgba(15,8,2,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);font-weight:700;}
+.btn-back{padding:6px 14px;background:rgba(212,168,67,.1);border:1px solid var(--border);
+  color:var(--parch);border-radius:6px;cursor:pointer;font-size:.82rem;font-family:'Heebo',sans-serif;}
+
+.main{padding:24px 20px;max-width:900px;margin:0 auto;position:relative;z-index:1;}
+
+/* STEPS */
+.steps-bar{display:flex;align-items:center;margin-bottom:28px;gap:0;}
+.step-wrap{display:flex;flex-direction:column;align-items:center;flex:1;}
+.step-dot{width:30px;height:30px;border-radius:50%;background:rgba(212,168,67,.1);
+  border:2px solid var(--border);color:var(--muted);font-size:.78rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;transition:all .3s;}
+.step-dot.active{background:rgba(212,168,67,.2);border-color:var(--gold);color:var(--gold2);}
+.step-dot.done{background:rgba(42,107,42,.3);border-color:#6ee7a0;color:#6ee7a0;}
+.step-label{font-size:.62rem;opacity:.5;margin-top:4px;text-align:center;white-space:nowrap;}
+.step-line{flex:1;height:1px;background:var(--border);margin-bottom:18px;}
+.step-line.done{background:rgba(42,107,42,.4);}
+
+/* CARD */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;
+  padding:24px;margin-bottom:16px;}
+.card-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);
+  font-weight:700;margin-bottom:16px;}
+
+/* HALF SELECTOR */
+.half-btns{display:flex;gap:12px;margin-bottom:8px;}
+.half-btn{flex:1;padding:16px;background:rgba(253,245,224,.04);border:2px solid var(--border);
+  border-radius:10px;cursor:pointer;text-align:center;transition:all .2s;font-family:'Heebo',sans-serif;}
+.half-btn:hover{border-color:var(--gold);}
+.half-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);}
+.half-btn-title{font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;}
+.half-btn-sub{font-size:.78rem;opacity:.55;}
+
+/* STUDENT SELECT */
+.group-select{width:100%;padding:10px 12px;background:rgba(44,26,14,.8);
+  border:1.5px solid var(--border);border-radius:8px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;
+  appearance:auto;margin-bottom:12px;}
+.group-select option{background:#2c1a0e;}
+.student-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
+.student-btn{padding:9px 12px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);
+  border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;
+  color:var(--parch);text-align:right;transition:all .2s;}
+.student-btn:hover{border-color:var(--gold);background:rgba(212,168,67,.08);}
+.student-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.15);
+  color:var(--gold2);font-weight:700;}
+
+/* TRAITS */
+.traits-section{margin-bottom:16px;}
+.traits-section-title{font-size:.82rem;font-weight:700;color:var(--gold);opacity:.8;
+  margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(212,168,67,.15);}
+.traits-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.trait-tag{padding:5px 12px;background:rgba(253,245,224,.04);border:1px solid var(--border);
+  border-radius:16px;cursor:pointer;font-size:.8rem;transition:all .2s;font-family:'Heebo',sans-serif;}
+.trait-tag:hover{border-color:var(--gold);}
+.trait-tag.sel{background:rgba(212,168,67,.18);border-color:var(--gold);
+  color:var(--gold2);font-weight:700;}
+.trait-count{font-size:.75rem;opacity:.5;margin-bottom:10px;}
+
+/* TEXTAREA */
+.field-label{font-size:.8rem;color:var(--gold);opacity:.82;margin-bottom:6px;}
+.field-hint{font-size:.73rem;opacity:.45;margin-bottom:8px;line-height:1.5;}
+.field-textarea{width:100%;padding:11px 13px;background:rgba(253,245,224,.06);
+  border:1.5px solid var(--border);border-radius:8px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.9rem;outline:none;resize:vertical;
+  direction:rtl;line-height:1.6;transition:border .2s;}
+.field-textarea:focus{border-color:var(--gold);}
+
+/* AI STATUS */
+.ai-status{display:flex;align-items:center;gap:8px;padding:11px 14px;
+  background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.25);
+  border-radius:8px;font-size:.83rem;color:#c4b5fd;margin:12px 0;}
+.ai-spin{width:16px;height:16px;border:2px solid rgba(109,40,217,.3);
+  border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* RESULT */
+.result-box{background:rgba(44,26,14,.7);border:2px solid rgba(212,168,67,.3);
+  border-radius:12px;padding:20px;margin-top:16px;}
+.result-quote{font-size:.82rem;color:var(--gold);opacity:.7;margin-bottom:12px;
+  font-style:italic;text-align:center;padding-bottom:10px;
+  border-bottom:1px solid rgba(212,168,67,.15);}
+.result-text{font-size:.92rem;line-height:1.9;color:var(--parch);direction:rtl;
+  white-space:pre-wrap;}
+.result-edit{width:100%;padding:12px;background:rgba(253,245,224,.06);
+  border:1.5px solid rgba(212,168,67,.2);border-radius:8px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;resize:vertical;
+  direction:rtl;line-height:1.8;margin-top:12px;}
+.result-edit:focus{border-color:var(--gold);}
+
+/* SAVED LIST */
+.saved-card{background:rgba(44,26,14,.6);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.saved-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.saved-name{font-size:.92rem;font-weight:700;color:var(--gold2);}
+.saved-meta{font-size:.72rem;opacity:.45;}
+.saved-preview{font-size:.8rem;opacity:.65;line-height:1.5;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* BUTTONS */
+.btn-primary{padding:10px 20px;background:linear-gradient(135deg,var(--gold),#b8860b);
+  color:#1c1208;border:none;border-radius:8px;cursor:pointer;
+  font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;}
+.btn-primary:hover{opacity:.9;}
+.btn-sm{padding:6px 13px;background:rgba(212,168,67,.1);border:1px solid var(--border);
+  color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;}
+.btn-sm:hover{background:rgba(212,168,67,.22);}
+.btn-green{padding:8px 18px;background:rgba(42,107,42,.25);border:1px solid rgba(42,107,42,.4);
+  color:#6ee7a0;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;}
+.btn-purple{padding:8px 18px;background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);
+  color:#c4b5fd;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;}
+.btn-danger{padding:6px 12px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);
+  color:#f87171;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.78rem;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:28px;opacity:.38;font-size:.86rem;}
+/* TOAST */
+#toast{position:fixed;bottom:22px;right:22px;background:#1a3a1a;border:1px solid #3fb950;
+  color:#6ee7a0;padding:9px 17px;border-radius:8px;font-size:.83rem;z-index:9999;display:none;}
+
+/* PRINT */
+@media print{
+  .topbar,.steps-bar,.btn-row,#nav-section,#saved-section{display:none!important;}
+  body{background:#fff;color:#000;}
+  .result-box{border:1px solid #ccc;background:#fff;}
+  .result-text,.result-quote{color:#000;}
+  .card{border:none;background:#fff;padding:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">✍️ ממני אליך — הערכות לתעודה</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-sm" onclick="showSaved()">📋 הערכות שמורות</button>
+    <button class="btn-back" onclick="window.location.href='teacher_dashboard.html'">← לוח המורה</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STEPS BAR -->
+  <div class="steps-bar" id="steps-bar"></div>
+
+  <!-- STEP 1: HALF -->
+  <div id="step1" class="card">
+    <div class="card-title">✦ שלב 1 — בחרי מחצית</div>
+    <div class="half-btns">
+      <div class="half-btn" id="half-a" onclick="selectHalf('א')">
+        <div class="half-btn-title">מחצית א׳</div>
+        <div class="half-btn-sub">סיום יסתיים ב"בהצלחה במחצית הבאה"</div>
+      </div>
+      <div class="half-btn" id="half-b" onclick="selectHalf('ב')">
+        <div class="half-btn-title">מחצית ב׳ / סוף שנה</div>
+        <div class="half-btn-sub">סיום יסתיים ב"בהצלחה בשנה הבאה"</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: GROUP + STUDENT -->
+  <div id="step2" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 2 — בחרי קבוצה ותלמיד/ה</div>
+    <div class="field-label">קבוצת לימוד</div>
+    <select class="group-select" id="group-select" onchange="loadStudents()">
+      <option value="">— בחרי קבוצה —</option>
+    </select>
+    <div class="field-label" style="margin-bottom:8px;">תלמיד/ה</div>
+    <div class="student-grid" id="student-grid">
+      <div class="empty-state">בחרי קבוצה תחילה</div>
+    </div>
+    <div class="btn-row" id="step2-next" style="display:none;">
+      <button class="btn-primary" onclick="goStep(3)">המשך לבחירת תכונות ←</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: TRAITS -->
+  <div id="step3" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 3 — תכונות התלמיד/ה</div>
+    <div class="trait-count" id="trait-count">בחרי עד 6 תכונות מאפיינות</div>
+
+    <div class="traits-section">
+      <div class="traits-section-title">תכונות אישיות</div>
+      <div class="traits-grid" id="traits-personal"></div>
+    </div>
+    <div class="traits-section">
+      <div class="traits-section-title">תכונות חברתיות</div>
+      <div class="traits-grid" id="traits-social"></div>
+    </div>
+    <div class="traits-section">
+      <div class="traits-section-title">ערכי עבודה ולמידה</div>
+      <div class="traits-grid" id="traits-work"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-sm" onclick="goStep(2)">← חזרה</button>
+      <button class="btn-primary" onclick="goStep(4)">המשך לתיאור ←</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: FREE TEXT -->
+  <div id="step4" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 4 — תיאור אישי חופשי</div>
+
+    <div class="field-label">מצב לימודי והתנהגותי</div>
+    <div class="field-hint">כתבי בשפה פשוטה — העוזר יסגנן. למשל: "השתפר מאוד בהגשת עבודות, עדיין מתקשה בריכוז"</div>
+    <textarea class="field-textarea" id="text-academic" rows="4"
+      placeholder="כתבי כאן בחופשיות על ההתנהגות, המצב הלימודי, השתתפות בשיעורים..."></textarea>
+
+    <div style="margin-top:16px;">
+      <div class="field-label">משפט סיום / מסר אישי</div>
+      <div class="field-hint">מה תרצי לומר לתלמיד/ה לקראת המחצית הבאה / השנה הבאה?</div>
+      <textarea class="field-textarea" id="text-closing" rows="3"
+        placeholder="למשל: אני מאמינה ביכולותיך ומצפה לראות את הפריחה שלך..."></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-sm" onclick="goStep(3)">← חזרה</button>
+      <button class="btn-primary" style="background:rgba(109,40,217,.8);color:#fff;" onclick="generateReport()">
+        ✨ צור הערכה עם AI
+      </button>
+    </div>
+    <div id="ai-status" style="display:none;"></div>
+  </div>
+
+  <!-- STEP 5: RESULT -->
+  <div id="step5" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 5 — הערכה מוכנה</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="font-size:.85rem;opacity:.6;" id="result-meta"></div>
+      <button class="btn-purple" onclick="regenerateReport()">🔄 צור מחדש</button>
+    </div>
+    <div class="result-box" id="result-box"></div>
+    <div style="margin-top:14px;">
+      <div class="field-label">ערכי את ההערכה לפי הצורך:</div>
+      <textarea class="result-edit" id="result-edit" rows="10"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-green" onclick="saveReport()">💾 שמור הערכה</button>
+      <button class="btn-sm" onclick="copyReport()">📋 העתק טקסט</button>
+      <button class="btn-sm" onclick="printReport()">🖨️ הדפס</button>
+      <button class="btn-sm" onclick="newReport()">✚ הערכה חדשה</button>
+      <button class="btn-sm" onclick="goStep(4)">← ערוך תשומות</button>
+    </div>
+  </div>
+
+  <!-- SAVED -->
+  <div id="saved-section" style="display:none;">
+    <div class="card">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📋 הערכות שמורות</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm" onclick="exportAllCSV()">📥 ייצוא CSV</button>
+          <button class="btn-sm" onclick="showSaved(false)">✕ סגור</button>
+        </div>
+      </div>
+      <div id="saved-list"><div class="empty-state">אין הערכות שמורות עדיין</div></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<script>
+/* ══ FIREBASE ══ */
+const firebaseConfig={
+  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
+  authDomain:"et-hadaat.firebaseapp.com",
+  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
+  projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",
+  messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
+
+/* ══ DATA ══ */
+const PROVERBS=[
+  {text:'יגעת ומצאת, תאמין',tags:['חריצות','שקדנות','התמדה']},
+  {text:'לעולם יהא אדם רך כקנה ואל יהא קשה כארז (תענית כ ע"ב)',tags:['גמישות','סבלנות','יחסי אנוש']},
+  {text:'יהי כבוד חברך חביב עליך כשלך (אבות ב, טו)',tags:['הגינות','חברותי','יחסי אנוש']},
+  {text:'ואהבת לרעך כמוך (ויקרא יט, יח)',tags:['חברותי','סיוע לזולת','אחריות חברתית']},
+  {text:'הנך בור סוד שאינו מאבד טיפה',tags:['כושר חשיבה','סקרנות','שקדנות']},
+  {text:'מה ששנוא עליך אל תעשה לחברך (הלל הזקן)',tags:['הגינות','יחסי אנוש','מהימנות']},
+  {text:'מי שטורח בערב שבת אוכל בשבת (עבודה זרה)',tags:['חריצות','אחריות','שקדנות']},
+  {text:'חוכמת אדם תאיר פניו (קהלת ח, א)',tags:['כושר חשיבה','סקרנות','רמה אישית']},
+  {text:'טובים השניים מן האחד (קהלת ד, יא)',tags:['חברותי','עבודת צוות','סיוע לזולת']},
+  {text:'יפה תלמוד תורה עם דרך ארץ (אבות ב)',tags:['רמה אישית','מסירות','שקדנות']},
+  {text:'דרך ארץ קדמה לתורה',tags:['הגינות','רמה אישית','מסירות']},
+  {text:'הזורעים בדמעה ברינה יקצרו (תהילים קכו, ה)',tags:['התמדה','שקדנות','חריצות']},
+  {text:'מרב העצה, מרבה תבונה (אבות ב, ח)',tags:['כושר חשיבה','כושר מנהיגות','יוזמה']},
+  {text:'שלח לחמך על פני המים, כי ברוב הימים תמצאנו (קהלת יא)',tags:['נדיבות','סיוע לזולת','מסירות']},
+  {text:'כל הנחלים הולכים אל הים, והים איננו מלא (קהלת יא)',tags:['סקרנות','כושר חשיבה']},
+  {text:'אמור מעט ועשה הרבה (אבות א, טו)',tags:['אחריות','מסירות','נאמנות']},
+  {text:'היום קצר והמלאכה מרובה (אבות ב, כ)',tags:['חריצות','אחריות','יסודיות']},
+  {text:'המעשה נשכח, אך התוצאה נותרת (אבידיוס)',tags:['אחריות','מסירות','יסודיות']},
+  {text:'מי שאיננו מתנסה, איננו למד (פתגם יהודי)',tags:['סקרנות','יוזמה','כושר חשיבה']},
+  {text:'אין חכם כבעל ניסיון (קהלת)',tags:['כושר חשיבה','יסודיות','שקדנות']},
+  {text:'דברי חכמים בנחת נשמעים (קהלת ט, יז)',tags:['שקט','תרבותי','רמה אישית']},
+  {text:'היה אמיץ להשתמש בתבונתך (עמנואל קאנט)',tags:['אסרטיביות','כושר חשיבה','נמרצות']},
+  {text:'אוהב הבריות היינו אהוב הבריות',tags:['חברותי','יחסי אנוש','סיוע לזולת']},
+  {text:'אף אחד לא יכול לקחת ממך את רצונך (אפיקטטוס)',tags:['נמרצות','אסרטיביות','משמעת עצמית']},
+  {text:'רצון האדם הוא אישיותו (ישעיהו ליבוביץ)',tags:['אסרטיביות','יוזמה','נמרצות']},
+  {text:'צעד אחר צעד, וגם הנמלה תגיע לפסגת ההר (פתגם סיני)',tags:['התמדה','שקדנות','משמעת עצמית']},
+  {text:'מי שלא חולם להגיע לירח, לא יגיע לשום כוכב',tags:['יוזמה','נמרצות','יצירתיות']},
+  {text:'הזהרו בכבוד חברכם (ברכות כח)',tags:['הגינות','חברותי','יחסי אנוש']},
+  {text:'תחילתה של כל ידידות בשויון (פיתגורס)',tags:['חברותי','הגינות','יחסי אנוש']},
+  {text:'כל ההתחלות קשות, הקשה בעיקר היא ההתמדה (ביאליק)',tags:['התמדה','שקדנות','משמעת עצמית']},
+  {text:'סוד ההצלחה לא למהר (מארי קירי)',tags:['דייקנות','יסודיות','שקדנות']},
+  {text:'ההתמדה היא אם ההצלחה (בנג׳מין פרנקלין)',tags:['התמדה','שקדנות','חריצות']},
+  {text:'איזהו חכם? הלומד מכל אדם (פרקי אבות ד)',tags:['סקרנות','כושר חשיבה','שקדנות']},
+  {text:'איזהו גיבור הכובש את יצרו (אבות ד)',tags:['משמעת עצמית','כושר ספיגה','אחריות']},
+  {text:'מכל מלמדי השכלתי (תהילים קיט)',tags:['סקרנות','שקדנות','כושר חשיבה']},
+  {text:'גם מסע של אלף ק"מ מתחיל בצעד אחד קטן (מאו טסה טונג)',tags:['התמדה','יוזמה','משמעת עצמית']},
+  {text:'במקום שאין איש, השתדל להיות איש (אבות ב, ה)',tags:['אחריות','כושר מנהיגות','יוזמה']},
+  {text:'עשה לך רב וקנה לך חבר (אבות א, ו)',tags:['חברותי','לויליות','נאמנות']},
+  {text:'נאה דורש ונאה מקיים',tags:['הגינות','נאמנות','מהימנות']},
+  {text:'על שלושה דברים העולם עומד: על התורה, על העבודה ועל גמילות חסדים',tags:['רמה אישית','מסירות','סיוע לזולת']},
+  {text:'אין דבר העומד בפני הרצון',tags:['נמרצות','משמעת עצמית','אסרטיביות']},
+  {text:'ההצלחה היא פרי הגדל לאיטו (הנרי פילדינג)',tags:['התמדה','שקדנות','דייקנות']},
+  {text:'להיות אדם פירושו – לקבל אחריות (אנטואן דה סנט-אקזיפרי)',tags:['אחריות','הגינות','רמה אישית']},
+  {text:'זה אשר שולט באמצעות מידות טובות, משול לכוכב הצפון (פתגם סיני)',tags:['כושר מנהיגות','הגינות','רמה אישית']},
+  {text:'תנאי הכרחי לחוכמה הוא עשיית הטוב (הרמב"מ)',tags:['הגינות','רמה אישית','מסירות']},
+];
+
+const TRAITS={
+  personal:[
+    'כושר מנהיגות','תושיה רבה','כושר הדרכה','כושר חשיבה','רציני','סדר וניקיון',
+    'יוזמה','שקט','משמעת עצמית','אחריות','חריצות','דייקנות','יסודיות','שקדנות',
+    'רמה אישית','הגינות','מסירות','מהימנות','יושר','סקרנות','נאמנות','לויליות',
+    'יצירתיות','אסרטיביות','נמרצות','כושר ספיגה','התמדה'
+  ],
+  social:[
+    'חברותי','תרבותי','מקובלות','גישה מקדמת','אחריות חברתית','רוח התנדבות',
+    'סיוע לזולת','סבלנות','יחסי אנוש מעולים','עבודת צוות'
+  ],
+  work:[
+    'מוסר עבודה גבוה','ממושמע','ביקורת בונה','מקצועיות','קפדנות',
+    'שיטתיות','עצמאי במסגרת','מתפקד בתנאי לחץ','יכולת ניהול','כושר ארגון'
+  ]
+};
+
+/* ══ STATE ══ */
+let currentStep=1;
+let selectedHalf='';
+let selectedGroup=null;
+let selectedStudent='';
+let selectedStudentGender='זכר';
+let selectedTraits=[];
+let generatedText='';
+let groups=[];
+
+/* ══ INIT ══ */
+window.addEventListener('load',()=>{
+  if(sessionStorage.getItem('teacher_logged_in')!=='yes'){
+    window.location.href='teacher_dashboard.html';return;
+  }
+  renderStepsBar();
+  renderTraits();
+  loadGroups();
+});
+
+function loadGroups(){
+  db.ref('teacher/groups').once('value',snap=>{
+    groups=snap.val()?Object.values(snap.val()):[];
+    const sel=document.getElementById('group-select');
+    sel.innerHTML='<option value="">— בחרי קבוצה —</option>';
+    groups.forEach(g=>{
+      const opt=document.createElement('option');
+      opt.value=g.id;opt.textContent=g.name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+/* ══ STEPS BAR ══ */
+const STEP_LABELS=['מחצית','תלמיד/ה','תכונות','תיאור','הערכה'];
+function renderStepsBar(){
+  const bar=document.getElementById('steps-bar');
+  bar.innerHTML='';
+  STEP_LABELS.forEach((label,i)=>{
+    const n=i+1;
+    const st=n<currentStep?'done':n===currentStep?'active':'';
+    const wrap=document.createElement('div');
+    wrap.className='step-wrap';
+    wrap.innerHTML=`<div class="step-dot ${st}">${n<currentStep?'✓':n}</div><div class="step-label">${label}</div>`;
+    bar.appendChild(wrap);
+    if(i<STEP_LABELS.length-1){
+      const line=document.createElement('div');
+      line.className='step-line'+(n<currentStep?' done':'');
+      bar.appendChild(line);
+    }
+  });
+}
+
+function goStep(n){
+  if(n===2&&!selectedHalf){toast('נא לבחור מחצית תחילה');return;}
+  if(n===3&&!selectedStudent){toast('נא לבחור תלמיד/ה תחילה');return;}
+  currentStep=n;
+  renderStepsBar();
+  for(let i=1;i<=5;i++){
+    const el=document.getElementById('step'+i);
+    if(el)el.style.display=i===n?'block':'none';
+  }
+  document.getElementById('saved-section').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ══ STEP 1: HALF ══ */
+function selectHalf(h){
+  selectedHalf=h;
+  document.getElementById('half-a').classList.toggle('sel',h==='א');
+  document.getElementById('half-b').classList.toggle('sel',h==='ב');
+  setTimeout(()=>goStep(2),300);
+}
+
+/* ══ STEP 2: STUDENT ══ */
+function loadStudents(){
+  const gid=document.getElementById('group-select').value;
+  const group=groups.find(g=>g.id===gid);
+  selectedGroup=group||null;
+  selectedStudent='';
+  const grid=document.getElementById('student-grid');
+  document.getElementById('step2-next').style.display='none';
+  if(!group||!group.students?.length){
+    grid.innerHTML='<div class="empty-state">אין תלמידים בקבוצה זו</div>';return;
+  }
+  grid.innerHTML='';
+  group.students.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className='student-btn';
+    btn.textContent=s;
+    btn.onclick=()=>selectStudent(s,btn);
+    grid.appendChild(btn);
+  });
+}
+
+function selectStudent(name,btn){
+  selectedStudent=name;
+  document.querySelectorAll('.student-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  // try to get gender from student profile
+  db.ref('students/'+name.replace(/ /g,'_')+'/gender').once('value',snap=>{
+    selectedStudentGender=snap.val()||'זכר';
+    document.getElementById('step2-next').style.display='flex';
+  }).catch(()=>{
+    selectedStudentGender='זכר';
+    document.getElementById('step2-next').style.display='flex';
+  });
+}
+
+/* ══ STEP 3: TRAITS ══ */
+function renderTraits(){
+  renderTraitGroup('traits-personal',TRAITS.personal);
+  renderTraitGroup('traits-social',TRAITS.social);
+  renderTraitGroup('traits-work',TRAITS.work);
+}
+
+function renderTraitGroup(containerId,traits){
+  const c=document.getElementById(containerId);
+  c.innerHTML='';
+  traits.forEach(t=>{
+    const tag=document.createElement('div');
+    tag.className='trait-tag'+(selectedTraits.includes(t)?' sel':'');
+    tag.textContent=t;
+    tag.onclick=()=>toggleTrait(t,tag);
+    c.appendChild(tag);
+  });
+}
+
+function toggleTrait(t,el){
+  if(selectedTraits.includes(t)){
+    selectedTraits=selectedTraits.filter(x=>x!==t);
+    el.classList.remove('sel');
+  } else {
+    if(selectedTraits.length>=6){toast('ניתן לבחור עד 6 תכונות');return;}
+    selectedTraits.push(t);
+    el.classList.add('sel');
+  }
+  document.getElementById('trait-count').textContent=
+    `נבחרו ${selectedTraits.length}/6 תכונות`;
+}
+
+/* ══ STEP 4 → AI ══ */
+async function generateReport(){
+  const academic=document.getElementById('text-academic').value.trim();
+  const closing=document.getElementById('text-closing').value.trim();
+  if(!academic){toast('נא לתאר את המצב הלימודי/התנהגותי');return;}
+
+  const statusEl=document.getElementById('ai-status');
+  statusEl.style.display='block';
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>עוזר ההוראה כותב את ההערכה...</div>`;
+
+  const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
+  const salutation=gender==='נקבה'?'היקרה':'היקר';
+  const halfText=selectedHalf==='ב'?'סוף שנת הלימודים':'מחצית א׳';
+  const closingPhrase=selectedHalf==='ב'?'לשנה הבאה':'למחצית הבאה';
+
+  // find best proverb
+  const bestProverb=findBestProverb(selectedTraits);
+
+  const prompt=`אתה עוזר הוראה מנוסה. כתוב הערכה אישית לתעודה לסוף ${halfText}.
+
+פרטים:
+- שם התלמיד/ה: ${selectedStudent}
+- מגדר: ${gender}
+- הפתיח חייב להתחיל במילה: "${salutation}"
+- מחצית: ${selectedHalf==='ב'?'ב׳ — סוף שנה':'א׳'}
+- תכונות מאפיינות: ${selectedTraits.join(', ')||'לא צוינו'}
+- תיאור מצב לימודי/התנהגותי (של המורה, לסגנון): ${academic}
+- מסר סיום (של המורה, לסגנון): ${closing||'כתוב משפט עידוד מתאים'}
+- משפט הסיום חייב להתייחס ל${closingPhrase}
+
+הוראות כתיבה:
+1. פתח עם: "${salutation}" ואז המשך בפסקה על התכונות האישיות
+2. המשך בתיאור לימודי/התנהגותי (מסוגנן, לא עותק מילה במילה)
+3. סיים עם משפט מעודד ומכוון ל${closingPhrase}
+4. שפה: עברית חמה, אישית, מכבדת — לא יבשה
+5. אורך: עד 10 משפטים בסך הכל
+6. אל תציין ציונים או מספרים
+7. כתוב בלשון ${gender==='נקבה'?'נקבה':'זכר'} לאורך כל ההערכה
+
+החזר רק את טקסט ההערכה — ללא כותרות, ללא הסברים.`;
+
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+        system:'אתה עוזר הוראה מנוסה שכותב הערכות אישיות לתעודות בית ספר. כתוב בעברית חמה ואישית.',
+        messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    generatedText=(d.content?.[0]?.text||'').trim();
+    if(!generatedText)throw new Error('לא התקבל טקסט');
+
+    statusEl.style.display='none';
+    showResult(generatedText,bestProverb);
+  }catch(e){
+    statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה: ${e.message}</div>`;
+  }
+}
+
+function findBestProverb(traits){
+  if(!traits.length)return PROVERBS[Math.floor(Math.random()*PROVERBS.length)];
+  let best=null,bestScore=0;
+  PROVERBS.forEach(p=>{
+    const score=p.tags.filter(t=>traits.includes(t)).length;
+    if(score>bestScore){bestScore=score;best=p;}
+  });
+  return best||PROVERBS[Math.floor(Math.random()*PROVERBS.length)];
+}
+
+function showResult(text,proverb){
+  goStep(5);
+  document.getElementById('result-meta').textContent=
+    `${selectedStudent} · מחצית ${selectedHalf}׳ · ${selectedGroup?.name||''}`;
+  document.getElementById('result-box').innerHTML=
+    `<div class="result-quote">✦ ${esc(proverb.text)}</div>
+     <div class="result-text">${esc(text)}</div>`;
+  document.getElementById('result-edit').value=text;
+  // store proverb for saving
+  document.getElementById('result-box')._proverb=proverb.text;
+}
+
+async function regenerateReport(){
+  goStep(4);
+  setTimeout(generateReport,100);
+}
+
+/* ══ SAVE / EXPORT ══ */
+function saveReport(){
+  const text=document.getElementById('result-edit').value.trim();
+  const proverb=document.getElementById('result-box')._proverb||'';
+  if(!text){toast('אין טקסט לשמירה');return;}
+  const key=selectedStudent.replace(/ /g,'_')+'_'+selectedHalf+'_'+Date.now();
+  const data={
+    student:selectedStudent,group:selectedGroup?.name||'',
+    half:selectedHalf,traits:selectedTraits,text,proverb,
+    savedAt:Date.now()
+  };
+  db.ref('teacher/reportCards/'+key).set(data);
+  toast('✓ ההערכה נשמרה — '+selectedStudent);
+}
+
+function copyReport(){
+  const text=document.getElementById('result-edit').value;
+  navigator.clipboard.writeText(text).then(()=>toast('✓ הועתק ללוח'));
+}
+
+function printReport(){
+  const text=document.getElementById('result-edit').value;
+  const proverb=document.getElementById('result-box')._proverb||'';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head>
+    <meta charset="UTF-8">
+    <style>body{font-family:'David',serif;padding:40px;direction:rtl;font-size:14pt;line-height:2;}
+    .proverb{text-align:center;font-style:italic;color:#666;margin-bottom:20px;font-size:12pt;}
+    h3{margin-bottom:10px;}</style></head><body>
+    <h3>ממני אליך — ${selectedStudent}</h3>
+    ${proverb?`<div class="proverb">✦ ${proverb}</div>`:''}
+    <p>${text.replace(/\n/g,'<br>')}</p>
+    <script>window.print();window.close();<\/script>
+    </body></html>`);
+}
+
+function newReport(){
+  selectedStudent='';selectedTraits=[];generatedText='';selectedHalf='';
+  selectedGroup=null;
+  document.getElementById('half-a').classList.remove('sel');
+  document.getElementById('half-b').classList.remove('sel');
+  document.getElementById('text-academic').value='';
+  document.getElementById('text-closing').value='';
+  renderTraits();
+  goStep(1);
+}
+
+/* ══ SAVED LIST ══ */
+function showSaved(show=true){
+  document.getElementById('saved-section').style.display=show?'block':'none';
+  if(!show)return;
+  // hide steps
+  for(let i=1;i<=5;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
+  document.getElementById('steps-bar').style.display='none';
+
+  db.ref('teacher/reportCards').once('value',snap=>{
+    const data=snap.val()||{};
+    const list=document.getElementById('saved-list');
+    const items=Object.entries(data).sort((a,b)=>b[1].savedAt-a[1].savedAt);
+    if(!items.length){list.innerHTML='<div class="empty-state">אין הערכות שמורות עדיין</div>';return;}
+    list.innerHTML='';
+    items.forEach(([key,item])=>{
+      const c=document.createElement('div');
+      c.className='saved-card';
+      c.innerHTML=`
+        <div class="saved-header">
+          <div>
+            <span class="saved-name">${esc(item.student)}</span>
+            <span class="saved-meta"> · ${esc(item.group||'')} · מחצית ${esc(item.half||'')}׳</span>
+          </div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn-sm" onclick="loadSaved('${key}')">✏️ ערוך</button>
+            <button class="btn-sm" onclick="copySaved('${key}')">📋 העתק</button>
+            <button class="btn-danger" onclick="deleteSaved('${key}')">🗑</button>
+          </div>
+        </div>
+        ${item.proverb?`<div style="font-size:.72rem;color:var(--gold);opacity:.6;margin-bottom:4px;">✦ ${esc(item.proverb)}</div>`:''}
+        <div class="saved-preview">${esc(item.text||'')}</div>`;
+      list.appendChild(c);
+    });
+  });
+}
+
+function loadSaved(key){
+  db.ref('teacher/reportCards/'+key).once('value',snap=>{
+    const item=snap.val();if(!item)return;
+    selectedStudent=item.student;
+    selectedHalf=item.half;
+    selectedGroup=groups.find(g=>g.name===item.group)||null;
+    document.getElementById('saved-section').style.display='none';
+    document.getElementById('steps-bar').style.display='flex';
+    showResult(item.text,{text:item.proverb||''});
+  });
+}
+
+function copySaved(key){
+  db.ref('teacher/reportCards/'+key).once('value',snap=>{
+    const item=snap.val();if(!item)return;
+    navigator.clipboard.writeText(item.text).then(()=>toast('✓ הועתק — '+item.student));
+  });
+}
+
+function deleteSaved(key){
+  if(!confirm('למחוק הערכה זו?'))return;
+  db.ref('teacher/reportCards/'+key).remove();
+  showSaved();toast('✓ נמחקה');
+}
+
+function exportAllCSV(){
+  db.ref('teacher/reportCards').once('value',snap=>{
+    const data=snap.val()||{};
+    const rows=[['שם תלמיד/ה','קבוצה','מחצית','פתגם','הערכה'].map(c=>`"${c}"`).join(',')];
+    Object.values(data).forEach(item=>{
+      rows.push([item.student,item.group||'',item.half||'',item.proverb||'',item.text||'']
+        .map(c=>`"${String(c).replace(/"/g,'""').replace(/\n/g,' ')}"`).join(','));
+    });
+    const blob=new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='הערכות_תעודה.csv';a.click();
+  });
+}
+
+/* ══ UTILS ══ */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(msg,ms=2500){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',ms);
+}
+</script>
+</body>
+</html>
