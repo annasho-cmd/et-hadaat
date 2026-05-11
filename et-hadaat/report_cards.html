@@ -201,7 +201,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <!-- STEP 3: TRAITS -->
   <div id="step3" class="card" style="display:none;">
     <div class="card-title">✦ שלב 3 — תכונות התלמיד/ה</div>
-    <div class="trait-count" id="trait-count">בחרי עד 6 תכונות מאפיינות</div>
+    <div class="trait-count" id="trait-count">בחרי עד 10 תכונות מאפיינות</div>
 
     <div class="traits-section">
       <div class="traits-section-title">תכונות אישיות</div>
@@ -502,12 +502,12 @@ function toggleTrait(t,el){
     selectedTraits=selectedTraits.filter(x=>x!==t);
     el.classList.remove('sel');
   } else {
-    if(selectedTraits.length>=6){toast('ניתן לבחור עד 6 תכונות');return;}
+    if(selectedTraits.length>=10){toast('ניתן לבחור עד 10 תכונות');return;}
     selectedTraits.push(t);
     el.classList.add('sel');
   }
   document.getElementById('trait-count').textContent=
-    `נבחרו ${selectedTraits.length}/6 תכונות`;
+    `נבחרו ${selectedTraits.length}/10 תכונות`;
 }
 
 /* ══ STEP 4 → AI ══ */
