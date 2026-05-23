@@ -830,14 +830,14 @@ async function gradeWithAI(){
   const rubricText=task.rubric.criteria.map(c=>`${c.name} (${c.maxPoints} נק׳): ${c.description||''}`).join('\n');
   const answerKeys=task.rubric.rubricType==='qa'?
     task.rubric.criteria.filter(c=>c.answerKey).map(c=>`${c.name}: ${c.answerKey}`).join('\n'):'';
-  const jp=`\n\nהחזר JSON בלבד:\n{"scores":[{"criterion":"שם הקריטריון בדיוק","score":מספר,"maxScore":מספר,"comment":"הערה ספציפית לתלמיד"}],"totalScore":מספר,"verbalFeedback":"הערה מילולית אישית 3-4 משפטים — פתחי בחיובי, הצביעי על שיפורים, סיימי בעידוד."}`;
+  const jp=`\n\nהחזר JSON תקני בלבד — ללא טקסט לפני או אחרי, ללא תווים מיוחדים בתוך המחרוזות:\n{"scores":[{"criterion":"שם","score":0,"maxScore":0,"comment":"הערה"}],"totalScore":0,"verbalFeedback":"הערה"}`;
   try{
     let body;
     if(_grade.workMode==='text'){
       const txt=document.getElementById('grade-work-text').value.trim();
       if(!txt){toast('הדביקי את תוכן העבודה.');btn.textContent='🤖 בדוק לפי מחוון';btn.disabled=false;return;}
       body={model:'claude-sonnet-4-6',max_tokens:2000,
-        system:'אתה עוזר הוראה מנוסה. בדוק בצורה מקצועית ומדויקת. ענה רק ב-JSON תקני.',
+        system:'אתה עוזר הוראה. החזר JSON תקני בלבד. אסור תווים מיוחדים, מרכאות כפולות בלבד, ללא שורות חדשות בתוך מחרוזות.',
         messages:[{role:'user',content:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}\n\nעבודת ${_grade.studentName}:\n${txt}${jp}`}]};
     } else {
       if(!_grade.workFile){toast('טעני קובץ תחילה.');btn.textContent='🤖 בדוק לפי מחוון';btn.disabled=false;return;}
@@ -845,7 +845,7 @@ async function gradeWithAI(){
         ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_grade.workFile.base64}}
         :{type:'image',source:{type:'base64',media_type:_grade.workFile.mediaType,data:_grade.workFile.base64}};
       body={model:'claude-sonnet-4-6',max_tokens:2000,
-        system:'אתה עוזר הוראה מנוסה. בדוק בצורה מקצועית. ענה רק ב-JSON תקני.',
+        system:'אתה עוזר הוראה. החזר JSON תקני בלבד. אסור תווים מיוחדים, מרכאות כפולות בלבד, ללא שורות חדשות בתוך מחרוזות.',
         messages:[{role:'user',content:[fc,{type:'text',text:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}${jp}`}]}]};
     }
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -854,8 +854,24 @@ async function gradeWithAI(){
     if(!r.ok)throw new Error('שגיאת שרת: '+r.status);
     const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
     let result;
-    try{result=JSON.parse(raw);}
-    catch{const m=raw.match(/\{[\s\S]*\}/);if(m)result=JSON.parse(m[0]);else throw new Error('JSON לא תקין');}
+    try{
+      // ניסיון ראשון — JSON ישיר
+      result=JSON.parse(raw);
+    }catch{
+      try{
+        // ניסיון שני — חלץ את ה-JSON מהטקסט
+        const m=raw.match(/\{[\s\S]*\}/);
+        if(!m)throw new Error('לא נמצא JSON');
+        // נקה תווים בעייתיים
+        const cleaned=m[0]
+          .replace(/[\x00-\x1F\x7F]/g,' ')  // תווי בקרה
+          .replace(/,\s*([}\]])/g,'$1')       // פסיק מיותר לפני סגירה
+          .replace(/([{,]\s*)(\w+):/g,'$1"$2":'); // מפתחות ללא גרשיים
+        result=JSON.parse(cleaned);
+      }catch(e2){
+        throw new Error('תשובת AI לא תקינה — נסי שוב');
+      }
+    }
     renderGradeRubric(result,task);
     document.getElementById('grade-rubric-status').textContent='✅ AI בדק';
   }catch(e){toast('שגיאה: '+e.message);}
