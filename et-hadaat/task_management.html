@@ -836,7 +836,7 @@ async function gradeWithAI(){
     if(_grade.workMode==='text'){
       const txt=document.getElementById('grade-work-text').value.trim();
       if(!txt){toast('הדביקי את תוכן העבודה.');btn.textContent='🤖 בדוק לפי מחוון';btn.disabled=false;return;}
-      body={model:'claude-sonnet-4-20250514',max_tokens:2000,
+      body={model:'claude-sonnet-4-6',max_tokens:2000,
         system:'אתה עוזר הוראה מנוסה. בדוק בצורה מקצועית ומדויקת. ענה רק ב-JSON תקני.',
         messages:[{role:'user',content:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}\n\nעבודת ${_grade.studentName}:\n${txt}${jp}`}]};
     } else {
@@ -844,13 +844,14 @@ async function gradeWithAI(){
       const fc=_grade.workFile.type==='pdf'
         ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:_grade.workFile.base64}}
         :{type:'image',source:{type:'base64',media_type:_grade.workFile.mediaType,data:_grade.workFile.base64}};
-      body={model:'claude-sonnet-4-20250514',max_tokens:2000,
+      body={model:'claude-sonnet-4-6',max_tokens:2000,
         system:'אתה עוזר הוראה מנוסה. בדוק בצורה מקצועית. ענה רק ב-JSON תקני.',
         messages:[{role:'user',content:[fc,{type:'text',text:`בדוק לפי המחוון:\n${rubricText}${answerKeys?'\n\nתשובות נכונות:\n'+answerKeys:''}${jp}`}]}]};
     }
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
-    if(d.error)throw new Error(d.error.message);
+    if(d.error)throw new Error(d.error.message||d.error.type||JSON.stringify(d.error));
+    if(!r.ok)throw new Error('שגיאת שרת: '+r.status);
     const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
     let result;
     try{result=JSON.parse(raw);}
@@ -1371,13 +1372,13 @@ async function wzAnalyzeInstructions(){
   try{
     let body;
     if(txt){
-      body={model:'claude-sonnet-4-20250514',max_tokens:300,
+      body={model:'claude-sonnet-4-6',max_tokens:300,
         system:'אתה עוזר הוראה. ענה ב-JSON בלבד.',
         messages:[{role:'user',content:`קרא את הוראות המשימה הבאות וזהה: האם המשימה כוללת שאלות ספציפיות (qa) או קריטריונים כלליים להערכה (eval)?\n\n${txt.slice(0,800)}\n\n${jp}`}]};
     } else {
       const fc={type:_wz.instrFile.mediaType.includes('pdf')?'document':'image',
         source:{type:'base64',media_type:_wz.instrFile.mediaType,data:_wz.instrFile.base64}};
-      body={model:'claude-sonnet-4-20250514',max_tokens:300,
+      body={model:'claude-sonnet-4-6',max_tokens:300,
         system:'אתה עוזר הוראה. ענה ב-JSON בלבד.',
         messages:[{role:'user',content:[fc,{type:'text',text:`זהה את סוג המשימה: qa (שאלות ספציפיות) או eval (קריטריונים).\n${jp}`}]}]};
     }
@@ -1469,7 +1470,7 @@ async function wzBuildFromImage(){
     const fc={type:_wz.rubricImgFile.mediaType.includes('pdf')?'document':'image',
       source:{type:'base64',media_type:_wz.rubricImgFile.mediaType,data:_wz.rubricImgFile.base64}};
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,
         system:'אתה עוזר הוראה. ענה ב-JSON תקני בלבד.',
         messages:[{role:'user',content:[fc,{type:'text',text:'קרא את המחוון בתמונה והחזר JSON:\n{"rubricType":"eval","criteria":[{"name":"שם","maxPoints":20,"description":"תיאור"}],"totalPoints":100}'}]}]})});
     const d=await r.json();
@@ -1495,7 +1496,7 @@ async function wzBuildRubricAuto(){
     :`משימה: ${name}. סוג: ${type}. הוראות:\n${instr}\n\nהצע קריטריונים מקצועיים מתאימים לסוג המשימה.\nקריטריונים מומלצים: דיוק מידע, ארגון וסדר, יצירתיות, שימוש במקורות, ביטוי בכתב.\nהחזר JSON בלבד:\n{"rubricType":"eval","criteria":[{"name":"קריטריון","maxPoints":20,"description":"מה נבדק"}],"totalPoints":100}`;
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,
         system:'אתה עוזר הוראה. ענה ב-JSON תקני בלבד. ללא טקסט לפני או אחרי.',
         messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
@@ -1737,8 +1738,8 @@ function saveDuplicate(srcId){
   const gradeDays=parseInt(document.getElementById('dup-gradedays').value)||21;
   if(!due){toast('נא למלא תאריך הגשה.');return;}
 
-  // העתק הכל חוץ מציונים, תאריך יצירה ו-id (כדי שהמשימה החדשה תקבל id חדש)
-  const {grades:_,createdAt:__,id:___,...rest}=t;
+  // העתק הכל חוץ מציונים ותאריך יצירה
+  const {grades:_,createdAt:__,...rest}=t;
   const newTask={
     ...rest,
     groupId,openDate,due,gradeDays,
