@@ -499,7 +499,7 @@ function loadAll(){
       })):[]
     })):[];
     db.ref('teacher/tasks').once('value',ts=>{
-      tasks=ts.val()?Object.entries(ts.val()).map(([id,v])=>({id,...v})):[];
+      tasks=ts.val()?Object.entries(ts.val()).map(([fbKey,v])=>({...v,id:fbKey})):[];
       renderHome();
     });
   });
@@ -1738,7 +1738,7 @@ function saveDuplicate(srcId){
   if(!due){toast('נא למלא תאריך הגשה.');return;}
 
   // העתק הכל חוץ מציונים ותאריך יצירה
-  const {grades:_,createdAt:__,...rest}=t;
+  const {grades:_,createdAt:__,id:___,...rest}=t;
   const newTask={
     ...rest,
     groupId,openDate,due,gradeDays,
