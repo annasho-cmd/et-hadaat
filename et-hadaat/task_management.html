@@ -1653,17 +1653,18 @@ function saveWizardTask(){
 /* ══ TASK ACTIONS ══ */
 function editCurrentTask(){openWizard(currentTaskId);}
 function deleteTask(id){
-  if(!confirm('למחוק?'))return;
+  const t=tasks.find(t=>t.id===id);
+  if(!confirm(`למחוק את המשימה "${t?.name||''}"?\n⚠️ פעולה זו מוחקת משימה זו בלבד ואינה הפיכה.`))return;
   db.ref('teacher/tasks/'+id).remove();
   tasks=tasks.filter(t=>t.id!==id);
-  toast('✓ נמחקה');renderTasksList();renderAlerts();renderSubjectGrid();
+  toast('✓ המשימה נמחקה');renderTasksList();renderAlerts();renderSubjectGrid();
 }
 function deleteCurrentTask(){
   const t=tasks.find(t=>t.id===currentTaskId);
-  if(!confirm(`למחוק "${t?.name||''}"?`))return;
+  if(!confirm(`למחוק את המשימה "${t?.name||''}"?\n⚠️ פעולה זו מוחקת משימה זו בלבד ואינה הפיכה.`))return;
   db.ref('teacher/tasks/'+currentTaskId).remove();
   tasks=tasks.filter(t=>t.id!==currentTaskId);
-  toast('✓ נמחקה');
+  toast('✓ המשימה נמחקה');
   openSubject(currentSubject);
 }
 function completeCurrentTask(){
@@ -1754,8 +1755,8 @@ function saveDuplicate(srcId){
   const gradeDays=parseInt(document.getElementById('dup-gradedays').value)||21;
   if(!due){toast('נא למלא תאריך הגשה.');return;}
 
-  // העתק הכל חוץ מציונים ותאריך יצירה
-  const {grades:_,createdAt:__,...rest}=t;
+  // העתק הכל חוץ מציונים, תאריך יצירה ו-id (חובה! אחרת שתי המשימות חולקות אותו id ומחיקת אחת מוחקת את השנייה)
+  const {grades:_,createdAt:__,id:___,...rest}=t;
   const newTask={
     ...rest,
     groupId,openDate,due,gradeDays,
