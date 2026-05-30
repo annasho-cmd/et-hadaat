@@ -499,7 +499,7 @@ function loadAll(){
       })):[]
     })):[];
     db.ref('teacher/tasks').once('value',ts=>{
-      tasks=ts.val()?Object.entries(ts.val()).map(([id,v])=>({id,...v})):[];
+      tasks=ts.val()?Object.entries(ts.val()).map(([fbKey,v])=>({...v, id:fbKey})):[];
       renderHome();
     });
   });
