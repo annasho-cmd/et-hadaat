@@ -12,6 +12,7 @@
   --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
   --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);
   --muted:rgba(253,245,224,0.45);--green:#2a6b2a;
+  --purple:#7c3aed;--purple2:#c4b5fd;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;}
@@ -30,12 +31,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* STEPS */
 .steps-bar{display:flex;align-items:center;margin-bottom:28px;gap:0;}
 .step-wrap{display:flex;flex-direction:column;align-items:center;flex:1;}
-.step-dot{width:30px;height:30px;border-radius:50%;background:rgba(212,168,67,.1);
-  border:2px solid var(--border);color:var(--muted);font-size:.78rem;font-weight:700;
+.step-dot{width:28px;height:28px;border-radius:50%;background:rgba(212,168,67,.1);
+  border:2px solid var(--border);color:var(--muted);font-size:.72rem;font-weight:700;
   display:flex;align-items:center;justify-content:center;transition:all .3s;}
 .step-dot.active{background:rgba(212,168,67,.2);border-color:var(--gold);color:var(--gold2);}
 .step-dot.done{background:rgba(42,107,42,.3);border-color:#6ee7a0;color:#6ee7a0;}
-.step-label{font-size:.62rem;opacity:.5;margin-top:4px;text-align:center;white-space:nowrap;}
+.step-label{font-size:.55rem;opacity:.5;margin-top:4px;text-align:center;white-space:nowrap;}
 .step-line{flex:1;height:1px;background:var(--border);margin-bottom:18px;}
 .step-line.done{background:rgba(42,107,42,.4);}
 
@@ -68,6 +69,33 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .student-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.15);
   color:var(--gold2);font-weight:700;}
 
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:32px;
+  text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;
+  background:rgba(253,245,224,.02);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.upload-zone-icon{font-size:2.2rem;margin-bottom:8px;}
+.upload-zone-title{font-size:.95rem;color:var(--gold2);font-weight:700;margin-bottom:4px;}
+.upload-zone-sub{font-size:.78rem;opacity:.5;}
+.upload-tabs{display:flex;gap:6px;margin-bottom:16px;}
+.upload-tab{flex:1;padding:9px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);
+  border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;
+  color:var(--muted);text-align:center;transition:all .2s;}
+.upload-tab:hover{border-color:var(--gold);}
+.upload-tab.active{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
+
+/* EXTRACTED SUMMARY */
+.extracted-box{background:rgba(42,107,42,.08);border:1.5px solid rgba(42,107,42,.3);
+  border-radius:10px;padding:16px;margin-bottom:14px;}
+.extracted-label{font-size:.75rem;color:#6ee7a0;font-weight:700;margin-bottom:8px;
+  display:flex;align-items:center;gap:6px;}
+.extracted-fields{display:flex;flex-direction:column;gap:10px;}
+.extracted-field label{font-size:.75rem;color:var(--gold);opacity:.8;display:block;margin-bottom:4px;}
+.extracted-field textarea{width:100%;padding:9px 11px;background:rgba(253,245,224,.05);
+  border:1.5px solid var(--border);border-radius:7px;color:var(--parch);
+  font-family:'Heebo',sans-serif;font-size:.85rem;outline:none;resize:vertical;direction:rtl;line-height:1.6;}
+.extracted-field textarea:focus{border-color:var(--gold);}
+
 /* TRAITS */
 .traits-section{margin-bottom:16px;}
 .traits-section-title{font-size:.82rem;font-weight:700;color:var(--gold);opacity:.8;
@@ -80,6 +108,26 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   color:var(--gold2);font-weight:700;}
 .trait-count{font-size:.75rem;opacity:.5;margin-bottom:10px;}
 
+/* PROVERB CARDS */
+.proverb-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.proverb-card{padding:16px;background:rgba(253,245,224,.04);border:2px solid var(--border);
+  border-radius:10px;cursor:pointer;transition:all .2s;position:relative;}
+.proverb-card:hover{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.proverb-card.sel{border-color:var(--gold);background:rgba(212,168,67,.12);}
+.proverb-card-text{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;color:var(--parch);
+  line-height:1.6;margin-bottom:6px;}
+.proverb-card-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.proverb-card-tag{font-size:.68rem;padding:2px 8px;background:rgba(212,168,67,.1);
+  border:1px solid var(--border);border-radius:10px;color:var(--gold);opacity:.75;}
+.proverb-card.sel .proverb-card-tag{opacity:1;}
+.proverb-check{position:absolute;top:12px;left:12px;width:20px;height:20px;border-radius:50%;
+  border:2px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;transition:all .2s;}
+.proverb-card.sel .proverb-check{background:var(--gold);border-color:var(--gold);color:#1c1208;}
+.proverb-refresh{display:flex;align-items:center;gap:8px;font-size:.8rem;opacity:.6;
+  cursor:pointer;padding:6px 0;width:fit-content;}
+.proverb-refresh:hover{opacity:1;color:var(--gold2);}
+
 /* TEXTAREA */
 .field-label{font-size:.8rem;color:var(--gold);opacity:.82;margin-bottom:6px;}
 .field-hint{font-size:.73rem;opacity:.45;margin-bottom:8px;line-height:1.5;}
@@ -88,6 +136,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   font-family:'Heebo',sans-serif;font-size:.9rem;outline:none;resize:vertical;
   direction:rtl;line-height:1.6;transition:border .2s;}
 .field-textarea:focus{border-color:var(--gold);}
+
+/* GENDER TOGGLE */
+.gender-toggle{display:flex;gap:8px;margin-bottom:14px;}
+.gender-btn{padding:7px 18px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);
+  border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--muted);transition:all .2s;}
+.gender-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
 
 /* AI STATUS */
 .ai-status{display:flex;align-items:center;gap:8px;padding:11px 14px;
@@ -103,8 +157,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .result-quote{font-size:.82rem;color:var(--gold);opacity:.7;margin-bottom:12px;
   font-style:italic;text-align:center;padding-bottom:10px;
   border-bottom:1px solid rgba(212,168,67,.15);}
-.result-text{font-size:.92rem;line-height:1.9;color:var(--parch);direction:rtl;
-  white-space:pre-wrap;}
+.result-text{font-size:.92rem;line-height:1.9;color:var(--parch);direction:rtl;white-space:pre-wrap;}
 .result-edit{width:100%;padding:12px;background:rgba(253,245,224,.06);
   border:1.5px solid rgba(212,168,67,.2);border-radius:8px;color:var(--parch);
   font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;resize:vertical;
@@ -193,16 +246,88 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="student-grid" id="student-grid">
       <div class="empty-state">בחרי קבוצה תחילה</div>
     </div>
+    <!-- gender manual override -->
+    <div id="gender-row" style="display:none;margin-top:14px;">
+      <div class="field-label">מגדר</div>
+      <div class="gender-toggle">
+        <div class="gender-btn sel" id="g-male" onclick="setGender('זכר')">זכר</div>
+        <div class="gender-btn" id="g-female" onclick="setGender('נקבה')">נקבה</div>
+      </div>
+    </div>
     <div class="btn-row" id="step2-next" style="display:none;">
-      <button class="btn-primary" onclick="goStep(3)">המשך לבחירת תכונות ←</button>
+      <button class="btn-primary" onclick="goStep(3)">המשך להעלאת תעודה ←</button>
     </div>
   </div>
 
-  <!-- STEP 3: TRAITS -->
+  <!-- STEP 3: UPLOAD REPORT -->
   <div id="step3" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 3 — תכונות התלמיד/ה</div>
-    <div class="trait-count" id="trait-count">בחרי עד 10 תכונות מאפיינות</div>
+    <div class="card-title">✦ שלב 3 — העלאת תעודה (אופציונלי)</div>
+    <div class="upload-tabs">
+      <div class="upload-tab active" id="tab-file" onclick="switchTab('file')">📄 PDF / תמונה</div>
+      <div class="upload-tab" id="tab-text" onclick="switchTab('text')">✏️ מלל חופשי</div>
+      <div class="upload-tab" id="tab-skip" onclick="switchTab('skip')">⏭ דלג</div>
+    </div>
 
+    <!-- FILE UPLOAD -->
+    <div id="upload-file-area">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+           ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+        <div class="upload-zone-icon">📎</div>
+        <div class="upload-zone-title">גרור לכאן או לחצי לבחירת קובץ</div>
+        <div class="upload-zone-sub">PDF, JPG, PNG — עד 10MB</div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,image/*" style="display:none" onchange="handleFileSelect(event)">
+      <div id="file-status" style="display:none;"></div>
+    </div>
+
+    <!-- FREE TEXT -->
+    <div id="upload-text-area" style="display:none;">
+      <div class="field-hint">הדביקי את הטקסט מהתעודה — נסיכומים מהמורים, ציונים, הערות וכו׳</div>
+      <textarea class="field-textarea" id="raw-text-input" rows="7"
+        placeholder="הדביקי כאן את תוכן התעודה..."></textarea>
+    </div>
+
+    <!-- SKIP -->
+    <div id="upload-skip-area" style="display:none;">
+      <div class="field-hint" style="padding:16px;border:1px dashed var(--border);border-radius:8px;text-align:center;">
+        ⏭ תדלגי על שלב זה — תמלאי את הפרטים הלימודיים ידנית בשלב 6
+      </div>
+    </div>
+
+    <!-- AI EXTRACT STATUS -->
+    <div id="extract-status" style="display:none;"></div>
+
+    <!-- EXTRACTED RESULT -->
+    <div id="extracted-box" style="display:none;">
+      <div class="extracted-box">
+        <div class="extracted-label">✦ AI חילץ מהתעודה — ערכי לפי הצורך</div>
+        <div class="extracted-fields">
+          <div class="extracted-field">
+            <label>📚 מצב לימודי</label>
+            <textarea id="ex-academic" rows="3"></textarea>
+          </div>
+          <div class="extracted-field">
+            <label>🤝 מצב חברתי</label>
+            <textarea id="ex-social" rows="2"></textarea>
+          </div>
+          <div class="extracted-field">
+            <label>🎭 התנהגות</label>
+            <textarea id="ex-behavior" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-sm" onclick="goStep(2)">← חזרה</button>
+      <button class="btn-primary" id="step3-next-btn" onclick="goStep(4)">המשך לתכונות ←</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: TRAITS -->
+  <div id="step4" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 4 — תכונות התלמיד/ה</div>
+    <div class="trait-count" id="trait-count">בחרי עד 10 תכונות מאפיינות</div>
     <div class="traits-section">
       <div class="traits-section-title">תכונות אישיות</div>
       <div class="traits-grid" id="traits-personal"></div>
@@ -215,44 +340,89 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <div class="traits-section-title">ערכי עבודה ולמידה</div>
       <div class="traits-grid" id="traits-work"></div>
     </div>
-
-    <div class="btn-row">
-      <button class="btn-sm" onclick="goStep(2)">← חזרה</button>
-      <button class="btn-primary" onclick="goStep(4)">המשך לתיאור ←</button>
-    </div>
-  </div>
-
-  <!-- STEP 4: FREE TEXT -->
-  <div id="step4" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 4 — תיאור אישי חופשי</div>
-
-    <div class="field-label">מצב לימודי והתנהגותי</div>
-    <div class="field-hint">כתבי בשפה פשוטה — העוזר יסגנן. למשל: "השתפר מאוד בהגשת עבודות, עדיין מתקשה בריכוז"</div>
-    <textarea class="field-textarea" id="text-academic" rows="4"
-      placeholder="כתבי כאן בחופשיות על ההתנהגות, המצב הלימודי, השתתפות בשיעורים..."></textarea>
-
-    <div style="margin-top:16px;">
-      <div class="field-label">משפט סיום / מסר אישי</div>
-      <div class="field-hint">מה תרצי לומר לתלמיד/ה לקראת המחצית הבאה / השנה הבאה?</div>
-      <textarea class="field-textarea" id="text-closing" rows="3"
-        placeholder="למשל: אני מאמינה ביכולותיך ומצפה לראות את הפריחה שלך..."></textarea>
-    </div>
-
     <div class="btn-row">
       <button class="btn-sm" onclick="goStep(3)">← חזרה</button>
-      <button class="btn-primary" style="background:rgba(109,40,217,.8);color:#fff;" onclick="generateReport()">
-        ✨ צור הערכה עם AI
-      </button>
+      <button class="btn-primary" onclick="goStep(5)">המשך לבחירת פתגם ←</button>
     </div>
-    <div id="ai-status" style="display:none;"></div>
   </div>
 
-  <!-- STEP 5: RESULT -->
+  <!-- STEP 5: PROVERB SELECTION -->
   <div id="step5" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 5 — הערכה מוכנה</div>
+    <div class="card-title">✦ שלב 5 — בחרי פתגם</div>
+    <div class="field-hint">שלושה פתגמים נבחרו בהתאמה לתכונות שבחרת. בחרי את המתאים ביותר.</div>
+    <div class="proverb-cards" id="proverb-cards"></div>
+    <div class="proverb-refresh" onclick="refreshProverbs()">
+      🔄 <span>רענוני — קבלי 3 פתגמים אחרים</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn-sm" onclick="goStep(4)">← חזרה</button>
+      <button class="btn-primary" onclick="goStep(6)">המשך לתיאור ←</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: BEHAVIORAL DESCRIPTION -->
+  <div id="step6" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 6 — תיאור לימודי, חברתי והתנהגותי</div>
+
+    <div style="margin-bottom:16px;">
+      <div class="field-label">📚 מצב לימודי</div>
+      <div class="field-hint">מה רמת הלמידה, ההגשות, ההצלחות הבולטות?</div>
+      <textarea class="field-textarea" id="desc-academic" rows="3"
+        placeholder="למשל: השתפר מאוד בהגשת עבודות, ציוני מבחנים עולים בעקביות..."></textarea>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div class="field-label">🤝 מצב חברתי</div>
+      <div class="field-hint">כיצד מתנהל/ת עם חברים, בעבודת צוות, ביחסים עם המורים?</div>
+      <textarea class="field-textarea" id="desc-social" rows="3"
+        placeholder="למשל: חברה טובה, מסייעת לאחרים, ניהול קונפליקטים מוצלח..."></textarea>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div class="field-label">🎭 התנהגות</div>
+      <div class="field-hint">משמעת, ריכוז, עמידה בכללים, יוזמה בשיעורים</div>
+      <textarea class="field-textarea" id="desc-behavior" rows="3"
+        placeholder="למשל: מרוכז בשיעורים, עדיין מתקשה לפעמים בחלקים ארוכים..."></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-sm" onclick="goStep(5)">← חזרה</button>
+      <button class="btn-primary" onclick="goStep(7)">המשך לנקודת מבט אישית ←</button>
+    </div>
+  </div>
+
+  <!-- STEP 7: PERSONAL INSIGHT -->
+  <div id="step7" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 7 — נקודת מבט אישית</div>
+    <div class="field-hint" style="margin-bottom:16px;">
+      מה הוא/היא צריך/ה לקחת איתו/ה לשנה הבאה? תובנה אחת — לשיפור או לשימור.
+    </div>
+
+    <div id="insight-ai-section" style="margin-bottom:14px;">
+      <button class="btn-purple" onclick="generateInsight()" id="insight-gen-btn">
+        ✨ בקשי מהAI הצעה
+      </button>
+      <div id="insight-status" style="display:none;margin-top:10px;"></div>
+      <div id="insight-suggestion" style="display:none;margin-top:12px;"></div>
+    </div>
+
+    <div class="field-label">הנקודה האישית שלך (ערכי לפי הצורך):</div>
+    <textarea class="field-textarea" id="desc-insight" rows="4"
+      placeholder="למשל: לשמר את הביטחון העצמי שהתפתח השנה, ולהמשיך להרים יד בשיעורים..."></textarea>
+
+    <div class="btn-row">
+      <button class="btn-sm" onclick="goStep(6)">← חזרה</button>
+      <button class="btn-primary" style="background:rgba(109,40,217,.8);color:#fff;" onclick="generateReport()">
+        ✨ צרי את ההערכה הסופית
+      </button>
+    </div>
+    <div id="ai-status" style="display:none;margin-top:10px;"></div>
+  </div>
+
+  <!-- STEP 8: RESULT -->
+  <div id="step8" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 8 — הערכה מוכנה</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
       <div style="font-size:.85rem;opacity:.6;" id="result-meta"></div>
-      <button class="btn-purple" onclick="regenerateReport()">🔄 צור מחדש</button>
+      <button class="btn-purple" onclick="regenerateReport()">🔄 צרי מחדש</button>
     </div>
     <div class="result-box" id="result-box"></div>
     <div style="margin-top:14px;">
@@ -260,11 +430,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <textarea class="result-edit" id="result-edit" rows="10"></textarea>
     </div>
     <div class="btn-row">
-      <button class="btn-green" onclick="saveReport()">💾 שמור הערכה</button>
-      <button class="btn-sm" onclick="copyReport()">📋 העתק טקסט</button>
-      <button class="btn-sm" onclick="printReport()">🖨️ הדפס</button>
+      <button class="btn-green" onclick="saveReport()">💾 שמרי הערכה</button>
+      <button class="btn-sm" onclick="copyReport()">📋 העתיקי טקסט</button>
+      <button class="btn-sm" onclick="printReport()">🖨️ הדפסי</button>
       <button class="btn-sm" onclick="newReport()">✚ הערכה חדשה</button>
-      <button class="btn-sm" onclick="goStep(4)">← ערוך תשומות</button>
+      <button class="btn-sm" onclick="goStep(7)">← ערכי תשומות</button>
     </div>
   </div>
 
@@ -318,12 +488,10 @@ const PROVERBS=[
   {text:'כל הנחלים הולכים אל הים, והים איננו מלא (קהלת יא)',tags:['סקרנות','כושר חשיבה']},
   {text:'אמור מעט ועשה הרבה (אבות א, טו)',tags:['אחריות','מסירות','נאמנות']},
   {text:'היום קצר והמלאכה מרובה (אבות ב, כ)',tags:['חריצות','אחריות','יסודיות']},
-  {text:'המעשה נשכח, אך התוצאה נותרת (אבידיוס)',tags:['אחריות','מסירות','יסודיות']},
   {text:'מי שאיננו מתנסה, איננו למד (פתגם יהודי)',tags:['סקרנות','יוזמה','כושר חשיבה']},
   {text:'אין חכם כבעל ניסיון (קהלת)',tags:['כושר חשיבה','יסודיות','שקדנות']},
   {text:'דברי חכמים בנחת נשמעים (קהלת ט, יז)',tags:['שקט','תרבותי','רמה אישית']},
   {text:'היה אמיץ להשתמש בתבונתך (עמנואל קאנט)',tags:['אסרטיביות','כושר חשיבה','נמרצות']},
-  {text:'אוהב הבריות היינו אהוב הבריות',tags:['חברותי','יחסי אנוש','סיוע לזולת']},
   {text:'אף אחד לא יכול לקחת ממך את רצונך (אפיקטטוס)',tags:['נמרצות','אסרטיביות','משמעת עצמית']},
   {text:'רצון האדם הוא אישיותו (ישעיהו ליבוביץ)',tags:['אסרטיביות','יוזמה','נמרצות']},
   {text:'צעד אחר צעד, וגם הנמלה תגיע לפסגת ההר (פתגם סיני)',tags:['התמדה','שקדנות','משמעת עצמית']},
@@ -349,24 +517,18 @@ const PROVERBS=[
 ];
 
 const TRAITS={
-  personal:[
-    'מסודר','מאורגן','חרוץ','מסור','נמרץ','חכם','סקרן','דייקן','מוכשר',
+  personal:['מסודר','מאורגן','חרוץ','מסור','נמרץ','חכם','סקרן','דייקן','מוכשר',
     'רגיש','מעשי','אחראי','אסרטיבי','שאפתן','מצפוני','אמיתי','יסודי',
     'יצירתי','יעיל','אמין','יציב','קפדן','זהיר','נאמן','מתמיד','עקבי',
     'רציונאלי','משקיען','מכבד','שמרן','מהיר','זריז','רציני','למדן',
     'כושר מנהיגות','כושר חשיבה','יוזם','שקט','משמעת עצמית','שקדן',
-    'הוגן','מהימן','יושר','אופטימי','אמפתי','כנות','פרפקציוניסט','מעריך'
-  ],
-  social:[
-    'נחמד','נעים הליכות','מצחיק','חברותי','מקובל','משתף פעולה','מקסים',
+    'הוגן','מהימן','יושר','אופטימי','אמפתי','כנות','פרפקציוניסט','מעריך'],
+  social:['נחמד','נעים הליכות','מצחיק','חברותי','מקובל','משתף פעולה','מקסים',
     'טוב-לב','אדיב','סבלני','תרבותי','עדין','נדיב','נעים','נאמן',
     'מסייע','סובלני','בעל טקט','ידידותי','מסביר פנים','ותרן','מופנם',
-    'הרפתקן','דברן','פטפטן','רציני'
-  ],
-  work:[
-    'צייתן','ביקורתי','יסודי','מתמיד','עקבי','יעיל','משקיען',
-    'אחראי','מסודר','מאורגן','דייקן','קפדן','זהיר','שקדן','מעשי'
-  ]
+    'הרפתקן','דברן','פטפטן','רציני'],
+  work:['צייתן','ביקורתי','יסודי','מתמיד','עקבי','יעיל','משקיען',
+    'אחראי','מסודר','מאורגן','דייקן','קפדן','זהיר','שקדן','מעשי']
 };
 
 /* ══ STATE ══ */
@@ -376,8 +538,13 @@ let selectedGroup=null;
 let selectedStudent='';
 let selectedStudentGender='זכר';
 let selectedTraits=[];
-let generatedText='';
+let selectedProverb=null;
+let currentProverbSet=[];
+let currentProverbOffset=0;
 let groups=[];
+let uploadedFileBase64=null;
+let uploadedFileType=null;
+let uploadMode='file'; // file | text | skip
 
 /* ══ INIT ══ */
 window.addEventListener('load',()=>{
@@ -403,7 +570,7 @@ function loadGroups(){
 }
 
 /* ══ STEPS BAR ══ */
-const STEP_LABELS=['מחצית','תלמיד/ה','תכונות','תיאור','הערכה'];
+const STEP_LABELS=['מחצית','תלמיד/ה','תעודה','תכונות','פתגם','תיאור','תובנה','הערכה'];
 function renderStepsBar(){
   const bar=document.getElementById('steps-bar');
   bar.innerHTML='';
@@ -425,9 +592,12 @@ function renderStepsBar(){
 function goStep(n){
   if(n===2&&!selectedHalf){toast('נא לבחור מחצית תחילה');return;}
   if(n===3&&!selectedStudent){toast('נא לבחור תלמיד/ה תחילה');return;}
+  if(n===4){/* always ok - step 3 is optional */}
+  if(n===5){buildProverbSet();}
+  if(n===6){prefillDescriptions();}
   currentStep=n;
   renderStepsBar();
-  for(let i=1;i<=5;i++){
+  for(let i=1;i<=8;i++){
     const el=document.getElementById('step'+i);
     if(el)el.style.display=i===n?'block':'none';
   }
@@ -435,7 +605,7 @@ function goStep(n){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-/* ══ STEP 1: HALF ══ */
+/* ══ STEP 1 ══ */
 function selectHalf(h){
   selectedHalf=h;
   document.getElementById('half-a').classList.toggle('sel',h==='א');
@@ -443,7 +613,7 @@ function selectHalf(h){
   setTimeout(()=>goStep(2),300);
 }
 
-/* ══ STEP 2: STUDENT ══ */
+/* ══ STEP 2 ══ */
 function loadStudents(){
   const gid=document.getElementById('group-select').value;
   const group=groups.find(g=>g.id===gid);
@@ -451,6 +621,7 @@ function loadStudents(){
   selectedStudent='';
   const grid=document.getElementById('student-grid');
   document.getElementById('step2-next').style.display='none';
+  document.getElementById('gender-row').style.display='none';
   if(!group||!group.students?.length){
     grid.innerHTML='<div class="empty-state">אין תלמידים בקבוצה זו</div>';return;
   }
@@ -468,90 +639,270 @@ function selectStudent(name,btn){
   selectedStudent=name;
   document.querySelectorAll('.student-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
-  // try to get gender from student profile
   db.ref('students/'+name.replace(/ /g,'_')+'/gender').once('value',snap=>{
     selectedStudentGender=snap.val()||'זכר';
+    updateGenderUI();
+    document.getElementById('gender-row').style.display='block';
     document.getElementById('step2-next').style.display='flex';
   }).catch(()=>{
     selectedStudentGender='זכר';
+    updateGenderUI();
+    document.getElementById('gender-row').style.display='block';
     document.getElementById('step2-next').style.display='flex';
   });
 }
 
-/* ══ STEP 3: TRAITS ══ */
+function setGender(g){
+  selectedStudentGender=g;
+  updateGenderUI();
+}
+function updateGenderUI(){
+  document.getElementById('g-male').classList.toggle('sel',selectedStudentGender==='זכר');
+  document.getElementById('g-female').classList.toggle('sel',selectedStudentGender==='נקבה');
+}
+
+/* ══ STEP 3: UPLOAD ══ */
+function switchTab(tab){
+  uploadMode=tab;
+  ['file','text','skip'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+    document.getElementById('upload-'+t+'-area').style.display=t===tab?'block':'none';
+  });
+}
+
+function handleDragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag');}
+function handleDragLeave(){document.getElementById('upload-zone').classList.remove('drag');}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f)processFile(f);
+}
+function handleFileSelect(e){const f=e.target.files[0];if(f)processFile(f);}
+
+function processFile(file){
+  if(file.size>10*1024*1024){toast('הקובץ גדול מדי — עד 10MB');return;}
+  const isPDF=file.type==='application/pdf';
+  const isImage=file.type.startsWith('image/');
+  if(!isPDF&&!isImage){toast('יש להעלות PDF או תמונה בלבד');return;}
+
+  const statusEl=document.getElementById('file-status');
+  statusEl.style.display='block';
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>קורא את הקובץ...</div>`;
+
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const b64=ev.target.result.split(',')[1];
+    uploadedFileBase64=b64;
+    uploadedFileType=file.type;
+    statusEl.innerHTML=`<div style="padding:8px;font-size:.82rem;color:#6ee7a0;">✓ ${esc(file.name)} — נטען בהצלחה. מנתח...</div>`;
+    await extractFromFile(b64,file.type);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function extractFromFile(b64,mimeType){
+  const statusEl=document.getElementById('extract-status');
+  statusEl.style.display='block';
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>AI מנתח את התעודה ומחלץ נתונים...</div>`;
+  try{
+    const contentParts=[
+      {type:'image',source:{type:'base64',media_type:mimeType,data:b64}},
+      {type:'text',text:`אתה מנתח תעודה בית ספרית. חלץ מהתעודה שלושה חלקים:\n1. מצב לימודי (ציונים, רמת למידה, הגשות, הצלחות)\n2. מצב חברתי (יחסים עם חברים, עבודת צוות)\n3. התנהגות (משמעת, ריכוז, יוזמה)\n\nהחזר JSON בלבד (ללא backticks):\n{"academic":"...","social":"...","behavior":"..."}`}
+    ];
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+        messages:[{role:'user',content:contentParts}]})});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    const text=(d.content?.[0]?.text||'').trim();
+    let parsed;
+    try{parsed=JSON.parse(text.replace(/```json|```/g,'').trim());}
+    catch{parsed={academic:text,social:'',behavior:''};}
+    statusEl.style.display='none';
+    document.getElementById('ex-academic').value=parsed.academic||'';
+    document.getElementById('ex-social').value=parsed.social||'';
+    document.getElementById('ex-behavior').value=parsed.behavior||'';
+    document.getElementById('extracted-box').style.display='block';
+    document.getElementById('file-status').innerHTML=`<div style="padding:8px;font-size:.82rem;color:#6ee7a0;">✓ התעודה נותחה — ערכי לפי הצורך</div>`;
+  }catch(e){
+    statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה בניתוח: ${e.message}</div>`;
+  }
+}
+
+/* ══ STEP 4: TRAITS ══ */
 function renderTraits(){
   renderTraitGroup('traits-personal',TRAITS.personal);
   renderTraitGroup('traits-social',TRAITS.social);
   renderTraitGroup('traits-work',TRAITS.work);
 }
-
-function renderTraitGroup(containerId,traits){
-  const c=document.getElementById(containerId);
-  c.innerHTML='';
+function renderTraitGroup(id,traits){
+  const c=document.getElementById(id);c.innerHTML='';
   traits.forEach(t=>{
     const tag=document.createElement('div');
     tag.className='trait-tag'+(selectedTraits.includes(t)?' sel':'');
-    tag.textContent=t;
-    tag.onclick=()=>toggleTrait(t,tag);
+    tag.textContent=t;tag.onclick=()=>toggleTrait(t,tag);
     c.appendChild(tag);
   });
 }
-
 function toggleTrait(t,el){
-  if(selectedTraits.includes(t)){
-    selectedTraits=selectedTraits.filter(x=>x!==t);
-    el.classList.remove('sel');
-  } else {
+  if(selectedTraits.includes(t)){selectedTraits=selectedTraits.filter(x=>x!==t);el.classList.remove('sel');}
+  else{
     if(selectedTraits.length>=10){toast('ניתן לבחור עד 10 תכונות');return;}
-    selectedTraits.push(t);
-    el.classList.add('sel');
+    selectedTraits.push(t);el.classList.add('sel');
   }
-  document.getElementById('trait-count').textContent=
-    `נבחרו ${selectedTraits.length}/10 תכונות`;
+  document.getElementById('trait-count').textContent=`נבחרו ${selectedTraits.length}/10 תכונות`;
 }
 
-/* ══ STEP 4 → AI ══ */
+/* ══ STEP 5: PROVERBS ══ */
+function buildProverbSet(){
+  // Score all proverbs by trait match
+  const scored=PROVERBS.map((p,i)=>({
+    ...p,idx:i,
+    score:p.tags.filter(t=>selectedTraits.includes(t)).length+(Math.random()*0.01)
+  })).sort((a,b)=>b.score-a.score);
+  currentProverbSet=scored;
+  currentProverbOffset=0;
+  renderProverbs();
+}
+
+function refreshProverbs(){
+  currentProverbOffset+=3;
+  if(currentProverbOffset>=Math.min(currentProverbSet.length,15))currentProverbOffset=0;
+  selectedProverb=null;
+  renderProverbs();
+}
+
+function renderProverbs(){
+  const slice=currentProverbSet.slice(currentProverbOffset,currentProverbOffset+3);
+  const container=document.getElementById('proverb-cards');
+  container.innerHTML='';
+  slice.forEach((p,i)=>{
+    const card=document.createElement('div');
+    card.className='proverb-card'+(selectedProverb&&selectedProverb.text===p.text?' sel':'');
+    card.innerHTML=`
+      <div class="proverb-check">${selectedProverb&&selectedProverb.text===p.text?'✓':''}</div>
+      <div class="proverb-card-text">✦ ${esc(p.text)}</div>
+      <div class="proverb-card-tags">${p.tags.map(t=>`<span class="proverb-card-tag">${esc(t)}</span>`).join('')}</div>`;
+    card.onclick=()=>selectProverb(p);
+    container.appendChild(card);
+  });
+}
+
+function selectProverb(p){
+  selectedProverb=p;
+  renderProverbs();
+}
+
+/* ══ STEP 6: PREFILL ══ */
+function prefillDescriptions(){
+  // If we have extracted data from report, pre-fill
+  const exA=document.getElementById('ex-academic')?.value||'';
+  const exS=document.getElementById('ex-social')?.value||'';
+  const exB=document.getElementById('ex-behavior')?.value||'';
+  if(exA&&!document.getElementById('desc-academic').value)
+    document.getElementById('desc-academic').value=exA;
+  if(exS&&!document.getElementById('desc-social').value)
+    document.getElementById('desc-social').value=exS;
+  if(exB&&!document.getElementById('desc-behavior').value)
+    document.getElementById('desc-behavior').value=exB;
+  // raw text mode
+  if(uploadMode==='text'){
+    const raw=document.getElementById('raw-text-input').value.trim();
+    if(raw&&!document.getElementById('desc-academic').value)
+      document.getElementById('desc-academic').value=raw;
+  }
+}
+
+/* ══ STEP 7: AI INSIGHT ══ */
+async function generateInsight(){
+  const academic=document.getElementById('desc-academic').value.trim();
+  const social=document.getElementById('desc-social').value.trim();
+  const behavior=document.getElementById('desc-behavior').value.trim();
+
+  const statusEl=document.getElementById('insight-status');
+  statusEl.style.display='block';
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>מנסח תובנה אישית...</div>`;
+  document.getElementById('insight-suggestion').style.display='none';
+
+  const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
+  const prompt=`בהתבסס על הנתונים הבאים לגבי תלמיד/ה (${gender}), ${selectedStudent}:
+תכונות: ${selectedTraits.join(', ')||'לא צוינו'}
+מצב לימודי: ${academic||'לא צוין'}
+מצב חברתי: ${social||'לא צוין'}
+התנהגות: ${behavior||'לא צוין'}
+
+כתוב תובנה אחת קצרה (2-3 משפטים) לגבי מה הוא/היא צריך/ה לקחת איתו/ה לשנה הבאה — לשיפור או לשימור. בלשון ${gender}. ישיר ואמיתי.
+החזר רק את התובנה — ללא הסברים.`;
+
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,
+        messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    const text=(d.content?.[0]?.text||'').trim();
+    statusEl.style.display='none';
+    const suggBox=document.getElementById('insight-suggestion');
+    suggBox.style.display='block';
+    suggBox.innerHTML=`<div style="background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.3);border-radius:8px;padding:12px;font-size:.87rem;line-height:1.7;color:#e2d9f3;margin-bottom:10px;">
+      <div style="font-size:.72rem;color:var(--purple2);margin-bottom:6px;">💡 הצעת AI — ערכי לפי הצורך</div>
+      ${esc(text)}
+      <div style="margin-top:8px;"><button class="btn-sm" onclick="useInsightSuggestion(${JSON.stringify(text).replace(/</g,'&lt;')})">השתמשי בהצעה זו ←</button></div>
+    </div>`;
+    // Also populate textarea if empty
+    if(!document.getElementById('desc-insight').value)
+      document.getElementById('desc-insight').value=text;
+  }catch(e){
+    statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה: ${e.message}</div>`;
+  }
+}
+
+function useInsightSuggestion(text){
+  document.getElementById('desc-insight').value=text;
+  toast('✓ הועתק לשדה העריכה');
+}
+
+/* ══ STEP 7 → AI FINAL ══ */
 async function generateReport(){
-  const academic=document.getElementById('text-academic').value.trim();
-  const closing=document.getElementById('text-closing').value.trim();
-  if(!academic){toast('נא לתאר את המצב הלימודי/התנהגותי');return;}
+  const academic=document.getElementById('desc-academic').value.trim();
+  const social=document.getElementById('desc-social').value.trim();
+  const behavior=document.getElementById('desc-behavior').value.trim();
+  const insight=document.getElementById('desc-insight').value.trim();
+
+  if(!academic&&!social&&!behavior){toast('נא למלא לפחות שדה תיאור אחד (שלב 6)');return;}
+  if(!selectedProverb){toast('נא לבחור פתגם בשלב 5');return;}
 
   const statusEl=document.getElementById('ai-status');
   statusEl.style.display='block';
-  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>עוזר ההוראה כותב את ההערכה...</div>`;
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>עוזר ההוראה כותב את ההערכה הסופית...</div>`;
 
   const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
-  const salutation=gender==='נקבה'?'היקרה':'היקר';
   const halfText=selectedHalf==='ב'?'סוף שנת הלימודים':'מחצית א׳';
   const closingPhrase=selectedHalf==='ב'?'לשנה הבאה':'למחצית הבאה';
-
-  // find best proverb
-  const bestProverb=findBestProverb(selectedTraits);
+  const salutation=gender==='נקבה'?`היקרה ${selectedStudent},`:`היקר ${selectedStudent},`;
 
   const prompt=`אתה עוזר הוראה מנוסה. כתוב הערכה אישית לתעודה לסוף ${halfText}.
 
 פרטים:
-- שם התלמיד/ה: ${selectedStudent}
+- שם: ${selectedStudent}
 - מגדר: ${gender}
 - מחצית: ${selectedHalf==='ב'?'ב׳ — סוף שנה':'א׳'}
-- תכונות מאפיינות: ${selectedTraits.join(', ')||'לא צוינו'}
-- תיאור מצב לימודי/התנהגותי (של המורה, לסגנון): ${academic}
-- מסר סיום (של המורה, לסגנון): ${closing||'כתוב משפט עידוד מתאים'}
-- פתגם לשילוב בתוך הטקסט: "${bestProverb.text}"
+- תכונות: ${selectedTraits.join(', ')||'לא צוינו'}
+- פתגם לשילוב: "${selectedProverb.text}"
+- מצב לימודי: ${academic||'לא צוין'}
+- מצב חברתי: ${social||'לא צוין'}
+- התנהגות: ${behavior||'לא צוין'}
+- תובנה אישית לעתיד: ${insight||'כתוב משפט עידוד מתאים'}
 
-הוראות כתיבה:
-1. פתח תמיד כך: "היקר ${selectedStudent}," או "היקרה ${selectedStudent}," — תואר לפני שם!
-2. שלב את הפתגם באופן טבעי בתוך גוף ההערכה — לא כותרת ולא שורה נפרדת. 
-   לדוגמא: "...${bestProverb.text} — ממש מתאים לך..." או "כפי שנאמר '${bestProverb.text}', וכך אתה/את..."
-3. כתוב על התכונות האישיות והחברתיות בצורה חמה ואישית
-4. המשך בתיאור לימודי/התנהגותי (מסוגנן, לא עותק מילה במילה)
-5. סיים עם משפט מעודד ומכוון ל${closingPhrase}
-6. שפה: עברית חמה, אישית, מכבדת — לא יבשה
-7. אורך: עד 10 משפטים בסך הכל
-8. אל תציין ציונים או מספרים
-9. כתוב בלשון ${gender==='נקבה'?'נקבה':'זכר'} לאורך כל ההערכה
-
-החזר רק את טקסט ההערכה — ללא כותרות, ללא הסברים.`;
+הוראות:
+1. פתח: "${salutation}"
+2. שלב את הפתגם בטבעיות בגוף הטקסט (לא כשורה נפרדת)
+3. סקור לימודי + חברתי + התנהגות בחום ובאישיות
+4. סיים עם התובנה האישית + עידוד ${closingPhrase}
+5. עברית חמה, אישית, בלשון ${gender}
+6. עד 10 משפטים — ללא ציונים/מספרים
+7. החזר רק את הטקסט — ללא כותרות`;
 
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -560,40 +911,28 @@ async function generateReport(){
         messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
     if(d.error)throw new Error(d.error.message);
-    generatedText=(d.content?.[0]?.text||'').trim();
-    if(!generatedText)throw new Error('לא התקבל טקסט');
-
+    const text=(d.content?.[0]?.text||'').trim();
+    if(!text)throw new Error('לא התקבל טקסט');
     statusEl.style.display='none';
-    showResult(generatedText,bestProverb);
+    showResult(text,selectedProverb);
   }catch(e){
     statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה: ${e.message}</div>`;
   }
 }
 
-function findBestProverb(traits){
-  if(!traits.length)return PROVERBS[Math.floor(Math.random()*PROVERBS.length)];
-  let best=null,bestScore=0;
-  PROVERBS.forEach(p=>{
-    const score=p.tags.filter(t=>traits.includes(t)).length;
-    if(score>bestScore){bestScore=score;best=p;}
-  });
-  return best||PROVERBS[Math.floor(Math.random()*PROVERBS.length)];
-}
-
 function showResult(text,proverb){
-  goStep(5);
+  goStep(8);
   document.getElementById('result-meta').textContent=
     `${selectedStudent} · מחצית ${selectedHalf}׳ · ${selectedGroup?.name||''}`;
   document.getElementById('result-box').innerHTML=
     `<div class="result-quote">✦ ${esc(proverb.text)}</div>
      <div class="result-text">${esc(text)}</div>`;
   document.getElementById('result-edit').value=text;
-  // store proverb for saving
   document.getElementById('result-box')._proverb=proverb.text;
 }
 
 async function regenerateReport(){
-  goStep(4);
+  goStep(7);
   setTimeout(generateReport,100);
 }
 
@@ -613,8 +952,8 @@ function saveReport(){
 }
 
 function copyReport(){
-  const text=document.getElementById('result-edit').value;
-  navigator.clipboard.writeText(text).then(()=>toast('✓ הועתק ללוח'));
+  navigator.clipboard.writeText(document.getElementById('result-edit').value)
+    .then(()=>toast('✓ הועתק ללוח'));
 }
 
 function printReport(){
@@ -634,12 +973,18 @@ function printReport(){
 }
 
 function newReport(){
-  selectedStudent='';selectedTraits=[];generatedText='';selectedHalf='';
-  selectedGroup=null;
+  selectedStudent='';selectedTraits=[];selectedProverb=null;selectedHalf='';
+  selectedGroup=null;uploadedFileBase64=null;uploadedFileType=null;uploadMode='file';
   document.getElementById('half-a').classList.remove('sel');
   document.getElementById('half-b').classList.remove('sel');
-  document.getElementById('text-academic').value='';
-  document.getElementById('text-closing').value='';
+  ['desc-academic','desc-social','desc-behavior','desc-insight',
+   'ex-academic','ex-social','ex-behavior','raw-text-input'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('extracted-box').style.display='none';
+  document.getElementById('file-status').style.display='none';
+  document.getElementById('insight-suggestion').style.display='none';
+  switchTab('file');
   renderTraits();
   goStep(1);
 }
@@ -648,10 +993,8 @@ function newReport(){
 function showSaved(show=true){
   document.getElementById('saved-section').style.display=show?'block':'none';
   if(!show)return;
-  // hide steps
-  for(let i=1;i<=5;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
+  for(let i=1;i<=8;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
   document.getElementById('steps-bar').style.display='none';
-
   db.ref('teacher/reportCards').once('value',snap=>{
     const data=snap.val()||{};
     const list=document.getElementById('saved-list');
@@ -659,8 +1002,7 @@ function showSaved(show=true){
     if(!items.length){list.innerHTML='<div class="empty-state">אין הערכות שמורות עדיין</div>';return;}
     list.innerHTML='';
     items.forEach(([key,item])=>{
-      const c=document.createElement('div');
-      c.className='saved-card';
+      const c=document.createElement('div');c.className='saved-card';
       c.innerHTML=`
         <div class="saved-header">
           <div>
@@ -711,7 +1053,8 @@ function exportAllCSV(){
     const rows=[['שם תלמיד/ה','קבוצה','מחצית','פתגם','הערכה'].map(c=>`"${c}"`).join(',')];
     Object.values(data).forEach(item=>{
       rows.push([item.student,item.group||'',item.half||'',item.proverb||'',item.text||'']
-        .map(c=>`"${String(c).replace(/"/g,'""').replace(/\n/g,' ')}"`).join(','));
+        .map(c=>`"${String(c).replace(/"/g,'""').replace(/\n/g,' ')}"`)
+        .join(','));
     });
     const blob=new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
     const a=document.createElement('a');
