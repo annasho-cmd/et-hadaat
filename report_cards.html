@@ -706,8 +706,18 @@ async function extractFromFile(b64,mimeType){
   statusEl.style.display='block';
   statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>AI מנתח את התעודה ומחלץ נתונים...</div>`;
   try{
+    // Normalize image mime type to supported values
+    let normalizedMime=mimeType;
+    if(mimeType.startsWith('image/')){
+      const supported=['image/jpeg','image/png','image/gif','image/webp'];
+      if(!supported.includes(mimeType)) normalizedMime='image/jpeg';
+    }
+    // Build the file content part — PDF uses 'document', images use 'image'
+    const filePart=mimeType==='application/pdf'
+      ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}
+      :{type:'image',source:{type:'base64',media_type:normalizedMime,data:b64}};
     const contentParts=[
-      {type:'image',source:{type:'base64',media_type:mimeType,data:b64}},
+      filePart,
       {type:'text',text:`אתה מנתח תעודה בית ספרית. חלץ מהתעודה שלושה חלקים:\n1. מצב לימודי (ציונים, רמת למידה, הגשות, הצלחות)\n2. מצב חברתי (יחסים עם חברים, עבודת צוות)\n3. התנהגות (משמעת, ריכוז, יוזמה)\n\nהחזר JSON בלבד (ללא backticks):\n{"academic":"...","social":"...","behavior":"..."}`}
     ];
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
