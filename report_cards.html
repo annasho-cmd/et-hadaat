@@ -195,6 +195,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 #toast{position:fixed;bottom:22px;right:22px;background:#1a3a1a;border:1px solid #3fb950;
   color:#6ee7a0;padding:9px 17px;border-radius:8px;font-size:.83rem;z-index:9999;display:none;}
 
+
+/* EXAMPLES PANEL */
+.examples-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
+.example-item{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;position:relative;}
+.example-item-text{font-size:.82rem;line-height:1.7;color:var(--parch);direction:rtl;white-space:pre-wrap;max-height:80px;overflow:hidden;}
+.example-item-text.expanded{max-height:none;}
+.example-badge{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:10px;margin-bottom:6px;}
+.badge-default{background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.25);color:var(--gold);}
+.badge-custom{background:rgba(109,40,217,.12);border:1px solid rgba(109,40,217,.25);color:#c4b5fd;}
+
 /* PRINT */
 @media print{
   .topbar,.steps-bar,.btn-row,#nav-section,#saved-section{display:none!important;}
@@ -210,6 +220,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="topbar">
   <div class="topbar-title">✍️ ממני אליך — הערכות לתעודה</div>
   <div style="display:flex;gap:8px;">
+    <button class="btn-sm" onclick="showExamples()">📚 דוגמאות סגנון</button>
     <button class="btn-sm" onclick="showSaved()">📋 הערכות שמורות</button>
     <button class="btn-back" onclick="window.location.href='teacher_dashboard.html'">← לוח המורה</button>
   </div>
@@ -438,6 +449,33 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
   </div>
 
+
+  <!-- EXAMPLES PANEL -->
+  <div id="examples-section" style="display:none;">
+    <div class="examples-panel">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📚 דוגמאות סגנון</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm" onclick="showAddExample()">✚ הוסיפי דוגמה</button>
+          <button class="btn-sm" onclick="showExamples(false)">✕ סגור</button>
+        </div>
+      </div>
+      <div class="field-hint" style="margin-bottom:16px;">דוגמאות אלה מלמדות את ה-AI את הסגנון שלך. ככל שיש יותר דוגמאות מגוונות — כך הכתיבה תהיה מדויקת יותר.</div>
+
+      <!-- ADD FORM -->
+      <div id="add-example-form" style="display:none;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.25);border-radius:10px;padding:16px;margin-bottom:16px;">
+        <div class="field-label" style="margin-bottom:6px;">הדביקי דוגמה שכתבת</div>
+        <textarea class="field-textarea" id="new-example-text" rows="6" placeholder="הנך תלמיד נבון..."></textarea>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn-green" onclick="saveExample()">💾 שמרי דוגמה</button>
+          <button class="btn-sm" onclick="document.getElementById('add-example-form').style.display='none'">ביטול</button>
+        </div>
+      </div>
+
+      <div id="examples-list"><div class="empty-state">טוען דוגמאות...</div></div>
+    </div>
+  </div>
+
   <!-- SAVED -->
   <div id="saved-section" style="display:none;">
     <div class="card">
@@ -554,6 +592,7 @@ window.addEventListener('load',()=>{
   renderStepsBar();
   renderTraits();
   loadGroups();
+  loadStyleExamples(); // seed examples in background
 });
 
 function loadGroups(){
@@ -875,6 +914,15 @@ function useInsightSuggestion(text){
 
 /* ══ STEP 7 → AI FINAL ══ */
 async function generateReport(){
+  // Load style examples for prompt
+  let examplesText='';
+  try{
+    const examples=await getExamplesForPrompt();
+    const sample=examples.sort(()=>Math.random()-.5).slice(0,6);
+    examplesText='\n\nדוגמאות לסגנון הכתיבה הרצוי — למד מהן את הטון, הקצב והמבנה:\n'+
+      sample.map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n');
+  }catch(e){console.warn('examples load failed',e);}
+
   const academic=document.getElementById('desc-academic').value.trim();
   const social=document.getElementById('desc-social').value.trim();
   const behavior=document.getElementById('desc-behavior').value.trim();
@@ -917,11 +965,7 @@ async function generateReport(){
 9. אל תפרט יתר על המידה — קצר, ממוקד, אמיתי
 10. החזר רק את טקסט ההערכה — ללא כותרות, ללא הסברים
 
-דוגמה לסגנון הרצוי (לתלמיד "איתן"):
-"איתן היקר,
-השנה הייתה עבורך מסע של גילויים - גיליתי בך תלמיד מוכשר ויצירתי היודע להיות מצחיק ומעניין ובאותה מידה מאורגן וחרוץ, כשאתה מתחבר לנושא שמעניין אותך. בחלק מהמקצועות זרחת והראית את הפוטנציאל האמיתי שלך, אך גם נתקלת בקשיים, בעיקר בגלל חוסר העקביות בלמידה והקושי בהשלמת המטלות.
-אתה עובד נהדר בחברותא, משתף פעולה ברוח טובה ופעיל בשיעורים. כפי שאמר פיתגורס 'תחילתה של כל ידידות בשויון', ואתה יודע ליצור את השוויון הזה עם חבריך בצורה טבעית. המפתח שלך להצלחה היא ההתמדה. המשך לגלות רצינות וקח אחריות על הישגיך הלימודיים בכל המקצועות."
-שים לב: לא הוזכרו מקצועות ספציפיים, הפתגם שולב עם "כפי שאמר...", הסיום קצר וחינוכי.`;
+${examplesText}`;
 
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1079,6 +1123,105 @@ function exportAllCSV(){
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);a.download='הערכות_תעודה.csv';a.click();
   });
+}
+
+
+/* ══ STYLE EXAMPLES ══ */
+const DEFAULT_EXAMPLES=['תלמיד נבון, חרוץ ושקדן. רוצה לדעת עוד ועוד- ילד סקרן.\nהגעת להישגים בזכות רצינותך, אהוב על חבריך בזכות נדיבותך.\nהשתפרת מאוד בהתנהגותך. אני מאמינה בך ויודעת שאתה מסוגל,\nאז השתדל להיות פחות תחרותי ותלמד ליהנות מהתחרות. \nלדעת להפסיד בכבוד זה גם לנצח!', 'ילד עם אור בעיניים וחיוך נפלא על השפתיים.\nתלמיד מוכשר, אחראי עם ראש נבון על הכתפיים.\nאתה יודע לעבוד ביסודיות וברצינות וכך מגיע להישגים\nולתוצאות נפלאות!\nהמשך כך!', 'יש בך יופי, רוגע ושלווה\nילדה נפלאה, יסודית וחרוצה.\nהמשיכי ללכת בצעד בטוח מול כל משימה.\nהיי כפי שאת והמשיכי לתרום לכל הכיתה.\nאת משתתפת יותר וקולך נשמע. המשיכי כך!', 'שי היקר!\nבמהלך שנתיים של הכרות עימך ראיתי כי טמון בך עולם עשיר של דמיון וסקרנות שכל כך מייחדת אותך במרקם הכיתתי. תגליות חדשות הציתו זיק של אור בעיניך והישגיך הלימודיים משקפים סקרנות וצימאון בלתי נלאה להרחיב את אופקיך.\nבתחום החברתי אתה ראוי להערכה על מאמציך לשליטה עצמית. אני מאמינה כי אם תמשיך בדרך זו יוכלו גם חבריך לכיתה לראות עד כמה אתה ילד מיוחד!', 'בני היקר!\nבמהלך שנתיים של היכרות עימך גיליתי ילד מדהים, נעים הליכות ובעל כישרונות מגוונים בכל מיני תחומים. אתה פסנתרן מוכשר וגם שחיין כמו דג במים. לקחת ברצינות רבה את העובדה כי צריך לשפר ולחזק את הרגלי הלמידה וכבר במחצית זו, יגעת ועמלת והגעת, כמעט, לכל שיעור ושיעור מצויד גם בשיעורי בית. בתחום החברתי אתה ילד פעיל ובחברתך נעים לשהות.', 'סשה היקר!\nהשנה הצטרפת אלינו וניכר כי השתדלת מאוד להשתלב במנגינה זו שלנו. בתחום החברתי רכשת מעגל חברים חדש וניכר כי מצאת עצמך במרקם החברתי בכיתתנו. במחצית זו גילתה נכונות לשפר את הרגלי עבודתך אך במהרה זנחת את מטלותיך וחזרת להתחלה. כן, זה קשה! אני יודעת. עליך להתמודד עם אתגר רציני: קח אחריות, הבא בכל שיעור את הציוד ואל תשכח להכין שיעורים.', 'רוני היקרה!\nבמהלך שנתיים של הכרות עימך, ראיתי שיש ביכולתך לטפס ולזכות בקצירת פירותייך, פעמים רבות עמדת במטלה זו! לצערי במחצית שחלפה לא תמיד הקפדת להתאמץ ולמצות את היכולות הטמונות בך וחבל. אני מקווה כי בימים שיבואו תגלי כי אם תקחי אחריות ללמידתך, תוכלי למצות את היכולת הטמונה בך - האמיני בעצמך את מסוגלת!', 'נועם היקר!\nבמחצית זו חל שיפור במוטיבציה שלך ללימודים, השקעת יותר בלימודים ושיפרת את הישגייך. שיפרת את הקשבתך ותרמת מידיעותיך בדיונים בכיתה. למדת על עצמך שאתה מסוגל ליותר. אתה יכול להצליח בכל היבט של חייך אם תוכל לשמור על כלל אחד חשוב - פעל בהתמדה! האמן בעצמך. אם תרצה משהו מספיק חזק - תמצא את הדרך.', 'עברה לה רק חצי שנה, וכל כך הרבה בך השתנה.\nילדה נעימה עם חיוך מקסים. למדת להתמודד עם אתגרים.\nלומדת נפלא, עובדת ותורמת ומגיעה להישגים יפים מאוד.\nהמשיכי כך, כל הכבוד!', 'הנך נבון, יודע המון. עם ראש מלא כרימון..\nבעל כישורי למידה מיוחדים, אתה סקרן ואוהב את הלימודים.\nחרוץ, שקדן בעל משמעת עצמית, לכל משימה ניגש ומתמיד.\nאתה ילד נפלא, רגיש ועדין, חבר נאמן, מושיט יד לעזרה.\nמכבד את כולם מסביבך.\nאני שמחה להיות המורה שלך.', 'הנך תלמידה נהדרת ומוכשרת, אוהבת ללמוד, שואלת שאלות ועומדת יפה במשימות.\nאת ילדה שובבה ומצחיקה והכל אצלך נעשה במידה ובצורה נעימה. הפגישה אתך היא חוויה כי את היא סוג של הצלחה. נהניתי ללמד וללמוד איתך.', 'הנך תלמיד חביב, בעל יכולת להצליח. במחצית זו בחרת שלא להשקיע עניין ומאמצים בלימודים. למד לקחת דברים במידה, לגלות סובלנות ומידת איפוק בסביבתך.\nקח לך את הזמן בחופש הגדול, השקע מחשבה בהמשך דרכך! אני בטוחה שתדע לזהות את האור בקצה המנהרה ולחזור אל הדרך הבטוחה המובילה להצלחה.', 'אמרו חכמי חז"ל: \'דברי חכמים - בנחת נשמעים\' וכאילו עליך נאמרו הדברים. שקטה, רצינית, מצטנעת ומנומסת. בדרכך המיוחדת את יודעת להקשיב, ללמוד ולהצטיין בכל תחומי הדעת והספורט. תמיד נרתמת לעזרה ומבוקשת בין חבריך בכיתה. אני גאה בך!', 'נועם היקר!\nבמה אפתח? ומה אגיד? הייתה לך שנה לא קלה וזה ברור כשמש. חזרת ללימודים מלווה בכאבים אך לא ויתרת והיום אתה שוב משחק כדורגל במגרש עם החברים. את לימודיך לא זנחת ועבדת, אפילו, מעל מיטת בית החולים. יודעת אני כי הישגיך אינם גבוהים אבל אין צורך לחשוש כי במהלך חופשת הקיץ תשנס מותניים ותשקיע עוד מאמץ ובשנה הבאה תגרוף הצלחות חדשות.', 'הנך תלמיד נבון, חרוץ ואוהב פעילות: כדורגל, כדורסל - מה זה חשוב? עליך ללמוד לא להתרגז כי כשאתה כועס כל היום שלך משתבש. המשך להשקיע מאמצים בלימודים ולבסוף תצליח להגיע להישגים משמעותיים.', 'מהיום הראשון שנפגשנו היית תעלומה. אם הייתי אגתה כריסטי, הייתי כותבת עליך סדרה מדהימה. את אוהבת חיות אבל לא לעבוד. הנך תלמידה שקטה ונבונה עם הרבה תבונה אל תוותרי לעצמך.', 'העזרה לכולם אצלך תמיד במקום הראשון.\nאתה רואה בחברות ערך עליון.\nגם חבר טוב וגם תלמיד נפלא:\nחרוץ, שקדן, סקרן ואחראי ומגלה יוזמה.\nאני שמחה להיות מורה לתלמיד שכמותך!', 'בעל חוש הומור וחיוך על השפתיים.\nפיקח ונבון, ראש טוב על הכתפיים.\nבעל תחומי עניין מאוד מרתקים,\nאותנו מצחיק תמיד בזמן השיעורים.\nאתה חרוץ ושקדן ובעל ראש יצירתי מאוד.\nהמשך כך!', 'התחלנו קצת ברגל שמאל אבל מאז השלמנו את צעדי המחול. כיום אנחנו פועלות בשיתוף וכולנו הרווחנו בגדול. הנך תלמידה אחראית ונבונה. במהלך מחצית זו הראית כי את מסוגלת להתאמץ ולהצליח בלימודים ובכל מה שתבחרי לעשות.', 'שמחת החיים המפעמת בך גורמת לכולם לרצות בחברתך תמיד. את תלמידה נפלאה החל מן הפן הלימודי - בו את עושה מאמצים כדי לקדם את עצמך, דרך הפן החברתי וכלה בכשרון הגדול שלך בריקוד. לא נותר לי אלא לאחל לך שתישארי את - עצמך ושתמשיכי להאמין בכוחך לשנות, להתקדם ולהשפיע.'];
+
+let styleExamplesCache=null;
+
+async function loadStyleExamples(){
+  if(styleExamplesCache)return styleExamplesCache;
+  const snap=await db.ref('teacher/styleExamples').once('value');
+  const data=snap.val()||{};
+  // Seed defaults if empty
+  if(!data.seeded){
+    const updates={seeded:true};
+    DEFAULT_EXAMPLES.forEach((ex,i)=>{
+      updates['default_'+String(i).padStart(3,'0')]={text:ex,type:'default',addedAt:Date.now()};
+    });
+    await db.ref('teacher/styleExamples').update(updates);
+    styleExamplesCache=DEFAULT_EXAMPLES.map((text,i)=>({key:'default_'+String(i).padStart(3,'0'),text,type:'default'}));
+  } else {
+    styleExamplesCache=Object.entries(data)
+      .filter(([k])=>k!=='seeded')
+      .map(([key,val])=>({key,text:val.text,type:val.type||'default'}));
+  }
+  return styleExamplesCache;
+}
+
+async function getExamplesForPrompt(){
+  const examples=await loadStyleExamples();
+  return examples.map(e=>e.text);
+}
+
+function showExamples(show=true){
+  document.getElementById('examples-section').style.display=show?'block':'none';
+  if(!show)return;
+  for(let i=1;i<=8;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
+  document.getElementById('steps-bar').style.display='none';
+  document.getElementById('saved-section').style.display='none';
+  renderExamplesList();
+}
+
+async function renderExamplesList(){
+  const list=document.getElementById('examples-list');
+  list.innerHTML='<div class="empty-state">טוען...</div>';
+  const examples=await loadStyleExamples();
+  if(!examples.length){list.innerHTML='<div class="empty-state">אין דוגמאות עדיין</div>';return;}
+  list.innerHTML='';
+  examples.forEach((ex,i)=>{
+    const div=document.createElement('div');div.className='example-item';
+    const badge=ex.type==='custom'
+      ?'<span class="example-badge badge-custom">שלי</span>'
+      :'<span class="example-badge badge-default">בסיס</span>';
+    const deleteBtn=ex.type==='custom'
+      ?`<button class="btn-danger" style="position:absolute;top:10px;left:10px;padding:3px 8px;" onclick="deleteExample('${ex.key}')">🗑</button>`:'';
+    div.innerHTML=`${badge}${deleteBtn}
+      <div class="example-item-text" id="ex-text-${i}">${esc(ex.text.substring(0,120))}${ex.text.length>120?'...':''}</div>
+      ${ex.text.length>120?`<div style="margin-top:4px;"><span style="font-size:.72rem;color:var(--gold);cursor:pointer;" onclick="toggleExample(${i},'${ex.key}')">▼ הצג הכל</span></div>`:''}`;
+    list.appendChild(div);
+  });
+  list.innerHTML+=`<div style="font-size:.75rem;opacity:.4;margin-top:12px;text-align:center;">${examples.length} דוגמאות במאגר</div>`;
+}
+
+function toggleExample(i,key){
+  const el=document.getElementById('ex-text-'+i);
+  const ex=styleExamplesCache.find(e=>e.key===key);
+  if(!ex)return;
+  if(el.classList.contains('expanded')){
+    el.textContent=ex.text.substring(0,120)+'...';
+    el.classList.remove('expanded');
+  } else {
+    el.textContent=ex.text;
+    el.classList.add('expanded');
+  }
+}
+
+function showAddExample(){
+  document.getElementById('add-example-form').style.display='block';
+  document.getElementById('new-example-text').focus();
+}
+
+async function saveExample(){
+  const text=document.getElementById('new-example-text').value.trim();
+  if(!text||text.length<20){toast('הדוגמה קצרה מדי');return;}
+  const key='custom_'+Date.now();
+  await db.ref('teacher/styleExamples/'+key).set({text,type:'custom',addedAt:Date.now()});
+  styleExamplesCache=null;
+  document.getElementById('new-example-text').value='';
+  document.getElementById('add-example-form').style.display='none';
+  toast('✓ דוגמה נשמרה');
+  renderExamplesList();
+}
+
+async function deleteExample(key){
+  if(!confirm('למחוק דוגמה זו?'))return;
+  await db.ref('teacher/styleExamples/'+key).remove();
+  styleExamplesCache=null;
+  toast('✓ נמחקה');
+  renderExamplesList();
 }
 
 /* ══ UTILS ══ */
