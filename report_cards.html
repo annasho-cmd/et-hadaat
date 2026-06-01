@@ -8,227 +8,110 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
-:root{
-  --gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;
-  --surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);
-  --muted:rgba(253,245,224,0.45);--green:#2a6b2a;
-  --purple:#7c3aed;--purple2:#c4b5fd;
-}
+:root{--gold:#d4a843;--gold2:#f0c060;--parch:#fdf5e0;--surface:rgba(44,26,14,0.88);--border:rgba(212,168,67,0.22);--muted:rgba(253,245,224,0.45);}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Heebo',sans-serif;background:#0f0a04;color:var(--parch);min-height:100vh;}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(107,58,31,.18) 0%,transparent 60%),
   radial-gradient(ellipse 60% 40% at 80% 80%,rgba(212,168,67,.08) 0%,transparent 50%);}
-
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;
-  background:rgba(15,8,2,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+  background:rgba(15,8,2,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;flex-wrap:wrap;gap:8px;}
 .topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);font-weight:700;}
-.btn-back{padding:6px 14px;background:rgba(212,168,67,.1);border:1px solid var(--border);
-  color:var(--parch);border-radius:6px;cursor:pointer;font-size:.82rem;font-family:'Heebo',sans-serif;}
-
+.topbar-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.btn-back{padding:6px 14px;background:rgba(212,168,67,.1);border:1px solid var(--border);color:var(--parch);border-radius:6px;cursor:pointer;font-size:.82rem;font-family:'Heebo',sans-serif;}
 .main{padding:24px 20px;max-width:900px;margin:0 auto;position:relative;z-index:1;}
-
-/* STEPS */
 .steps-bar{display:flex;align-items:center;margin-bottom:28px;gap:0;}
 .step-wrap{display:flex;flex-direction:column;align-items:center;flex:1;}
-.step-dot{width:28px;height:28px;border-radius:50%;background:rgba(212,168,67,.1);
-  border:2px solid var(--border);color:var(--muted);font-size:.72rem;font-weight:700;
-  display:flex;align-items:center;justify-content:center;transition:all .3s;}
+.step-dot{width:28px;height:28px;border-radius:50%;background:rgba(212,168,67,.1);border:2px solid var(--border);color:var(--muted);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .3s;}
 .step-dot.active{background:rgba(212,168,67,.2);border-color:var(--gold);color:var(--gold2);}
 .step-dot.done{background:rgba(42,107,42,.3);border-color:#6ee7a0;color:#6ee7a0;}
 .step-label{font-size:.55rem;opacity:.5;margin-top:4px;text-align:center;white-space:nowrap;}
 .step-line{flex:1;height:1px;background:var(--border);margin-bottom:18px;}
 .step-line.done{background:rgba(42,107,42,.4);}
-
-/* CARD */
-.card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;
-  padding:24px;margin-bottom:16px;}
-.card-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);
-  font-weight:700;margin-bottom:16px;}
-
-/* HALF SELECTOR */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
+.card-title{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--gold2);font-weight:700;margin-bottom:16px;}
 .half-btns{display:flex;gap:12px;margin-bottom:8px;}
-.half-btn{flex:1;padding:16px;background:rgba(253,245,224,.04);border:2px solid var(--border);
-  border-radius:10px;cursor:pointer;text-align:center;transition:all .2s;font-family:'Heebo',sans-serif;}
+.half-btn{flex:1;padding:16px;background:rgba(253,245,224,.04);border:2px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;transition:all .2s;font-family:'Heebo',sans-serif;}
 .half-btn:hover{border-color:var(--gold);}
 .half-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);}
 .half-btn-title{font-size:1rem;font-weight:700;color:var(--gold2);margin-bottom:4px;}
 .half-btn-sub{font-size:.78rem;opacity:.55;}
-
-/* STUDENT SELECT */
-.group-select{width:100%;padding:10px 12px;background:rgba(44,26,14,.8);
-  border:1.5px solid var(--border);border-radius:8px;color:var(--parch);
-  font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;
-  appearance:auto;margin-bottom:12px;}
+.group-select{width:100%;padding:10px 12px;background:rgba(44,26,14,.8);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;appearance:auto;margin-bottom:12px;}
 .group-select option{background:#2c1a0e;}
 .student-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
-.student-btn{padding:9px 12px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);
-  border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;
-  color:var(--parch);text-align:right;transition:all .2s;}
+.student-btn{padding:9px 12px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--parch);text-align:right;transition:all .2s;}
 .student-btn:hover{border-color:var(--gold);background:rgba(212,168,67,.08);}
-.student-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.15);
-  color:var(--gold2);font-weight:700;}
-
-/* UPLOAD ZONE */
-.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:32px;
-  text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;
-  background:rgba(253,245,224,.02);}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(212,168,67,.06);}
-.upload-zone-icon{font-size:2.2rem;margin-bottom:8px;}
-.upload-zone-title{font-size:.95rem;color:var(--gold2);font-weight:700;margin-bottom:4px;}
-.upload-zone-sub{font-size:.78rem;opacity:.5;}
-.upload-tabs{display:flex;gap:6px;margin-bottom:16px;}
-.upload-tab{flex:1;padding:9px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);
-  border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;
-  color:var(--muted);text-align:center;transition:all .2s;}
-.upload-tab:hover{border-color:var(--gold);}
-.upload-tab.active{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
-
-/* EXTRACTED SUMMARY */
-.extracted-box{background:rgba(42,107,42,.08);border:1.5px solid rgba(42,107,42,.3);
-  border-radius:10px;padding:16px;margin-bottom:14px;}
-.extracted-label{font-size:.75rem;color:#6ee7a0;font-weight:700;margin-bottom:8px;
-  display:flex;align-items:center;gap:6px;}
-.extracted-fields{display:flex;flex-direction:column;gap:10px;}
-.extracted-field label{font-size:.75rem;color:var(--gold);opacity:.8;display:block;margin-bottom:4px;}
-.extracted-field textarea{width:100%;padding:9px 11px;background:rgba(253,245,224,.05);
-  border:1.5px solid var(--border);border-radius:7px;color:var(--parch);
-  font-family:'Heebo',sans-serif;font-size:.85rem;outline:none;resize:vertical;direction:rtl;line-height:1.6;}
-.extracted-field textarea:focus{border-color:var(--gold);}
-
-/* TRAITS */
-.traits-section{margin-bottom:16px;}
-.traits-section-title{font-size:.82rem;font-weight:700;color:var(--gold);opacity:.8;
-  margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(212,168,67,.15);}
-.traits-grid{display:flex;flex-wrap:wrap;gap:6px;}
-.trait-tag{padding:5px 12px;background:rgba(253,245,224,.04);border:1px solid var(--border);
-  border-radius:16px;cursor:pointer;font-size:.8rem;transition:all .2s;font-family:'Heebo',sans-serif;}
+.student-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.15);color:var(--gold2);font-weight:700;}
+.gender-toggle{display:flex;gap:8px;margin-bottom:14px;}
+.gender-btn{padding:7px 18px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--muted);transition:all .2s;}
+.gender-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
+.traits-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.trait-tag{padding:5px 12px;background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:16px;cursor:pointer;font-size:.8rem;transition:all .2s;font-family:'Heebo',sans-serif;}
 .trait-tag:hover{border-color:var(--gold);}
-.trait-tag.sel{background:rgba(212,168,67,.18);border-color:var(--gold);
-  color:var(--gold2);font-weight:700;}
-.trait-count{font-size:.75rem;opacity:.5;margin-bottom:10px;}
-
-/* PROVERB CARDS */
-.proverb-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
-.proverb-card{padding:16px;background:rgba(253,245,224,.04);border:2px solid var(--border);
-  border-radius:10px;cursor:pointer;transition:all .2s;position:relative;}
-.proverb-card:hover{border-color:var(--gold);background:rgba(212,168,67,.06);}
-.proverb-card.sel{border-color:var(--gold);background:rgba(212,168,67,.12);}
-.proverb-card-text{font-family:'Frank Ruhl Libre',serif;font-size:.95rem;color:var(--parch);
-  line-height:1.6;margin-bottom:6px;}
-.proverb-card-tags{display:flex;flex-wrap:wrap;gap:4px;}
-.proverb-card-tag{font-size:.68rem;padding:2px 8px;background:rgba(212,168,67,.1);
-  border:1px solid var(--border);border-radius:10px;color:var(--gold);opacity:.75;}
-.proverb-card.sel .proverb-card-tag{opacity:1;}
-.proverb-check{position:absolute;top:12px;left:12px;width:20px;height:20px;border-radius:50%;
-  border:2px solid var(--border);display:flex;align-items:center;justify-content:center;
-  font-size:.7rem;transition:all .2s;}
-.proverb-card.sel .proverb-check{background:var(--gold);border-color:var(--gold);color:#1c1208;}
-.proverb-refresh{display:flex;align-items:center;gap:8px;font-size:.8rem;opacity:.6;
-  cursor:pointer;padding:6px 0;width:fit-content;}
-.proverb-refresh:hover{opacity:1;color:var(--gold2);}
-
-/* TEXTAREA */
+.trait-tag.sel{background:rgba(212,168,67,.18);border-color:var(--gold);color:var(--gold2);font-weight:700;}
 .field-label{font-size:.8rem;color:var(--gold);opacity:.82;margin-bottom:6px;}
 .field-hint{font-size:.73rem;opacity:.45;margin-bottom:8px;line-height:1.5;}
-.field-textarea{width:100%;padding:11px 13px;background:rgba(253,245,224,.06);
-  border:1.5px solid var(--border);border-radius:8px;color:var(--parch);
-  font-family:'Heebo',sans-serif;font-size:.9rem;outline:none;resize:vertical;
-  direction:rtl;line-height:1.6;transition:border .2s;}
+.field-textarea{width:100%;padding:11px 13px;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.9rem;outline:none;resize:vertical;direction:rtl;line-height:1.6;transition:border .2s;}
 .field-textarea:focus{border-color:var(--gold);}
-
-/* GENDER TOGGLE */
-.gender-toggle{display:flex;gap:8px;margin-bottom:14px;}
-.gender-btn{padding:7px 18px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);
-  border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--muted);transition:all .2s;}
-.gender-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
-
-/* AI STATUS */
-.ai-status{display:flex;align-items:center;gap:8px;padding:11px 14px;
-  background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.25);
-  border-radius:8px;font-size:.83rem;color:#c4b5fd;margin:12px 0;}
-.ai-spin{width:16px;height:16px;border:2px solid rgba(109,40,217,.3);
-  border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+.ai-status{display:flex;align-items:center;gap:8px;padding:11px 14px;background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.25);border-radius:8px;font-size:.83rem;color:#c4b5fd;margin:12px 0;}
+.ai-spin{width:16px;height:16px;border:2px solid rgba(109,40,217,.3);border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* RESULT */
-.result-box{background:rgba(44,26,14,.7);border:2px solid rgba(212,168,67,.3);
-  border-radius:12px;padding:20px;margin-top:16px;}
-.result-quote{font-size:.82rem;color:var(--gold);opacity:.7;margin-bottom:12px;
-  font-style:italic;text-align:center;padding-bottom:10px;
-  border-bottom:1px solid rgba(212,168,67,.15);}
+.draft-box{background:rgba(44,26,14,.6);border:1.5px solid rgba(212,168,67,.2);border-radius:10px;padding:16px;margin:14px 0;}
+.draft-label{font-size:.72rem;color:var(--gold);opacity:.7;margin-bottom:8px;}
+.draft-text{font-size:.88rem;line-height:1.9;color:var(--parch);direction:rtl;white-space:pre-wrap;}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px;background:rgba(253,245,224,.02);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.upload-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.upload-tab{flex:1;padding:9px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.82rem;color:var(--muted);text-align:center;transition:all .2s;}
+.upload-tab:hover{border-color:var(--gold);}
+.upload-tab.active{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
+.proverb-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.proverb-card{padding:14px 16px;background:rgba(253,245,224,.04);border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s;position:relative;}
+.proverb-card:hover{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.proverb-card.sel{border-color:var(--gold);background:rgba(212,168,67,.12);}
+.proverb-card.recommended{border-color:rgba(212,168,67,.4);}
+.proverb-card-text{font-family:'Frank Ruhl Libre',serif;font-size:.9rem;color:var(--parch);line-height:1.6;margin-bottom:4px;}
+.proverb-check{position:absolute;top:10px;left:12px;width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.7rem;transition:all .2s;}
+.proverb-card.sel .proverb-check{background:var(--gold);border-color:var(--gold);color:#1c1208;}
+.rec-badge{display:inline-block;font-size:.62rem;padding:2px 7px;background:rgba(212,168,67,.15);border:1px solid rgba(212,168,67,.3);border-radius:8px;color:var(--gold);margin-bottom:5px;}
+.result-box{background:rgba(44,26,14,.7);border:2px solid rgba(212,168,67,.3);border-radius:12px;padding:20px;margin-top:16px;}
+.result-quote{font-size:.82rem;color:var(--gold);opacity:.7;margin-bottom:12px;font-style:italic;text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(212,168,67,.15);}
 .result-text{font-size:.92rem;line-height:1.9;color:var(--parch);direction:rtl;white-space:pre-wrap;}
-.result-edit{width:100%;padding:12px;background:rgba(253,245,224,.06);
-  border:1.5px solid rgba(212,168,67,.2);border-radius:8px;color:var(--parch);
-  font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;resize:vertical;
-  direction:rtl;line-height:1.8;margin-top:12px;}
+.result-edit{width:100%;padding:12px;background:rgba(253,245,224,.06);border:1.5px solid rgba(212,168,67,.2);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.92rem;outline:none;resize:vertical;direction:rtl;line-height:1.8;margin-top:12px;}
 .result-edit:focus{border-color:var(--gold);}
-
-/* SAVED LIST */
-.saved-card{background:rgba(44,26,14,.6);border:1px solid var(--border);
-  border-radius:10px;padding:14px 16px;margin-bottom:10px;}
-.saved-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.saved-card{background:rgba(44,26,14,.6);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
 .saved-name{font-size:.92rem;font-weight:700;color:var(--gold2);}
 .saved-meta{font-size:.72rem;opacity:.45;}
-.saved-preview{font-size:.8rem;opacity:.65;line-height:1.5;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-/* BUTTONS */
-.btn-primary{padding:10px 20px;background:linear-gradient(135deg,var(--gold),#b8860b);
-  color:#1c1208;border:none;border-radius:8px;cursor:pointer;
-  font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;}
-.btn-primary:hover{opacity:.9;}
-.btn-sm{padding:6px 13px;background:rgba(212,168,67,.1);border:1px solid var(--border);
-  color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;}
-.btn-sm:hover{background:rgba(212,168,67,.22);}
-.btn-green{padding:8px 18px;background:rgba(42,107,42,.25);border:1px solid rgba(42,107,42,.4);
-  color:#6ee7a0;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;}
-.btn-purple{padding:8px 18px;background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);
-  color:#c4b5fd;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;}
-.btn-danger{padding:6px 12px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);
-  color:#f87171;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.78rem;}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
-
-/* EMPTY */
-.empty-state{text-align:center;padding:28px;opacity:.38;font-size:.86rem;}
-/* TOAST */
-#toast{position:fixed;bottom:22px;right:22px;background:#1a3a1a;border:1px solid #3fb950;
-  color:#6ee7a0;padding:9px 17px;border-radius:8px;font-size:.83rem;z-index:9999;display:none;}
-
-
-/* EXAMPLES PANEL */
-.examples-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
+.saved-preview{font-size:.8rem;opacity:.65;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .example-item{background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;position:relative;}
-.example-item-text{font-size:.82rem;line-height:1.7;color:var(--parch);direction:rtl;white-space:pre-wrap;max-height:80px;overflow:hidden;}
-.example-item-text.expanded{max-height:none;}
-.example-badge{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:10px;margin-bottom:6px;}
+.example-badge{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:10px;margin-bottom:5px;}
 .badge-default{background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.25);color:var(--gold);}
 .badge-custom{background:rgba(109,40,217,.12);border:1px solid rgba(109,40,217,.25);color:#c4b5fd;}
-
-/* PRINT */
-@media print{
-  .topbar,.steps-bar,.btn-row,#nav-section,#saved-section{display:none!important;}
-  body{background:#fff;color:#000;}
-  .result-box{border:1px solid #ccc;background:#fff;}
-  .result-text,.result-quote{color:#000;}
-  .card{border:none;background:#fff;padding:0;}
-}
+.btn-primary{padding:10px 20px;background:linear-gradient(135deg,var(--gold),#b8860b);color:#1c1208;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;}
+.btn-primary:hover{opacity:.9;}
+.btn-sm{padding:6px 13px;background:rgba(212,168,67,.1);border:1px solid var(--border);color:var(--gold);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;}
+.btn-sm:hover{background:rgba(212,168,67,.22);}
+.btn-green{padding:8px 18px;background:rgba(42,107,42,.25);border:1px solid rgba(42,107,42,.4);color:#6ee7a0;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;}
+.btn-purple{padding:8px 18px;background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.4);color:#c4b5fd;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;}
+.btn-danger{padding:6px 12px;background:rgba(139,32,32,.2);border:1px solid rgba(139,32,32,.3);color:#f87171;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.78rem;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.empty-state{text-align:center;padding:28px;opacity:.38;font-size:.86rem;}
+#toast{position:fixed;bottom:22px;right:22px;background:#1a3a1a;border:1px solid #3fb950;color:#6ee7a0;padding:9px 17px;border-radius:8px;font-size:.83rem;z-index:9999;display:none;}
+@media print{.topbar,.steps-bar,.btn-row,#saved-section,#examples-section,#proverbs-section{display:none!important;}body{background:#fff;color:#000;}.result-box{border:1px solid #ccc;background:#fff;}.result-text,.result-quote{color:#000;}.card{border:none;background:#fff;padding:0;}}
 </style>
 </head>
 <body>
-
 <div class="topbar">
-  <div class="topbar-title">✍️ ממני אליך — הערכות לתעודה</div>
-  <div style="display:flex;gap:8px;">
-    <button class="btn-sm" onclick="showExamples()">📚 דוגמאות סגנון</button>
-    <button class="btn-sm" onclick="showSaved()">📋 הערכות שמורות</button>
+  <div class="topbar-title">✍️ ממני אליך</div>
+  <div class="topbar-btns">
+    <button class="btn-sm" onclick="showSection('proverbs')">📖 פתגמים</button>
+    <button class="btn-sm" onclick="showSection('examples')">📚 דוגמאות סגנון</button>
+    <button class="btn-sm" onclick="showSection('saved')">📋 הערכות שמורות</button>
     <button class="btn-back" onclick="window.location.href='teacher_dashboard.html'">← לוח המורה</button>
   </div>
 </div>
 
 <div class="main">
-
-  <!-- STEPS BAR -->
   <div class="steps-bar" id="steps-bar"></div>
 
   <!-- STEP 1: HALF -->
@@ -237,27 +120,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="half-btns">
       <div class="half-btn" id="half-a" onclick="selectHalf('א')">
         <div class="half-btn-title">מחצית א׳</div>
-        <div class="half-btn-sub">סיום יסתיים ב"בהצלחה במחצית הבאה"</div>
+        <div class="half-btn-sub">סיום ב"בהצלחה במחצית הבאה"</div>
       </div>
       <div class="half-btn" id="half-b" onclick="selectHalf('ב')">
         <div class="half-btn-title">מחצית ב׳ / סוף שנה</div>
-        <div class="half-btn-sub">סיום יסתיים ב"בהצלחה בשנה הבאה"</div>
+        <div class="half-btn-sub">סיום ב"בהצלחה בשנה הבאה"</div>
       </div>
     </div>
   </div>
 
   <!-- STEP 2: GROUP + STUDENT -->
   <div id="step2" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 2 — בחרי קבוצה ותלמיד/ה</div>
+    <div class="card-title">✦ שלב 2 — קבוצה ותלמיד/ה</div>
     <div class="field-label">קבוצת לימוד</div>
     <select class="group-select" id="group-select" onchange="loadStudents()">
       <option value="">— בחרי קבוצה —</option>
     </select>
     <div class="field-label" style="margin-bottom:8px;">תלמיד/ה</div>
-    <div class="student-grid" id="student-grid">
-      <div class="empty-state">בחרי קבוצה תחילה</div>
-    </div>
-    <!-- gender manual override -->
+    <div class="student-grid" id="student-grid"><div class="empty-state">בחרי קבוצה תחילה</div></div>
     <div id="gender-row" style="display:none;margin-top:14px;">
       <div class="field-label">מגדר</div>
       <div class="gender-toggle">
@@ -266,213 +146,106 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       </div>
     </div>
     <div class="btn-row" id="step2-next" style="display:none;">
-      <button class="btn-primary" onclick="goStep(3)">המשך להעלאת תעודה ←</button>
+      <button class="btn-primary" onclick="goStep(3)">המשך לתכונות ←</button>
     </div>
   </div>
 
-  <!-- STEP 3: UPLOAD REPORT -->
+  <!-- STEP 3: TRAITS + HOBBIES + INSIGHT -->
   <div id="step3" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 3 — העלאת תעודה (אופציונלי)</div>
+    <div class="card-title">✦ שלב 3 — תכונות, תחביבים ותובנה</div>
+    <div class="field-label">תכונות (עד 10)</div>
+    <div class="field-hint" id="trait-count">בחרי עד 10 תכונות</div>
+    <div class="traits-grid" id="traits-grid"></div>
+    <div style="margin-bottom:14px;">
+      <div class="field-label">תחביבים ופעילויות</div>
+      <div class="field-hint">כמה מילים — כלבים, כדורגל, ציור, מוזיקה...</div>
+      <textarea class="field-textarea" id="hobbies-input" rows="2" placeholder="למשל: כלבים, כדורגל, טניס שולחן, עוזר לאביו בעבודה"></textarea>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div class="field-label">תובנה — שיפור או שימור</div>
+      <div class="field-hint">משפט אחד שתרצי להעביר לעתיד</div>
+      <textarea class="field-textarea" id="insight-input" rows="2" placeholder="למשל: עקביות בלמידה, לשמר את הביטחון העצמי..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-sm" onclick="goStep(2)">← חזרה</button>
+      <button class="btn-primary" onclick="generateDraft()">✨ צרי טיוטה ראשונה ←</button>
+    </div>
+    <div id="draft-status" style="display:none;margin-top:10px;"></div>
+  </div>
+
+  <!-- STEP 4: UPLOAD REPORT (optional) -->
+  <div id="step4" class="card" style="display:none;">
+    <div class="card-title">✦ שלב 4 — העלאת תעודה (אופציונלי)</div>
+    <div class="field-hint" style="margin-bottom:12px;">העלאת תעודה תאפשר ל-AI לעבות את הטיוטה עם פרטים נוספים מהיגדי המורים.</div>
+
+    <!-- DRAFT PREVIEW -->
+    <div class="draft-box" id="draft-preview">
+      <div class="draft-label">✦ טיוטה ראשונה — על בסיס תכונות ותחביבים</div>
+      <div class="draft-text" id="draft-text-preview"></div>
+    </div>
+
     <div class="upload-tabs">
       <div class="upload-tab active" id="tab-file" onclick="switchTab('file')">📄 PDF / תמונה</div>
       <div class="upload-tab" id="tab-text" onclick="switchTab('text')">✏️ מלל חופשי</div>
-      <div class="upload-tab" id="tab-skip" onclick="switchTab('skip')">⏭ דלג</div>
+      <div class="upload-tab" id="tab-skip" onclick="switchTab('skip')">⏭ דלג — המשך עם הטיוטה</div>
     </div>
-
-    <!-- FILE UPLOAD -->
     <div id="upload-file-area">
       <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
            ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-        <div class="upload-zone-icon">📎</div>
-        <div class="upload-zone-title">גרור לכאן או לחצי לבחירת קובץ</div>
-        <div class="upload-zone-sub">PDF, JPG, PNG — עד 10MB</div>
+        <div style="font-size:2rem;margin-bottom:8px;">📎</div>
+        <div style="font-size:.9rem;color:var(--gold2);font-weight:700;margin-bottom:4px;">גרור לכאן או לחצי לבחירת קובץ</div>
+        <div style="font-size:.75rem;opacity:.5;">PDF, JPG, PNG — עד 10MB</div>
       </div>
       <input type="file" id="file-input" accept=".pdf,image/*" style="display:none" onchange="handleFileSelect(event)">
       <div id="file-status" style="display:none;"></div>
     </div>
-
-    <!-- FREE TEXT -->
     <div id="upload-text-area" style="display:none;">
-      <div class="field-hint">הדביקי את הטקסט מהתעודה — נסיכומים מהמורים, ציונים, הערות וכו׳</div>
-      <textarea class="field-textarea" id="raw-text-input" rows="7"
-        placeholder="הדביקי כאן את תוכן התעודה..."></textarea>
+      <textarea class="field-textarea" id="raw-text-input" rows="7" placeholder="הדביקי כאן את תוכן התעודה..."></textarea>
     </div>
-
-    <!-- SKIP -->
-    <div id="upload-skip-area" style="display:none;">
-      <div class="field-hint" style="padding:16px;border:1px dashed var(--border);border-radius:8px;text-align:center;">
-        ⏭ תדלגי על שלב זה — תמלאי את הפרטים הלימודיים ידנית בשלב 6
-      </div>
-    </div>
-
-    <!-- AI EXTRACT STATUS -->
-    <div id="extract-status" style="display:none;"></div>
-
-    <!-- EXTRACTED RESULT -->
-    <div id="extracted-box" style="display:none;">
-      <div class="extracted-box">
-        <div class="extracted-label">✦ AI חילץ מהתעודה — ערכי לפי הצורך</div>
-        <div class="extracted-fields">
-          <div class="extracted-field">
-            <label>📚 מצב לימודי</label>
-            <textarea id="ex-academic" rows="3"></textarea>
-          </div>
-          <div class="extracted-field">
-            <label>🤝 מצב חברתי</label>
-            <textarea id="ex-social" rows="2"></textarea>
-          </div>
-          <div class="extracted-field">
-            <label>🎭 התנהגות</label>
-            <textarea id="ex-behavior" rows="2"></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-sm" onclick="goStep(2)">← חזרה</button>
-      <button class="btn-primary" id="step3-next-btn" onclick="goStep(4)">המשך לתכונות ←</button>
-    </div>
-  </div>
-
-  <!-- STEP 4: TRAITS -->
-  <div id="step4" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 4 — תכונות התלמיד/ה</div>
-    <div class="trait-count" id="trait-count">בחרי עד 10 תכונות מאפיינות</div>
-    <div class="traits-section">
-      <div class="traits-section-title">תכונות אישיות</div>
-      <div class="traits-grid" id="traits-personal"></div>
-    </div>
-    <div class="traits-section">
-      <div class="traits-section-title">תכונות חברתיות</div>
-      <div class="traits-grid" id="traits-social"></div>
-    </div>
-    <div class="traits-section">
-      <div class="traits-section-title">ערכי עבודה ולמידה</div>
-      <div class="traits-grid" id="traits-work"></div>
-    </div>
+    <div id="upload-skip-area" style="display:none;"></div>
+    <div id="enrich-status" style="display:none;margin-top:10px;"></div>
     <div class="btn-row">
       <button class="btn-sm" onclick="goStep(3)">← חזרה</button>
-      <button class="btn-primary" onclick="goStep(5)">המשך לבחירת פתגם ←</button>
+      <button class="btn-purple" id="enrich-btn" onclick="enrichDraft()" style="display:none;">✨ עבי את הטיוטה עם התעודה ←</button>
+      <button class="btn-primary" id="skip-to-proverb-btn" onclick="goStep(5)">המשך לבחירת פתגם ←</button>
     </div>
   </div>
 
-  <!-- STEP 5: PROVERB SELECTION -->
+  <!-- STEP 5: PROVERB -->
   <div id="step5" class="card" style="display:none;">
     <div class="card-title">✦ שלב 5 — בחרי פתגם</div>
-    <div class="field-hint">שלושה פתגמים נבחרו בהתאמה לתכונות שבחרת. בחרי את המתאים ביותר.</div>
+    <div class="field-hint">10 פתגמים מוצגים — 3 מסומנים כמומלצים לפי התכונות שבחרת. בחרי את המתאים ביותר.</div>
     <div class="proverb-cards" id="proverb-cards"></div>
-    <div class="proverb-refresh" onclick="refreshProverbs()">
-      🔄 <span>רענוני — קבלי 3 פתגמים אחרים</span>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+      <div class="proverb-refresh" onclick="showNextProverbs()" style="cursor:pointer;font-size:.8rem;opacity:.6;padding:4px 0;">
+        🔄 10 פתגמים נוספים
+      </div>
     </div>
     <div class="btn-row">
       <button class="btn-sm" onclick="goStep(4)">← חזרה</button>
-      <button class="btn-primary" onclick="goStep(6)">המשך לתיאור ←</button>
+      <button class="btn-primary" onclick="generateFinal()">✨ צרי הערכה סופית ←</button>
     </div>
+    <div id="final-status" style="display:none;margin-top:10px;"></div>
   </div>
 
-  <!-- STEP 6: BEHAVIORAL DESCRIPTION -->
+  <!-- STEP 6: RESULT -->
   <div id="step6" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 6 — תיאור לימודי, חברתי והתנהגותי</div>
-
-    <div style="margin-bottom:16px;">
-      <div class="field-label">📚 מצב לימודי</div>
-      <div class="field-hint">מה רמת הלמידה, ההגשות, ההצלחות הבולטות?</div>
-      <textarea class="field-textarea" id="desc-academic" rows="3"
-        placeholder="למשל: השתפר מאוד בהגשת עבודות, ציוני מבחנים עולים בעקביות..."></textarea>
-    </div>
-    <div style="margin-bottom:16px;">
-      <div class="field-label">🤝 מצב חברתי</div>
-      <div class="field-hint">כיצד מתנהל/ת עם חברים, בעבודת צוות, ביחסים עם המורים?</div>
-      <textarea class="field-textarea" id="desc-social" rows="3"
-        placeholder="למשל: חברה טובה, מסייעת לאחרים, ניהול קונפליקטים מוצלח..."></textarea>
-    </div>
-    <div style="margin-bottom:16px;">
-      <div class="field-label">🎭 התנהגות</div>
-      <div class="field-hint">משמעת, ריכוז, עמידה בכללים, יוזמה בשיעורים</div>
-      <textarea class="field-textarea" id="desc-behavior" rows="3"
-        placeholder="למשל: מרוכז בשיעורים, עדיין מתקשה לפעמים בחלקים ארוכים..."></textarea>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-sm" onclick="goStep(5)">← חזרה</button>
-      <button class="btn-primary" onclick="goStep(7)">המשך לנקודת מבט אישית ←</button>
-    </div>
-  </div>
-
-  <!-- STEP 7: PERSONAL INSIGHT -->
-  <div id="step7" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 7 — נקודת מבט אישית</div>
-    <div class="field-hint" style="margin-bottom:16px;">
-      מה הוא/היא צריך/ה לקחת איתו/ה לשנה הבאה? תובנה אחת — לשיפור או לשימור.
-    </div>
-
-    <div id="insight-ai-section" style="margin-bottom:14px;">
-      <button class="btn-purple" onclick="generateInsight()" id="insight-gen-btn">
-        ✨ בקשי מהAI הצעה
-      </button>
-      <div id="insight-status" style="display:none;margin-top:10px;"></div>
-      <div id="insight-suggestion" style="display:none;margin-top:12px;"></div>
-    </div>
-
-    <div class="field-label">הנקודה האישית שלך (ערכי לפי הצורך):</div>
-    <textarea class="field-textarea" id="desc-insight" rows="4"
-      placeholder="למשל: לשמר את הביטחון העצמי שהתפתח השנה, ולהמשיך להרים יד בשיעורים..."></textarea>
-
-    <div class="btn-row">
-      <button class="btn-sm" onclick="goStep(6)">← חזרה</button>
-      <button class="btn-primary" style="background:rgba(109,40,217,.8);color:#fff;" onclick="generateReport()">
-        ✨ צרי את ההערכה הסופית
-      </button>
-    </div>
-    <div id="ai-status" style="display:none;margin-top:10px;"></div>
-  </div>
-
-  <!-- STEP 8: RESULT -->
-  <div id="step8" class="card" style="display:none;">
-    <div class="card-title">✦ שלב 8 — הערכה מוכנה</div>
+    <div class="card-title">✦ שלב 6 — הערכה מוכנה</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
       <div style="font-size:.85rem;opacity:.6;" id="result-meta"></div>
-      <button class="btn-purple" onclick="regenerateReport()">🔄 צרי מחדש</button>
+      <button class="btn-purple" onclick="regenerateFinal()">🔄 צרי מחדש</button>
     </div>
     <div class="result-box" id="result-box"></div>
     <div style="margin-top:14px;">
-      <div class="field-label">ערכי את ההערכה לפי הצורך:</div>
+      <div class="field-label">ערכי לפי הצורך:</div>
       <textarea class="result-edit" id="result-edit" rows="10"></textarea>
     </div>
     <div class="btn-row">
-      <button class="btn-green" onclick="saveReport()">💾 שמרי הערכה</button>
-      <button class="btn-sm" onclick="copyReport()">📋 העתיקי טקסט</button>
+      <button class="btn-green" onclick="saveReport()">💾 שמרי</button>
+      <button class="btn-sm" onclick="copyReport()">📋 העתיקי</button>
       <button class="btn-sm" onclick="printReport()">🖨️ הדפסי</button>
       <button class="btn-sm" onclick="newReport()">✚ הערכה חדשה</button>
-      <button class="btn-sm" onclick="goStep(7)">← ערכי תשומות</button>
-    </div>
-  </div>
-
-
-  <!-- EXAMPLES PANEL -->
-  <div id="examples-section" style="display:none;">
-    <div class="examples-panel">
-      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
-        <span>📚 דוגמאות סגנון</span>
-        <div style="display:flex;gap:6px;">
-          <button class="btn-sm" onclick="showAddExample()">✚ הוסיפי דוגמה</button>
-          <button class="btn-sm" onclick="showExamples(false)">✕ סגור</button>
-        </div>
-      </div>
-      <div class="field-hint" style="margin-bottom:16px;">דוגמאות אלה מלמדות את ה-AI את הסגנון שלך. ככל שיש יותר דוגמאות מגוונות — כך הכתיבה תהיה מדויקת יותר.</div>
-
-      <!-- ADD FORM -->
-      <div id="add-example-form" style="display:none;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.25);border-radius:10px;padding:16px;margin-bottom:16px;">
-        <div class="field-label" style="margin-bottom:6px;">הדביקי דוגמה שכתבת</div>
-        <textarea class="field-textarea" id="new-example-text" rows="6" placeholder="הנך תלמיד נבון..."></textarea>
-        <div class="btn-row" style="margin-top:10px;">
-          <button class="btn-green" onclick="saveExample()">💾 שמרי דוגמה</button>
-          <button class="btn-sm" onclick="document.getElementById('add-example-form').style.display='none'">ביטול</button>
-        </div>
-      </div>
-
-      <div id="examples-list"><div class="empty-state">טוען דוגמאות...</div></div>
+      <button class="btn-sm" onclick="goStep(5)">← ערכי פתגם</button>
     </div>
   </div>
 
@@ -482,166 +255,221 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
         <span>📋 הערכות שמורות</span>
         <div style="display:flex;gap:6px;">
-          <button class="btn-sm" onclick="exportAllCSV()">📥 ייצוא CSV</button>
-          <button class="btn-sm" onclick="showSaved(false)">✕ סגור</button>
+          <button class="btn-sm" onclick="exportAllCSV()">📥 CSV</button>
+          <button class="btn-sm" onclick="showSection(null)">✕</button>
         </div>
       </div>
-      <div id="saved-list"><div class="empty-state">אין הערכות שמורות עדיין</div></div>
+      <div id="saved-list"><div class="empty-state">אין הערכות שמורות</div></div>
     </div>
   </div>
 
-</div><!-- /main -->
+  <!-- EXAMPLES -->
+  <div id="examples-section" style="display:none;">
+    <div class="card">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📚 דוגמאות סגנון</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm" onclick="showAddExample()">✚ הוסיפי</button>
+          <button class="btn-sm" onclick="showSection(null)">✕</button>
+        </div>
+      </div>
+      <div class="field-hint" style="margin-bottom:14px;">הדוגמאות מלמדות את ה-AI את הסגנון שלך.</div>
+      <div id="add-example-form" style="display:none;background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.25);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <textarea class="field-textarea" id="new-example-text" rows="5" placeholder="הדביקי הערכה שכתבת..."></textarea>
+        <div class="btn-row">
+          <button class="btn-green" onclick="saveExample()">💾 שמרי</button>
+          <button class="btn-sm" onclick="document.getElementById('add-example-form').style.display='none'">ביטול</button>
+        </div>
+      </div>
+      <div id="examples-list"><div class="empty-state">טוען...</div></div>
+    </div>
+  </div>
+
+  <!-- PROVERBS -->
+  <div id="proverbs-section" style="display:none;">
+    <div class="card">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📖 מאגר פתגמים</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm" onclick="showAddProverb()">✚ הוסיפי</button>
+          <button class="btn-sm" onclick="showSection(null)">✕</button>
+        </div>
+      </div>
+      <div id="add-proverb-form" style="display:none;background:rgba(42,107,42,.08);border:1px solid rgba(42,107,42,.25);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div class="field-label">טקסט הפתגם</div>
+        <textarea class="field-textarea" id="new-proverb-text" rows="2" placeholder='"פתגם" (מקור)'></textarea>
+        <div class="btn-row">
+          <button class="btn-green" onclick="saveProverb()">💾 שמרי</button>
+          <button class="btn-sm" onclick="document.getElementById('add-proverb-form').style.display='none'">ביטול</button>
+        </div>
+      </div>
+      <div id="proverbs-list"><div class="empty-state">טוען...</div></div>
+    </div>
+  </div>
+</div>
 
 <div id="toast"></div>
 
 <script>
-/* ══ FIREBASE ══ */
-const firebaseConfig={
-  apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",
-  authDomain:"et-hadaat.firebaseapp.com",
-  databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",
-  projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",
-  messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"
-};
+const firebaseConfig={apiKey:"AIzaSyA9Kut3G11sTzZYG1DBpyVPzLv2bTNvChw",authDomain:"et-hadaat.firebaseapp.com",databaseURL:"https://et-hadaat-default-rtdb.firebaseio.com",projectId:"et-hadaat",storageBucket:"et-hadaat.firebasestorage.app",messagingSenderId:"141400405468",appId:"1:141400405468:web:c1090c52477d14a159cb19"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const AI_PROXY='https://anthropic-proxy.anna-sho-ea8.workers.dev';
 
-/* ══ DATA ══ */
-const PROVERBS=[
-  {text:'יגעת ומצאת, תאמין',tags:['חריצות','שקדנות','התמדה']},
-  {text:'לעולם יהא אדם רך כקנה ואל יהא קשה כארז (תענית כ ע"ב)',tags:['גמישות','סבלנות','יחסי אנוש']},
-  {text:'יהי כבוד חברך חביב עליך כשלך (אבות ב, טו)',tags:['הגינות','חברותי','יחסי אנוש']},
-  {text:'ואהבת לרעך כמוך (ויקרא יט, יח)',tags:['חברותי','סיוע לזולת','אחריות חברתית']},
-  {text:'הנך בור סוד שאינו מאבד טיפה',tags:['כושר חשיבה','סקרנות','שקדנות']},
-  {text:'מה ששנוא עליך אל תעשה לחברך (הלל הזקן)',tags:['הגינות','יחסי אנוש','מהימנות']},
-  {text:'מי שטורח בערב שבת אוכל בשבת (עבודה זרה)',tags:['חריצות','אחריות','שקדנות']},
-  {text:'חוכמת אדם תאיר פניו (קהלת ח, א)',tags:['כושר חשיבה','סקרנות','רמה אישית']},
-  {text:'טובים השניים מן האחד (קהלת ד, יא)',tags:['חברותי','עבודת צוות','סיוע לזולת']},
-  {text:'יפה תלמוד תורה עם דרך ארץ (אבות ב)',tags:['רמה אישית','מסירות','שקדנות']},
-  {text:'דרך ארץ קדמה לתורה',tags:['הגינות','רמה אישית','מסירות']},
-  {text:'הזורעים בדמעה ברינה יקצרו (תהילים קכו, ה)',tags:['התמדה','שקדנות','חריצות']},
-  {text:'מרב העצה, מרבה תבונה (אבות ב, ח)',tags:['כושר חשיבה','כושר מנהיגות','יוזמה']},
-  {text:'שלח לחמך על פני המים, כי ברוב הימים תמצאנו (קהלת יא)',tags:['נדיבות','סיוע לזולת','מסירות']},
-  {text:'כל הנחלים הולכים אל הים, והים איננו מלא (קהלת יא)',tags:['סקרנות','כושר חשיבה']},
-  {text:'אמור מעט ועשה הרבה (אבות א, טו)',tags:['אחריות','מסירות','נאמנות']},
-  {text:'היום קצר והמלאכה מרובה (אבות ב, כ)',tags:['חריצות','אחריות','יסודיות']},
-  {text:'מי שאיננו מתנסה, איננו למד (פתגם יהודי)',tags:['סקרנות','יוזמה','כושר חשיבה']},
-  {text:'אין חכם כבעל ניסיון (קהלת)',tags:['כושר חשיבה','יסודיות','שקדנות']},
-  {text:'דברי חכמים בנחת נשמעים (קהלת ט, יז)',tags:['שקט','תרבותי','רמה אישית']},
-  {text:'היה אמיץ להשתמש בתבונתך (עמנואל קאנט)',tags:['אסרטיביות','כושר חשיבה','נמרצות']},
-  {text:'אף אחד לא יכול לקחת ממך את רצונך (אפיקטטוס)',tags:['נמרצות','אסרטיביות','משמעת עצמית']},
-  {text:'רצון האדם הוא אישיותו (ישעיהו ליבוביץ)',tags:['אסרטיביות','יוזמה','נמרצות']},
-  {text:'צעד אחר צעד, וגם הנמלה תגיע לפסגת ההר (פתגם סיני)',tags:['התמדה','שקדנות','משמעת עצמית']},
-  {text:'מי שלא חולם להגיע לירח, לא יגיע לשום כוכב',tags:['יוזמה','נמרצות','יצירתיות']},
-  {text:'הזהרו בכבוד חברכם (ברכות כח)',tags:['הגינות','חברותי','יחסי אנוש']},
-  {text:'תחילתה של כל ידידות בשויון (פיתגורס)',tags:['חברותי','הגינות','יחסי אנוש']},
-  {text:'כל ההתחלות קשות, הקשה בעיקר היא ההתמדה (ביאליק)',tags:['התמדה','שקדנות','משמעת עצמית']},
-  {text:'סוד ההצלחה לא למהר (מארי קירי)',tags:['דייקנות','יסודיות','שקדנות']},
-  {text:'ההתמדה היא אם ההצלחה (בנג׳מין פרנקלין)',tags:['התמדה','שקדנות','חריצות']},
-  {text:'איזהו חכם? הלומד מכל אדם (פרקי אבות ד)',tags:['סקרנות','כושר חשיבה','שקדנות']},
-  {text:'איזהו גיבור הכובש את יצרו (אבות ד)',tags:['משמעת עצמית','כושר ספיגה','אחריות']},
-  {text:'מכל מלמדי השכלתי (תהילים קיט)',tags:['סקרנות','שקדנות','כושר חשיבה']},
-  {text:'גם מסע של אלף ק"מ מתחיל בצעד אחד קטן (מאו טסה טונג)',tags:['התמדה','יוזמה','משמעת עצמית']},
-  {text:'במקום שאין איש, השתדל להיות איש (אבות ב, ה)',tags:['אחריות','כושר מנהיגות','יוזמה']},
-  {text:'עשה לך רב וקנה לך חבר (אבות א, ו)',tags:['חברותי','לויליות','נאמנות']},
-  {text:'נאה דורש ונאה מקיים',tags:['הגינות','נאמנות','מהימנות']},
-  {text:'על שלושה דברים העולם עומד: על התורה, על העבודה ועל גמילות חסדים',tags:['רמה אישית','מסירות','סיוע לזולת']},
-  {text:'אין דבר העומד בפני הרצון',tags:['נמרצות','משמעת עצמית','אסרטיביות']},
-  {text:'ההצלחה היא פרי הגדל לאיטו (הנרי פילדינג)',tags:['התמדה','שקדנות','דייקנות']},
-  {text:'להיות אדם פירושו – לקבל אחריות (אנטואן דה סנט-אקזיפרי)',tags:['אחריות','הגינות','רמה אישית']},
-  {text:'זה אשר שולט באמצעות מידות טובות, משול לכוכב הצפון (פתגם סיני)',tags:['כושר מנהיגות','הגינות','רמה אישית']},
-  {text:'תנאי הכרחי לחוכמה הוא עשיית הטוב (הרמב"מ)',tags:['הגינות','רמה אישית','מסירות']},
+/* ══ DEFAULT DATA ══ */
+const DEFAULT_TRAITS=['אחראי','אמין','אמיתי','אמפתי','אופטימי','אסרטיבי','בעל יוזמה','גמיש','דייקן','הוגן','חברותי','חרוץ','יוצר קשרים','יסודי','יעיל','יצירתי','ישיר','כנה','מאורגן','מהיר','מוכשר','מושקע','מזדהה עם אחרים','מחויב','מכבד','מנהיג','מסודר','מסור','מצחיק','מקשיב','נאמן','נדיב','נוכח','נמרץ','נעים הליכות','נרגש','סבלני','סקרן','עדין','עובד קשה','עצמאי','פיקח','צנוע','קפדן','רגיש','רציני','שאפתן','שקדן','תחרותי','תמיד מוכן לעזור'];
+
+const DEFAULT_PROVERBS=[
+  {text:'"יגעת ומצאת, תאמין"'},
+  {text:'"לעולם יהא אדם רך כקנה ואל יהא קשה כארז" (תענית כ ע"ב)'},
+  {text:'"יהי כבוד חברך חביב עליך כשלך" (אבות ב, טו)'},
+  {text:'"ואהבת לרעך כמוך" (ויקרא יט, יח)'},
+  {text:'"הנך בור סוד שאינו מאבד טיפה"'},
+  {text:'"מה ששנוא עליך אל תעשה לחברך" (הלל הזקן)'},
+  {text:'"מי שטורח בערב שבת אוכל בשבת" (עבודה זרה)'},
+  {text:'"חוכמת אדם תאיר פניו" (קהלת ח, א)'},
+  {text:'"טובים השניים מן האחד" (קהלת ד, יא)'},
+  {text:'"יפה תלמוד תורה עם דרך ארץ" (אבות ב)'},
+  {text:'"דרך ארץ קדמה לתורה"'},
+  {text:'"הזורעים בדמעה ברינה יקצרו" (תהילים קכו, ה)'},
+  {text:'"מרב העצה, מרבה תבונה" (אבות ב, ח)'},
+  {text:'"שלח לחמך על פני המים" (קהלת יא)'},
+  {text:'"כל הנחלים הולכים אל הים, והים איננו מלא" (קהלת יא)'},
+  {text:'"עובד אדמתו, ישבע לחם" (משלי יב, יא)'},
+  {text:'"אמור מעט ועשה הרבה" (אבות א, טו)'},
+  {text:'"היום קצר והמלאכה מרובה" (אבות ב, כ)'},
+  {text:'"מי שאיננו מתנסה, איננו למד" (פתגם יהודי)'},
+  {text:'"אין חכם כבעל ניסיון" (קהלת)'},
+  {text:'"דברי חכמים בנחת נשמעים" (קהלת ט, יז)'},
+  {text:'"היה אמיץ להשתמש בתבונתך" (עמנואל קאנט)'},
+  {text:'"אף אחד לא יכול לקחת ממך את רצונך" (אפיקטטוס)'},
+  {text:'"רצון האדם הוא אישיותו" (ישעיהו ליבוביץ)'},
+  {text:'"צעד אחר צעד, וגם הנמלה תגיע לפסגת ההר" (פתגם סיני)'},
+  {text:'"מי שלא חולם להגיע לירח, לא יגיע לשום כוכב"'},
+  {text:'"הזהרו בכבוד חברכם" (ברכות כח)'},
+  {text:'"תחילתה של כל ידידות בשויון" (פיתגורס)'},
+  {text:'"כל ההתחלות קשות, הקשה בעיקר היא ההתמדה" (ביאליק)'},
+  {text:'"סוד ההצלחה לא למהר" (מארי קירי)'},
+  {text:'"ההתמדה היא אם ההצלחה" (בנג\'מין פרנקלין)'},
+  {text:'"איזהו חכם? הלומד מכל אדם" (פרקי אבות ד)'},
+  {text:'"איזהו גיבור הכובש את יצרו" (אבות ד)'},
+  {text:'"מכל מלמדי השכלתי" (תהילים קיט)'},
+  {text:'"גם מסע של אלף ק"מ מתחיל בצעד אחד קטן" (מאו טסה טונג)'},
+  {text:'"במקום שאין איש, השתדל להיות איש" (אבות ב, ה)'},
+  {text:'"עשה לך רב וקנה לך חבר" (אבות א, ו)'},
+  {text:'"נאה דורש ונאה מקיים"'},
+  {text:'"על שלושה דברים העולם עומד: על התורה, על העבודה ועל גמילות חסדים"'},
+  {text:'"אין דבר העומד בפני הרצון"'},
+  {text:'"ההצלחה היא פרי הגדל לאיטו" (הנרי פילדינג)'},
+  {text:'"להיות אדם פירושו – לקבל אחריות" (אנטואן דה סנט-אקזיפרי)'},
+  {text:'"זה אשר שולט באמצעות מידות טובות, משול לכוכב הצפון" (פתגם סיני)'},
+  {text:'"תנאי הכרחי לחוכמה הוא עשיית הטוב" (הרמב"מ)'},
+  {text:'"הידידות היא הפרוזדור לאהבה" (גיטה)'},
+  {text:'"כדי להזיז הר ממקומו עליך להתחיל עם אבנים הקטנות ביותר" (פתגם סיני)'},
+  {text:'"בסופו של עניין, הטיפות הקטנות ישחקו את הסלע" (לוקרטיוס)'},
+  {text:'"ריכוז ובטחון עצמי הם הסוד הראשון של ההצלחה" (אברמסון)'},
+  {text:'"עיקר חוכמתו של האדם הוא לדעת לשאול" (ישעיהו ליבוביץ)'},
+  {text:'"ככאשר עלינו ללמוד לעשות אנו לומדים ע"י שאנו עושים אותם" (אריסטו)'},
+  {text:'"לב נבון יבקש דעת" (משלי טו, יד)'},
+  {text:'"פתח פיך ויאירו דבריך"'},
+  {text:'"האדם אוכל מפרי דרכו"'},
+  {text:'"סוף מעשה במחשבה תחילה" (לכה דודי)'},
+  {text:'"הסוד האמיתי של ההצלחה הוא התלהבות" (וולטה קרייזלר)'},
+  {text:'"עליך לזכור תמיד שהחלטתך להצליח חשובה מכל דבר אחר" (אברהם לינקולן)'},
+  {text:'"לבוא לעזרת רעך – פירושו לעזור לעצמך"'},
+  {text:'"האדם הנעלה שואף תמיד להיות זהיר בדבריו ובהתנהגותו" (פתגם סיני)'},
+  {text:'"מפיק מרגליות"'},
 ];
 
-const TRAITS={
-  personal:['מסודר','מאורגן','חרוץ','מסור','נמרץ','חכם','סקרן','דייקן','מוכשר',
-    'רגיש','מעשי','אחראי','אסרטיבי','שאפתן','מצפוני','אמיתי','יסודי',
-    'יצירתי','יעיל','אמין','יציב','קפדן','זהיר','נאמן','מתמיד','עקבי',
-    'רציונאלי','משקיען','מכבד','שמרן','מהיר','זריז','רציני','למדן',
-    'כושר מנהיגות','כושר חשיבה','יוזם','שקט','משמעת עצמית','שקדן',
-    'הוגן','מהימן','יושר','אופטימי','אמפתי','כנות','פרפקציוניסט','מעריך'],
-  social:['נחמד','נעים הליכות','מצחיק','חברותי','מקובל','משתף פעולה','מקסים',
-    'טוב-לב','אדיב','סבלני','תרבותי','עדין','נדיב','נעים','נאמן',
-    'מסייע','סובלני','בעל טקט','ידידותי','מסביר פנים','ותרן','מופנם',
-    'הרפתקן','דברן','פטפטן','רציני'],
-  work:['צייתן','ביקורתי','יסודי','מתמיד','עקבי','יעיל','משקיען',
-    'אחראי','מסודר','מאורגן','דייקן','קפדן','זהיר','שקדן','מעשי']
-};
+const DEFAULT_EXAMPLES=[
+  'תלמיד נבון, חרוץ ושקדן. רוצה לדעת עוד ועוד- ילד סקרן.\nהגעת להישגים בזכות רצינותך, אהוב על חבריך בזכות נדיבותך.\nהשתפרת מאוד בהתנהגותך. אני מאמינה בך ויודעת שאתה מסוגל,\nאז השתדל להיות פחות תחרותי ותלמד ליהנות מהתחרות.\nלדעת להפסיד בכבוד זה גם לנצח!',
+  'שי היקר!\nבמהלך שנתיים של הכרות עימך ראיתי כי טמון בך עולם עשיר של דמיון וסקרנות שכל כך מייחדת אותך במרקם הכיתתי. תגליות חדשות הציתו זיק של אור בעיניך והישגיך הלימודיים משקפים סקרנות וצימאון בלתי נלאה להרחיב את אופקיך.\nבתחום החברתי אתה ראוי להערכה על מאמציך לשליטה עצמית. אני מאמינה כי אם תמשיך בדרך זו יוכלו גם חבריך לכיתה לראות עד כמה אתה ילד מיוחד!',
+  'בני היקר!\nבמהלך שנתיים של היכרות עימך גיליתי ילד מדהים, נעים הליכות ובעל כישרונות מגוונים בכל מיני תחומים. אתה פסנתרן מוכשר וגם שחיין כמו דג במים. לקחת ברצינות רבה את העובדה כי צריך לשפר ולחזק את הרגלי הלמידה וכבר במחצית זו, יגעת ועמלת והגעת, כמעט, לכל שיעור ושיעור מצויד גם בשיעורי בית. בתחום החברתי אתה ילד פעיל ובחברתך נעים לשהות.',
+  'סשה היקר!\nהשנה הצטרפת אלינו וניכר כי השתדלת מאוד להשתלב במנגינה זו שלנו. בתחום החברתי רכשת מעגל חברים חדש וניכר כי מצאת עצמך במרקם החברתי בכיתתנו. במחצית זו גילתה נכונות לשפר את הרגלי עבודתך אך במהרה זנחת את מטלותיך וחזרת להתחלה. כן, זה קשה! אני יודעת. עליך להתמודד עם אתגר רציני: קח אחריות, הבא בכל שיעור את הציוד ואל תשכח להכין שיעורים.',
+  'רוני היקרה!\nבמהלך שנתיים של הכרות עימך, ראיתי שיש ביכולתך לטפס ולזכות בקצירת פירותייך. לצערי לא תמיד הקפדת להתאמץ ולמצות את היכולות הטמונות בך וחבל. אני מקווה כי בימים שיבואו תגלי כי אם תקחי אחריות ללמידתך, תוכלי למצות את היכולת הטמונה בך - האמיני בעצמך את מסוגלת!',
+  'נועם היקר!\nבמחצית זו חל שיפור במוטיבציה שלך ללימודים, השקעת יותר ושיפרת את הישגיך. למדת על עצמך שאתה מסוגל ליותר. אתה יכול להצליח בכל היבט של חייך אם תוכל לשמור על כלל אחד חשוב - פעל בהתמדה! האמן בעצמך. אם תרצה משהו מספיק חזק - תמצא את הדרך.',
+  'עברה לה רק חצי שנה, וכל כך הרבה בך השתנה.\nילדה נעימה עם חיוך מקסים. למדת להתמודד עם אתגרים.\nלומדת נפלא, עובדת ותורמת ומגיעה להישגים יפים מאוד.\nהמשיכי כך, כל הכבוד!',
+  'נועם היקר!\nבמה אפתח? ומה אגיד? הייתה לך שנה לא קלה וזה ברור כשמש. חזרת ללימודים מלווה בכאבים אך לא ויתרת והיום אתה שוב משחק כדורגל במגרש עם החברים. את לימודיך לא זנחת ועבדת, אפילו, מעל מיטת בית החולים. יודעת אני כי הישגיך אינם גבוהים אבל אין צורך לחשוש כי במהלך חופשת הקיץ תשנס מותניים ותשקיע עוד מאמץ ובשנה הבאה תגרוף הצלחות חדשות.',
+  'הנך תלמיד נבון, חרוץ ואוהב פעילות: כדורגל, כדורסל - מה זה חשוב? עליך ללמוד לא להתרגז כי כשאתה כועס כל היום שלך משתבש. המשך להשקיע מאמצים בלימודים ולבסוף תצליח להגיע להישגים משמעותיים.',
+  'אמרו חכמי חז"ל: "דברי חכמים - בנחת נשמעים" וכאילו עליך נאמרו הדברים. שקטה, רצינית, מצטנעת ומנומסת. בדרכך המיוחדת את יודעת להקשיב, ללמוד ולהצטיין. תמיד נרתמת לעזרה ומבוקשת בין חברייך בכיתה. אני גאה בך!',
+  'מהיום הראשון שנפגשנו היית תעלומה. אם הייתי אגתה כריסטי, הייתי כותבת עליך סדרה מדהימה. את אוהבת חיות אבל לא לעבוד. הנך תלמידה שקטה ונבונה עם הרבה תבונה אל תוותרי לעצמך.',
+  'בעל חוש הומור וחיוך על השפתיים.\nפיקח ונבון, ראש טוב על הכתפיים.\nבעל תחומי עניין מאוד מרתקים.\nאתה חרוץ ושקדן ובעל ראש יצירתי מאוד.\nהמשך כך!',
+  'שמחת החיים המפעמת בך גורמת לכולם לרצות בחברתך תמיד. את תלמידה נפלאה החל מן הפן הלימודי, דרך הפן החברתי וכלה בכשרון הגדול שלך בריקוד. לא נותר לי אלא לאחל לך שתישארי את - עצמך ושתמשיכי להאמין בכוחך לשנות, להתקדם ולהשפיע.',
+];
 
 /* ══ STATE ══ */
-let currentStep=1;
-let selectedHalf='';
-let selectedGroup=null;
-let selectedStudent='';
-let selectedStudentGender='זכר';
-let selectedTraits=[];
-let selectedProverb=null;
-let currentProverbSet=[];
-let currentProverbOffset=0;
-let groups=[];
-let uploadedFileBase64=null;
-let uploadedFileType=null;
-let uploadMode='file'; // file | text | skip
+let currentStep=1,selectedHalf='',selectedGroup=null,selectedStudent='',selectedStudentGender='זכר';
+let selectedTraits=[],selectedProverb=null,currentProverbOffset=0;
+let groups=[],uploadedFileBase64=null,uploadedFileType=null,uploadMode='file';
+let currentDraftText='',proverbsCache=null,styleExamplesCache=null;
 
 /* ══ INIT ══ */
 window.addEventListener('load',()=>{
-  if(sessionStorage.getItem('teacher_logged_in')!=='yes'){
-    window.location.href='teacher_dashboard.html';return;
-  }
+  if(sessionStorage.getItem('teacher_logged_in')!=='yes'){window.location.href='teacher_dashboard.html';return;}
   renderStepsBar();
   renderTraits();
   loadGroups();
-  loadStyleExamples(); // seed examples in background
+  seedData();
 });
+
+async function seedData(){
+  // Seed proverbs
+  const ps=await db.ref('teacher/proverbs/seeded').once('value');
+  if(!ps.val()){
+    const u={seeded:true};
+    DEFAULT_PROVERBS.forEach((p,i)=>{u['p'+String(i).padStart(3,'0')]={text:p.text,type:'default'};});
+    await db.ref('teacher/proverbs').update(u);
+  }
+  // Seed examples
+  const es=await db.ref('teacher/styleExamples/seeded').once('value');
+  if(!es.val()){
+    const u={seeded:true};
+    DEFAULT_EXAMPLES.forEach((ex,i)=>{u['default_'+String(i).padStart(3,'0')]={text:ex,type:'default',addedAt:Date.now()};});
+    await db.ref('teacher/styleExamples').update(u);
+  }
+}
 
 function loadGroups(){
   db.ref('teacher/groups').once('value',snap=>{
     groups=snap.val()?Object.values(snap.val()):[];
     const sel=document.getElementById('group-select');
     sel.innerHTML='<option value="">— בחרי קבוצה —</option>';
-    groups.forEach(g=>{
-      const opt=document.createElement('option');
-      opt.value=g.id;opt.textContent=g.name;
-      sel.appendChild(opt);
-    });
+    groups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;sel.appendChild(o);});
   });
 }
 
 /* ══ STEPS BAR ══ */
-const STEP_LABELS=['מחצית','תלמיד/ה','תעודה','תכונות','פתגם','תיאור','תובנה','הערכה'];
+const STEP_LABELS=['מחצית','תלמיד/ה','נתונים','תעודה','פתגם','הערכה'];
 function renderStepsBar(){
-  const bar=document.getElementById('steps-bar');
-  bar.innerHTML='';
+  const bar=document.getElementById('steps-bar');bar.innerHTML='';
   STEP_LABELS.forEach((label,i)=>{
-    const n=i+1;
-    const st=n<currentStep?'done':n===currentStep?'active':'';
-    const wrap=document.createElement('div');
-    wrap.className='step-wrap';
+    const n=i+1,st=n<currentStep?'done':n===currentStep?'active':'';
+    const wrap=document.createElement('div');wrap.className='step-wrap';
     wrap.innerHTML=`<div class="step-dot ${st}">${n<currentStep?'✓':n}</div><div class="step-label">${label}</div>`;
     bar.appendChild(wrap);
-    if(i<STEP_LABELS.length-1){
-      const line=document.createElement('div');
-      line.className='step-line'+(n<currentStep?' done':'');
-      bar.appendChild(line);
-    }
+    if(i<STEP_LABELS.length-1){const l=document.createElement('div');l.className='step-line'+(n<currentStep?' done':'');bar.appendChild(l);}
   });
 }
 
 function goStep(n){
-  if(n===2&&!selectedHalf){toast('נא לבחור מחצית תחילה');return;}
-  if(n===3&&!selectedStudent){toast('נא לבחור תלמיד/ה תחילה');return;}
-  if(n===4){/* always ok - step 3 is optional */}
-  if(n===5){buildProverbSet();}
-  if(n===6){prefillDescriptions();}
-  currentStep=n;
-  renderStepsBar();
-  for(let i=1;i<=8;i++){
-    const el=document.getElementById('step'+i);
-    if(el)el.style.display=i===n?'block':'none';
-  }
-  document.getElementById('saved-section').style.display='none';
+  if(n===2&&!selectedHalf){toast('נא לבחור מחצית');return;}
+  if(n===3&&!selectedStudent){toast('נא לבחור תלמיד/ה');return;}
+  if(n===5){buildProverbs();}
+  currentStep=n;renderStepsBar();
+  for(let i=1;i<=6;i++){const el=document.getElementById('step'+i);if(el)el.style.display=i===n?'block':'none';}
+  ['saved-section','examples-section','proverbs-section'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('steps-bar').style.display='flex';
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showSection(name){
+  for(let i=1;i<=6;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
+  document.getElementById('steps-bar').style.display=name?'none':'flex';
+  ['saved-section','examples-section','proverbs-section'].forEach(id=>document.getElementById(id).style.display='none');
+  if(name==='saved'){document.getElementById('saved-section').style.display='block';loadSavedList();}
+  else if(name==='examples'){document.getElementById('examples-section').style.display='block';loadExamplesList();}
+  else if(name==='proverbs'){document.getElementById('proverbs-section').style.display='block';loadProvербsList();}
+  else{goStep(currentStep);}
 }
 
 /* ══ STEP 1 ══ */
@@ -655,581 +483,459 @@ function selectHalf(h){
 /* ══ STEP 2 ══ */
 function loadStudents(){
   const gid=document.getElementById('group-select').value;
-  const group=groups.find(g=>g.id===gid);
-  selectedGroup=group||null;
-  selectedStudent='';
+  const group=groups.find(g=>g.id===gid);selectedGroup=group||null;selectedStudent='';
   const grid=document.getElementById('student-grid');
   document.getElementById('step2-next').style.display='none';
   document.getElementById('gender-row').style.display='none';
-  if(!group||!group.students?.length){
-    grid.innerHTML='<div class="empty-state">אין תלמידים בקבוצה זו</div>';return;
-  }
+  if(!group||!group.students?.length){grid.innerHTML='<div class="empty-state">אין תלמידים</div>';return;}
   grid.innerHTML='';
-  group.students.forEach(s=>{
-    const btn=document.createElement('button');
-    btn.className='student-btn';
-    btn.textContent=s;
-    btn.onclick=()=>selectStudent(s,btn);
-    grid.appendChild(btn);
-  });
+  group.students.forEach(s=>{const btn=document.createElement('button');btn.className='student-btn';btn.textContent=s;btn.onclick=()=>selectStudent(s,btn);grid.appendChild(btn);});
 }
 
 function selectStudent(name,btn){
   selectedStudent=name;
   document.querySelectorAll('.student-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
-  db.ref('students/'+name.replace(/ /g,'_')+'/gender').once('value',snap=>{
-    selectedStudentGender=snap.val()||'זכר';
-    updateGenderUI();
-    document.getElementById('gender-row').style.display='block';
-    document.getElementById('step2-next').style.display='flex';
-  }).catch(()=>{
-    selectedStudentGender='זכר';
-    updateGenderUI();
-    document.getElementById('gender-row').style.display='block';
-    document.getElementById('step2-next').style.display='flex';
-  });
+  selectedStudentGender='זכר';updateGenderUI();
+  document.getElementById('gender-row').style.display='block';
+  document.getElementById('step2-next').style.display='flex';
 }
 
-function setGender(g){
-  selectedStudentGender=g;
-  updateGenderUI();
-}
+function setGender(g){selectedStudentGender=g;updateGenderUI();}
 function updateGenderUI(){
   document.getElementById('g-male').classList.toggle('sel',selectedStudentGender==='זכר');
   document.getElementById('g-female').classList.toggle('sel',selectedStudentGender==='נקבה');
 }
 
-/* ══ STEP 3: UPLOAD ══ */
+/* ══ STEP 3: TRAITS ══ */
+function renderTraits(){
+  const grid=document.getElementById('traits-grid');grid.innerHTML='';
+  DEFAULT_TRAITS.forEach(t=>{
+    const tag=document.createElement('div');tag.className='trait-tag'+(selectedTraits.includes(t)?' sel':'');
+    tag.textContent=t;tag.onclick=()=>toggleTrait(t,tag);grid.appendChild(tag);
+  });
+}
+
+function toggleTrait(t,el){
+  if(selectedTraits.includes(t)){selectedTraits=selectedTraits.filter(x=>x!==t);el.classList.remove('sel');}
+  else{if(selectedTraits.length>=10){toast('עד 10 תכונות');return;}selectedTraits.push(t);el.classList.add('sel');}
+  document.getElementById('trait-count').textContent=`נבחרו ${selectedTraits.length}/10 תכונות`;
+}
+
+/* ══ STEP 3 → DRAFT ══ */
+async function generateDraft(){
+  const hobbies=document.getElementById('hobbies-input').value.trim();
+  const insight=document.getElementById('insight-input').value.trim();
+  if(!selectedTraits.length&&!hobbies){toast('נא לבחור לפחות תכונה אחת');return;}
+
+  const statusEl=document.getElementById('draft-status');
+  statusEl.style.display='block';
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>כותב טיוטה ראשונה...</div>`;
+
+  const examples=await getExamplesForPrompt();
+  const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
+  const halfText=selectedHalf==='ב'?'סוף שנת הלימודים':'מחצית א׳';
+  const salutation=gender==='נקבה'?`${selectedStudent} היקרה,`:`${selectedStudent} היקר,`;
+
+  const prompt=`אתה עוזר הוראה. כתוב הערכה אישית לתעודה לסוף ${halfText}.
+
+נתונים:
+- שם: ${selectedStudent}
+- מגדר: ${gender}
+- תכונות: ${selectedTraits.join(', ')||'לא צוינו'}
+- תחביבים ופעילויות: ${hobbies||'לא צוין'}
+- תובנה לעתיד: ${insight||'כתוב משפט עידוד מתאים'}
+
+הוראות:
+1. פתח: "${salutation}" — שורה נפרדת לפני הגוף
+2. כתוב בגוף ראשון/שני — "אני", "אתה/את", "הנך/הינך" — כפי שמתאים לזרימה
+3. שלב את התחביבים בטבעיות כחלק מתיאור האישיות
+4. תמונה אנושית זורמת — לא רשימת תכונות
+5. סיים עם התובנה כמסר חינוכי וחם
+6. עברית חמה ואישית, בלשון ${gender}
+7. 5–6 משפטים בלבד — ללא פתגם עדיין
+8. החזר רק את הטקסט
+
+למד את הסגנון מהדוגמאות — חקה טון ומבנה, לא תוכן:
+${examples.map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n')}`;
+
+  try{
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,
+        system:'אתה עוזר הוראה מנוסה שכותב הערכות אישיות לתעודות. כתוב בעברית חמה, אישית וקצרה.',
+        messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    const text=(d.content?.[0]?.text||'').trim();
+    if(!text)throw new Error('לא התקבל טקסט');
+    currentDraftText=text;
+    statusEl.style.display='none';
+    // Show draft preview and go to step 4
+    document.getElementById('draft-text-preview').textContent=text;
+    goStep(4);
+  }catch(e){
+    statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה: ${e.message}</div>`;
+  }
+}
+
+/* ══ STEP 4: UPLOAD ══ */
 function switchTab(tab){
   uploadMode=tab;
   ['file','text','skip'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById('upload-'+t+'-area').style.display=t===tab?'block':'none';
   });
+  document.getElementById('enrich-btn').style.display=tab==='skip'?'none':'inline-flex';
+  document.getElementById('skip-to-proverb-btn').style.display='inline-flex';
 }
 
 function handleDragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag');}
 function handleDragLeave(){document.getElementById('upload-zone').classList.remove('drag');}
-function handleDrop(e){
-  e.preventDefault();
-  document.getElementById('upload-zone').classList.remove('drag');
-  const f=e.dataTransfer.files[0];
-  if(f)processFile(f);
-}
+function handleDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);}
 function handleFileSelect(e){const f=e.target.files[0];if(f)processFile(f);}
 
 function processFile(file){
-  if(file.size>10*1024*1024){toast('הקובץ גדול מדי — עד 10MB');return;}
-  const isPDF=file.type==='application/pdf';
-  const isImage=file.type.startsWith('image/');
-  if(!isPDF&&!isImage){toast('יש להעלות PDF או תמונה בלבד');return;}
-
+  if(file.size>10*1024*1024){toast('הקובץ גדול מדי');return;}
+  const isPDF=file.type==='application/pdf',isImage=file.type.startsWith('image/');
+  if(!isPDF&&!isImage){toast('PDF או תמונה בלבד');return;}
   const statusEl=document.getElementById('file-status');
   statusEl.style.display='block';
-  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>קורא את הקובץ...</div>`;
-
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>קורא קובץ...</div>`;
   const reader=new FileReader();
-  reader.onload=async ev=>{
-    const b64=ev.target.result.split(',')[1];
-    uploadedFileBase64=b64;
+  reader.onload=ev=>{
+    uploadedFileBase64=ev.target.result.split(',')[1];
     uploadedFileType=file.type;
-    statusEl.innerHTML=`<div style="padding:8px;font-size:.82rem;color:#6ee7a0;">✓ ${esc(file.name)} — נטען בהצלחה. מנתח...</div>`;
-    await extractFromFile(b64,file.type);
+    statusEl.innerHTML=`<div style="padding:8px;font-size:.82rem;color:#6ee7a0;">✓ ${esc(file.name)} נטען</div>`;
+    document.getElementById('enrich-btn').style.display='inline-flex';
   };
   reader.readAsDataURL(file);
 }
 
-async function extractFromFile(b64,mimeType){
-  const statusEl=document.getElementById('extract-status');
+async function enrichDraft(){
+  const statusEl=document.getElementById('enrich-status');
   statusEl.style.display='block';
-  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>AI מנתח את התעודה ומחלץ נתונים...</div>`;
-  try{
-    // Normalize image mime type to supported values
-    let normalizedMime=mimeType;
-    if(mimeType.startsWith('image/')){
-      const supported=['image/jpeg','image/png','image/gif','image/webp'];
-      if(!supported.includes(mimeType)) normalizedMime='image/jpeg';
-    }
-    // Build the file content part — PDF uses 'document', images use 'image'
-    const filePart=mimeType==='application/pdf'
-      ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}
-      :{type:'image',source:{type:'base64',media_type:normalizedMime,data:b64}};
-    const contentParts=[
-      filePart,
-      {type:'text',text:`אתה מנתח תעודה בית ספרית. חלץ מהתעודה שלושה חלקים:\n1. מצב לימודי (ציונים, רמת למידה, הגשות, הצלחות)\n2. מצב חברתי (יחסים עם חברים, עבודת צוות)\n3. התנהגות (משמעת, ריכוז, יוזמה)\n\nהחזר JSON בלבד (ללא backticks):\n{"academic":"...","social":"...","behavior":"..."}`}
-    ];
-    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
-        messages:[{role:'user',content:contentParts}]})});
-    const d=await r.json();
-    if(d.error)throw new Error(d.error.message);
-    const text=(d.content?.[0]?.text||'').trim();
-    let parsed;
-    try{parsed=JSON.parse(text.replace(/```json|```/g,'').trim());}
-    catch{parsed={academic:text,social:'',behavior:''};}
-    statusEl.style.display='none';
-    document.getElementById('ex-academic').value=parsed.academic||'';
-    document.getElementById('ex-social').value=parsed.social||'';
-    document.getElementById('ex-behavior').value=parsed.behavior||'';
-    document.getElementById('extracted-box').style.display='block';
-    document.getElementById('file-status').innerHTML=`<div style="padding:8px;font-size:.82rem;color:#6ee7a0;">✓ התעודה נותחה — ערכי לפי הצורך</div>`;
-  }catch(e){
-    statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה בניתוח: ${e.message}</div>`;
-  }
-}
-
-/* ══ STEP 4: TRAITS ══ */
-function renderTraits(){
-  renderTraitGroup('traits-personal',TRAITS.personal);
-  renderTraitGroup('traits-social',TRAITS.social);
-  renderTraitGroup('traits-work',TRAITS.work);
-}
-function renderTraitGroup(id,traits){
-  const c=document.getElementById(id);c.innerHTML='';
-  traits.forEach(t=>{
-    const tag=document.createElement('div');
-    tag.className='trait-tag'+(selectedTraits.includes(t)?' sel':'');
-    tag.textContent=t;tag.onclick=()=>toggleTrait(t,tag);
-    c.appendChild(tag);
-  });
-}
-function toggleTrait(t,el){
-  if(selectedTraits.includes(t)){selectedTraits=selectedTraits.filter(x=>x!==t);el.classList.remove('sel');}
-  else{
-    if(selectedTraits.length>=10){toast('ניתן לבחור עד 10 תכונות');return;}
-    selectedTraits.push(t);el.classList.add('sel');
-  }
-  document.getElementById('trait-count').textContent=`נבחרו ${selectedTraits.length}/10 תכונות`;
-}
-
-/* ══ STEP 5: PROVERBS ══ */
-function buildProverbSet(){
-  // Score all proverbs by trait match
-  const scored=PROVERBS.map((p,i)=>({
-    ...p,idx:i,
-    score:p.tags.filter(t=>selectedTraits.includes(t)).length+(Math.random()*0.01)
-  })).sort((a,b)=>b.score-a.score);
-  currentProverbSet=scored;
-  currentProverbOffset=0;
-  renderProverbs();
-}
-
-function refreshProverbs(){
-  currentProverbOffset+=3;
-  if(currentProverbOffset>=Math.min(currentProverbSet.length,15))currentProverbOffset=0;
-  selectedProverb=null;
-  renderProverbs();
-}
-
-function renderProverbs(){
-  const slice=currentProverbSet.slice(currentProverbOffset,currentProverbOffset+3);
-  const container=document.getElementById('proverb-cards');
-  container.innerHTML='';
-  slice.forEach((p,i)=>{
-    const card=document.createElement('div');
-    card.className='proverb-card'+(selectedProverb&&selectedProverb.text===p.text?' sel':'');
-    card.innerHTML=`
-      <div class="proverb-check">${selectedProverb&&selectedProverb.text===p.text?'✓':''}</div>
-      <div class="proverb-card-text">✦ ${esc(p.text)}</div>
-      <div class="proverb-card-tags">${p.tags.map(t=>`<span class="proverb-card-tag">${esc(t)}</span>`).join('')}</div>`;
-    card.onclick=()=>selectProverb(p);
-    container.appendChild(card);
-  });
-}
-
-function selectProverb(p){
-  selectedProverb=p;
-  renderProverbs();
-}
-
-/* ══ STEP 6: PREFILL ══ */
-function prefillDescriptions(){
-  // If we have extracted data from report, pre-fill
-  const exA=document.getElementById('ex-academic')?.value||'';
-  const exS=document.getElementById('ex-social')?.value||'';
-  const exB=document.getElementById('ex-behavior')?.value||'';
-  if(exA&&!document.getElementById('desc-academic').value)
-    document.getElementById('desc-academic').value=exA;
-  if(exS&&!document.getElementById('desc-social').value)
-    document.getElementById('desc-social').value=exS;
-  if(exB&&!document.getElementById('desc-behavior').value)
-    document.getElementById('desc-behavior').value=exB;
-  // raw text mode
-  if(uploadMode==='text'){
-    const raw=document.getElementById('raw-text-input').value.trim();
-    if(raw&&!document.getElementById('desc-academic').value)
-      document.getElementById('desc-academic').value=raw;
-  }
-}
-
-/* ══ STEP 7: AI INSIGHT ══ */
-async function generateInsight(){
-  const academic=document.getElementById('desc-academic').value.trim();
-  const social=document.getElementById('desc-social').value.trim();
-  const behavior=document.getElementById('desc-behavior').value.trim();
-
-  const statusEl=document.getElementById('insight-status');
-  statusEl.style.display='block';
-  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>מנסח תובנה אישית...</div>`;
-  document.getElementById('insight-suggestion').style.display='none';
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>מעבה את הטיוטה עם נתוני התעודה...</div>`;
 
   const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
-  const prompt=`בהתבסס על הנתונים הבאים לגבי תלמיד/ה (${gender}), ${selectedStudent}:
-תכונות: ${selectedTraits.join(', ')||'לא צוינו'}
-מצב לימודי: ${academic||'לא צוין'}
-מצב חברתי: ${social||'לא צוין'}
-התנהגות: ${behavior||'לא צוין'}
-
-כתוב תובנה אחת קצרה (2-3 משפטים) לגבי מה הוא/היא צריך/ה לקחת איתו/ה לשנה הבאה — לשיפור או לשימור. בלשון ${gender}. ישיר ואמיתי.
-החזר רק את התובנה — ללא הסברים.`;
+  const rawText=document.getElementById('raw-text-input').value.trim();
 
   try{
+    let reportContent='';
+    if(uploadMode==='text'&&rawText){
+      reportContent=rawText;
+    } else if(uploadMode==='file'&&uploadedFileBase64){
+      // First extract from file
+      const isPDF=uploadedFileType==='application/pdf';
+      let normalizedMime=uploadedFileType;
+      if(!isPDF){const s=['image/jpeg','image/png','image/gif','image/webp'];if(!s.includes(normalizedMime))normalizedMime='image/jpeg';}
+      const filePart=isPDF
+        ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:uploadedFileBase64}}
+        :{type:'image',source:{type:'base64',media_type:normalizedMime,data:uploadedFileBase64}};
+      const extractR=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
+          messages:[{role:'user',content:[filePart,{type:'text',text:'חלץ מהתעודה רק את הערות המורים המילוליות — ללא ציונים, ללא שמות מקצועות. החזר רק את ההערות בעברית, כל אחת בשורה.'}]}]})});
+      const ed=await extractR.json();
+      reportContent=(ed.content?.[0]?.text||'').trim();
+    }
+
+    if(!reportContent){goStep(5);return;}
+
+    const examples=await getExamplesForPrompt();
+    const salutation=gender==='נקבה'?`${selectedStudent} היקרה,`:`${selectedStudent} היקר,`;
+
+    const prompt=`יש לך טיוטה של הערכה אישית לתעודה. עבה אותה עם נתוני התעודה — אל תשנה את הסגנון והמבנה, רק הוסף נגיעות מהיגדי המורים בצורה טבעית.
+
+טיוטה קיימת:
+${currentDraftText}
+
+היגדי המורים מהתעודה (השתמש בתוכן הכללי — ללא שמות מקצועות):
+${reportContent}
+
+הוראות:
+1. שמור על הפתיחה "${salutation}"
+2. שמור על הסגנון החם והאישי של הטיוטה
+3. שלב 1-2 נגיעות מהיגדי המורים בצורה כללית — רגלי למידה, גישה, לא שמות מקצועות
+4. אל תאריך — שמור על 5–7 משפטים
+5. בלשון ${gender}
+6. החזר רק את הטקסט
+
+למד את הסגנון מהדוגמאות:
+${examples.slice(0,4).map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n')}`;
+
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,
+        system:'אתה עוזר הוראה מנוסה שכותב הערכות אישיות לתעודות.',
         messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
     if(d.error)throw new Error(d.error.message);
     const text=(d.content?.[0]?.text||'').trim();
+    if(text)currentDraftText=text;
     statusEl.style.display='none';
-    const suggBox=document.getElementById('insight-suggestion');
-    suggBox.style.display='block';
-    suggBox.innerHTML=`<div style="background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.3);border-radius:8px;padding:12px;font-size:.87rem;line-height:1.7;color:#e2d9f3;margin-bottom:10px;">
-      <div style="font-size:.72rem;color:var(--purple2);margin-bottom:6px;">💡 הצעת AI — ערכי לפי הצורך</div>
-      ${esc(text)}
-      <div style="margin-top:8px;"><button class="btn-sm" onclick="useInsightSuggestion(${JSON.stringify(text).replace(/</g,'&lt;')})">השתמשי בהצעה זו ←</button></div>
-    </div>`;
-    // Also populate textarea if empty
-    if(!document.getElementById('desc-insight').value)
-      document.getElementById('desc-insight').value=text;
+    toast('✓ הטיוטה עובתה');
+    document.getElementById('draft-text-preview').textContent=currentDraftText;
+    setTimeout(()=>goStep(5),600);
   }catch(e){
     statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה: ${e.message}</div>`;
   }
 }
 
-function useInsightSuggestion(text){
-  document.getElementById('desc-insight').value=text;
-  toast('✓ הועתק לשדה העריכה');
+/* ══ STEP 5: PROVERBS ══ */
+async function getProverbs(){
+  if(proverbsCache)return proverbsCache;
+  const snap=await db.ref('teacher/proverbs').once('value');
+  const data=snap.val()||{};
+  proverbsCache=Object.entries(data).filter(([k])=>k!=='seeded').map(([k,v])=>({key:k,text:v.text,type:v.type||'default'}));
+  return proverbsCache;
 }
 
-/* ══ STEP 7 → AI FINAL ══ */
-async function generateReport(){
-  // Load style examples for prompt
-  let examplesText='';
+async function buildProverbs(){
+  const all=await getProverbs();
+  // Score by trait match keywords
+  const traitStr=selectedTraits.join(' ');
+  const scored=all.map(p=>({...p,score:Math.random()})); // random for variety + AI will recommend
+  currentProverbOffset=0;
+  renderProverbs(scored);
+}
+
+async function renderProverbs(all){
+  if(!all){all=await getProverbs();}
+  const slice=all.slice(currentProverbOffset,currentProverbOffset+10);
+  // Ask AI to recommend 3
+  const container=document.getElementById('proverb-cards');
+  container.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>בוחר פתגמים מומלצים...</div>`;
+
+  let recommended=[];
   try{
-    const examples=await getExamplesForPrompt();
-    const sample=examples.sort(()=>Math.random()-.5).slice(0,6);
-    examplesText='\n\nדוגמאות לסגנון הכתיבה הרצוי — למד מהן את הטון, הקצב והמבנה:\n'+
-      sample.map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n');
-  }catch(e){console.warn('examples load failed',e);}
+    const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,
+        messages:[{role:'user',content:`תכונות התלמיד/ה: ${selectedTraits.join(', ')}\n\nמהרשימה הבאה, ציין את מספרי 3 הפתגמים המתאימים ביותר לתכונות (ספרות בלבד, מופרדות בפסיק):\n${slice.map((p,i)=>`${i+1}. ${p.text}`).join('\n')}`}]})});
+    const d=await r.json();
+    const txt=(d.content?.[0]?.text||'');
+    recommended=txt.match(/\d+/g)?.slice(0,3).map(n=>parseInt(n)-1)||[0,1,2];
+  }catch{recommended=[0,1,2];}
 
-  const academic=document.getElementById('desc-academic').value.trim();
-  const social=document.getElementById('desc-social').value.trim();
-  const behavior=document.getElementById('desc-behavior').value.trim();
-  const insight=document.getElementById('desc-insight').value.trim();
+  container.innerHTML='';
+  slice.forEach((p,i)=>{
+    const isRec=recommended.includes(i);
+    const card=document.createElement('div');
+    card.className='proverb-card'+(selectedProverb?.text===p.text?' sel':'')+(isRec?' recommended':'');
+    card.innerHTML=`
+      <div class="proverb-check">${selectedProverb?.text===p.text?'✓':''}</div>
+      ${isRec?'<div class="rec-badge">⭐ מומלץ</div>':''}
+      <div class="proverb-card-text">${esc(p.text)}</div>`;
+    card.onclick=()=>{selectedProverb=p;renderProverbsStatic(slice,recommended);};
+    container.appendChild(card);
+  });
+}
 
-  if(!academic&&!social&&!behavior){toast('נא למלא לפחות שדה תיאור אחד (שלב 6)');return;}
-  if(!selectedProverb){toast('נא לבחור פתגם בשלב 5');return;}
+function renderProverbsStatic(slice,recommended){
+  const container=document.getElementById('proverb-cards');container.innerHTML='';
+  slice.forEach((p,i)=>{
+    const isRec=recommended.includes(i);
+    const card=document.createElement('div');
+    card.className='proverb-card'+(selectedProverb?.text===p.text?' sel':'')+(isRec?' recommended':'');
+    card.innerHTML=`<div class="proverb-check">${selectedProverb?.text===p.text?'✓':''}</div>${isRec?'<div class="rec-badge">⭐ מומלץ</div>':''}<div class="proverb-card-text">${esc(p.text)}</div>`;
+    card.onclick=()=>{selectedProverb=p;renderProverbsStatic(slice,recommended);};
+    container.appendChild(card);
+  });
+}
 
-  const statusEl=document.getElementById('ai-status');
+async function showNextProverbs(){
+  const all=await getProverbs();
+  currentProverbOffset+=10;
+  if(currentProverbOffset>=all.length)currentProverbOffset=0;
+  selectedProverb=null;
+  renderProverbs(all);
+}
+
+/* ══ STEP 5 → FINAL ══ */
+async function generateFinal(){
+  if(!selectedProverb){toast('נא לבחור פתגם');return;}
+  const statusEl=document.getElementById('final-status');
   statusEl.style.display='block';
-  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>עוזר ההוראה כותב את ההערכה הסופית...</div>`;
+  statusEl.innerHTML=`<div class="ai-status"><div class="ai-spin"></div>כותב הערכה סופית...</div>`;
 
   const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
   const halfText=selectedHalf==='ב'?'סוף שנת הלימודים':'מחצית א׳';
-  const closingPhrase=selectedHalf==='ב'?'לשנה הבאה':'למחצית הבאה';
-  const salutation=gender==='נקבה'?`היקרה ${selectedStudent},`:`היקר ${selectedStudent},`;
+  const examples=await getExamplesForPrompt();
 
-  const prompt=`אתה עוזר הוראה מנוסה. כתוב הערכה אישית לתעודה לסוף ${halfText}.
+  const prompt=`יש לך טיוטת הערכה. שלב בתוכה את הפתגם בצורה טבעית וצור את הגרסה הסופית.
 
-פרטים:
-- שם: ${selectedStudent}
-- מגדר: ${gender}
-- מחצית: ${selectedHalf==='ב'?'ב׳ — סוף שנה':'א׳'}
-- תכונות: ${selectedTraits.join(', ')||'לא צוינו'}
-- פתגם לשילוב: "${selectedProverb.text}"
-- מצב לימודי: ${academic||'לא צוין'}
-- מצב חברתי: ${social||'לא צוין'}
-- התנהגות: ${behavior||'לא צוין'}
-- תובנה אישית לעתיד: ${insight||'כתוב משפט עידוד מתאים'}
+טיוטה:
+${currentDraftText}
 
-הוראות כתיבה:
-1. פתח בשורה נפרדת: "${salutation}" — ואז ירידת שורה לפני המשך הטקסט
-2. כתוב בגוף ראשון מהמורה לתלמיד/ה: "אני" → "אתה/את" לאורך כל ההערכה (לא "הוא/היא")
-3. כתוב בצורה כללית וחמה — אל תפרט מקצועות ספציפיים, ציונים, או נושאים לימודיים בשמם
-4. שלב את הפתגם בטבעיות עם חיבור אישי — למשל: "כפי שאמר X, ואתה/את..." (לא ציטוט מבודד)
-5. סקור את התמונה הכוללת: לימודי + חברתי + התנהגות — בקצרה ובאיזון
-6. סיים עם מסר חינוכי קצר וברור לקראת ${closingPhrase} — מתוך התובנה האישית
-7. עברית חמה, אישית, בלשון ${gender}
-8. אורך: 5–7 משפטים בלבד — עדיפה הכללה חמה על פני רשימת פרטים
-9. אל תפרט יתר על המידה — קצר, ממוקד, אמיתי
-10. החזר רק את טקסט ההערכה — ללא כותרות, ללא הסברים
+פתגם לשילוב: ${selectedProverb.text}
 
-${examplesText}`;
+הוראות:
+1. שמור על הפתיחה עם שם התלמיד/ה
+2. כתוב בגוף ראשון/שני — "אני", "אתה/את", "הנך" — לפי הזרימה
+3. שלב את הפתגם בטבעיות — בפתיחה, באמצע, או לפני הסיום — לא כציטוט מבודד
+4. שמור על 5–7 משפטים, חם ואישי, בלשון ${gender}
+5. ודא שהסיום מכוון ל${selectedHalf==='ב'?'שנה הבאה':'מחצית הבאה'}
+6. החזר רק את הטקסט
+
+למד את הסגנון מהדוגמאות — חקה טון ומבנה, לא תוכן:
+${examples.map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n')}`;
 
   try{
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
-        system:'אתה עוזר הוראה מנוסה שכותב הערכות אישיות לתעודות בית ספר. כתוב בעברית חמה ואישית.',
+        system:'אתה עוזר הוראה מנוסה שכותב הערכות אישיות לתעודות. כתוב בעברית חמה, אישית וקצרה.',
         messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
     if(d.error)throw new Error(d.error.message);
     const text=(d.content?.[0]?.text||'').trim();
     if(!text)throw new Error('לא התקבל טקסט');
     statusEl.style.display='none';
-    showResult(text,selectedProverb);
+    showResult(text);
   }catch(e){
     statusEl.innerHTML=`<div class="ai-status" style="border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);">⚠️ שגיאה: ${e.message}</div>`;
   }
 }
 
-function showResult(text,proverb){
-  goStep(8);
-  document.getElementById('result-meta').textContent=
-    `${selectedStudent} · מחצית ${selectedHalf}׳ · ${selectedGroup?.name||''}`;
+function showResult(text){
+  goStep(6);
+  document.getElementById('result-meta').textContent=`${selectedStudent} · מחצית ${selectedHalf}׳ · ${selectedGroup?.name||''}`;
   document.getElementById('result-box').innerHTML=
-    `<div class="result-quote">✦ ${esc(proverb.text)}</div>
-     <div class="result-text">${esc(text)}</div>`;
+    `<div class="result-quote">✦ ${esc(selectedProverb?.text||'')}</div><div class="result-text">${esc(text)}</div>`;
   document.getElementById('result-edit').value=text;
-  document.getElementById('result-box')._proverb=proverb.text;
 }
 
-async function regenerateReport(){
-  goStep(7);
-  setTimeout(generateReport,100);
+async function regenerateFinal(){goStep(5);setTimeout(generateFinal,100);}
+
+/* ══ EXAMPLES ══ */
+async function getExamplesForPrompt(){
+  if(!styleExamplesCache){
+    const snap=await db.ref('teacher/styleExamples').once('value');
+    const data=snap.val()||{};
+    styleExamplesCache=Object.entries(data).filter(([k])=>k!=='seeded').map(([,v])=>v.text);
+    if(!styleExamplesCache.length)styleExamplesCache=DEFAULT_EXAMPLES;
+  }
+  return styleExamplesCache.sort(()=>Math.random()-.5).slice(0,6);
+}
+
+async function loadExamplesList(){
+  const snap=await db.ref('teacher/styleExamples').once('value');
+  const data=snap.val()||{};
+  const items=Object.entries(data).filter(([k])=>k!=='seeded');
+  const list=document.getElementById('examples-list');
+  if(!items.length){list.innerHTML='<div class="empty-state">אין דוגמאות</div>';return;}
+  list.innerHTML='';
+  items.forEach(([key,val])=>{
+    const div=document.createElement('div');div.className='example-item';
+    const badge=val.type==='custom'?'<span class="example-badge badge-custom">שלי</span>':'<span class="example-badge badge-default">בסיס</span>';
+    const del=val.type==='custom'?`<button class="btn-danger" style="position:absolute;top:10px;left:10px;padding:3px 8px;" onclick="deleteExample('${key}')">🗑</button>`:'';
+    div.innerHTML=`${badge}${del}<div style="font-size:.82rem;line-height:1.7;direction:rtl;">${esc(val.text.substring(0,150))}${val.text.length>150?'...':''}</div>`;
+    list.appendChild(div);
+  });
+  list.innerHTML+=`<div style="font-size:.75rem;opacity:.4;text-align:center;margin-top:10px;">${items.length} דוגמאות</div>`;
+}
+
+function showAddExample(){document.getElementById('add-example-form').style.display='block';}
+async function saveExample(){
+  const text=document.getElementById('new-example-text').value.trim();
+  if(text.length<20){toast('הדוגמה קצרה מדי');return;}
+  await db.ref('teacher/styleExamples/custom_'+Date.now()).set({text,type:'custom',addedAt:Date.now()});
+  styleExamplesCache=null;
+  document.getElementById('new-example-text').value='';
+  document.getElementById('add-example-form').style.display='none';
+  toast('✓ נשמרה');loadExamplesList();
+}
+async function deleteExample(key){
+  if(!confirm('למחוק?'))return;
+  await db.ref('teacher/styleExamples/'+key).remove();
+  styleExamplesCache=null;toast('✓ נמחקה');loadExamplesList();
+}
+
+/* ══ PROVERBS MANAGEMENT ══ */
+async function loadProvербsList(){
+  const all=await getProverbs();
+  const list=document.getElementById('proverbs-list');
+  list.innerHTML='';
+  all.forEach(p=>{
+    const div=document.createElement('div');div.className='example-item';
+    const del=p.type==='custom'?`<button class="btn-danger" style="position:absolute;top:10px;left:10px;padding:3px 8px;" onclick="deleteProverb('${p.key}')">🗑</button>`:'';
+    div.innerHTML=`<span class="example-badge ${p.type==='custom'?'badge-custom':'badge-default'}">${p.type==='custom'?'שלי':'בסיס'}</span>${del}<div style="font-size:.85rem;direction:rtl;">${esc(p.text)}</div>`;
+    list.appendChild(div);
+  });
+  list.innerHTML+=`<div style="font-size:.75rem;opacity:.4;text-align:center;margin-top:10px;">${all.length} פתגמים</div>`;
+}
+
+function showAddProverb(){document.getElementById('add-proverb-form').style.display='block';}
+async function saveProverb(){
+  const text=document.getElementById('new-proverb-text').value.trim();
+  if(!text){toast('נא להזין פתגם');return;}
+  await db.ref('teacher/proverbs/custom_'+Date.now()).set({text,type:'custom',addedAt:Date.now()});
+  proverbsCache=null;
+  document.getElementById('new-proverb-text').value='';
+  document.getElementById('add-proverb-form').style.display='none';
+  toast('✓ פתגם נשמר');loadProvербsList();
+}
+async function deleteProverb(key){
+  if(!confirm('למחוק?'))return;
+  await db.ref('teacher/proverbs/'+key).remove();
+  proverbsCache=null;toast('✓ נמחק');loadProvербsList();
 }
 
 /* ══ SAVE / EXPORT ══ */
 function saveReport(){
   const text=document.getElementById('result-edit').value.trim();
-  const proverb=document.getElementById('result-box')._proverb||'';
-  if(!text){toast('אין טקסט לשמירה');return;}
+  if(!text){toast('אין טקסט');return;}
   const key=selectedStudent.replace(/ /g,'_')+'_'+selectedHalf+'_'+Date.now();
-  const data={
-    student:selectedStudent,group:selectedGroup?.name||'',
-    half:selectedHalf,traits:selectedTraits,text,proverb,
-    savedAt:Date.now()
-  };
-  db.ref('teacher/reportCards/'+key).set(data);
-  toast('✓ ההערכה נשמרה — '+selectedStudent);
+  db.ref('teacher/reportCards/'+key).set({student:selectedStudent,group:selectedGroup?.name||'',half:selectedHalf,traits:selectedTraits,text,proverb:selectedProverb?.text||'',savedAt:Date.now()});
+  toast('✓ נשמרה — '+selectedStudent);
 }
-
-function copyReport(){
-  navigator.clipboard.writeText(document.getElementById('result-edit').value)
-    .then(()=>toast('✓ הועתק ללוח'));
-}
-
+function copyReport(){navigator.clipboard.writeText(document.getElementById('result-edit').value).then(()=>toast('✓ הועתק'));}
 function printReport(){
   const text=document.getElementById('result-edit').value;
-  const proverb=document.getElementById('result-box')._proverb||'';
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head>
-    <meta charset="UTF-8">
-    <style>body{font-family:'David',serif;padding:40px;direction:rtl;font-size:14pt;line-height:2;}
-    .proverb{text-align:center;font-style:italic;color:#666;margin-bottom:20px;font-size:12pt;}
-    h3{margin-bottom:10px;}</style></head><body>
-    <h3>ממני אליך — ${selectedStudent}</h3>
-    ${proverb?`<div class="proverb">✦ ${proverb}</div>`:''}
-    <p>${text.replace(/\n/g,'<br>')}</p>
-    <script>window.print();window.close();<\/script>
-    </body></html>`);
+  w.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"><style>body{font-family:'David',serif;padding:40px;direction:rtl;font-size:14pt;line-height:2;}</style></head><body><p>${text.replace(/\n/g,'<br>')}</p><script>window.print();window.close();<\/script></body></html>`);
 }
-
 function newReport(){
-  selectedStudent='';selectedTraits=[];selectedProverb=null;selectedHalf='';
-  selectedGroup=null;uploadedFileBase64=null;uploadedFileType=null;uploadMode='file';
-  document.getElementById('half-a').classList.remove('sel');
-  document.getElementById('half-b').classList.remove('sel');
-  ['desc-academic','desc-social','desc-behavior','desc-insight',
-   'ex-academic','ex-social','ex-behavior','raw-text-input'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value='';
-  });
-  document.getElementById('extracted-box').style.display='none';
-  document.getElementById('file-status').style.display='none';
-  document.getElementById('insight-suggestion').style.display='none';
-  switchTab('file');
-  renderTraits();
-  goStep(1);
+  selectedStudent='';selectedTraits=[];selectedProverb=null;selectedHalf='';selectedGroup=null;
+  uploadedFileBase64=null;uploadedFileType=null;uploadMode='file';currentDraftText='';
+  document.getElementById('half-a').classList.remove('sel');document.getElementById('half-b').classList.remove('sel');
+  document.getElementById('hobbies-input').value='';document.getElementById('insight-input').value='';
+  document.getElementById('raw-text-input').value='';
+  renderTraits();goStep(1);
 }
 
-/* ══ SAVED LIST ══ */
-function showSaved(show=true){
-  document.getElementById('saved-section').style.display=show?'block':'none';
-  if(!show)return;
-  for(let i=1;i<=8;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
-  document.getElementById('steps-bar').style.display='none';
+function loadSavedList(){
   db.ref('teacher/reportCards').once('value',snap=>{
     const data=snap.val()||{};
     const list=document.getElementById('saved-list');
     const items=Object.entries(data).sort((a,b)=>b[1].savedAt-a[1].savedAt);
-    if(!items.length){list.innerHTML='<div class="empty-state">אין הערכות שמורות עדיין</div>';return;}
+    if(!items.length){list.innerHTML='<div class="empty-state">אין הערכות שמורות</div>';return;}
     list.innerHTML='';
     items.forEach(([key,item])=>{
       const c=document.createElement('div');c.className='saved-card';
-      c.innerHTML=`
-        <div class="saved-header">
-          <div>
-            <span class="saved-name">${esc(item.student)}</span>
-            <span class="saved-meta"> · ${esc(item.group||'')} · מחצית ${esc(item.half||'')}׳</span>
-          </div>
-          <div style="display:flex;gap:5px;">
-            <button class="btn-sm" onclick="loadSaved('${key}')">✏️ ערוך</button>
-            <button class="btn-sm" onclick="copySaved('${key}')">📋 העתק</button>
-            <button class="btn-danger" onclick="deleteSaved('${key}')">🗑</button>
-          </div>
-        </div>
-        ${item.proverb?`<div style="font-size:.72rem;color:var(--gold);opacity:.6;margin-bottom:4px;">✦ ${esc(item.proverb)}</div>`:''}
+      c.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <div><span class="saved-name">${esc(item.student)}</span><span class="saved-meta"> · ${esc(item.group||'')} · מחצית ${esc(item.half||'')}׳</span></div>
+        <div style="display:flex;gap:5px;">
+          <button class="btn-sm" onclick="copySaved('${key}')">📋</button>
+          <button class="btn-danger" onclick="deleteSaved('${key}')">🗑</button>
+        </div></div>
+        ${item.proverb?`<div style="font-size:.72rem;color:var(--gold);opacity:.6;margin-bottom:3px;">✦ ${esc(item.proverb)}</div>`:''}
         <div class="saved-preview">${esc(item.text||'')}</div>`;
       list.appendChild(c);
     });
   });
 }
-
-function loadSaved(key){
-  db.ref('teacher/reportCards/'+key).once('value',snap=>{
-    const item=snap.val();if(!item)return;
-    selectedStudent=item.student;
-    selectedHalf=item.half;
-    selectedGroup=groups.find(g=>g.name===item.group)||null;
-    document.getElementById('saved-section').style.display='none';
-    document.getElementById('steps-bar').style.display='flex';
-    showResult(item.text,{text:item.proverb||''});
-  });
-}
-
-function copySaved(key){
-  db.ref('teacher/reportCards/'+key).once('value',snap=>{
-    const item=snap.val();if(!item)return;
-    navigator.clipboard.writeText(item.text).then(()=>toast('✓ הועתק — '+item.student));
-  });
-}
-
-function deleteSaved(key){
-  if(!confirm('למחוק הערכה זו?'))return;
-  db.ref('teacher/reportCards/'+key).remove();
-  showSaved();toast('✓ נמחקה');
-}
-
+function copySaved(key){db.ref('teacher/reportCards/'+key).once('value',snap=>{const i=snap.val();if(i)navigator.clipboard.writeText(i.text).then(()=>toast('✓ הועתק — '+i.student));});}
+function deleteSaved(key){if(!confirm('למחוק?'))return;db.ref('teacher/reportCards/'+key).remove();toast('✓ נמחקה');loadSavedList();}
 function exportAllCSV(){
   db.ref('teacher/reportCards').once('value',snap=>{
     const data=snap.val()||{};
-    const rows=[['שם תלמיד/ה','קבוצה','מחצית','פתגם','הערכה'].map(c=>`"${c}"`).join(',')];
-    Object.values(data).forEach(item=>{
-      rows.push([item.student,item.group||'',item.half||'',item.proverb||'',item.text||'']
-        .map(c=>`"${String(c).replace(/"/g,'""').replace(/\n/g,' ')}"`)
-        .join(','));
-    });
+    const rows=[['שם','קבוצה','מחצית','פתגם','הערכה'].map(c=>`"${c}"`).join(',')];
+    Object.values(data).forEach(item=>{rows.push([item.student,item.group||'',item.half||'',item.proverb||'',item.text||''].map(c=>`"${String(c).replace(/"/g,'""').replace(/\n/g,' ')}"`).join(','));});
     const blob=new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);a.download='הערכות_תעודה.csv';a.click();
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='הערכות_תעודה.csv';a.click();
   });
-}
-
-
-/* ══ STYLE EXAMPLES ══ */
-const DEFAULT_EXAMPLES=['תלמיד נבון, חרוץ ושקדן. רוצה לדעת עוד ועוד- ילד סקרן.\nהגעת להישגים בזכות רצינותך, אהוב על חבריך בזכות נדיבותך.\nהשתפרת מאוד בהתנהגותך. אני מאמינה בך ויודעת שאתה מסוגל,\nאז השתדל להיות פחות תחרותי ותלמד ליהנות מהתחרות. \nלדעת להפסיד בכבוד זה גם לנצח!', 'ילד עם אור בעיניים וחיוך נפלא על השפתיים.\nתלמיד מוכשר, אחראי עם ראש נבון על הכתפיים.\nאתה יודע לעבוד ביסודיות וברצינות וכך מגיע להישגים\nולתוצאות נפלאות!\nהמשך כך!', 'יש בך יופי, רוגע ושלווה\nילדה נפלאה, יסודית וחרוצה.\nהמשיכי ללכת בצעד בטוח מול כל משימה.\nהיי כפי שאת והמשיכי לתרום לכל הכיתה.\nאת משתתפת יותר וקולך נשמע. המשיכי כך!', 'שי היקר!\nבמהלך שנתיים של הכרות עימך ראיתי כי טמון בך עולם עשיר של דמיון וסקרנות שכל כך מייחדת אותך במרקם הכיתתי. תגליות חדשות הציתו זיק של אור בעיניך והישגיך הלימודיים משקפים סקרנות וצימאון בלתי נלאה להרחיב את אופקיך.\nבתחום החברתי אתה ראוי להערכה על מאמציך לשליטה עצמית. אני מאמינה כי אם תמשיך בדרך זו יוכלו גם חבריך לכיתה לראות עד כמה אתה ילד מיוחד!', 'בני היקר!\nבמהלך שנתיים של היכרות עימך גיליתי ילד מדהים, נעים הליכות ובעל כישרונות מגוונים בכל מיני תחומים. אתה פסנתרן מוכשר וגם שחיין כמו דג במים. לקחת ברצינות רבה את העובדה כי צריך לשפר ולחזק את הרגלי הלמידה וכבר במחצית זו, יגעת ועמלת והגעת, כמעט, לכל שיעור ושיעור מצויד גם בשיעורי בית. בתחום החברתי אתה ילד פעיל ובחברתך נעים לשהות.', 'סשה היקר!\nהשנה הצטרפת אלינו וניכר כי השתדלת מאוד להשתלב במנגינה זו שלנו. בתחום החברתי רכשת מעגל חברים חדש וניכר כי מצאת עצמך במרקם החברתי בכיתתנו. במחצית זו גילתה נכונות לשפר את הרגלי עבודתך אך במהרה זנחת את מטלותיך וחזרת להתחלה. כן, זה קשה! אני יודעת. עליך להתמודד עם אתגר רציני: קח אחריות, הבא בכל שיעור את הציוד ואל תשכח להכין שיעורים.', 'רוני היקרה!\nבמהלך שנתיים של הכרות עימך, ראיתי שיש ביכולתך לטפס ולזכות בקצירת פירותייך, פעמים רבות עמדת במטלה זו! לצערי במחצית שחלפה לא תמיד הקפדת להתאמץ ולמצות את היכולות הטמונות בך וחבל. אני מקווה כי בימים שיבואו תגלי כי אם תקחי אחריות ללמידתך, תוכלי למצות את היכולת הטמונה בך - האמיני בעצמך את מסוגלת!', 'נועם היקר!\nבמחצית זו חל שיפור במוטיבציה שלך ללימודים, השקעת יותר בלימודים ושיפרת את הישגייך. שיפרת את הקשבתך ותרמת מידיעותיך בדיונים בכיתה. למדת על עצמך שאתה מסוגל ליותר. אתה יכול להצליח בכל היבט של חייך אם תוכל לשמור על כלל אחד חשוב - פעל בהתמדה! האמן בעצמך. אם תרצה משהו מספיק חזק - תמצא את הדרך.', 'עברה לה רק חצי שנה, וכל כך הרבה בך השתנה.\nילדה נעימה עם חיוך מקסים. למדת להתמודד עם אתגרים.\nלומדת נפלא, עובדת ותורמת ומגיעה להישגים יפים מאוד.\nהמשיכי כך, כל הכבוד!', 'הנך נבון, יודע המון. עם ראש מלא כרימון..\nבעל כישורי למידה מיוחדים, אתה סקרן ואוהב את הלימודים.\nחרוץ, שקדן בעל משמעת עצמית, לכל משימה ניגש ומתמיד.\nאתה ילד נפלא, רגיש ועדין, חבר נאמן, מושיט יד לעזרה.\nמכבד את כולם מסביבך.\nאני שמחה להיות המורה שלך.', 'הנך תלמידה נהדרת ומוכשרת, אוהבת ללמוד, שואלת שאלות ועומדת יפה במשימות.\nאת ילדה שובבה ומצחיקה והכל אצלך נעשה במידה ובצורה נעימה. הפגישה אתך היא חוויה כי את היא סוג של הצלחה. נהניתי ללמד וללמוד איתך.', 'הנך תלמיד חביב, בעל יכולת להצליח. במחצית זו בחרת שלא להשקיע עניין ומאמצים בלימודים. למד לקחת דברים במידה, לגלות סובלנות ומידת איפוק בסביבתך.\nקח לך את הזמן בחופש הגדול, השקע מחשבה בהמשך דרכך! אני בטוחה שתדע לזהות את האור בקצה המנהרה ולחזור אל הדרך הבטוחה המובילה להצלחה.', 'אמרו חכמי חז"ל: \'דברי חכמים - בנחת נשמעים\' וכאילו עליך נאמרו הדברים. שקטה, רצינית, מצטנעת ומנומסת. בדרכך המיוחדת את יודעת להקשיב, ללמוד ולהצטיין בכל תחומי הדעת והספורט. תמיד נרתמת לעזרה ומבוקשת בין חבריך בכיתה. אני גאה בך!', 'נועם היקר!\nבמה אפתח? ומה אגיד? הייתה לך שנה לא קלה וזה ברור כשמש. חזרת ללימודים מלווה בכאבים אך לא ויתרת והיום אתה שוב משחק כדורגל במגרש עם החברים. את לימודיך לא זנחת ועבדת, אפילו, מעל מיטת בית החולים. יודעת אני כי הישגיך אינם גבוהים אבל אין צורך לחשוש כי במהלך חופשת הקיץ תשנס מותניים ותשקיע עוד מאמץ ובשנה הבאה תגרוף הצלחות חדשות.', 'הנך תלמיד נבון, חרוץ ואוהב פעילות: כדורגל, כדורסל - מה זה חשוב? עליך ללמוד לא להתרגז כי כשאתה כועס כל היום שלך משתבש. המשך להשקיע מאמצים בלימודים ולבסוף תצליח להגיע להישגים משמעותיים.', 'מהיום הראשון שנפגשנו היית תעלומה. אם הייתי אגתה כריסטי, הייתי כותבת עליך סדרה מדהימה. את אוהבת חיות אבל לא לעבוד. הנך תלמידה שקטה ונבונה עם הרבה תבונה אל תוותרי לעצמך.', 'העזרה לכולם אצלך תמיד במקום הראשון.\nאתה רואה בחברות ערך עליון.\nגם חבר טוב וגם תלמיד נפלא:\nחרוץ, שקדן, סקרן ואחראי ומגלה יוזמה.\nאני שמחה להיות מורה לתלמיד שכמותך!', 'בעל חוש הומור וחיוך על השפתיים.\nפיקח ונבון, ראש טוב על הכתפיים.\nבעל תחומי עניין מאוד מרתקים,\nאותנו מצחיק תמיד בזמן השיעורים.\nאתה חרוץ ושקדן ובעל ראש יצירתי מאוד.\nהמשך כך!', 'התחלנו קצת ברגל שמאל אבל מאז השלמנו את צעדי המחול. כיום אנחנו פועלות בשיתוף וכולנו הרווחנו בגדול. הנך תלמידה אחראית ונבונה. במהלך מחצית זו הראית כי את מסוגלת להתאמץ ולהצליח בלימודים ובכל מה שתבחרי לעשות.', 'שמחת החיים המפעמת בך גורמת לכולם לרצות בחברתך תמיד. את תלמידה נפלאה החל מן הפן הלימודי - בו את עושה מאמצים כדי לקדם את עצמך, דרך הפן החברתי וכלה בכשרון הגדול שלך בריקוד. לא נותר לי אלא לאחל לך שתישארי את - עצמך ושתמשיכי להאמין בכוחך לשנות, להתקדם ולהשפיע.'];
-
-let styleExamplesCache=null;
-
-async function loadStyleExamples(){
-  if(styleExamplesCache)return styleExamplesCache;
-  const snap=await db.ref('teacher/styleExamples').once('value');
-  const data=snap.val()||{};
-  // Seed defaults if empty
-  if(!data.seeded){
-    const updates={seeded:true};
-    DEFAULT_EXAMPLES.forEach((ex,i)=>{
-      updates['default_'+String(i).padStart(3,'0')]={text:ex,type:'default',addedAt:Date.now()};
-    });
-    await db.ref('teacher/styleExamples').update(updates);
-    styleExamplesCache=DEFAULT_EXAMPLES.map((text,i)=>({key:'default_'+String(i).padStart(3,'0'),text,type:'default'}));
-  } else {
-    styleExamplesCache=Object.entries(data)
-      .filter(([k])=>k!=='seeded')
-      .map(([key,val])=>({key,text:val.text,type:val.type||'default'}));
-  }
-  return styleExamplesCache;
-}
-
-async function getExamplesForPrompt(){
-  const examples=await loadStyleExamples();
-  return examples.map(e=>e.text);
-}
-
-function showExamples(show=true){
-  document.getElementById('examples-section').style.display=show?'block':'none';
-  if(!show)return;
-  for(let i=1;i<=8;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
-  document.getElementById('steps-bar').style.display='none';
-  document.getElementById('saved-section').style.display='none';
-  renderExamplesList();
-}
-
-async function renderExamplesList(){
-  const list=document.getElementById('examples-list');
-  list.innerHTML='<div class="empty-state">טוען...</div>';
-  const examples=await loadStyleExamples();
-  if(!examples.length){list.innerHTML='<div class="empty-state">אין דוגמאות עדיין</div>';return;}
-  list.innerHTML='';
-  examples.forEach((ex,i)=>{
-    const div=document.createElement('div');div.className='example-item';
-    const badge=ex.type==='custom'
-      ?'<span class="example-badge badge-custom">שלי</span>'
-      :'<span class="example-badge badge-default">בסיס</span>';
-    const deleteBtn=ex.type==='custom'
-      ?`<button class="btn-danger" style="position:absolute;top:10px;left:10px;padding:3px 8px;" onclick="deleteExample('${ex.key}')">🗑</button>`:'';
-    div.innerHTML=`${badge}${deleteBtn}
-      <div class="example-item-text" id="ex-text-${i}">${esc(ex.text.substring(0,120))}${ex.text.length>120?'...':''}</div>
-      ${ex.text.length>120?`<div style="margin-top:4px;"><span style="font-size:.72rem;color:var(--gold);cursor:pointer;" onclick="toggleExample(${i},'${ex.key}')">▼ הצג הכל</span></div>`:''}`;
-    list.appendChild(div);
-  });
-  list.innerHTML+=`<div style="font-size:.75rem;opacity:.4;margin-top:12px;text-align:center;">${examples.length} דוגמאות במאגר</div>`;
-}
-
-function toggleExample(i,key){
-  const el=document.getElementById('ex-text-'+i);
-  const ex=styleExamplesCache.find(e=>e.key===key);
-  if(!ex)return;
-  if(el.classList.contains('expanded')){
-    el.textContent=ex.text.substring(0,120)+'...';
-    el.classList.remove('expanded');
-  } else {
-    el.textContent=ex.text;
-    el.classList.add('expanded');
-  }
-}
-
-function showAddExample(){
-  document.getElementById('add-example-form').style.display='block';
-  document.getElementById('new-example-text').focus();
-}
-
-async function saveExample(){
-  const text=document.getElementById('new-example-text').value.trim();
-  if(!text||text.length<20){toast('הדוגמה קצרה מדי');return;}
-  const key='custom_'+Date.now();
-  await db.ref('teacher/styleExamples/'+key).set({text,type:'custom',addedAt:Date.now()});
-  styleExamplesCache=null;
-  document.getElementById('new-example-text').value='';
-  document.getElementById('add-example-form').style.display='none';
-  toast('✓ דוגמה נשמרה');
-  renderExamplesList();
-}
-
-async function deleteExample(key){
-  if(!confirm('למחוק דוגמה זו?'))return;
-  await db.ref('teacher/styleExamples/'+key).remove();
-  styleExamplesCache=null;
-  toast('✓ נמחקה');
-  renderExamplesList();
 }
 
 /* ══ UTILS ══ */
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function toast(msg,ms=2500){
-  const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
-  clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',ms);
-}
+function toast(msg,ms=2500){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',ms);}
 </script>
 </body>
 </html>
