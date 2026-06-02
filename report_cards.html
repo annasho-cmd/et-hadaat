@@ -162,6 +162,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="field-label">תכונות (עד 10)</div>
     <div class="field-hint" id="trait-count">בחרי עד 10 תכונות</div>
     <div class="traits-grid" id="traits-grid"></div>
+    <!-- Selected traits editable chips -->
+    <div id="selected-traits-area" style="display:none;margin-bottom:14px;">
+      <div class="field-label" style="margin-bottom:6px;">תכונות שנבחרו — לחצי על ✕ להסרה:</div>
+      <div id="selected-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input id="custom-trait-input" type="text" placeholder="הוסיפי תכונה ידנית..."
+          style="flex:1;padding:7px 11px;background:rgba(253,245,224,.06);border:1.5px solid var(--border);border-radius:8px;color:var(--parch);font-family:'Heebo',sans-serif;font-size:.85rem;outline:none;direction:rtl;"
+          onkeydown="if(event.key==='Enter')addCustomTrait()">
+        <button class="btn-sm" onclick="addCustomTrait()">✚ הוסיפי</button>
+      </div>
+    </div>
     <div style="margin-bottom:14px;">
       <div class="field-label">תחביבים ופעילויות</div>
       <div class="field-hint">כמה מילים — כלבים, כדורגל, ציור, מוזיקה...</div>
@@ -665,6 +676,43 @@ function toggleTrait(t,el){
   if(selectedTraits.includes(t)){selectedTraits=selectedTraits.filter(x=>x!==t);el.classList.remove('sel');}
   else{if(selectedTraits.length>=10){toast('עד 10 תכונות');return;}selectedTraits.push(t);el.classList.add('sel');}
   document.getElementById('trait-count').textContent=`נבחרו ${selectedTraits.length}/10 תכונות`;
+  renderSelectedChips();
+}
+
+function renderSelectedChips(){
+  const area=document.getElementById('selected-traits-area');
+  const chipsEl=document.getElementById('selected-chips');
+  if(!selectedTraits.length){area.style.display='none';return;}
+  area.style.display='block';
+  chipsEl.innerHTML='';
+  selectedTraits.forEach(t=>{
+    const chip=document.createElement('div');
+    chip.style.cssText='display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(212,168,67,.18);border:1px solid var(--gold);border-radius:14px;font-size:.8rem;color:var(--gold2);';
+    chip.innerHTML=`${esc(t)} <span style="cursor:pointer;opacity:.7;font-size:.75rem;" onclick="removeTrait('${t}')">✕</span>`;
+    chipsEl.appendChild(chip);
+  });
+}
+
+function removeTrait(t){
+  selectedTraits=selectedTraits.filter(x=>x!==t);
+  // Unmark in grid
+  document.querySelectorAll('.trait-tag').forEach(el=>{
+    if(el.textContent===t)el.classList.remove('sel');
+  });
+  document.getElementById('trait-count').textContent=`נבחרו ${selectedTraits.length}/10 תכונות`;
+  renderSelectedChips();
+}
+
+function addCustomTrait(){
+  const input=document.getElementById('custom-trait-input');
+  const val=input.value.trim();
+  if(!val){toast('נא להזין תכונה');return;}
+  if(selectedTraits.includes(val)){toast('תכונה זו כבר נבחרה');return;}
+  if(selectedTraits.length>=10){toast('עד 10 תכונות');return;}
+  selectedTraits.push(val);
+  input.value='';
+  document.getElementById('trait-count').textContent=`נבחרו ${selectedTraits.length}/10 תכונות`;
+  renderSelectedChips();
 }
 
 /* ══ STEP 3 → DRAFT ══ */
@@ -918,8 +966,8 @@ ${currentDraftText}
 1. שמור על הפתיחה עם שם התלמיד/ה
 2. כתוב בגוף ראשון/שני — "אני", "אתה/את", "הנך" — לפי הזרימה
 3. בנקבה — "עלייך", בזכר — "עליך". אל תשתמש ב"ילד"/"ילדה" — רק "נער/נערה" או "תלמיד/תלמידה"
-4. שלב את הפתגם בטבעיות עם ציון המקור — למשל: כפי שנאמר [פתגם] ([מקור]) — בפתיחה, באמצע, או לפני הסיום
-5. כשמזכירים את הפתגם יש לכתוב אותו בגרשיים ולציין את מקורו
+4. שלב את הפתגם בטבעיות בתוך משפט — בפתיחה, באמצע, או לפני הסיום
+5. חובה: כתוב את הפתגם בדיוק כפי שניתן — מילה במילה, ללא שינוי כלשהו. שים אותו בגרשיים. הפתגם כבר כולל את מקורו בסוגריים — שמור גם אותו כפי שהוא.
 6. שמור על 5–7 משפטים, חם ואישי, בלשון ${gender}
 7. ודא שהסיום מכוון ל${selectedHalf==='ב'?'שנה הבאה':'מחצית הבאה'}
 8. החזר רק את הטקסט
