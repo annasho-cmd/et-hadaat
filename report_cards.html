@@ -193,7 +193,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <!-- STEP 4: UPLOAD REPORT (optional) -->
   <div id="step4" class="card" style="display:none;">
     <div class="card-title">✦ שלב 4 — העלאת תעודה (אופציונלי)</div>
-    <div class="field-hint" style="margin-bottom:12px;">העלאת תעודה תאפשר ל-AI לעבות את הטיוטה עם פרטים נוספים מהיגדי המורים.</div>
+    <div class="field-hint" style="margin-bottom:12px;">העלאת תעודה תאפשר ל-AI לעבות את הטיוטה על בסיס הערות המורים והסיכום האישי של התלמיד.</div>
 
     <!-- DRAFT PREVIEW -->
     <div class="draft-box" id="draft-preview">
@@ -825,7 +825,16 @@ async function enrichDraft(){
         :{type:'image',source:{type:'base64',media_type:normalizedMime,data:uploadedFileBase64}};
       const extractR=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
-          messages:[{role:'user',content:[filePart,{type:'text',text:'חלץ מהתעודה רק את הערות המורים המילוליות — ללא ציונים, ללא שמות מקצועות. החזר רק את ההערות בעברית, כל אחת בשורה.'}]}]})});
+          messages:[{role:'user',content:[filePart,{type:'text',text:'חלץ מהתעודה שני חלקים:
+1. הערות המורים המילוליות — ללא ציונים, ללא שמות מקצועות
+2. הסיכום האישי של התלמיד (אם קיים — לעיתים נקרא "סיכום אישי" או "דברי התלמיד")
+
+החזר בפורמט:
+הערות מורים:
+[הערות]
+
+סיכום אישי של התלמיד:
+[הסיכום או "לא נמצא"]'}]}]})});
       const ed=await extractR.json();
       reportContent=(ed.content?.[0]?.text||'').trim();
     }
@@ -840,13 +849,13 @@ async function enrichDraft(){
 טיוטה קיימת:
 ${currentDraftText}
 
-היגדי המורים מהתעודה (השתמש בתוכן הכללי — ללא שמות מקצועות):
+נתוני התעודה (השתמש בתוכן הכללי — ללא שמות מקצועות):
 ${reportContent}
 
 הוראות:
 1. שמור על הפתיחה "${salutation}"
 2. שמור על הסגנון החם והאישי של הטיוטה
-3. חובה: שלב תוכן מהיגדי המורים — הם כוללים מידע על רגלי למידה, גישה, חברתיות. השתמש בתוכן הזה בצורה כללית ואנושית — ללא שמות מקצועות
+3. חובה: שלב תוכן מנתוני התעודה — התייחס הן להערות המורים (רגלי למידה, גישה, חברתיות) והן לסיכום האישי שכתב התלמיד אם קיים. השתמש בתוכן בצורה כללית ואנושית — ללא שמות מקצועות
 4. בנקבה — "עלייך", בזכר — "עליך". אל תשתמש ב"ילד"/"ילדה" — רק "נער/נערה" או "תלמיד/תלמידה"
 5. אל תאריך — שמור על 5–7 משפטים
 6. בלשון ${gender}
