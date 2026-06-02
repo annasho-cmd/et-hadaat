@@ -42,6 +42,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .student-btn{padding:9px 12px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--parch);text-align:right;transition:all .2s;}
 .student-btn:hover{border-color:var(--gold);background:rgba(212,168,67,.08);}
 .student-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.15);color:var(--gold2);font-weight:700;}
+.student-btn.done{border-color:#6ee7a0;background:rgba(42,107,42,.15);color:#6ee7a0;}
+.student-btn.done::after{content:' ✓';font-size:.75rem;}
+.progress-bar{background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;height:8px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#2a6b2a,#6ee7a0);transition:width .4s;}
+.progress-label{font-size:.75rem;opacity:.55;margin-bottom:6px;}
 .gender-toggle{display:flex;gap:8px;margin-bottom:14px;}
 .gender-btn{padding:7px 18px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--muted);transition:all .2s;}
 .gender-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
@@ -107,6 +112,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button class="btn-sm" onclick="showSection('proverbs')">📖 פתגמים</button>
     <button class="btn-sm" onclick="showSection('examples')">📚 דוגמאות סגנון</button>
     <button class="btn-sm" onclick="showSection('saved')">📋 הערכות שמורות</button>
+    <button class="btn-sm" onclick="showSection('report')">📊 דוח כיתתי</button>
     <button class="btn-back" onclick="window.location.href='teacher_dashboard.html'">← לוח המורה</button>
   </div>
 </div>
@@ -285,6 +291,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
   </div>
 
+  <!-- CLASS REPORT -->
+  <div id="report-section" style="display:none;">
+    <div class="card">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📊 דוח כיתתי</span>
+        <button class="btn-sm" onclick="showSection(null)">✕</button>
+      </div>
+      <div class="field-hint" style="margin-bottom:14px;">בחרי קבוצה ומחצית לייצוא כל ההערכות.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <select class="group-select" id="report-group" style="flex:1;min-width:160px;">
+          <option value="">— קבוצה —</option>
+        </select>
+        <select class="group-select" id="report-half" style="flex:1;min-width:120px;">
+          <option value="א">מחצית א׳</option>
+          <option value="ב">מחצית ב׳</option>
+        </select>
+      </div>
+      <div id="report-preview" style="display:none;"></div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="loadReportPreview()">🔍 טעני דוח</button>
+        <button class="btn-green" id="export-word-btn" onclick="exportWord()" style="display:none;">📄 ייצוא Word</button>
+        <button class="btn-sm" id="export-excel-btn" onclick="exportExcel()" style="display:none;">📊 ייצוא Excel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- PROVERBS -->
   <div id="proverbs-section" style="display:none;">
     <div class="card">
@@ -399,6 +431,7 @@ const DEFAULT_EXAMPLES=[
 
 /* ══ STATE ══ */
 let currentStep=1,selectedHalf='',selectedGroup=null,selectedStudent='',selectedStudentGender='זכר';
+let doneStudents={}; // key: 'group_student_half' → true
 let selectedTraits=[],selectedProverb=null,currentProverbOffset=0;
 let groups=[],uploadedFileBase64=null,uploadedFileType=null,uploadMode='file';
 let currentDraftText='',proverbsCache=null,styleExamplesCache=null;
@@ -465,12 +498,104 @@ function goStep(n){
 function showSection(name){
   for(let i=1;i<=6;i++){const el=document.getElementById('step'+i);if(el)el.style.display='none';}
   document.getElementById('steps-bar').style.display=name?'none':'flex';
-  ['saved-section','examples-section','proverbs-section'].forEach(id=>document.getElementById(id).style.display='none');
+  ['saved-section','examples-section','proverbs-section','report-section'].forEach(id=>document.getElementById(id).style.display='none');
   if(name==='saved'){document.getElementById('saved-section').style.display='block';loadSavedList();}
   else if(name==='examples'){document.getElementById('examples-section').style.display='block';loadExamplesList();}
   else if(name==='proverbs'){document.getElementById('proverbs-section').style.display='block';loadProvербsList();}
+  else if(name==='report'){document.getElementById('report-section').style.display='block';populateReportGroups();}
   else{goStep(currentStep);}
 }
+
+function populateReportGroups(){
+  const sel=document.getElementById('report-group');
+  sel.innerHTML='<option value="">— קבוצה —</option>';
+  groups.forEach(g=>{const o=document.createElement('option');o.value=g.name;o.textContent=g.name;sel.appendChild(o);});
+}
+
+async function loadReportPreview(){
+  const groupName=document.getElementById('report-group').value;
+  const half=document.getElementById('report-half').value;
+  if(!groupName){toast('נא לבחור קבוצה');return;}
+  const snap=await db.ref('teacher/reportCards').once('value');
+  const data=snap.val()||{};
+  const items=Object.values(data)
+    .filter(i=>i.group===groupName&&i.half===half)
+    .sort((a,b)=>a.student.localeCompare(b.student,'he'));
+  const preview=document.getElementById('report-preview');
+  if(!items.length){
+    preview.style.display='block';
+    preview.innerHTML='<div class="empty-state">אין הערכות שמורות לקבוצה זו במחצית זו</div>';
+    document.getElementById('export-word-btn').style.display='none';
+    document.getElementById('export-excel-btn').style.display='none';
+    return;
+  }
+  preview.style.display='block';
+  preview.innerHTML=`
+    <div style="font-size:.82rem;color:#6ee7a0;margin-bottom:12px;">✓ נמצאו ${items.length} הערכות — ${groupName} · מחצית ${half}׳</div>
+    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+    ${items.map(item=>`
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);">
+        <div style="font-size:.85rem;font-weight:700;color:var(--gold2);margin-bottom:4px;">${esc(item.student)}</div>
+        ${item.proverb?`<div style="font-size:.72rem;color:var(--gold);opacity:.65;margin-bottom:4px;">✦ ${esc(item.proverb)}</div>`:''}
+        <div style="font-size:.8rem;line-height:1.7;opacity:.8;direction:rtl;">${esc(item.text||'').substring(0,180)}${(item.text||'').length>180?'...':''}</div>
+      </div>`).join('')}
+    </div>`;
+  document.getElementById('export-word-btn').style.display='inline-flex';
+  document.getElementById('export-excel-btn').style.display='inline-flex';
+  // Store for export
+  preview._items=items;preview._group=groupName;preview._half=half;
+}
+
+async function exportExcel(){
+  const preview=document.getElementById('report-preview');
+  const items=preview._items;if(!items)return;
+  const group=preview._group,half=preview._half;
+  // Build CSV (Excel-compatible with BOM)
+  const rows=[['שם תלמיד/ה','פתגם','הערכה'].map(c=>`"${c}"`).join(',')];
+  items.forEach(item=>{
+    rows.push([item.student,item.proverb||'',item.text||'']
+      .map(c=>`"${String(c).replace(/"/g,'""').replace(/
+/g,' ')}"`)
+      .join(','));
+  });
+  const blob=new Blob(['﻿'+rows.join('
+')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`ממני_אליך_${group}_מחצית_${half}.csv`;
+  a.click();
+  toast('✓ קובץ Excel מוכן להורדה');
+}
+
+async function exportWord(){
+  const preview=document.getElementById('report-preview');
+  const items=preview._items;if(!items)return;
+  const group=preview._group,half=preview._half;
+  // Build HTML that Word can open
+  const rtlStyle='direction:rtl;text-align:right;font-family:David,Arial;font-size:12pt;line-height:1.8;';
+  const studentBlocks=items.map(item=>`
+    <div style="${rtlStyle}margin-bottom:28px;page-break-inside:avoid;">
+      <div style="font-weight:bold;font-size:13pt;margin-bottom:4px;border-bottom:1px solid #ccc;padding-bottom:4px;">${escHtml(item.student)}</div>
+      ${item.proverb?`<div style="font-style:italic;color:#7a5c00;font-size:11pt;margin-bottom:6px;">✦ ${escHtml(item.proverb)}</div>`:''}
+      <div style="${rtlStyle}">${escHtml(item.text||'').replace(/
+/g,'<br>')}</div>
+    </div>`).join('');
+  const html=`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8">
+    <style>body{${rtlStyle}padding:30px;} h1{font-size:16pt;text-align:center;margin-bottom:8px;} .sub{text-align:center;font-size:11pt;color:#666;margin-bottom:24px;border-bottom:2px solid #c8a000;padding-bottom:12px;}</style>
+    </head><body>
+    <h1>ממני אליך</h1>
+    <div class="sub">${escHtml(group)} · מחצית ${escHtml(half)}׳ · ${items.length} תלמידים</div>
+    ${studentBlocks}
+    </body></html>`;
+  const blob=new Blob([html],{type:'application/msword;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`ממני_אליך_${group}_מחצית_${half}.doc`;
+  a.click();
+  toast('✓ קובץ Word מוכן להורדה');
+}
+
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 /* ══ STEP 1 ══ */
 function selectHalf(h){
@@ -488,8 +613,28 @@ function loadStudents(){
   document.getElementById('step2-next').style.display='none';
   document.getElementById('gender-row').style.display='none';
   if(!group||!group.students?.length){grid.innerHTML='<div class="empty-state">אין תלמידים</div>';return;}
-  grid.innerHTML='';
-  group.students.forEach(s=>{const btn=document.createElement('button');btn.className='student-btn';btn.textContent=s;btn.onclick=()=>selectStudent(s,btn);grid.appendChild(btn);});
+  // Load done students for this group+half
+  db.ref('teacher/reportCards').once('value',snap=>{
+    const data=snap.val()||{};
+    doneStudents={};
+    Object.values(data).forEach(item=>{
+      if(item.group===group.name&&item.half===selectedHalf)
+        doneStudents[item.student]=true;
+    });
+    const doneCount=Object.keys(doneStudents).length;
+    const total=group.students.length;
+    grid.innerHTML=`
+      <div class="progress-label" style="grid-column:1/-1;">הושלמו ${doneCount} מתוך ${total} תלמידים</div>
+      <div class="progress-bar" style="grid-column:1/-1;"><div class="progress-fill" style="width:${total?Math.round(doneCount/total*100):0}%"></div></div>`;
+    group.students.forEach(s=>{
+      const btn=document.createElement('button');
+      const isDone=!!doneStudents[s];
+      btn.className='student-btn'+(isDone?' done':'');
+      btn.textContent=s;
+      btn.onclick=()=>selectStudent(s,btn);
+      grid.appendChild(btn);
+    });
+  });
 }
 
 function selectStudent(name,btn){
@@ -888,6 +1033,20 @@ function saveReport(){
   if(!text){toast('אין טקסט');return;}
   const key=selectedStudent.replace(/ /g,'_')+'_'+selectedHalf+'_'+Date.now();
   db.ref('teacher/reportCards/'+key).set({student:selectedStudent,group:selectedGroup?.name||'',half:selectedHalf,traits:selectedTraits,text,proverb:selectedProverb?.text||'',savedAt:Date.now()});
+  // Mark student as done in UI
+  doneStudents[selectedStudent]=true;
+  document.querySelectorAll('.student-btn').forEach(btn=>{
+    if(btn.textContent.replace(' ✓','').trim()===selectedStudent){
+      btn.classList.add('done');btn.classList.remove('sel');
+    }
+  });
+  // Update progress bar
+  const total=selectedGroup?.students?.length||0;
+  const doneCount=Object.keys(doneStudents).length;
+  const fill=document.querySelector('.progress-fill');
+  const label=document.querySelector('.progress-label');
+  if(fill)fill.style.width=(total?Math.round(doneCount/total*100):0)+'%';
+  if(label)label.textContent=`הושלמו ${doneCount} מתוך ${total} תלמידים`;
   toast('✓ נשמרה — '+selectedStudent);
 }
 function copyReport(){navigator.clipboard.writeText(document.getElementById('result-edit').value).then(()=>toast('✓ הועתק'));}
