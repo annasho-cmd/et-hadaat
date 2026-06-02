@@ -565,12 +565,10 @@ async function exportExcel(){
   const rows=[['שם תלמיד/ה','פתגם','הערכה'].map(c=>`"${c}"`).join(',')];
   items.forEach(item=>{
     rows.push([item.student,item.proverb||'',item.text||'']
-      .map(c=>`"${String(c).replace(/"/g,'""').replace(/
-/g,' ')}"`)
+      .map(c=>`"${String(c).replace(/"/g,'""').replace(/\n/g,' ')}"`)
       .join(','));
   });
-  const blob=new Blob(['﻿'+rows.join('
-')],{type:'text/csv;charset=utf-8'});
+  const blob=new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=`ממני_אליך_${group}_מחצית_${half}.csv`;
@@ -588,8 +586,7 @@ async function exportWord(){
     <div style="${rtlStyle}margin-bottom:28px;page-break-inside:avoid;">
       <div style="font-weight:bold;font-size:13pt;margin-bottom:4px;border-bottom:1px solid #ccc;padding-bottom:4px;">${escHtml(item.student)}</div>
       ${item.proverb?`<div style="font-style:italic;color:#7a5c00;font-size:11pt;margin-bottom:6px;">✦ ${escHtml(item.proverb)}</div>`:''}
-      <div style="${rtlStyle}">${escHtml(item.text||'').replace(/
-/g,'<br>')}</div>
+      <div style="${rtlStyle}">${escHtml(item.text||'').replace(/\n/g,'<br>')}</div>
     </div>`).join('');
   const html=`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8">
     <style>body{${rtlStyle}padding:30px;} h1{font-size:16pt;text-align:center;margin-bottom:8px;} .sub{text-align:center;font-size:11pt;color:#666;margin-bottom:24px;border-bottom:2px solid #c8a000;padding-bottom:12px;}</style>
