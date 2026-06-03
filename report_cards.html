@@ -820,8 +820,7 @@ async function enrichDraft(){
     let reportContent='';
     const prevEval=document.getElementById('prev-eval-input').value.trim();
     if(uploadMode==='prev'&&prevEval){
-      reportContent='הערכה ממחצית א׳:
-'+prevEval;
+      reportContent='הערכה ממחצית א׳:\n'+prevEval;
     } else if(uploadMode==='text'&&rawText){
       reportContent=rawText;
     } else if(uploadMode==='file'&&uploadedFileBase64){
