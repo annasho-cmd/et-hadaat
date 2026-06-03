@@ -204,7 +204,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="upload-tabs">
       <div class="upload-tab active" id="tab-file" onclick="switchTab('file')">📄 PDF / תמונה</div>
       <div class="upload-tab" id="tab-text" onclick="switchTab('text')">✏️ מלל חופשי</div>
-      <div class="upload-tab" id="tab-skip" onclick="switchTab('skip')">⏭ דלג — המשך עם הטיוטה</div>
+      <div class="upload-tab" id="tab-prev" onclick="switchTab('prev')">📝 הערכה ממחצית א׳</div>
+      <div class="upload-tab" id="tab-skip" onclick="switchTab('skip')">⏭ דלג</div>
     </div>
     <div id="upload-file-area">
       <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
@@ -220,6 +221,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <textarea class="field-textarea" id="raw-text-input" rows="7" placeholder="הדביקי כאן את תוכן התעודה..."></textarea>
     </div>
     <div id="upload-skip-area" style="display:none;"></div>
+    <div id="upload-prev-area" style="display:none;">
+      <div class="field-hint" style="margin-bottom:8px;">הדביקי את ההערכה שכתבת במחצית א׳ — ה-AI ישמור על רציפות ולא יחזור על אותם ניסוחים.</div>
+      <textarea class="field-textarea" id="prev-eval-input" rows="8" placeholder="הדביקי כאן את הערכת מחצית א׳..."></textarea>
+    </div>
     <div id="enrich-status" style="display:none;margin-top:10px;"></div>
     <div class="btn-row">
       <button class="btn-sm" onclick="goStep(3)">← חזרה</button>
@@ -773,7 +778,7 @@ ${examples.map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n')}`;
 /* ══ STEP 4: UPLOAD ══ */
 function switchTab(tab){
   uploadMode=tab;
-  ['file','text','skip'].forEach(t=>{
+  ['file','text','prev','skip'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById('upload-'+t+'-area').style.display=t===tab?'block':'none';
   });
@@ -813,7 +818,11 @@ async function enrichDraft(){
 
   try{
     let reportContent='';
-    if(uploadMode==='text'&&rawText){
+    const prevEval=document.getElementById('prev-eval-input').value.trim();
+    if(uploadMode==='prev'&&prevEval){
+      reportContent='הערכה ממחצית א׳:
+'+prevEval;
+    } else if(uploadMode==='text'&&rawText){
       reportContent=rawText;
     } else if(uploadMode==='file'&&uploadedFileBase64){
       // First extract from file
@@ -856,6 +865,7 @@ ${reportContent}
 1. שמור על הפתיחה "${salutation}"
 2. שמור על הסגנון החם והאישי של הטיוטה
 3. חובה: שלב תוכן מנתוני התעודה — התייחס הן להערות המורים (רגלי למידה, גישה, חברתיות) והן לסיכום האישי שכתב התלמיד אם קיים. השתמש בתוכן בצורה כללית ואנושית — ללא שמות מקצועות
+4. אם ניתנה הערכה ממחצית א׳ — שמור על רציפות: ניתן להתייחס להתקדמות מאז, אל תחזור על אותם ניסוחים, שמור על אותו טון אישי
 4. בנקבה — "עלייך", בזכר — "עליך". אל תשתמש ב"ילד"/"ילדה" — רק "נער/נערה" או "תלמיד/תלמידה"
 5. אל תאריך — שמור על 5–7 משפטים
 6. בלשון ${gender}
@@ -1115,6 +1125,7 @@ function newReport(){
   document.getElementById('half-a').classList.remove('sel');document.getElementById('half-b').classList.remove('sel');
   document.getElementById('hobbies-input').value='';document.getElementById('insight-input').value='';
   document.getElementById('raw-text-input').value='';
+  document.getElementById('prev-eval-input').value='';
   renderTraits();goStep(1);
 }
 
