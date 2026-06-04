@@ -44,6 +44,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .student-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.15);color:var(--gold2);font-weight:700;}
 .student-btn.done{border-color:#6ee7a0;background:rgba(42,107,42,.15);color:#6ee7a0;}
 .student-btn.done::after{content:' ✓';font-size:.75rem;}
+.student-btn.inprogress{border-color:#f0c060;background:rgba(240,192,96,.15);color:#f0c060;}
+.student-btn.inprogress::after{content:' …';font-size:.75rem;}
 .progress-bar{background:rgba(253,245,224,.06);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;height:8px;}
 .progress-fill{height:100%;background:linear-gradient(90deg,#2a6b2a,#6ee7a0);transition:width .4s;}
 .progress-label{font-size:.75rem;opacity:.55;margin-bottom:6px;}
@@ -51,6 +53,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .gender-btn{padding:7px 18px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;color:var(--muted);transition:all .2s;}
 .gender-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
 .traits-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.style-btn{padding:7px 14px;background:rgba(253,245,224,.04);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:.82rem;color:var(--muted);transition:all .2s;font-family:'Heebo',sans-serif;}
+.style-btn:hover{border-color:var(--gold);}
+.style-btn.sel{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold2);font-weight:700;}
 .trait-tag{padding:5px 12px;background:rgba(253,245,224,.04);border:1px solid var(--border);border-radius:16px;cursor:pointer;font-size:.8rem;transition:all .2s;font-family:'Heebo',sans-serif;}
 .trait-tag:hover{border-color:var(--gold);}
 .trait-tag.sel{background:rgba(212,168,67,.18);border-color:var(--gold);color:var(--gold2);font-weight:700;}
@@ -152,7 +157,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       </div>
     </div>
     <div class="btn-row" id="step2-next" style="display:none;">
-      <button class="btn-primary" onclick="goStep(3)">המשך לתכונות ←</button>
+      <div id="resume-notice" style="display:none;padding:8px 12px;background:rgba(240,192,96,.1);border:1px solid rgba(240,192,96,.3);border-radius:8px;font-size:.82rem;color:#f0c060;width:100%;"></div>
+      <button class="btn-primary" id="step3-btn" onclick="goStep(3)">המשך לתכונות ←</button>
+      <button class="btn-sm" id="resume-btn" onclick="resumeDraft()" style="display:none;">↩ המשיכי מהיכן שעצרת</button>
     </div>
   </div>
 
@@ -174,6 +181,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       </div>
     </div>
     <div style="margin-bottom:14px;">
+      <div class="field-label">סגנון כתיבה</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+        <div class="style-btn sel" id="style-warm" onclick="selectStyle('warm')">🤝 אישי וחם</div>
+        <div class="style-btn" id="style-poetic" onclick="selectStyle('poetic')">✨ פיוטי</div>
+        <div class="style-btn" id="style-growth" onclick="selectStyle('growth')">🌱 עידוד וצמיחה</div>
+        <div class="style-btn" id="style-humor" onclick="selectStyle('humor')">😄 הומוריסטי</div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
       <div class="field-label">תחביבים ופעילויות</div>
       <div class="field-hint">כמה מילים — כלבים, כדורגל, ציור, מוזיקה...</div>
       <textarea class="field-textarea" id="hobbies-input" rows="2" placeholder="למשל: כלבים, כדורגל, טניס שולחן, עוזר לאביו בעבודה"></textarea>
@@ -185,6 +201,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
     <div class="btn-row">
       <button class="btn-sm" onclick="goStep(2)">← חזרה</button>
+      <button class="btn-sm" onclick="saveDraft()">💾 שמרי טיוטה</button>
       <button class="btn-primary" onclick="generateDraft()">✨ צרי טיוטה ראשונה ←</button>
     </div>
     <div id="draft-status" style="display:none;margin-top:10px;"></div>
@@ -447,7 +464,9 @@ const DEFAULT_EXAMPLES=[
 
 /* ══ STATE ══ */
 let currentStep=1,selectedHalf='',selectedGroup=null,selectedStudent='',selectedStudentGender='זכר';
-let doneStudents={}; // key: 'group_student_half' → true
+let doneStudents={}; // key: student → true
+let inProgressStudents={}; // key: student → true
+let selectedStyle='warm'; // warm | poetic | growth | humor
 let selectedTraits=[],selectedProverb=null,currentProverbOffset=0;
 let groups=[],uploadedFileBase64=null,uploadedFileType=null,uploadMode='file';
 let currentDraftText='',proverbsCache=null,styleExamplesCache=null;
@@ -629,10 +648,17 @@ function loadStudents(){
   // Load done students for this group+half
   db.ref('teacher/reportCards').once('value',snap=>{
     const data=snap.val()||{};
-    doneStudents={};
+    doneStudents={};inProgressStudents={};
     Object.values(data).forEach(item=>{
       if(item.group===group.name&&item.half===selectedHalf)
         doneStudents[item.student]=true;
+    });
+    // Load in-progress drafts
+    const draftSnap=await db.ref('teacher/drafts').once('value');
+    const drafts=draftSnap.val()||{};
+    Object.values(drafts).forEach(d=>{
+      if(d.group===group.name&&d.half===selectedHalf&&!doneStudents[d.student])
+        inProgressStudents[d.student]=true;
     });
     const doneCount=Object.keys(doneStudents).length;
     const total=group.students.length;
@@ -642,7 +668,8 @@ function loadStudents(){
     group.students.forEach(s=>{
       const btn=document.createElement('button');
       const isDone=!!doneStudents[s];
-      btn.className='student-btn'+(isDone?' done':'');
+      const isProgress=!!inProgressStudents[s];
+      btn.className='student-btn'+(isDone?' done':isProgress?' inprogress':'');
       btn.textContent=s;
       btn.onclick=()=>selectStudent(s,btn);
       grid.appendChild(btn);
@@ -657,6 +684,17 @@ function selectStudent(name,btn){
   selectedStudentGender='זכר';updateGenderUI();
   document.getElementById('gender-row').style.display='block';
   document.getElementById('step2-next').style.display='flex';
+  // Check for saved draft
+  const notice=document.getElementById('resume-notice');
+  const resumeBtn=document.getElementById('resume-btn');
+  if(inProgressStudents[name]){
+    notice.style.display='block';
+    notice.textContent='יש טיוטה שמורה עבור '+name+' — תרצי להמשיך מהיכן שעצרת?';
+    resumeBtn.style.display='inline-flex';
+  } else {
+    notice.style.display='none';
+    resumeBtn.style.display='none';
+  }
 }
 
 function setGender(g){selectedStudentGender=g;updateGenderUI();}
@@ -692,6 +730,13 @@ function renderSelectedChips(){
     chip.style.cssText='display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(212,168,67,.18);border:1px solid var(--gold);border-radius:14px;font-size:.8rem;color:var(--gold2);';
     chip.innerHTML=`${esc(t)} <span style="cursor:pointer;opacity:.7;font-size:.75rem;" onclick="removeTrait('${t}')">✕</span>`;
     chipsEl.appendChild(chip);
+  });
+}
+
+function selectStyle(s){
+  selectedStyle=s;
+  ['warm','poetic','growth','humor'].forEach(id=>{
+    document.getElementById('style-'+id).classList.toggle('sel',id===s);
   });
 }
 
@@ -731,6 +776,13 @@ async function generateDraft(){
   const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
   const halfText=selectedHalf==='ב'?'סוף שנת הלימודים':'מחצית א׳';
   const salutation=gender==='נקבה'?`${selectedStudent} היקרה,`:`${selectedStudent} היקר,`;
+  const styleMap={
+    warm:'אישי וחם — ישיר, אמיתי, ממורה שמכירה את התלמיד. גוף ראשון/שני.',
+    poetic:'פיוטי — שלב מטאפורות ודימויים ציוריים. אם אפשרי, הוסף שורה-שתיים עם חרוז.',
+    growth:'עידוד וצמיחה — מוכוון עתיד, מדגיש פוטנציאל ויכולת. סיום עם מסר השראתי.',
+    humor:'הומוריסטי — קל, חם ומצחיק. מתאים לתלמיד עם חוש הומור. שמור על כבוד ואמת.'
+  };
+  const styleInstruction=styleMap[selectedStyle]||styleMap.warm;
 
   const prompt=`אתה עוזר הוראה. כתוב הערכה אישית לתעודה לסוף ${halfText}.
 
@@ -751,7 +803,8 @@ async function generateDraft(){
 7. סיים עם התובנה כמסר חינוכי וחם
 8. עברית חמה ואישית, בלשון ${gender}
 9. 5–6 משפטים בלבד — ללא פתגם עדיין
-10. החזר רק את הטקסט
+10. סגנון כתיבה: ${styleInstruction}
+11. החזר רק את הטקסט
 
 למד את הסגנון מהדוגמאות — חקה טון ומבנה, לא תוכן:
 ${examples.map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n')}`;
@@ -960,6 +1013,13 @@ async function generateFinal(){
   const gender=selectedStudentGender==='נקבה'?'נקבה':'זכר';
   const halfText=selectedHalf==='ב'?'סוף שנת הלימודים':'מחצית א׳';
   const examples=await getExamplesForPrompt();
+  const styleMap={
+    warm:'אישי וחם — ישיר, אמיתי, ממורה שמכירה את התלמיד.',
+    poetic:'פיוטי — שלב מטאפורות ודימויים ציוריים. אם אפשרי, הוסף שורה-שתיים עם חרוז.',
+    growth:'עידוד וצמיחה — מוכוון עתיד, מדגיש פוטנציאל ויכולת.',
+    humor:'הומוריסטי — קל, חם ומצחיק. שמור על כבוד ואמת.'
+  };
+  const styleInstruction=styleMap[selectedStyle]||styleMap.warm;
 
   const prompt=`יש לך טיוטת הערכה. שלב בתוכה את הפתגם בצורה טבעית וצור את הגרסה הסופית.
 
@@ -974,9 +1034,10 @@ ${currentDraftText}
 3. בנקבה — "עלייך", בזכר — "עליך". אל תשתמש ב"ילד"/"ילדה" — רק "נער/נערה" או "תלמיד/תלמידה"
 4. שלב את הפתגם בטבעיות בתוך משפט — בפתיחה, באמצע, או לפני הסיום
 5. חובה: כתוב את הפתגם בדיוק כפי שניתן — מילה במילה, ללא שינוי כלשהו. שים אותו בגרשיים. הפתגם כבר כולל את מקורו בסוגריים — שמור גם אותו כפי שהוא.
-6. שמור על 5–7 משפטים, חם ואישי, בלשון ${gender}
-7. ודא שהסיום מכוון ל${selectedHalf==='ב'?'שנה הבאה':'מחצית הבאה'}
-8. החזר רק את הטקסט
+6. סגנון כתיבה: ${styleInstruction}
+7. שמור על 5–7 משפטים, בלשון ${gender}
+8. ודא שהסיום מכוון ל${selectedHalf==='ב'?'שנה הבאה':'מחצית הבאה'}
+9. החזר רק את הטקסט
 
 למד את הסגנון מהדוגמאות — חקה טון ומבנה, לא תוכן:
 ${examples.map((e,i)=>`--- דוגמה ${i+1} ---\n${e}`).join('\n\n')}`;
@@ -1082,11 +1143,74 @@ async function deleteProverb(key){
 }
 
 /* ══ SAVE / EXPORT ══ */
+/* ══ DRAFT SAVE / RESUME ══ */
+async function saveDraft(){
+  if(!selectedStudent){toast('נא לבחור תלמיד/ה תחילה');return;}
+  const key=selectedStudent.replace(/ /g,'_')+'_'+(selectedGroup?.name||'')+'_'+selectedHalf;
+  const data={
+    student:selectedStudent,group:selectedGroup?.name||'',half:selectedHalf,
+    gender:selectedStudentGender,traits:selectedTraits,
+    hobbies:document.getElementById('hobbies-input').value,
+    insight:document.getElementById('insight-input').value,
+    style:selectedStyle,draft:currentDraftText,savedAt:Date.now()
+  };
+  await db.ref('teacher/drafts/'+key).set(data);
+  inProgressStudents[selectedStudent]=true;
+  // Mark button yellow
+  document.querySelectorAll('.student-btn').forEach(btn=>{
+    if(btn.textContent.replace(' …','').trim()===selectedStudent){
+      btn.classList.add('inprogress');btn.classList.remove('sel');
+    }
+  });
+  // Update progress
+  updateProgressBar();
+  toast('✓ טיוטה נשמרה — '+selectedStudent);
+}
+
+async function resumeDraft(){
+  const key=selectedStudent.replace(/ /g,'_')+'_'+(selectedGroup?.name||'')+'_'+selectedHalf;
+  const snap=await db.ref('teacher/drafts/'+key).once('value');
+  const d=snap.val();if(!d){toast('לא נמצאה טיוטה');return;}
+  // Restore state
+  selectedStudentGender=d.gender||'זכר';updateGenderUI();
+  selectedTraits=d.traits||[];
+  selectedStyle=d.style||'warm';
+  currentDraftText=d.draft||'';
+  // Restore UI
+  renderTraits();
+  renderSelectedChips();
+  document.getElementById('hobbies-input').value=d.hobbies||'';
+  document.getElementById('insight-input').value=d.insight||'';
+  selectStyle(selectedStyle);
+  document.getElementById('trait-count').textContent=`נבחרו ${selectedTraits.length}/10 תכונות`;
+  if(currentDraftText){
+    document.getElementById('draft-text-preview').textContent=currentDraftText;
+    goStep(4);
+  } else {
+    goStep(3);
+  }
+  toast('✓ המשך מהיכן שעצרת — '+selectedStudent);
+}
+
+function updateProgressBar(){
+  const total=selectedGroup?.students?.length||0;
+  const doneCount=Object.keys(doneStudents).length;
+  const progressCount=Object.keys(inProgressStudents).length;
+  const fill=document.querySelector('.progress-fill');
+  const label=document.querySelector('.progress-label');
+  if(fill)fill.style.width=(total?Math.round(doneCount/total*100):0)+'%';
+  if(label)label.textContent=`הושלמו ${doneCount} מתוך ${total} · בתהליך: ${progressCount}`;
+}
+
 function saveReport(){
   const text=document.getElementById('result-edit').value.trim();
   if(!text){toast('אין טקסט');return;}
   const key=selectedStudent.replace(/ /g,'_')+'_'+selectedHalf+'_'+Date.now();
   db.ref('teacher/reportCards/'+key).set({student:selectedStudent,group:selectedGroup?.name||'',half:selectedHalf,traits:selectedTraits,text,proverb:selectedProverb?.text||'',savedAt:Date.now()});
+  // Remove draft if exists
+  const draftKey=selectedStudent.replace(/ /g,'_')+'_'+(selectedGroup?.name||'')+'_'+selectedHalf;
+  db.ref('teacher/drafts/'+draftKey).remove();
+  delete inProgressStudents[selectedStudent];
   // Mark student as done in UI
   doneStudents[selectedStudent]=true;
   document.querySelectorAll('.student-btn').forEach(btn=>{
@@ -1097,10 +1221,7 @@ function saveReport(){
   // Update progress bar
   const total=selectedGroup?.students?.length||0;
   const doneCount=Object.keys(doneStudents).length;
-  const fill=document.querySelector('.progress-fill');
-  const label=document.querySelector('.progress-label');
-  if(fill)fill.style.width=(total?Math.round(doneCount/total*100):0)+'%';
-  if(label)label.textContent=`הושלמו ${doneCount} מתוך ${total} תלמידים`;
+  updateProgressBar();
   toast('✓ נשמרה — '+selectedStudent);
 }
 function copyReport(){navigator.clipboard.writeText(document.getElementById('result-edit').value).then(()=>toast('✓ הועתק'));}
@@ -1111,7 +1232,7 @@ function printReport(){
 }
 function newReport(){
   selectedStudent='';selectedTraits=[];selectedProverb=null;selectedHalf='';selectedGroup=null;
-  uploadedFileBase64=null;uploadedFileType=null;uploadMode='file';currentDraftText='';
+  uploadedFileBase64=null;uploadedFileType=null;uploadMode='file';currentDraftText='';selectedStyle='warm';selectStyle('warm');
   document.getElementById('half-a').classList.remove('sel');document.getElementById('half-b').classList.remove('sel');
   document.getElementById('hobbies-input').value='';document.getElementById('insight-input').value='';
   document.getElementById('raw-text-input').value='';
