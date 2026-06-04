@@ -155,6 +155,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         <div class="gender-btn sel" id="g-male" onclick="setGender('זכר')">זכר</div>
         <div class="gender-btn" id="g-female" onclick="setGender('נקבה')">נקבה</div>
       </div>
+      <div class="field-label" style="margin-top:12px;">כמה שנים את מחנכת כיתה זו?</div>
+      <div class="gender-toggle">
+        <div class="gender-btn sel" id="years-1" onclick="selectYears(1)">שנה ראשונה</div>
+        <div class="gender-btn" id="years-2" onclick="selectYears(2)">שנה שנייה</div>
+        <div class="gender-btn" id="years-3" onclick="selectYears(3)">שנה שלישית+</div>
+      </div>
     </div>
     <div class="btn-row" id="step2-next" style="display:none;">
       <div id="resume-notice" style="display:none;padding:8px 12px;background:rgba(240,192,96,.1);border:1px solid rgba(240,192,96,.3);border-radius:8px;font-size:.82rem;color:#f0c060;width:100%;"></div>
@@ -467,6 +473,7 @@ let currentStep=1,selectedHalf='',selectedGroup=null,selectedStudent='',selected
 let doneStudents={}; // key: student → true
 let inProgressStudents={}; // key: student → true
 let selectedStyle='warm'; // warm | poetic | growth | humor
+let yearsTeaching=1; // 1 | 2 | 3
 let selectedTraits=[],selectedProverb=null,currentProverbOffset=0;
 let groups=[],uploadedFileBase64=null,uploadedFileType=null,uploadMode='file';
 let currentDraftText='',proverbsCache=null,styleExamplesCache=null;
@@ -708,6 +715,14 @@ function selectStudent(name,btn){
 }
 
 function setGender(g){selectedStudentGender=g;updateGenderUI();}
+function selectYears(n){
+  yearsTeaching=n;
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById('years-'+i);
+    if(el)el.classList.toggle('sel',i===n);
+  });
+}
+
 function updateGenderUI(){
   document.getElementById('g-male').classList.toggle('sel',selectedStudentGender==='זכר');
   document.getElementById('g-female').classList.toggle('sel',selectedStudentGender==='נקבה');
@@ -799,6 +814,7 @@ async function generateDraft(){
 נתונים:
 - שם: ${selectedStudent}
 - מגדר: ${gender}
+- וותק המחנכת עם הכיתה: ${yearsTeaching===1?'שנה ראשונה — היכרות חדשה':yearsTeaching===2?'שנה שנייה — מכירה את התלמיד/ה היטב':'שנה שלישית ומעלה — היכרות עמוקה ומתמשכת'}
 - תכונות: ${selectedTraits.join(', ')||'לא צוינו'}
 - תחביבים ופעילויות: ${hobbies||'לא צוין'}
 - תובנה לעתיד: ${insight||'כתוב משפט עידוד מתאים'}
@@ -807,6 +823,7 @@ async function generateDraft(){
 1. פתח: "${salutation}" — שורה נפרדת לפני הגוף
 2. כתוב בגוף ראשון/שני — "אני", "אתה/את", "הנך/הינך" — כפי שמתאים לזרימה
 3. שים לב: בנקבה — "עלייך", בזכר — "עליך"
+4. וותק ההיכרות חשוב: ${yearsTeaching===1?'שנה ראשונה — מתאים לכתוב "השנה גיליתי..."':yearsTeaching===2?'שנה שנייה — חובה לכתוב "במהלך שנתיים של הכרות..." ולא "השנה"':'שנה שלישית ומעלה — כתוב "במהלך השנים שאני מכירה אותך..."'}"
 4. אל תשתמש בביטויים "ילד" או "ילדה" — השתמש ב"נער/נערה" או "תלמיד/תלמידה" בלבד
 5. שלב את התחביבים בטבעיות כחלק מתיאור האישיות
 6. תמונה אנושית זורמת — לא רשימת תכונות
@@ -971,9 +988,10 @@ async function renderProverbs(all){
 
   let recommended=[];
   try{
+    const draftContext=currentDraftText?`\n\nטיוטת ההערכה שנכתבה:\n${currentDraftText.substring(0,300)}`:'';
     const r=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,
-        messages:[{role:'user',content:`תכונות התלמיד/ה: ${selectedTraits.join(', ')}\n\nמהרשימה הבאה, ציין את מספרי 3 הפתגמים המתאימים ביותר לתכונות (ספרות בלבד, מופרדות בפסיק):\n${slice.map((p,i)=>`${i+1}. ${p.text}`).join('\n')}`}]})});
+        messages:[{role:'user',content:`תכונות התלמיד/ה: ${selectedTraits.join(', ')}${draftContext}\n\nמהרשימה הבאה, ציין את מספרי 3 הפתגמים המתאימים ביותר לתכונות ולטיוטת ההערכה (ספרות בלבד, מופרדות בפסיק):\n${slice.map((p,i)=>`${i+1}. ${p.text}`).join('\n')}`}]})});
     const d=await r.json();
     const txt=(d.content?.[0]?.text||'');
     recommended=txt.match(/\d+/g)?.slice(0,3).map(n=>parseInt(n)-1)||[0,1,2];
@@ -1242,7 +1260,7 @@ function printReport(){
 }
 function newReport(){
   selectedStudent='';selectedTraits=[];selectedProverb=null;selectedHalf='';selectedGroup=null;
-  uploadedFileBase64=null;uploadedFileType=null;uploadMode='file';currentDraftText='';selectedStyle='warm';selectStyle('warm');
+  uploadedFileBase64=null;uploadedFileType=null;uploadMode='file';currentDraftText='';selectedStyle='warm';selectStyle('warm');yearsTeaching=1;selectYears(1);
   document.getElementById('half-a').classList.remove('sel');document.getElementById('half-b').classList.remove('sel');
   document.getElementById('hobbies-input').value='';document.getElementById('insight-input').value='';
   document.getElementById('raw-text-input').value='';
