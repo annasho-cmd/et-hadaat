@@ -833,16 +833,7 @@ async function enrichDraft(){
         :{type:'image',source:{type:'base64',media_type:normalizedMime,data:uploadedFileBase64}};
       const extractR=await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
-          messages:[{role:'user',content:[filePart,{type:'text',text:'חלץ מהתעודה שני חלקים:
-1. הערות המורים המילוליות — ללא ציונים, ללא שמות מקצועות
-2. הסיכום האישי של התלמיד (אם קיים — לעיתים נקרא "סיכום אישי" או "דברי התלמיד")
-
-החזר בפורמט:
-הערות מורים:
-[הערות]
-
-סיכום אישי של התלמיד:
-[הסיכום או "לא נמצא"]'}]}]})});
+          messages:[{role:'user',content:[filePart,{type:'text',text:'חלץ מהתעודה שני חלקים:\n1. הערות המורים המילוליות — ללא ציונים, ללא שמות מקצועות\n2. הסיכום האישי של התלמיד (אם קיים)\n\nהחזר בפורמט:\nהערות מורים: [הערות]\nסיכום אישי: [הסיכום או לא נמצא]'}]}]})});
       const ed=await extractR.json();
       reportContent=(ed.content?.[0]?.text||'').trim();
     }
