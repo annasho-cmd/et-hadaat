@@ -654,11 +654,21 @@ function loadStudents(){
         doneStudents[item.student]=true;
     });
     // Load in-progress drafts
-    const draftSnap=await db.ref('teacher/drafts').once('value');
-    const drafts=draftSnap.val()||{};
-    Object.values(drafts).forEach(d=>{
-      if(d.group===group.name&&d.half===selectedHalf&&!doneStudents[d.student])
-        inProgressStudents[d.student]=true;
+    db.ref('teacher/drafts').once('value',draftSnap=>{
+      const drafts=draftSnap.val()||{};
+      Object.values(drafts).forEach(d=>{
+        if(d.group===group.name&&d.half===selectedHalf&&!doneStudents[d.student])
+          inProgressStudents[d.student]=true;
+      });
+      // Mark inprogress buttons after drafts loaded
+      group.students.forEach(s=>{
+        if(inProgressStudents[s]){
+          document.querySelectorAll('.student-btn').forEach(btn=>{
+            if(btn.textContent.replace(' …','').trim()===s)
+              btn.classList.add('inprogress');
+          });
+        }
+      });
     });
     const doneCount=Object.keys(doneStudents).length;
     const total=group.students.length;
